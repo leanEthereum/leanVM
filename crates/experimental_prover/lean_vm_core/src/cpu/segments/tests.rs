@@ -99,6 +99,7 @@ fn program(frame0: usize, iterations: &[Iteration], heap: bool, prefix: [Op; 2])
     let alloc = |ptr| RHint::Alloc {
         ptr,
         size: HEAP as u32 / 2,
+        aligned: false,
     };
     let write = |q: u32| RHint::WitnessHeap {
         name: format!("v{q}"),
@@ -149,7 +150,7 @@ fn execute((program, witness): &Run, segments: bool) -> Result<Execution, ExecEr
     execute_as(program, witness, [F128::ZERO; 2], &mut |_: &Lanes| {}, segments)
 }
 
-/// How the run with segments differs from the serial one (memory image, counts, write states, rows, or error), if it
+/// How the run with segments differs from the serial one (memory image, write states, rows with their steps, or error), if it
 /// does, and the loops it dispatched and merged.
 fn divergence(run: &Run) -> (Option<String>, (usize, usize)) {
     let serial = execute(run, false);
@@ -274,4 +275,39 @@ fn random_links_and_stores_merge_as_serial() {
         "{merged} cases merged, {fell_back} fell back"
     );
     assert!(failing > 0, "no case fails serially");
+}
+
+/// A compiled loop whose iterations allocate `b` heap cells, then call a frame that hashes, so starts aligned: the
+/// padding before iteration 0's frame differs from the later ones', and the loop still runs as segments.
+#[test]
+fn aligned_frames_run_as_segments() {
+    for hash in [false, true] {
+        for b in [1usize, 2, 3, 5, 8, 16] {
+            let callee = if hash {
+                "def f(v):\n    h = StackBuf(2)\n    keccak([v, v], [v, v], h)\n    return h[0]\n"
+            } else {
+                "def f(v):\n    return v * v\n"
+            };
+            let src = format!(
+                "{callee}
+def main():
+    for i in mul_range(1, GEN ** 60):
+        w = StackBuf(1)
+        hint_witness(w[0:1], \"s\")
+        hb = HeapBuf({b})
+        hb[1] = w[0]
+        x = f(hb[1])
+        assert x == x
+    return
+"
+            );
+            let program: Program = zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap()).into();
+            let witness = vec![("s".to_string(), (0..60).map(|k| vec![word(k as u64 + 3)]).collect())];
+            assert_eq!(
+                divergence(&(program, witness)),
+                (None, (merges(), merges())),
+                "hash {hash}, heap {b}"
+            );
+        }
+    }
 }

@@ -12,10 +12,9 @@ public import LeanVM.Guest.CoreMode.Fam.LoopEntry
 /-!
 # A loop's counter on a valid tree
 
-`chainF`: a valid tree of a loop helper of its shape (`loopShape`) at counter `i` reaches its end
-after `m` iterations, `i·g^m` the end, `1 ≤ m` and `m` frames of its function within the tree's words:
-a run stops where its next counter meets its end, its last tail call untaken. `chain`: so `m` is at
-most the tree's words, each frame at least a word.
+`chain`: a valid tree of a loop helper of its shape (`loopShape`) at counter `i` reaches its end
+after `m` iterations, `i·g^m` the end, `1 ≤ m` at most the tree's words (each iteration a frame of at
+least a word): a run stops where its next counter meets its end, its last tail call untaken.
 
 `insts_ctr`: on a valid tree whose functions pass `termChk` (`ProgOk`), every instance of a loop
 helper has as counter a power `g^e` with `e` plus its subtree's words at most `B`, given the root's
@@ -122,13 +121,13 @@ section
 
 variable {rd : Reader} {fs : String → ℕ} {P : Core.Program}
 
-/-- **A loop's run, its frames counted**: a valid tree of a loop helper of its shape at counter `i`
-makes `m` iterations, `1 ≤ m`, `m` frames within its words, `i·g^m` its end. -/
-theorem chainF (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+/-- **A loop's run reaches its end**: a valid tree of a loop helper of its shape at counter `i`
+makes `m` iterations, `1 ≤ m` at most its words, `i·g^m` its end. -/
+theorem chain (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
     {args rets : List E} {fn : Fn} {e : Option ℕ}, (Memory.Tree.node f σ bufs kids).total fs ≤ n →
     (Memory.Tree.node f σ bufs kids).Valid P rd args rets → P.find? f = some fn →
     loopShape fn e = some (loopBody fn) →
-    ∃ m p0 prest, fn.params = p0 :: prest ∧ 1 ≤ m ∧ m * fs f ≤ (Memory.Tree.node f σ bufs kids).total fs ∧
+    ∃ m p0 prest, fn.params = p0 :: prest ∧ 1 ≤ m ∧ m ≤ (Memory.Tree.node f σ bufs kids).total fs ∧
       σ p0 * ofK (addressOfIndex m) = endVal σ fn e
   | 0, f, σ, bufs, kids, _, _, _, _, htot, _, _, _ => by
     have := le_total (fs := fs) (Memory.Tree.node f σ bufs kids)
@@ -162,7 +161,7 @@ theorem chainF (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val}
         obtain ⟨fn'', hf'', hpm, -⟩ := hkv'
         have hfe' := Option.some.inj (hf''.symm.trans hf)
         subst fn''
-        obtain ⟨m, p0', prest', hps', hm1, hm2, hm⟩ := chainF hfs n (by omega) hkv hf hs
+        obtain ⟨m, p0', prest', hps', hm1, hm2, hm⟩ := chain hfs n (by omega) hkv hf hs
         rw [hps] at hps'
         obtain ⟨rfl, rfl⟩ := List.cons.inj hps'
         rw [hps] at hpm
@@ -176,19 +175,9 @@ theorem chainF (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val}
             cases prest with
             | nil => rfl
             | cons p1 _ => simp only [List.map_cons, List.cons.injEq] at hrest; exact hrest.1
-        refine ⟨m + 1, p0, prest, hps, by omega, by rw [Nat.succ_mul]; omega, ?_⟩
+        refine ⟨m + 1, p0, prest, hps, by omega, by omega, ?_⟩
         rw [← hend, ← hm, h0', hi, mul_assoc, ofK_gpow_add, Nat.add_comm 1 m]
       · exact hkv.elim
-
-/-- **A loop's run reaches its end**: as `chainF`, `m` at most the tree's words. -/
-theorem chain (hfs : ∀ f, 1 ≤ fs f) (n : ℕ) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
-    {args rets : List E} {fn : Fn} {e : Option ℕ} (htot : (Memory.Tree.node f σ bufs kids).total fs ≤ n)
-    (hv : (Memory.Tree.node f σ bufs kids).Valid P rd args rets) (hf : P.find? f = some fn)
-    (hs : loopShape fn e = some (loopBody fn)) :
-    ∃ m p0 prest, fn.params = p0 :: prest ∧ 1 ≤ m ∧ m ≤ (Memory.Tree.node f σ bufs kids).total fs ∧
-      σ p0 * ofK (addressOfIndex m) = endVal σ fn e := by
-  obtain ⟨m, p0, prest, hps, hm1, hm2, hm⟩ := chainF hfs n htot hv hf hs
-  exact ⟨m, p0, prest, hps, hm1, (Nat.le_mul_of_pos_right m (hfs f)).trans hm2, hm⟩
 
 /-- **A loop's counter fits**: a power `g^e`, `e` and the subtree's words at most `B`. -/
 def CtrOk (P : Core.Program) (fs : String → ℕ) (B : ℕ) (t : Tree) : Prop :=

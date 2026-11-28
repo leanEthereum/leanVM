@@ -60,6 +60,7 @@ FEATURES = {
     'idx': 'a read at any index of a run (`b·j^S·g^(S·k)`, facts `lo <= j + k < hi`), bounds as residuals',
     'ptsrun': 'a run covered by its points (constant bounds, at most 64)',
     'armblock': 'arms writing a growing block `Q·[0, j + d)`: the run `Q·[0, e(x) + d)` after the dispatch',
+    'armblock2': '`armblock` at a dispatch of two arms (a growing block fitted through both)',
     'chain': 'a run needed covered by up to three pieces in scope from its base (residue runs, points), joined at '
              'symbolic indices (`drv` of `catM`s), its upper bound below their end a residual',
     'armsub': 'an own guarantee over a dispatch\'s selector `x` that each arm `j` writes at `x = g^j`: after the '
@@ -95,7 +96,7 @@ FEATURES = {
     'vthi': 'a run up to a bound over bases before one up to a constant',
 }
 # the features the core route turns on per function (`callc.py`, `callcres.py`): off by default
-PER_FN = {'der', 'jt', 'lastres', 'nohs', 'rcpts', 'vthi'}
+PER_FN = {'armblock2', 'der', 'jt', 'lastres', 'nohs', 'rcpts', 'vthi'}
 F = set(FEATURES) - PER_FN
 WRAP = [True]
 # `arm_blocks` reads the arms' runs too (set by `callc.py` only, so `emitc.py`'s certificates do not move)
@@ -393,6 +394,28 @@ def at_arm(key, sel):
         ARM.pop(key, None)
 
 
+def sel_reach(x, ss):
+    """`CoreMode.selReach`: the first top-level statement other than an atom, a `call` or a `callIf` a `dispatch` or
+    `match` on `x`."""
+    for s in ss:
+        if s[0] in ('dispatch', 'match'):
+            return s[1] == x
+        if s[0] not in ('a', 'call', 'callIf'):
+            return False
+    return False
+
+
+def arm_path(key):
+    """`CoreMode.armPath`: at its arm `(x, r)` (`ARM`), the branch condition `x = g^r` when the body reaches a selection
+    on `x` (`sel_reach`), so every returning path took arm `r`; for a function whose rule file asks (`arm_path`), as the
+    check of a split's arm states it (`selArmsOk`'s first form)."""
+    if key not in ARM:
+        return []
+    import fnrules
+    x, r = ARM[key]
+    return [('arm', x, r)] if fnrules.some('arm_path', key) and sel_reach(x, CORE[key][1]) else []
+
+
 def arm_body(key):
     """The body a pass reads: the function's, at its arm (`ARM`)."""
     body = CORE[key][1]
@@ -438,7 +461,8 @@ class Pass:
         self.contents = []               # (cell pattern run, object): words stored by callees
         self.objres = {}                 # residual merging (`objs.py`)
         self.stores = []                 # (cell root, offset, stride, object of the stored word) (`objs.py`)
-        self.path = []                   # the branch conditions in scope: ('ite', c, zero?) or ('arm', x, j)
+        # the branch conditions in scope: ('ite', c, zero?) or ('arm', x, j); at a split's arm, its `arm_path`
+        self.path = list(arm_path(key))
         self.rpath = collections.defaultdict(list)   # residual -> the paths it was asked under
         self.sites = []                  # (callee, args, ghost instantiation, path), every call met (`emitc.py`)
         for s in stmts(self.body):
@@ -698,7 +722,7 @@ class Pass:
             if arm_only:
                 return None
             if allow_pre and not self.at_tail and self.iface(c) and (c[0] or self.key == 'main' and 0 <= c[1] < 2 ** 20):
-                # (an absolute cell only for the root: its preconditions are the public input's cells)
+                # (an absolute cell only for the root: its preconditions are the public input's cells, `preSet_const`)
                 if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
                     if c not in self.sig.pre:
                         self.sig.pre.append(c)
@@ -1385,7 +1409,6 @@ class Pass:
                     outs.append(self.block(t, arm))
                     self.path.pop()
                     self.subst = old
-                st0 = st
                 st = self.join(st, outs, (x, list(range(len(s[2])))))
                 if st is not None:
                     self.fact(st, x, num(len(s[2])), 'selector', cidx=(('val', s[1]), ('num', len(s[2]))))
@@ -1628,7 +1651,7 @@ class Pass:
     def arm_blocks(self, st, xm, outs, key=None):
         """Arms of a selector `x` each writing a growing block `Q·g^(c..j+c)`, `c <= 0`: the run `Q·[0, e(x) + d)`
         (`armBlocks`), `d` the least block's excess over its arm index."""
-        if len(outs) < 3 or any(t is None for t in outs) or not xm[0]:
+        if len(outs) < (2 if 'armblock2' in F else 3) or any(t is None for t in outs) or not xm[0]:
             return
         by = collections.defaultdict(set)
         for c in outs[-1].pts:
@@ -1677,6 +1700,10 @@ class Pass:
             st.D.add(v)
             # a parameter is its own base: an `assert ==` relating it to a product is an equation (`eqs`)
             st.env[v] = base(v)
+        # an equation residual `⟨[(v, 1)], 0⟩ = m` (`RES_EQ`) names `v` by `m` from the start (`seedEnv`)
+        for a, b in (fnrules.table('RES_EQ') or {}).get(self.key, ()):
+            if len(a[0]) == 1 and a[0][0][1] == 1 and a[1] == 0:
+                st.env.setdefault(a[0][0][0], b)
         G = self.sig
         for i, r in enumerate(G.preR):
             st.runs.append((r, ('preR', i)))

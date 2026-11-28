@@ -44,15 +44,6 @@ fn map_collect_preserves_index_order() {
 }
 
 #[test]
-fn fill_writes_every_slot() {
-    for n in SIZES {
-        let mut dst = vec![usize::MAX; n];
-        parallel::fill(&mut dst, |i| i + 7);
-        assert!(dst.iter().enumerate().all(|(i, &v)| v == i + 7), "n = {n}");
-    }
-}
-
-#[test]
 fn chunks_mut_hands_out_disjoint_slices() {
     for chunk in [1usize, 3, 64, 1024] {
         let mut data = vec![0usize; 5_000];
@@ -63,13 +54,6 @@ fn chunks_mut_hands_out_disjoint_slices() {
         });
         assert!(data.iter().enumerate().all(|(i, &v)| v == i), "chunk = {chunk}");
     }
-}
-
-#[test]
-fn for_each_mut_reports_global_indices() {
-    let mut data = vec![0usize; 7_777];
-    parallel::for_each_mut(&mut data, |i, slot| *slot = i * 3);
-    assert!(data.iter().enumerate().all(|(i, &v)| v == i * 3));
 }
 
 #[test]

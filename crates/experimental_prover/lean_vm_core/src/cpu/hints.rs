@@ -6,7 +6,7 @@ use primitives::field::{F64, div_by_g, g_pow, mul_by_g};
 pub use isa::{BitsDest, RHint};
 
 /// The cells a provable run can address, which the [`GPow`] index covers: a memory of `2^29`
-/// cells would overflow the `2^30` stack with its three columns, so no larger one can be committed.
+/// cells fills the `2^30` stack with its two columns, leaving none for the tables', so no larger one can be committed.
 pub(crate) const MAX_CELLS: u32 = 1 << (verifier::MAX_STACKED_LOG - 2);
 
 /// The exponents the [`GPow`] table can cover: an address below [`MAX_CELLS`], or a `pc` (a return

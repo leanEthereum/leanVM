@@ -186,7 +186,8 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
 - 128-bit binary field (degree-2 tower over the 64-bit field)
 - [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187), using [affine combiners](https://eprint.iacr.org/2026/2863)
 - [Hashcaster 2](https://github.com/levs57/hashcaster2) proving Keccak via GKR and RMFE
-- [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
+- Hotwire (Dao, Thaler and Wambsgans): tables linked by one-hot pointers, after [Twist and Shout](https://eprint.iacr.org/2025/105)
+- [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
 
 ## FV Credits:
 

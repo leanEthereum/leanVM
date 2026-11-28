@@ -1,9 +1,10 @@
 //! Real aggregations for the Lean differential check of the guest (`lean_vm/cli/GuestDiff.lean`): per case,
 //! the node's statement, its seed and witness (`LeanVM.Node.NodeWitness`: every child's statement, fresh claim and
 //! raw proof, the raw signatures with their claims, the batching's hints), the streams `aggregate` installed, the public input and the
-//! run's memory size, as whitespace-separated tokens. Ported from the BLAKE2s-era `guest_diff`: Flock's claims are
-//! gone (a deferred and a fresh claim are a point and a value), and the installed streams are read through
-//! `aggregation/hints.rs`'s test-only `FORGE` hook, which hands this module the node's `Hints` before they are installed.
+//! run's memory size, as whitespace-separated tokens. A deferred claim is a point and a value on the split program, a
+//! fresh claim a point over the instructions and the split columns' values there (`FreshClaim`), and the installed
+//! streams are read through `aggregation/hints.rs`'s test-only `FORGE` hook, which hands this module the node's
+//! `Hints` before they are installed.
 //! `LEANVM_GUEST_DIFF=<dir> cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored`
 //! writes `<dir>/<case>.txt`.
 //!
@@ -173,7 +174,7 @@ fn export(
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
-    let mut out = Out(format!("leanvm-guest-diff 5\ncase {name}"));
+    let mut out = Out(format!("leanvm-guest-diff 6\ncase {name}"));
     out.tag("seed");
     let seed = fs_seed();
     out.bytes(&cell_bytes(seed));
@@ -196,13 +197,12 @@ fn export(
         let scalar = child.proof.clone();
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
-        // The fresh claim's value, which the caller evaluates (`aggregate` off its batch's sums).
-        let fresh_value = from_scalar(unified_guest().bytecode().evaluate(&summary.bytecode_point).unwrap());
-        gen_verify(kbc(), &child.proof, &summary).expect("the child fits");
+        // The fresh claim, as `aggregate` raises it: the split columns at the link point's instruction coordinates.
+        let fresh = FreshClaim::at(summary.bytecode_point[..kbc()].iter().copied().map(from_scalar).collect());
+        gen_verify(kbc(), &child.proof, &summary, &fresh.values).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
-        out.es(&point);
-        out.e(fresh_value);
+        out.es(&fresh.point);
+        out.es(&fresh.values);
         out.tag("proof");
         out.es(&child.proof.stream.iter().copied().map(from_scalar).collect::<Vec<_>>());
         // Every phase's paths (`Proof::merkle_openings`), each its leaf index, leaf and siblings.

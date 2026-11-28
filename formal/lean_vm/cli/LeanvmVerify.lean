@@ -22,13 +22,15 @@ proofs.
   `Verifier.verify` on the decoded proof.
 * `lake exe leanvm-verify --events <bytecode> <public input> <stream> <merkle phases>`: run the
   verifier on an honest structured proof and print, as one JSON object, the stream offset where
-  each of its phases starts, where each commitment root and proof-of-work nonce is read, and the
-  stream's length: the positions `scripts/fuzz-verifier.py` mutates. The phases are marked by a
-  copy of `verifyExecution`'s and `verifyKeccak`'s sequencing that runs the statement's own
-  sub-programs (`tracedExecution`); the roots and nonces come from a logging copy of the compiled
-  reading (`runLog`), run both on that copy and on `leanVmVerifierProgram` itself, and the two
-  logs must agree, so a change to the verifier's sequencing that the copy does not follow is
-  reported rather than silently mutating the wrong positions.
+  each of its phases starts, where each commitment root and proof-of-work nonce is read, where each
+  packed message is read and its length, and the stream's length: the positions
+  `scripts/fuzz-verifier.py` mutates. The phases are marked by a copy of `verifyExecution`'s and
+  `verifyKeccak`'s sequencing that runs the statement's own sub-programs (`tracedExecution`; the
+  link's stages are placed by its shape, `linkMarks`); the roots, nonces and packed messages come
+  from a logging copy of the compiled reading (`runLog`), run both on that copy and on
+  `leanVmVerifierProgram` itself, and the two logs must agree, so a change to the verifier's
+  sequencing that the copy does not follow is reported rather than silently mutating the wrong
+  positions.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
@@ -61,15 +63,17 @@ def verifyWire (bytecode publicInput proof : List UInt8) : Bool :=
 
 /-! ## The mutation positions of an honest proof (`--events`) -/
 
-/-- Where an honest run reads what the fuzz mutates: each phase's first stream offset, each root's
-and each proof-of-work nonce's (with its bits). -/
+/-- Where an honest run reads what the fuzz mutates: each phase's first stream offset, each root's,
+each proof-of-work nonce's (with its bits) and each packed message's (with its length). -/
 structure Log where
   phases : Array (String × ℕ) := #[]
   roots : Array ℕ := #[]
   nonces : Array (ℕ × ℕ) := #[]
+  packed : Array (ℕ × ℕ) := #[]
 
 /-- The compiled reading (`runWithHash` over Keccak-256 and Keccak-f[1600]), logging the stream
-offset of every root and nonce read; `total` is the whole stream's length. -/
+offset of every root, nonce and nonempty packed message read; `total` is the whole stream's
+length. -/
 def runLog {α : Type} (total : ℕ) : VerifierProgram α → VerifierProgramState → Log →
     Option (α × VerifierProgramState) × Log
   | .ret a, s, log => (some (a, s), log)
@@ -82,6 +86,17 @@ def runLog {α : Type} (total : ℕ) : VerifierProgram α → VerifierProgramSta
   | .sample k, s, log =>
     let (c, sp) := Id.run (squeeze keccakF1600 s.sponge)
     runLog total (k c) { s with sponge := sp } log
+  | .readPacked n k, s, log =>
+    if s.sponge.ground.isNone ∧ n ≤ s.stream.length then
+      let log := if n = 0 then log
+        else { log with packed := log.packed.push (total - s.stream.length, n) }
+      let xs := s.stream.take n
+      let sp := Id.run (observePacked keccakF1600 s.sponge xs)
+      runLog total (k xs) { s with sponge := sp, stream := s.stream.drop n } log
+    else (none, log)
+  | .samplePacked n k, s, log =>
+    let (cs, sp) := Id.run (samplesPacked keccakF1600 s.sponge n)
+    runLog total (k cs) { s with sponge := sp } log
   | .grind bits k, s, log => match s.stream, s.sponge.ground with
     | n :: xs, none =>
       let log := { log with nonces := log.nonces.push (total - s.stream.length, bits) }
@@ -121,6 +136,8 @@ def mark (total : ℕ) (name : String) : Traced Unit := modify fun (s, log) ↦
 def tracedKeccak (total logSteps : ℕ) (inst output : List E) :
     Traced (List ColumnClaim × List E × List E) := do
   mark total "keccak"
+  exec total (VerifierProgram.require
+    (inst.length = logSteps ∧ output.length = keccakStateLanes ∧ 4 ≤ logSteps))
   let packBits := logSteps - 4
   let rLow := inst.take 4
   exec total (VerifierProgram.grindProofOfWork
@@ -147,40 +164,71 @@ def tracedKeccak (total logSteps : ℕ) (inst output : List E) :
   exec total (VerifierProgram.require (multilinearEval claim.mu low * dot weights slices = value))
   return (outputs, low ++ claim.point.take packBits ++ slot, slices)
 
-/-- `verifyExecution computedBytecodeValue`'s sequencing, each phase marked where the fuzz cuts the
-stream (the table sumcheck's end is the public input's start; the stack root and its
-out-of-domain sample are the fuzz's own phase, from the root's offset). -/
+/-- `verifyLink computedSplit layout`, run whole, then its stages marked: the stream from the
+link's first offset `start` to its packed message of values and bit-slices, at `values`, is the
+grind's nonces, the index side's `width` rounds of two scalars, `m1`, the row side's rounds over the
+rows and over the pointer columns (`roundCoefficients`); `none` if the logged nonces and the shape do
+not account for exactly that stretch. -/
+def linkMarks (layout : Layout) (start values : ℕ) (nonces : ℕ) : Option (List (String × ℕ)) := do
+  let cycles := layout.tableRows.foldl (· + ·) 0
+  let chunks ← Chunks.new (pointerWidth layout.logMemory layout.logBytecode cycles)
+  let nPointers := ((layout.tables.map (·.links.pointers)).map List.length).sum
+  let nRows := layout.tableLogHeights.foldl max 0
+  let (rowCount, columnCount) := roundCoefficients chunks.d
+  let columnsStart := values - log2Ceil nPointers * (columnCount - 1)
+  let rowsStart := columnsStart - nRows * (rowCount - 1)
+  let memory := rowsStart - 1
+  let index := memory - 2 * chunks.width
+  if start + nonces = index ∧ start ≤ index ∧ index ≤ values then
+    some [("link-index", index), ("link-memory", memory), ("link-rows", rowsStart),
+      ("link-columns", columnsStart), ("link-values", values)]
+  else none
+
+/-- `verifyExecution computedSplit`'s sequencing, each phase marked where the fuzz cuts the stream
+(the stack root and its out-of-domain sample are the fuzz's own phase, from the root's offset; the
+link's stages from `linkMarks`). -/
 def tracedExecution (total : ℕ) (bytecode : List K) (publicInput : Digest) : Traced Unit := do
   mark total "sizes"
   let (layout, logInverseRate) ← exec total (readAnnouncedSizes bytecode)
   exec total (commitStack layout.stackLog logInverseRate)
   let ood ← exec total (readOod layout.stackLog)
-  mark total "bus"
-  let bus ← exec total (verifyBusBalance computedBytecodeValue layout)
-  mark total "tables"
-  let evaluations ← exec total (tablePhase layout bus)
+  mark total "link"
+  let (s, before) ← get
+  let start := total - s.stream.length
+  let link ← exec total (verifyLink computedSplit layout)
+  let (s, log) ← get
+  let nonces := (log.nonces.toList.drop before.nonces.size).length
+  let valuesAt ← StateT.lift ((log.packed.toList.drop before.packed.size).head?.map (·.1))
+  let marks ← StateT.lift (linkMarks layout start valuesAt nonces)
+  set (s, { log with phases := log.phases ++ marks.toArray })
+  let claims := linkColumnClaims link
   mark total "public"
-  let claims := bus.claims ++ tableColumnClaims evaluations
-  let publicClaims ← exec total (publicInputPhase layout publicInput)
+  let publicClaims ← exec total (bindPublicInput layout publicInput)
   let claims := claims ++ publicClaims
-  let (point, values) := evaluations.getD opKeccak ([], [])
+  let (point, values) := link.columns.getD opKeccak ([], [])
+  let lanes ← StateT.lift ((List.range keccakStateLanes).mapM fun lane ↦
+    (values.find? fun value ↦ value.1 = keccakOut + lane).map (·.2))
   let (outputs, keccakPoint, keccakSlices) ← tracedKeccak total
-    (layout.tableLogHeights.getD opKeccak 0) point
-    ((List.range 25).map fun lane ↦ values.getD (keccakOut + lane) 0)
+    (layout.tableLogHeights.getD opKeccak 0) point lanes
   let claims := claims ++ outputs
   mark total "ring"
-  let (ringTarget, ringWeight) ← exec total (ringSwitch keccakPoint keccakSlices)
+  let qkeccakPlacement ← StateT.lift (layout.placements.getD qkeccak none)
+  let (ring, batching) ← exec total
+    (ringSwitch [keccakRingClaim qkeccakPlacement keccakPoint keccakSlices, link.ring])
+  let memoryTerm ← exec total (memoryTermClaim layout link)
   mark total "whir"
   exec total (verifyStackedOpening layout.stackLog logInverseRate
-    (ringSwitchClaim layout ringTarget ringWeight :: claims.filterMap (·.onStack layout) ++ [ood]))
+    (ring :: memoryTerm :: claims.filterMap (·.onStack layout) ++ [ood]) batching)
 
-/-- The JSON of the log: phases as `[name, offset]`, roots as offsets, nonces as `[offset, bits]`. -/
+/-- The JSON of the log: phases as `[name, offset]`, roots as offsets, nonces as `[offset, bits]`,
+packed messages as `[offset, length]`. -/
 def Log.json (log : Log) (total : ℕ) : String :=
   let pair (a b : String) := s!"[{a}, {b}]"
   let list (xs : List String) := "[" ++ ", ".intercalate xs ++ "]"
   "{\"phase\": " ++ list (log.phases.toList.map fun (n, o) ↦ pair s!"\"{n}\"" (toString o)) ++
   ", \"root\": " ++ list (log.roots.toList.map toString) ++
   ", \"nonce\": " ++ list (log.nonces.toList.map fun (o, b) ↦ pair (toString o) (toString b)) ++
+  ", \"packed\": " ++ list (log.packed.toList.map fun (o, n) ↦ pair (toString o) (toString n)) ++
   s!", \"stream_length\": {total}}"
 
 /-- **The mutation positions of an honest structured proof**, or an error: the traced run must
@@ -197,8 +245,9 @@ def events (bytecode publicInput stream : List UInt8) (phases : ByteArray) : Exc
     | some ((), (s, log)), some (true, _) =>
       if !(s.stream.isEmpty && s.openings.isEmpty) then
         .error "the traced run leaves part of the proof unread"
-      else if log.roots != reference.roots || log.nonces != reference.nonces then
-        .error "the traced run's roots or nonces differ from the verifier's: \
+      else if log.roots != reference.roots || log.nonces != reference.nonces ||
+          log.packed != reference.packed then
+        .error "the traced run's roots, nonces or packed messages differ from the verifier's: \
           tracedExecution no longer follows verifyExecution"
       else .ok (log.json total)
     | _, _ => .error "the honest proof is rejected"

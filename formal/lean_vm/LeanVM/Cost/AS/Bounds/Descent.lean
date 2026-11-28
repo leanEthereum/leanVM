@@ -24,16 +24,16 @@ public section
 variable (P : MachineProgram)
 
 /-- `List.any` (`any.c293`): `11` per element and the predicate's price, `3`. -/
-theorem anyC_cost (hP : Includes P Auto.List.any.c293.costDeps) {α : Type} [MachineEncoding α]
+theorem anyC_cost (hP : Includes P Auto.List.any.c182.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.any.c293.costIdx [encodeValue l, pVal] ≤ (B + 11) * l.length + 3 := by
+      machineCost P Auto.List.any.c182.costIdx [encodeValue l, pVal] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.any.c293.costEq_nil P hP p pVal hp]; omega
+  | nil => intro _; rw [Auto.List.any.c182.costEq_nil P hP p pVal hp]; omega
   | cons a l ih =>
     intro hB
-    rw [Auto.List.any.c293.costEq_cons P hP a l p pVal hp]
+    rw [Auto.List.any.c182.costEq_cons P hP a l p pVal hp]
     have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
     have h2 := hB a (by simp)
     simp only [List.length_cons]
@@ -404,22 +404,22 @@ theorem pow_le_pow_add (F a t : ℕ) : F * 2 ^ a ≤ F * 2 ^ (a + t) :=
 /-- **The descent within a level, its recursive worker, priced**: with `F = stepF n d` the
 lane-dependent and `G = stepG n W R` the lane-independent price of a round, the rounds `rs` from
 `2^m` lanes cost at most `F·(2^(m+1+|rs|) − 2^(m+1)) + G·|rs| + 9`. -/
-theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costDeps)
+theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.costDeps)
     (n d A ℓ : ℕ) (OA : AV) (W R : ℕ) (hn : n < 2 ^ 62) (hd : d + 3 < 2 ^ 40)
     (hW : ∀ x < n, (OA.getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) (hA : A < 2 ^ 62)
     (hℓ : ℓ < 2 ^ 62) :
     ∀ (rs : List FoldRound) (m : ℕ) (VA : AV), rs.length ≤ R → m + rs.length < 59 →
-      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costIdx [encodeValue n,
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.costIdx [encodeValue n,
         encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue rs, encodeValue m,
         encodeValue VA] + stepF n d * 2 ^ (m + 1) ≤
         stepF n d * 2 ^ (m + 1 + rs.length) + stepG n W R * rs.length + 9
   | [], m, VA, _, _ => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costEq_nil P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.costEq_nil P hP]
     simp only [List.length_nil, Nat.add_zero, Nat.mul_zero]
     omega
   | r :: tail, m, VA, hR, hm => by
     simp only [List.length_cons] at hR hm ⊢
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costEq_cons P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.costEq_cons P hP]
     have c₁ := reverseAux_cost P (by includes) tail []
     have c₂ := foldsAC_cost P (by includes) n tail.reverse OA W hn hW hW'
     rw [List.length_reverse] at c₂
@@ -444,14 +444,14 @@ theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC
     · have c₆ := newtonDecC_cost P (by includes) n d m (foldsAC n tail.reverse OA)
         (agreeC n m r VA (foldsAC n tail.reverse OA)) hd (by omega) hn hag
       have c₇ := bind_cost P (by includes) (fun TA ↦ descRevC n d A ℓ OA tail (m + 1) TA)
-        (.closure Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costIdx [encodeValue tail,
+        (.closure Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.lam0.costIdx [encodeValue tail,
           encodeValue n, encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue m])
-        (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costSpec P
+        (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.lam0.costSpec P
           (by includes) tail n d A ℓ OA m TA))
         (rec + 24) (fun TA ↦ by
           rw [appCost_fn]
           simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-          rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costEq P (by includes),
+          rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.lam0.costEq P (by includes),
             limbs_of_lt (by omega : m + 1 < 2 ^ 64),
             limbs_of_lt (by omega : m < 2 ^ 64)]
           have := ih TA
@@ -460,7 +460,7 @@ theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC
       have := descStep_le n d W R tail.length m _ _ _ _ _ _ _ rec _ (by omega) hag c₁ c₂ c₃ c₄
         c₅ c₆ c₇ hrec'
       simp only [max_self]
-      rw [show (302 : ℕ) = Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costIdx from rfl]
+      rw [show (191 : ℕ) = Auto.LeanVM.Protocol.Whir.Sound.descRevC.c190.lam0.costIdx from rfl]
       omega
     · have := descStep_le n d W R tail.length m _ _ _ _ _ 0 0 rec _ (by omega) hag c₁ c₂ c₃ c₄
         c₅ (Nat.zero_le _) (Nat.zero_le _) hrec'

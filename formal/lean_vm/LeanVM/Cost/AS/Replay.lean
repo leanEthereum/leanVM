@@ -1,26 +1,15 @@
 module
 
 public import LeanVM.Cost.AS.Descent
-public import LeanVM.Protocol.Extraction.AS.TopC
+public import LeanVM.Protocol.Extraction.AS.Lite
 import all LeanVM.Protocol.Extraction.AS.Forward
-import all LeanVM.Protocol.Extraction.AS.Hash
 import all LeanVM.Protocol.EndToEnd.Sound.Skeleton
-import all LeanVM.Protocol.EndToEnd.Sound.SkelDecode
-import all LeanVM.Protocol.EndToEnd.Sound.SkelWhir
-import all LeanVM.Protocol.EndToEnd.Sound.SkelFront
-import all LeanVM.Protocol.EndToEnd.Sound.SkelBus
-import all LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
+import all LeanVM.Protocol.EndToEnd.Sound.SkelDefs
+import all LeanVM.Protocol.Relation.ExtractorDef
 import all Statement.Field
 import all Statement.Keccak
 import all LeanVM.Protocol.RunWithHash
 import all Statement.LeanVmVerifier
-import all Statement.Verifier.Transcript
-import all Statement.Verifier.Multilinear
-import all Statement.Verifier.Layout
-import all Statement.Verifier.Bus
-import all Statement.Verifier.Whir
-import all Statement.Verifier.Keccak
-import all Statement.Verifier.RingSwitch
 import all Statement.Verifier.Lib
 
 /-!
@@ -37,8 +26,6 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Proto
 open LeanVM.Extraction.AS LeanVM.Protocol.EndToEnd.Sound LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 
 public section
-
-cost_enc LeanVM.Protocol.EndToEnd.Sound.Op
 
 cost_compile fwdStepC := fwdStep
 

@@ -73,13 +73,9 @@ impl FnLower<'_> {
     /// Keeping the readings together lets each use reject an ambiguous value
     /// by comparing them, without evaluating the expression again.
     pub(super) fn eval(&self, e: &Expr) -> Known {
-        // Deliberately NO address: only a LITERAL reads as one, and only under the
-        // guard below. Attaching it here gave `const(2^k)` and `len(A)` an address
-        // that `Expr::Lit` alone used to have, which slipped them past
-        // `heap_addr`'s ambiguity guard: `buf[const(8)]` on a `HeapBuf(4)`
-        // compiled and aliased cell 3, while the bare `buf[8]` it means was
-        // rejected. One spelling naming two different cells is exactly what that
-        // guard exists to stop.
+        // Deliberately NO address: only a LITERAL reads as one, and only under the guard below, so `const(2^k)` and
+        // `len(A)` cannot slip past `heap_addr`'s ambiguity guard (`buf[const(8)]` would alias another cell than
+        // the rejected `buf[8]`).
         let int = |n: u128| Known {
             int: Some(n),
             field: Some(crate::field::word(n)),

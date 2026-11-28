@@ -6,10 +6,9 @@ use std::collections::HashMap;
 use std::mem::take;
 
 use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, RHint, bounded_dlog};
-use super::trace::{RowSet, Table};
 use super::*;
 use crate::keccak::Steps;
-use isa::{pretty_f64, pretty_integer};
+use isa::{KECCAK_WINDOW, pretty_f64, pretty_integer};
 use primitives::field::{F64, F128};
 
 /// A map keyed by cells or g-powers, probed per access in a segment ([`super::segments`]) and per link, where SipHash's
@@ -49,7 +48,7 @@ pub struct Execution {
     pub cycles: usize,   // number of instructions the run executed (trace length)
     pub mem_used: usize, // cells actually touched, before the power-of-two pad of `mem`
     /// Cells an instruction read before anything wrote them, so the value it read was
-    /// ZERO here and prover-chosen in a proof: memory is a committed array and the bus
+    /// ZERO here and prover-chosen in a proof: memory is a committed array and its link
     /// only forces accesses to one address to *agree*, never that the address was
     /// written. `zkDSL.md` says don't; this is what says whether the
     /// emitted code did. A non-empty list means a live value came from outside the
@@ -61,7 +60,7 @@ pub struct Execution {
     /// exemption: a range-check touch only links its two cells, reading neither,
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
-    pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+    pub(crate) trace: Trace, // the rows, emitted in the same walk
 }
 
 impl Execution {
@@ -85,21 +84,18 @@ pub(super) enum State {
     Written,
 }
 
-/// One cell: its word, its access count as an exponent (the column holds `g^count`),
-/// and its write state, side by side so one access touches one line. All zero is an
-/// unwritten cell holding ZERO, never accessed.
+/// One cell: its word and its write state, side by side so one access touches one line. All zero is an
+/// unwritten cell holding ZERO.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(C)]
 pub(crate) struct Cell {
     pub(crate) word: F128,
-    pub(crate) count: u32,
     pub(super) state: State,
 }
 
 impl Cell {
     pub(crate) const UNWRITTEN: Self = Self {
         word: F128::ZERO,
-        count: 0,
         state: State::Unwritten,
     };
 }
@@ -170,7 +166,7 @@ pub enum Fault {
     WildPointer { value: F128 },
     /// A word that has to be in `K` is not: a `JUMP` operand, or one a hint reads.
     NotInK { what: &'static str, value: F128 },
-    /// A word that has to be an address or a count is not a g-power in its range.
+    /// A word that has to be an address is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
@@ -183,13 +179,14 @@ pub enum Fault {
     HaltOutsideMain { fp: u32 },
     /// Too many instructions: runaway recursion, or a loop that never ends.
     StepLimit,
+    /// A `KECCAK` block (its `tail`, its `cap`, or the output cells it writes), `cells` from `cell`, not in one window
+    /// of [`KECCAK_WINDOW`] cells, where the instruction requires each.
+    KeccakAcrossWindow { cell: u32, cells: u32 },
 }
 
 /// The longest run the interpreter executes, the longest a stack can commit: every step is a row
 /// of at least `MIN_COMMITTED_COLUMNS` committed columns.
 pub(super) const MAX_STEPS: usize = (1 << verifier::MAX_STACKED_LOG) / crate::tables::MIN_COMMITTED_COLUMNS;
-// A row touches at most a `KECCAK` row's cells, so every access count fits the `u32` exponent.
-const _: () = assert!(crate::keccak::ROW_CELLS * MAX_STEPS < u32::MAX as usize);
 
 impl ExecError {
     #[cold]
@@ -247,6 +244,10 @@ impl std::fmt::Display for Fault {
             ),
             Self::HaltOutsideMain { fp } => write!(f, "the halt pc reached in frame {fp}, not main's"),
             Self::StepLimit => write!(f, "step limit of {MAX_STEPS} exceeded (runaway recursion?)"),
+            Self::KeccakAcrossWindow { cell, cells } => write!(
+                f,
+                "KECCAK block of {cells} cells at cell {cell} crosses a {KECCAK_WINDOW}-cell window"
+            ),
         }
     }
 }
@@ -432,24 +433,21 @@ pub(super) struct Run<'w> {
     pub(super) next_free: u32,
     pub(super) steps: usize,
     pub(super) streams: Vec<Stream<'w>>,
-    /// Per-pc execution count, as an exponent of `g`.
-    pub(super) bytecode_count: Vec<u32>,
-    pub(super) rows: RowSet,
+    pub(super) rows: Trace,
     /// `DBG_PROF=1`: per-pc step counts.
     prof: Option<Vec<u64>>,
 }
 
 impl<'w> Run<'w> {
     /// A run from `pc`, `fp` and `next_free`, with fresh output.
-    pub(super) fn new(pc: u32, fp: u32, next_free: u32, streams: Vec<Stream<'w>>, pcs: usize) -> Self {
+    pub(super) fn new(pc: u32, fp: u32, next_free: u32, streams: Vec<Stream<'w>>) -> Self {
         Self {
             pc,
             fp,
             next_free,
             steps: 0,
             streams,
-            bytecode_count: vec![0; pcs],
-            rows: RowSet::new(),
+            rows: Trace::new(),
             prof: None,
         }
     }
@@ -465,17 +463,12 @@ pub(super) trait Machine {
     /// A hint's read, which writes nothing: what a hint computes is advice the
     /// instructions go on to check.
     fn get(&mut self, cell: u32) -> F128;
-    /// An instruction's read: the word and the access count before it, which it advances.
-    fn read(&mut self, cell: u32) -> (F128, u32);
+    /// An instruction's read.
+    fn read(&mut self, cell: u32) -> F128;
     /// Write-once store, carried to every cell linked to this one.
     fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError>;
-    /// Read the running access count and advance it.
-    fn bump(&mut self, cell: u32) -> u32;
     /// `DEREF` in cell mode: the equality `m[a2] == m[a3]`.
     fn deref_cell(&mut self, a2: u32, a3: u32) -> Result<(), ExecError>;
-    /// The counts read since the last call went to row `row` of `table`.
-    #[inline(always)]
-    fn row(&mut self, _table: Table, _row: usize) {}
     /// The instruction and the hint about to run, for a conflict's report.
     #[inline(always)]
     fn at_pc(&mut self, _pc: u32) {}
@@ -492,16 +485,10 @@ pub(super) trait Machine {
     /// The discrete log of `x`, if it is a g-power below `bound` (at most `MAX_INDEX`).
     fn g_log_below(&mut self, x: F64, bound: usize) -> Option<u32>;
 
-    /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`: an address or a count.
+    /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`: an address.
     #[inline(always)]
     fn g_log(&mut self, x: F64) -> Option<u32> {
         self.g_log_below(x, MAX_CELLS as usize)
-    }
-    /// An instruction's write: `put`, then the access count before it, which it advances.
-    #[inline(always)]
-    fn put_counted(&mut self, cell: u32, v: F128) -> Result<u32, ExecError> {
-        self.put(cell, v)?;
-        Ok(self.bump(cell))
     }
 }
 
@@ -512,8 +499,6 @@ pub(super) struct Mem<'a> {
     /// One past the highest cell accessed or reserved: every cell below it is
     /// in a page.
     pub(super) used: usize,
-    /// The highest access count any cell reached.
-    pub(super) counts: u32,
     /// The cells a `DEREF` linked each cell to.
     pub(super) links: FastMap<u32, Vec<u32>>,
     /// Cells an instruction read before anything wrote them.
@@ -642,16 +627,14 @@ impl Machine for Mem<'_> {
     // An unwritten cell reads as ZERO, which is then written there: the row is filled from
     // the final image, which has to agree.
     #[inline(always)]
-    fn read(&mut self, cell: u32) -> (F128, u32) {
+    fn read(&mut self, cell: u32) -> F128 {
         let c = self.at(cell);
-        let (word, count, fresh) = (c.word, c.count, c.state != State::Written);
+        let (word, fresh) = (c.word, c.state != State::Written);
         c.state = State::Written;
-        c.count = count + 1;
-        self.counts = self.counts.max(count + 1);
         if fresh {
             self.unwritten_reads.push(cell);
         }
-        (word, count)
+        word
     }
     #[inline(always)]
     fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
@@ -659,16 +642,6 @@ impl Machine for Mem<'_> {
             self.spread(cell, v)?;
         }
         Ok(())
-    }
-    // The column's `×g`, on the exponent. A run makes fewer than `2^32` accesses in all, so
-    // it cannot wrap.
-    #[inline(always)]
-    fn bump(&mut self, cell: u32) -> u32 {
-        let c = self.at(cell);
-        let count = c.count;
-        c.count = count + 1;
-        self.counts = self.counts.max(count + 1);
-        count
     }
     // Carry a written side to the other (`put` checks it when both are), or link two
     // unwritten sides until either is written. A range-check touch may leave both
@@ -811,14 +784,13 @@ fn execute_once(
         return Err(ExecError::new(program, 0, fault));
     }
 
-    // The write-once data memory, each cell's access count and write state with its word,
+    // The write-once data memory, each cell's write state with its word,
     // and g^j, covering the pcs and return targets and the main frame, then grown by each
     // reservation and each lookup past it, with its reverse index g^j ↦ j.
     let n0 = program.main_frame.max(2) as usize;
     let mut m = Mem {
         pages: Vec::new(),
         used: 0,
-        counts: 0,
         links: FastMap::default(),
         unwritten_reads: Vec::new(),
         program,
@@ -832,7 +804,7 @@ fn execute_once(
     m.put(1, public_input[1])?;
 
     let (plan, streams) = Plan::new(program, witness);
-    let mut run = Run::new(0, 0, program.main_frame, streams, program.prog.len());
+    let mut run = Run::new(0, 0, program.main_frame, streams);
     // `DBG_PROF=1`: per-pc step counts, printed as a per-function cycle
     // profile after the run (needs `fn_ranges`, i.e. a compiled program).
     run.prof = std::env::var("DBG_PROF")
@@ -848,8 +820,7 @@ fn execute_once(
     }
     let Run {
         steps,
-        bytecode_count,
-        rows,
+        rows: trace,
         prof,
         ..
     } = run;
@@ -896,8 +867,6 @@ fn execute_once(
         }
     }
 
-    let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
-    let trace = Trace::new(rows, bytecode_count, counts);
     // The memory announced: the least power of two covering every cell the run touched
     // (the boundary tables read a dense image).
     let mem_used = m.used;
@@ -927,20 +896,19 @@ pub(super) fn walk<M: Machine>(
     let ending_pc = (program.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
     // The loop runs on locals, which stay in registers, and hands them back when it stops.
     let (mut pc, mut fp, mut next_free, mut steps) = (r.pc, r.fp, r.next_free, r.steps);
-    let (mut streams, mut bytecode_count, mut prof) =
-        (take(&mut r.streams), take(&mut r.bytecode_count), r.prof.take());
-    let RowSet {
+    let (mut streams, mut prof) = (take(&mut r.streams), r.prof.take());
+    let Trace {
         mut xor,
         mut mul,
         mut set,
         mut deref,
         mut jump,
         mut keccak,
-    } = std::mem::replace(&mut r.rows, RowSet::new());
+    } = std::mem::replace(&mut r.rows, Trace::new());
     let stopped = loop {
         if pc >= ending_pc {
-            // The machine halts in the final STATE `(g^{B-1}, g^0)`, the one the state bus
-            // pulls as its boundary (doc/leanvm sec:state).
+            // The machine halts in the final STATE `(g^{B-1}, g^0)`, the state identity's
+            // end `ŝ_fin` (doc/leanvm sec:state).
             if fp == 0 && pc == ending_pc {
                 break false;
             }
@@ -1019,15 +987,20 @@ pub(super) fn walk<M: Machine>(
                                 })
                             })
                         };
-                        let (ptr, size) = match *h {
-                            RHint::Alloc { ptr, size } => (ptr, size),
+                        let (ptr, size, aligned) = match *h {
+                            RHint::Alloc { ptr, size, aligned } => (ptr, size, aligned),
                             RHint::AllocFrames {
                                 ptr,
                                 size,
                                 end,
                                 start_inverse,
                                 tail,
+                                aligned,
                             } => {
+                                debug_assert!(
+                                    !aligned || size.is_multiple_of(KECCAK_WINDOW),
+                                    "aligned frames of {size} cells"
+                                );
                                 let span =
                                     in_k("loop bound", m.get(at(fp, end)?)).map_err(fail)? * F64(start_inverse.0);
                                 if span.is_zero() {
@@ -1043,12 +1016,17 @@ pub(super) fn walk<M: Machine>(
                                     })
                                 })?;
                                 let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
-                                (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
+                                (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?, aligned)
                             }
                             // A runtime size is carried in the exponent:
                             // the cell holds g^k, allocate k cells.
-                            RHint::AllocDyn { ptr, size } => (ptr, dyn_size(m, size)?),
-                            RHint::AllocArm { ptr, sel, ref sizes } => {
+                            RHint::AllocDyn { ptr, size } => (ptr, dyn_size(m, size)?, false),
+                            RHint::AllocArm {
+                                ptr,
+                                sel,
+                                ref sizes,
+                                aligned,
+                            } => {
                                 let x = in_k("dispatch selector", m.get(at(fp, sel)?)).map_err(fail)?;
                                 let bad = || {
                                     fail(Fault::NotAGPower {
@@ -1057,12 +1035,18 @@ pub(super) fn walk<M: Machine>(
                                     })
                                 };
                                 let k = m.g_log(x).ok_or_else(bad)?;
-                                (ptr, *sizes.get(k as usize).ok_or_else(bad)?)
+                                (ptr, *sizes.get(k as usize).ok_or_else(bad)?, aligned)
                             }
                             _ => unreachable!(),
                         };
                         let cell = at(fp, ptr)?;
-                        let base = next_free;
+                        // A frame holding `KECCAK` blocks starts at a multiple of the window.
+                        let pad = if aligned {
+                            next_free.next_multiple_of(KECCAK_WINDOW) - next_free
+                        } else {
+                            0
+                        };
+                        let base = run_at(next_free, pad, 0).map_err(fail)?;
                         next_free = run_at(base, size, 0).map_err(fail)?;
                         m.g_grow(next_free as usize);
                         // The base is about to become a pointer in memory.
@@ -1228,11 +1212,8 @@ pub(super) fn walk<M: Machine>(
         // Cover the g-powers this step may index (g²·pc return target, g^fp).
         m.g_grow((pc as usize + 2).max(fp as usize));
 
-        let bytecode_read = {
-            let v = bytecode_count[pc as usize];
-            bytecode_count[pc as usize] = v + 1;
-            v
-        };
+        // The row's cycle pointer. A segment's steps start from zero, and the merge offsets them.
+        let step = steps as u32;
 
         // Loaded once: the shared Xor/Mul arm needs the discriminant again,
         // and `Op` is wide enough that re-reading it costs a second load.
@@ -1265,45 +1246,28 @@ pub(super) fn walk<M: Machine>(
                         m.put(if ha { ab } else { aa }, vc * vk.inv())?;
                     }
                 }
-                // Each access advances its cell's count, in flush order, so a cell two
-                // operands alias still pairs each access with its own count.
-                let (va, ra) = m.read(aa);
-                let (vb, rb) = m.read(ab);
+                let va = m.read(aa);
+                let vb = m.read(ab);
                 let vc = if is_xor { va + vb } else { va * vb };
-                let rc = m.put_counted(ac, vc)?;
-                let row = Xrow {
-                    pc,
-                    fp,
-                    ra,
-                    rb,
-                    rc,
-                    bytecode_read,
-                };
+                m.put(ac, vc)?;
+                let row = Row { pc, fp, step };
                 if is_xor {
-                    m.row(Table::Xor, xor.len());
                     xor.push(row);
                 } else {
-                    m.row(Table::Mul, mul.len());
                     mul.push(row);
                 }
                 pc += 1;
             }
             Op::Set { o, k } => {
-                let r = m.put_counted(at(fp, o)?, super::from_scalar(k))?;
-                m.row(Table::Set, set.len());
-                set.push(Srow {
-                    pc,
-                    fp,
-                    r,
-                    bytecode_read,
-                });
+                m.put(at(fp, o)?, super::from_scalar(k))?;
+                set.push(Row { pc, fp, step });
                 pc += 1;
             }
             Op::Deref { o1, o2, o3, mode } => {
                 let a1 = at(fp, o1)?;
-                let (p, r1) = m.read(a1);
+                let p = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address:
+                // The link reads the cell at the product `p·g^o2`, so `p` need be no address:
                 // the pointer's log when it has one in range (an allocation notes it), else
                 // the product's.
                 let a2 = match m.g_log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
@@ -1328,47 +1292,39 @@ pub(super) fn walk<M: Machine>(
                         m.put(a2, v)?;
                     }
                 }
-                let r2 = m.bump(a2);
-                let r3 = m.bump(a3);
-                m.row(Table::Deref, deref.len());
+                // The row reads `m[a3]` in every mode, so the memory covers it.
+                m.ensure(a3 as usize);
                 deref.push(Drow {
                     pc,
                     fp,
-                    r1,
-                    r2,
-                    r3,
-                    bytecode_read,
+                    step,
+                    store: a2,
                 });
                 pc += 1;
             }
             Op::Jump { oc, od, of } => {
                 let (ac, ad, af) = (at(fp, oc)?, at(fp, od)?, at(fp, of)?);
                 // All three cells are K-valued on EVERY row, taken or not: the
-                // table commits one lane each and their memory flushes carry
-                // literal zeros above it (§sec:tab-jump), which the bus would
-                // otherwise not balance. A guest branches on g-powers; the one
+                // table commits one lane each and their memory links carry
+                // literal zeros above it (§sec:tab-jump), which the link would
+                // otherwise not accept. A guest branches on g-powers; the one
                 // idiom that once branched on a word, `assert a != b`, takes an
                 // inverse hint instead (§sec:prog-div-ne).
-                let (c, rc) = m.read(ac);
+                let c = m.read(ac);
                 let c = in_k("JUMP condition", c).map_err(fail)?;
-                let (d, rd) = m.read(ad);
+                let (d, f) = (m.read(ad), m.read(af));
+                #[cfg(test)]
+                let (d, f) = cheat::untaken_jump_words(c, d, f);
                 let d = in_k("JUMP target", d).map_err(fail)?;
-                let (f, rf) = m.read(af);
                 let f = in_k("JUMP fp", f).map_err(fail)?;
                 // The is-nonzero witness `w = c⁻¹` is never used for control
                 // flow, only recorded as a witness column, so it is not
                 // computed here at all: `JumpTable::fill` batch-inverts every
-                // row's condition at once (§the trace rows in `cpu::trace`).
+                // row's condition at once (`cpu::trace`).
                 let taken = !c.is_zero();
-                m.row(Table::Jump, jump.len());
-                jump.push(Jrow {
-                    pc,
-                    fp,
-                    rc,
-                    rd,
-                    rf,
-                    bytecode_read,
-                });
+                #[cfg(test)]
+                let taken = taken || cheat::EVERY_JUMP_TAKEN.get();
+                jump.push(Row { pc, fp, step });
                 if taken {
                     pc = m.g_log_below(d, program.prog.len()).ok_or_else(|| {
                         fail(Fault::NotAGPower {
@@ -1386,9 +1342,24 @@ pub(super) fn walk<M: Machine>(
                     pc += 1;
                 }
             }
-            Op::Keccak { .. } => {
+            Op::Keccak {
+                tail,
+                cap,
+                out,
+                out_cells,
+                ..
+            } => {
                 use crate::keccak::{ROW_CELLS, STATE_CELLS};
                 let k = crate::tables::KeccakOp::of(&op);
+                for (offset, cells) in [(tail, 4), (cap, 4), (out, out_cells.cells() as u32)] {
+                    let cell = at(fp, offset)?;
+                    let across = cell % KECCAK_WINDOW + cells > KECCAK_WINDOW;
+                    #[cfg(test)]
+                    let across = across && !cheat::KECCAK_ACROSS_WINDOW.get();
+                    if across {
+                        return Err(fail(Fault::KeccakAcrossWindow { cell, cells }));
+                    }
+                }
                 // Only the cells accessed need an address: the input and those `out` holds.
                 let written = STATE_CELLS + k.out_cells.cells();
                 let mut cells = [0; ROW_CELLS];
@@ -1396,38 +1367,29 @@ pub(super) fn walk<M: Machine>(
                     let (offset, step) = k.cell_parts(c);
                     *cell = at(at(fp, offset)?, step)?;
                 }
-                // The counts in flush order, so a cell two operands alias still pairs each
-                // access with its own count. A cell not written keeps count 0.
-                let mut r = [0; ROW_CELLS];
                 let mut input = [F128::ZERO; STATE_CELLS];
                 for c in 0..STATE_CELLS {
-                    (input[c], r[c]) = m.read(cells[c]);
+                    input[c] = m.read(cells[c]);
                 }
                 // No table constraint covers the output (the relation is proven
-                // by the Keccak reduction, §keccak); the interpreter still computes it so
+                // by the Keccak reduction, `crate::keccak`); the interpreter still computes it so
                 // the output cells are consistent for any later read.
                 let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                 keccak_step.step(&lanes);
                 primitives::hash::keccak_f(&mut lanes);
                 let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                 for c in STATE_CELLS..written {
-                    r[c] = m.put_counted(cells[c], output[c - STATE_CELLS])?;
+                    m.put(cells[c], output[c - STATE_CELLS])?;
                 }
-                m.row(Table::Keccak, keccak.len());
-                keccak.push(Krow {
-                    pc,
-                    fp,
-                    r,
-                    bytecode_read,
-                });
+                keccak.push(Row { pc, fp, step });
                 pc += 1;
             }
         }
         steps += 1;
     };
     (r.pc, r.fp, r.next_free, r.steps) = (pc, fp, next_free, steps);
-    (r.streams, r.bytecode_count, r.prof) = (streams, bytecode_count, prof);
-    r.rows = RowSet {
+    (r.streams, r.prof) = (streams, prof);
+    r.rows = Trace {
         xor,
         mul,
         set,
@@ -1436,4 +1398,29 @@ pub(super) fn walk<M: Machine>(
         keccak,
     };
     Ok(stopped)
+}
+
+/// Test-only ways for the executor to step past a fault or off the program, for the negative tests.
+#[cfg(test)]
+pub(crate) mod cheat {
+    use primitives::field::{F64, F128};
+    use std::cell::Cell;
+
+    thread_local! {
+        /// An untaken `JUMP` keeps only the low limbs of its destination and frame words, whatever their high ones.
+        pub(crate) static UNTAKEN_JUMP_WORDS_UNCHECKED: Cell<bool> = const { Cell::new(false) };
+        /// Every `JUMP` is taken, its condition whatever it is.
+        pub(crate) static EVERY_JUMP_TAKEN: Cell<bool> = const { Cell::new(false) };
+        /// A `KECCAK` block across its window runs instead of faulting.
+        pub(crate) static KECCAK_ACROSS_WINDOW: Cell<bool> = const { Cell::new(false) };
+    }
+
+    /// A `JUMP`'s destination and frame words as the executor checks them.
+    pub(super) fn untaken_jump_words(c: F64, d: F128, f: F128) -> (F128, F128) {
+        if c.is_zero() && UNTAKEN_JUMP_WORDS_UNCHECKED.get() {
+            (F128::new(d.c0, 0), F128::new(f.c0, 0))
+        } else {
+            (d, f)
+        }
+    }
 }

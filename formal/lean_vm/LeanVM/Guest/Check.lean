@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.ExecCore
 public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Guest.PowWords
 
 /-!
 # The checker
@@ -28,8 +29,9 @@ valuation the soundness proof uses reads every value from its cell.
   found, never past a branch; an atom found nowhere before the end of its segment stays pending
   and must be found by the end of its block.
 * `ite` is the next branch, on the condition's cell, to a later offset of the function: both
-  blocks are walked, from the fall-through and from the target, and must end at one join, where
-  the walk goes on with the book of the branch point.
+  blocks are walked, from the fall-through and from the target, and must end at one join (the
+  first's, or the target of the local jump ending the segment it ends at, `passTo`), where the walk
+  goes on with the book of the branch point.
 * `match` leaves its segment by a table jump: the selector's word is read from the jump table into
   the target cell, the selector is bounded by a range check, a known bound, booleanity
   (`selBound`: `1 + b·(1 + g^k)` with `b·b = b`, and products of such) or a read from a table of
@@ -181,8 +183,13 @@ noncomputable def locTrieFrom : List ℕ → ℕ → Trie ℕ → Trie ℕ
   | [], _, t => t
   | c :: cs, k, t => natSeq (k + 1) fun k' ↦ (setF c indexDepth t k).seq fun t ↦ locTrieFrom cs k' t
 
+/-- The cells as a trie, value `k` at key `k`. -/
+noncomputable def locTrie (locs : List ℕ) : Trie ℕ := locTrieFrom locs 0 .nil
+
 /-- The cells of a list of values. -/
 noncomputable def cellsOf (loc : Trie ℕ) (vs : List Core.V) : List ℕ := vs.map (cellOf loc)
+
+
 
 /-! ## Atoms -/
 
@@ -883,6 +890,33 @@ noncomputable def storesOk (B : Book) (q : ℕ) : ℕ → List ℕ → Bool
 noncomputable def envStoresOk (B : Book) (q : ℕ) (env : List (ℕ × Sym)) : Bool :=
   env.all fun p ↦ Sym.beq p.2 (.fpg 0) && loadOk B q q p.1
 
+/-! ### Selectors shifted from a tagged word
+
+A selector `fp[c] = fp[x]·g^-d`, a `MUL` by a cell `SET` to the bits of `g^(2^64 - 1 - d)`
+(`Pow.powN`), with `fp[x] = g^(d + e)`, `e < n`, known by a tuple tagged `shiftTag d n` on `[x]`
+among the window's (`Fx.sems`; the checker's own tag, `Check.SemRel0`), is `g^e`:
+`check_stack_terminal` dispatches on `gmv·g^-16`, the stack's log, which its caller bounds. -/
+
+/-- The tag of `g^(d + e)`, `e < n`, on one word: `d, n < 2^15`. -/
+def shiftTag (d n : ℕ) : ℕ := 2 ^ 30 + 2 ^ 15 * d + n
+
+/-- A shift tag's `d`. -/
+def shiftD (t : ℕ) : ℕ := (t - 2 ^ 30) / 2 ^ 15
+
+/-- A shift tag's `n`. -/
+def shiftN (t : ℕ) : ℕ := (t - 2 ^ 30) % 2 ^ 15
+
+/-- `fp[x]` is tagged `g^(d + e)`, `e < n' ≤ n`, and `fp[y]` is `SET` to `g^-d`. -/
+noncomputable def shiftOf (sems : List (ℕ × List ℕ)) (B : Book) (x y n : ℕ) : Bool :=
+  sems.any fun q ↦ q.2 == [x] && Nat.ble (2 ^ 30) q.1 && Nat.blt q.1 (2 ^ 31) &&
+    Nat.ble (shiftN q.1) n && setImm B y (Pow.powN (2 ^ 64 - 1 - shiftD q.1)) 0
+
+/-- A bound `e < n` on `fp[c] = fp[x]·fp[y]` from a shift tag (`shiftOf`). -/
+noncomputable def shiftOk (sems : List (ℕ × List ℕ)) (B : Book) (c n : ℕ) : Bool :=
+  (look B c).any fun a ↦ match a with
+    | .instr _ (.mul x y z) => z == c && (shiftOf sems B x y n || shiftOf sems B y x n)
+    | _ => false
+
 /-- The callee's argument bounds, on the caller's cells. -/
 noncomputable def preOk (F : Exec.Facts) (ψ : Trie Sym) (mem : List (ℕ × ℕ × ℕ)) (B : Book)
     (bnd : List (ℕ × ℕ)) (args : List ℕ) (pre : List (ℕ × ℕ)) : Bool :=
@@ -1086,6 +1120,15 @@ noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (oc S : ℕ) (s : Si
       | some se => decide (se.seg.exit.kind = .ret)
       | none => false)
 
+/-- The join `J'` of a block ending at `J`: `J` itself, or the target of the local jump that ends the
+segment at `J` (an `if`'s arm ending in a call returns to a segment that jumps to the join). -/
+noncomputable def passTo (X : Fx) (B : Book) (bnd : List (ℕ × ℕ)) (J J' : ℕ) : Bool :=
+  J == J' || match segAt X J B bnd with
+    | some s => match endOf ⟨s.seg, s.its, s.book, s.psi, s.bnd, none⟩ with
+      | some (J'', _) => J'' == J'
+      | none => false
+    | none => false
+
 /-- After a call into the frame `fp[q]` returning to offset `t`: the position there, once the
 returned words are read back into their cells. -/
 noncomputable def afterCall (X : Fx) (t q o : ℕ) (cr : List ℕ) (B : Book) (bnd : List (ℕ × ℕ)) :
@@ -1121,8 +1164,8 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
                 match segAt X t st'.book st'.bnd with
                 | some sn => match chkL X z st' [], chkL X n sn [] with
                   | .join J, .join J' =>
-                      bif J == J' then
-                        match segAt X J st'.book st'.bnd with
+                      bif passTo X st'.book st'.bnd J J' then
+                        match segAt X J' st'.book st'.bnd with
                         | some sj => chkL X ss sj P
                         | none => .fail
                       else .fail
@@ -1185,7 +1228,8 @@ noncomputable def chkL (X : Fx) : List Core.Stmt → CS → List Core.Atom → R
         | .call (.cell t) q r =>
             match tableBase se.book t (cellOf X.loc v) with
             | some base =>
-                bif boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) fs.length && Nat.ble X.entry r &&
+                bif (boundOk X.F se.psi X.mem se.book se.bnd (cellOf X.loc v) fs.length ||
+                    shiftOk X.sems se.book (cellOf X.loc v) fs.length) && Nat.ble X.entry r &&
                     se.seg.exit.succ == [r - X.entry] &&
                     tableCallsOk X base (fun e f s ↦
                       callOk X se.book se.psi se.bnd (fun _ _ ↦ false) (some (cellOf X.loc v, e)) s f q
@@ -1270,7 +1314,7 @@ end
 /-! ## A function, by windows
 
 A function is checked in windows, each by its own kernel evaluation: window `i` runs the executor
-from its start (`execWinS`) to its end offset and walks its core statements from its start, with
+from its start (`execWin`) to its end offset and walks its core statements from its start, with
 the facts and bounds the previous window hands on; it ends at the next window's start, a join
 where it hands on what the next needs (`Fx.win`, `handOk`) in an environment holding the next
 one's, or, the last, by the return. A function of one window is `cuts = []`. -/
@@ -1290,9 +1334,10 @@ noncomputable def bookOf : List (ℕ × Exec.Atom) → Book → Book
   | [], B => B
   | p :: ps, B => (addKey p.2 B p.1).seq fun B ↦ bookOf ps B
 
-/-- Where window `i` starts: the function's entry for the first. -/
+/-- Where window `i` starts: the function's entry for the first, which knows the memory its
+precondition bounds (`Cert.mem`), so its calls can hand it on (`memOk`). -/
 def Cert.cutAt (C : Cert) : ℕ → Cut
-  | 0 => ⟨0, C.facts.env, 0, [], C.pre, [], [], C.sem⟩
+  | 0 => ⟨0, C.facts.env, 0, [], C.pre, C.mem, [], C.sem⟩
   | i + 1 => listElementOrDefault C.cuts i ⟨0, [], 0, [], [], [], [], []⟩
 
 /-- Window `i` entered (a chained `match`'s): the selector cell and the arms it starts at, or

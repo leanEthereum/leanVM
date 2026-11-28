@@ -48,7 +48,8 @@ same way, from the same readings:
   stack run of its size, copied out afterwards.
 
 What the compiler shares (pure results, pooled constants, repeated loads) is not shared here: a
-second occurrence is a second atom with a fresh name, on the same relation. A value's name is its
+second occurrence is a second atom with a fresh name, on the same relation. Its pure product by its
+one cell for `1` is, as here (`pureMul`), the other factor: the compiler emits no `MUL` for it. A value's name is its
 position (`Core.Seg`): statement index, `unroll` counter, branch, arm, inline call site.
 
 A loop helper is named by the loops lowered before it in the function it is lowered in, and that
@@ -150,6 +151,9 @@ structure St where
   consts : List E := []
   /-- The shifted pointers materialized in this scope, by base (`Scope::mat_cells`). -/
   mats : List (V × List Mat) := []
+  /-- The values a `constCell 1` made: the compiler's one cell for `1` (`Scope::const_cells`), which
+  its `pure` drops from a product (`x·1` is `x`). -/
+  ones : List V := []
   /-- The run each `addr` pointer names. -/
   addrRuns : List (V × List V) := []
   /-- The scrutinee of the `match` the one being lowered enters directly, its arms ending in
@@ -494,6 +498,7 @@ def constCell (c : E) : M V := do
   let o ← fresh
   emitAtom (.const o c)
   poolConst c
+  if c == 1 then modify fun st => { st with ones := o :: st.ones }
   return o
 
 /-- A pure `XOR` or `MUL` into a fresh value (`pure`). -/
@@ -502,8 +507,11 @@ def pureAdd (a b : V) : M V := do
   emitAtom (.add o a b)
   return o
 
-/-- `pure` for `MUL`. -/
+/-- `pure` for `MUL`: a factor in the compiler's one cell for `1` drops (`x·1` is `x`). -/
 def pureMul (a b : V) : M V := do
+  let ones := (← get).ones
+  if ones.contains a then return b
+  if ones.contains b then return a
   let o ← fresh
   emitAtom (.mul o a b)
   return o

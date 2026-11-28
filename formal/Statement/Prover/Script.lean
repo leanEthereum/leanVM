@@ -6,7 +6,8 @@ public import Statement.Verifier.Lib
 # The prover's language
 
 An honest prover written as a program of its own moves, in the order the verifier reads them:
-send a scalar, receive a challenge, pass a proof of work, commit a matrix, receive the opened rows.
+send a scalar, send scalars packed, receive a challenge, receive challenges packed, pass a proof of
+work, commit a matrix, receive the opened rows.
 `Run.lean` runs a script against the verifier's program through the Fiat-Shamir sponge; a script
 sees no hash or permutation answer but the challenges and its own matrices' rows.
 -/
@@ -35,6 +36,11 @@ inductive Script (α : Type) : Type where
   | send (x : E) (k : Script α)
   /-- Receive a challenge. -/
   | sample (k : E → Script α)
+  /-- Send the scalars `xs` as one packed message (`ProverState::add_scalars_packed`,
+  `crates/fiat_shamir_prover/src/transcript.rs`). -/
+  | sendPacked (xs : List E) (k : Script α)
+  /-- Receive `n` challenges as one packed draw (`ProverState::sample_packed`). -/
+  | samplePacked (n : ℕ) (k : List E → Script α)
   /-- Pass a proof of work; with `outsideK`, by a nonce whose challenge lies outside `K`
   (`nonceUsable`). -/
   | grind (outsideK : Bool) (k : Script α)
@@ -52,6 +58,8 @@ def bind : Script α → (α → Script β) → Script β
   | ret a, f => f a
   | send x k, f => send x (k.bind f)
   | sample k, f => sample fun c ↦ (k c).bind f
+  | sendPacked xs k, f => sendPacked xs (k.bind f)
+  | samplePacked n k, f => samplePacked n fun cs ↦ (k cs).bind f
   | grind o k, f => grind o (k.bind f)
   | commit w k, f => commit w (k.bind f)
   | query k, f => query fun r ↦ (k r).bind f
@@ -79,6 +87,13 @@ def sampleN : ℕ → Script (List E)
     let xs ← sampleN n
     return x :: xs
 
+/-- Send scalars as one packed message (`ProverState::add_scalars_packed`,
+`crates/fiat_shamir_prover/src/transcript.rs`). -/
+def sendPackedS (xs : List E) : Script Unit := sendPacked xs (ret ())
+
+/-- Receive `n` challenges as one packed draw (`ProverState::sample_packed`). -/
+def samplePackedS (n : ℕ) : Script (List E) := samplePacked n ret
+
 /-- Pass a proof of work. -/
 def grindS : Script Unit := grind false (ret ())
 
@@ -105,6 +120,8 @@ def alongside {α : Type} [Inhabited α] : VerifierProgram α → Script β → 
   | .ret a, _ => ret a
   | .read k, send x S => send x (alongside (k x) S)
   | .sample k, sample S => sample fun c ↦ alongside (k c) (S c)
+  | .readPacked _ k, sendPacked xs S => sendPacked xs (alongside (k xs) S)
+  | .samplePacked _ k, samplePacked n S => samplePacked n fun cs ↦ alongside (k cs) (S cs)
   | .grind _ k, grind o S => grind o (alongside k S)
   | .commit _ _ k, commit w S => commit w (alongside k S)
   | .query _ _ k, query S => query fun rows ↦ alongside (k rows) (S rows)

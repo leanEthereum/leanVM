@@ -2,7 +2,7 @@
 
 `LeanVM/Guest/Data/Core.lean` lists the functions in the compiler's order (`coreFunctions`, each
 `Fn.«key».core`), and function `key`'s definitions sit, in its namespace `LeanVM.Guest.Fn.«key»`, in
-its pack `LeanVM/Guest/Pack/P<k>/Core.lean` (`packs.pack_of`), or, for a long function, in its own
+its pack `LeanVM/Guest/Pack/P<k>/Core.lean` (`guest-core`'s packing), or, for a long function, in its own
 `LeanVM/Guest/Pack/<key>/Core*.lean` (`guest-core`'s `packCount`, `ownSize`); an old snapshot may
 hold them in `LeanVM/Guest/Fn/<key>/Core*.lean`.
 `legacy_texts(data)` gives each function's text in the form the packed `Data/Core{k}.lean` held

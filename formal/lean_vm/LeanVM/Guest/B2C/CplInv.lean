@@ -40,6 +40,12 @@ theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), listElement
   | _ :: _, 0, _ => rfl
   | _ :: as, n + 1, d => nth_getD as n d
 
+theorem tail_getD {α : Type} (l : List α) (m : ℕ) (d : α) : l.tail.getD m d = l.getD (m + 1) d := by
+  cases l <;> simp
+
+theorem headD_getD {α : Type} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
+  cases l <;> rfl
+
 /-- **A callee the check finds**: a good function entered there, one of the function's callees,
 with its signature. -/
 theorem calleeS_spec {X : CX} (hG : X.G = glob.restrict X.callees) {pc j : ℕ} {sg : Sig}
@@ -155,13 +161,13 @@ theorem endC_ok {st : CW} (h : (endC X st).ok = true) :
 
 theorem cw_ite {c : V} {z n ss : List Core.Stmt} {st : CW}
     (h : (cw X (.ite c z n :: ss) st).ok = true) :
-    ∃ st' od of x t sn J c1 u1 c2 u2 sj, brAtC X st = .ok (st', X.loc.cell c, od, of, x) ∧
+    ∃ st' od of x t sn J c1 u1 J' c2 u2 c1' sj, brAtC X st = .ok (st', X.loc.cell c, od, of, x) ∧
       x.kind = .next t ∧ inFrame X.fs [X.loc.cell c] = true ∧ cellK X st' od = true ∧
       cellK X st' of = true ∧ x.succ = [t] ∧ segAtC X t st' = some sn ∧
       cw X z { st' with book := fileB X.loc X.fs X.nx z st'.book } = .join J c1 u1 ∧
-      cw X n { sn with book := fileB X.loc X.fs X.nx n st'.book } = .join J c2 u2 ∧
-      segAtC X J st' = some sj ∧
-      cw X (.ite c z n :: ss) st = cw X ss { sj with cnt := Cnt.max c1 c2, uq := Nat.lor u1 u2 } := by
+      cw X n { sn with book := fileB X.loc X.fs X.nx n st'.book } = .join J' c2 u2 ∧
+      passC X st' J J' c1 = some c1' ∧ segAtC X J' st' = some sj ∧
+      cw X (.ite c z n :: ss) st = cw X ss { sj with cnt := Cnt.max c1' c2, uq := Nat.lor u1 u2 } := by
   simp only [cw] at h ⊢
   split at h
   · rename_i st' oc od of x hb
@@ -182,16 +188,14 @@ theorem cw_ite {c : V} {z n ss : List Core.Stmt} {st : CW}
         simp only [Trie.seq_eq] at h ⊢
         split at h
         · rename_i J c1 u1 J' c2 u2 h1 h2
-          cases hJ : Nat.beq J J'
-          · rw [hJ] at h; cases h
-          rw [hJ] at h
-          obtain rfl := Nat.eq_of_beq_eq_true hJ
-          simp only [Bool.cond_true] at h
           split at h
-          · rename_i sj hsj
-            refine ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, rfl, hk, hfr, hod, hof, hsu, hsn,
-              h1, h2, hsj, ?_⟩
-            simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq]
+          · rename_i c1' hpass
+            split at h
+            · rename_i sj hsj
+              refine ⟨st', od, of, x, t, sn, J, c1, u1, J', c2, u2, c1', sj, rfl, hk, hfr, hod, hof, hsu, hsn,
+                h1, h2, hpass, hsj, ?_⟩
+              simp only [Cnt.seq_eq, natSeq_eq]
+            · cases h
           · cases h
         · cases h
         · cases h

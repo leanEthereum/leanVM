@@ -157,14 +157,14 @@ theorem nlogn_halves_wl (c K d a b L T1 T2 Wk : ℕ) (hab : b ≤ a)
   omega
 
 include hW in
-/-- **Merge sort** (`mergeSortList.c111`), `n log n`, the lengths of at most `W` limbs. -/
+/-- **Merge sort** (`mergeSortList.c138`), `n log n`, the lengths of at most `W` limbs. -/
 theorem mergeSortList_cost_wl_nlogn
-    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costDeps)
+    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costDeps)
     (le : α → α → Bool) (leVal : MachineValue)
     (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
     (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B) :
     ∀ (n : ℕ) (l : List α), l.length ≤ n → l.length + 1 ≤ N → (∀ a ∈ l, Q a) → l ≠ [] →
-      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costIdx [encodeValue l, leVal] +
+      machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costIdx [encodeValue l, leVal] +
           (7 * W + 66) ≤
         (B + 62 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 77) * l.length := by
   intro n
@@ -173,10 +173,10 @@ theorem mergeSortList_cost_wl_nlogn
   intro l hn hN hS hne
   rcases l with _ | ⟨x, _ | ⟨y, t⟩⟩
   · exact absurd rfl hne
-  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costEq_cons P hP x [] le leVal hle]
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costEq_cons P hP x [] le leVal hle]
     simp
     omega
-  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costEq_cons P hP x (y :: t) le leVal hle]
+  · rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costEq_cons P hP x (y :: t) le leVal hle]
     dsimp only
     simp only [List.length_cons] at hn hN ⊢
     set h1 := (t.length + 2 + 1) / 2 with hh1
@@ -211,7 +211,7 @@ theorem mergeSortList_cost_wl_nlogn
     have hm2 : max (limbCount (t.length + 2 + 1)) (limbCount (t.length + 2)) ≤ W := max_le l3 l2
     have := nlogn_halves_wl (B + 62 + 5 * W) (7 * W + 66) (7 * W + 77) h1 (t.length + 2 - h1)
       (Nat.clog 2 (t.length + 2)) _ _
-      (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c112.costIdx
+      (machineCost P Auto.LeanVM.Cost.InitLib.mergeList.c139.costIdx
         [encodeValue (InitLib.mergeSortList (List.take h1 (x :: y :: t)) le),
           encodeValue (InitLib.mergeSortList (List.drop h1 (x :: y :: t)) le), leVal] +
         machineCost P Auto.List.length.c21.costIdx [encodeValue t] +
@@ -228,15 +228,15 @@ include hW in
 /-- **Merge sort**, any number `n` of elements, the lengths of at most `W` limbs (`n + 1 ≤ N`):
 at most `(B + 62 + 5W)·n·⌈log₂ n⌉ + (7W + 77)·n + 3`. -/
 theorem mergeSortList_cost_wl
-    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costDeps)
+    (hP : Includes P Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costDeps)
     (le : α → α → Bool) (leVal : MachineValue)
     (hle : ∀ a b, RunsApp P leVal [encodeValue a, encodeValue b] (encodeValue (le a b)))
     (B : ℕ) (Q : α → Prop) (hB : ∀ a b, Q a → Q b → appCost P leVal [encodeValue a, encodeValue b] ≤ B)
     (l : List α) (hN : l.length + 1 ≤ N) (hS : ∀ a ∈ l, Q a) :
-    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costIdx [encodeValue l, leVal] ≤
+    machineCost P Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costIdx [encodeValue l, leVal] ≤
       (B + 62 + 5 * W) * (l.length * Nat.clog 2 l.length) + (7 * W + 77) * l.length + 3 := by
   cases l with
-  | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c111.costEq_nil P hP le leVal hle]; omega
+  | nil => rw [Auto.LeanVM.Cost.InitLib.mergeSortList.c138.costEq_nil P hP le leVal hle]; omega
   | cons x l =>
     have := mergeSortList_cost_wl_nlogn P W N hW hP le leVal hle B Q hB _ (x :: l) le_rfl hN hS
       (by simp)

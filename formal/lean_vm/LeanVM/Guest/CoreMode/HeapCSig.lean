@@ -218,6 +218,11 @@ def GwOk (G : HSig) (rd : Reader) (σ : Val) : Prop :=
 theorem gwOk_nil {G : HSig} (h : G.gw = []) (rd : Reader) (σ : Val) : GwOk G rd σ := fun c j hc ↦ by
   rw [h] at hc; cases hc
 
+/-- A call naming no word at a cell: its callee's preconditions. -/
+theorem CallReq.pre {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {W : K → Prop} {g : String}
+    {args : List V} (h : CallReq sigOf H rd σ W g args) (hd : callDers H g args = []) : CallPre sigOf H rd σ W g args :=
+  h.2 fun k hk ↦ by rw [hd] at hk; cases hk
+
 /-- What an event needs written in `W`: an atom its reads, an entered call the cells its ghost words read and its
 callee's preconditions at its argument and ghost words (`CallReq`). -/
 def ReqOk (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (W : K → Prop) : Ev → Prop
@@ -389,6 +394,7 @@ def CRes.Holds (σ : Val) : CRes → Prop
   | .subR q r => ∀ x, q.Set (vw σ) x → r.Set (vw σ) x
   | .under g r => (∀ c ∈ g, c.Holds σ) → r.Holds σ
   | .subP c cs => ∃ c' ∈ cs, c.addrW (vw σ) = c'.addrW (vw σ)
+  | .eq a b => a.valW (vw σ) = b.valW (vw σ)
 
 /-- **The residuals hold** at the instance. -/
 def ResF (H : HCert) (σ : Val) : Prop := ∀ r ∈ H.res, r.Holds σ
@@ -436,8 +442,7 @@ structure CdA where
   prs : List (PRun × List ℕ)
 
 /-- **A dispatch's arms' guarantees under its selector** `mx`: if the selector's word is `g^j`, arm `j` ran, and
-`arms[j]` holds (one entry per dispatch, an equal earlier one dropped, so a later dispatch on `mx` looks up its arm `j`
-by index). -/
+`arms[j]` holds (one entry per dispatch, so a later dispatch on `mx` looks up its arm `j` by index). -/
 structure CdE where
   mx : CCell
   arms : List CdA

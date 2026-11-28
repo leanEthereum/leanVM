@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.JumpCellsSound
 public import LeanVM.Guest.Bridge.AlignSound
+public import LeanVM.Guest.Memory.BumpA
 
 /-!
 # The bump pointer's static part by offset
@@ -21,11 +22,13 @@ callee frame is reserved and not entered. From `curChk`:
 * `nb_succ`: past an offset, the buffer hints at it are counted; `nb_skip`: a jump skipping no
   buffer hint counts those at its offset; `nb_none`: past every buffer hint, all of them;
 * `pend_succ`: past an instruction no jump, the frame hints at it are pending (at most one frame
-  pending); `pend_nf`: at a jump no frame hint's, nothing is pending or reserved;
+  pending, `pend_le`); `pend_nf`: at a jump no frame hint's, nothing is pending or reserved;
   `pend_site`: at a jump through a call site's frame cell, its frame was reserved and is no longer
   pending past it;
-* `bufsJumps_at`, `targetsOk_at`, `blockM_sels`, `armTgtsOk_at`: the code's jumps and the body's
-  `match`es as the check sees them; `allocDsts_le_cnt`: a path allocates at most `cntL` buffers.
+
+The bus era's `Bridge/AllocCur.lean` (tag `formal-bus-archive`), its offset facts; the walks of the
+check (`bufsJumps_at`, `targetsOk_at`, `blockM_sels`, `armTgtsOk_at`, `allocDsts_le_cnt`) come back
+with the check's generator.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -42,10 +45,6 @@ def hintsAtD (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (entry off 
 /-- The advice's pcs increasing from the entry `entry`. -/
 def HintsUp (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (entry : ℕ) : Prop :=
   d.1 = entry ∧ pcsUp d.2.2 = true ∧ ∀ p ∈ d.2.2, entry ≤ p.1
-
-/-- The buffer hints with their offsets. -/
-noncomputable def bufsOf (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List (ℕ × Prover.Exec.Hint) :=
-  (allocHints d).filter fun q ↦ isBuf X q.2
 
 end
 
@@ -373,239 +372,28 @@ theorem pend_site (hU : FrUniq code fr) {off : ℕ} {ins : OffsetInstruction} (h
 
 end Pend
 
-/-! ## The check's walks -/
+/-! ## What the check gives -/
 
-theorem bufsJumps_at {X : AlignCtx} {bs : List (ℕ × Prover.Exec.Hint)} :
-    ∀ (k : ℕ) (l : List OffsetInstruction), bufsJumps X bs k l = true → ∀ i oc od of, l[i]? = some (.jump oc od of) →
-      (∀ q ∈ bs, q.1 ≤ k + i) ∨ bufJumpOk X bs (k + i) oc od of = true
-  | _, [], _, _, _, _, _, h => by simp at h
-  | k, ins :: rest, h, i, oc, od, of, hi => by
-    simp only [bufsJumps, Bool.and_eq_true] at h
-    cases i with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-      subst hi
-      simp only [Bool.or_eq_true, Bool.not_eq_true', List.any_eq_false, decide_eq_true_eq, not_lt,
-        Nat.add_zero] at h ⊢
-      exact h.1
-    | succ i =>
-      simp only [List.getElem?_cons_succ] at hi
-      have := bufsJumps_at (k + 1) rest h.2 i oc od of hi
-      rwa [show k + 1 + i = k + (i + 1) by omega] at this
-
-theorem sitesOk_at {X : AlignCtx} {code : List OffsetInstruction} {fr : List (ℕ × Prover.Exec.Hint)} :
-    ∀ (k : ℕ) (l : List OffsetInstruction), sitesOk X code fr k l = true → ∀ i oc od q, l[i]? = some (.jump oc od q) →
-      ((getF X.sites q).isSome = true →
-        ∃ r ∈ fr, allocPtr r.2 = some q ∧ nextJump code r.1 = k + i) ∧
-      (fr.filter fun r ↦ Nat.beq (nextJump code r.1) (k + i)).length ≤ 1
-  | _, [], _, _, _, _, _, h => by simp at h
-  | k, ins :: rest, h, i, oc, od, q, hi => by
-    simp only [sitesOk, Bool.and_eq_true] at h
-    cases i with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-      subst hi
-      simp only [Bool.or_eq_true, Bool.not_eq_true', List.any_eq_true, Bool.and_eq_true, beq_iff_eq,
-        Nat.beq_eq, decide_eq_true_eq, Nat.add_zero] at h ⊢
-      obtain ⟨⟨h1, h2⟩, -⟩ := h
-      refine ⟨fun hs ↦ ?_, h2⟩
-      rcases h1 with h1 | h1
-      · rw [h1] at hs; cases hs
-      · exact h1
-    | succ i =>
-      simp only [List.getElem?_cons_succ] at hi
-      have := sitesOk_at (k + 1) rest h.2 i oc od q hi
-      rwa [show k + 1 + i = k + (i + 1) by omega] at this
-
-theorem targetsOk_at {X : AlignCtx} {code : List OffsetInstruction} {fr : List (ℕ × Prover.Exec.Hint)} :
-    ∀ (l : List OffsetInstruction), targetsOk X code fr l = true → ∀ (i oc od of : ℕ),
-      l[i]? = some (OffsetInstruction.jump oc od of) →
-      ∀ t, X.pcAt od = some t → pendIn code fr (t - X.entry) = false
-  | [], _, _, _, _, _, h, _, _ => by simp at h
-  | ins :: rest, h, i, oc, od, of, hi, t, ht => by
-    simp only [targetsOk, Bool.and_eq_true] at h
-    cases i with
-    | zero =>
-      simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
-      subst hi
-      have := h.1
-      simp only [ht, Bool.not_eq_true'] at this
-      exact this
-    | succ i =>
-      simp only [List.getElem?_cons_succ] at hi
-      exact targetsOk_at rest h.2 i oc od of hi t ht
-
-/-! ## The body's `match`es and allocations -/
-
-/-- `blockM` of a statement. -/
-noncomputable def stmtM (ok : V → ℕ → Bool) : Stmt → Bool :=
-  Stmt.rec (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
-    (fun _ ↦ true) (fun _ _ _ hz hn ↦ hz && hn) (fun x arms ha ↦ ok x arms.length && ha) (fun _ _ _ ↦ true)
-    (fun _ _ _ ↦ true) (fun _ _ _ _ ↦ true) (fun _ ↦ true) true (fun _ _ hs hss ↦ hs && hss) true
-    (fun _ _ ha has ↦ ha && has)
-
-/-- `blockM` of arms. -/
-noncomputable def armsM (ok : V → ℕ → Bool) : List (List Stmt) → Bool :=
-  Stmt.rec_2 (motive_1 := fun _ ↦ Bool) (motive_2 := fun _ ↦ Bool) (motive_3 := fun _ ↦ Bool)
-    (fun _ ↦ true) (fun _ _ _ hz hn ↦ hz && hn) (fun x arms ha ↦ ok x arms.length && ha) (fun _ _ _ ↦ true)
-    (fun _ _ _ ↦ true) (fun _ _ _ _ ↦ true) (fun _ ↦ true) true (fun _ _ hs hss ↦ hs && hss) true
-    (fun _ _ ha has ↦ ha && has)
-
-section M
-
-variable (ok : V → ℕ → Bool)
-
-mutual
-theorem blockM_sels : ∀ (ss : List Stmt), blockM ok ss = true → ∀ s ∈ stmtsOf ss, ∀ x arms,
-    s = .match_ x arms → ok x arms.length = true
-  | [], _, s, hs => by simp [stmtsOf] at hs
-  | s' :: ss, h, s, hs => by
-    change (stmtM ok s' && blockM ok ss) = true at h
-    rw [Bool.and_eq_true] at h
-    rw [stmtsOf, List.mem_cons, List.mem_append] at hs
-    rcases hs with rfl | hs | hs
-    · intro x arms he
-      subst he
-      have h1 := h.1
-      change (ok x arms.length && armsM ok arms) = true at h1
-      exact ((Bool.and_eq_true _ _).mp h1).1
-    · exact stmtM_sels s' h.1 s hs
-    · exact blockM_sels ss h.2 s hs
-
-theorem stmtM_sels : ∀ (s' : Stmt), stmtM ok s' = true → ∀ s ∈ stmtsSub s', ∀ x arms,
-    s = .match_ x arms → ok x arms.length = true
-  | .ite c' z n, h, s, hs => by
-    change (blockM ok z && blockM ok n) = true at h
-    simp only [Bool.and_eq_true] at h
-    simp only [stmtsSub, List.mem_append] at hs
-    rcases hs with hs | hs
-    · exact blockM_sels z h.1 s hs
-    · exact blockM_sels n h.2 s hs
-  | .match_ x arms, h, s, hs => by
-    change (ok x arms.length && armsM ok arms) = true at h
-    rw [Bool.and_eq_true] at h
-    exact armsM_sels arms h.2 s hs
-  | .atom _, _, _, hs | .call .., _, _, hs | .callIf .., _, _, hs | .dispatch .., _, _, hs | .ret _, _, _, hs => by
-    simp [stmtsSub] at hs
-
-theorem armsM_sels : ∀ (arms : List (List Stmt)), armsM ok arms = true → ∀ s ∈ stmtsArms arms, ∀ x as,
-    s = .match_ x as → ok x as.length = true
-  | [], _, s, hs => by simp [stmtsArms] at hs
-  | a :: as, h, s, hs => by
-    change (blockM ok a && armsM ok as) = true at h
-    rw [Bool.and_eq_true] at h
-    rw [stmtsArms, List.mem_append] at hs
-    rcases hs with hs | hs
-    · exact blockM_sels a h.1 s hs
-    · exact armsM_sels as h.2 s hs
-end
-
-end M
-
-theorem armTgtsOk_at {X : AlignCtx} {P : B2C.Plumb} {code : List OffsetInstruction} {fr : List (ℕ × Prover.Exec.Hint)}
-    {x : V} {n : ℕ} (h : armTgtsOk X P code fr x n = true) {od : ℕ} {a : ℕ × ℕ} (ha : (od, a) ∈ armsOf P)
-    (hax : a.1 = x.idx) {k t : ℕ} (hk : k < n) (ht : getF X.jt (a.2 + k) = some t) :
-    pendIn code fr (t - X.entry) = false := by
-  have h1 := List.all_eq_true.mp h _ ha
-  simp only [hax, Nat.beq_refl, Bool.not_true, Bool.false_or, List.all_eq_true, List.mem_range] at h1
-  have := h1 k hk
-  simp only [ht, Bool.not_eq_true'] at this
-  exact this
-
-/-- `cntL` of a statement. -/
-noncomputable def cntS : Stmt → ℕ :=
-  Stmt.rec (motive_1 := fun _ ↦ ℕ) (motive_2 := fun _ ↦ ℕ) (motive_3 := fun _ ↦ ℕ)
-    (fun a ↦ bif allocAtom a then 1 else 0) (fun _ _ _ hz hn ↦ hz + hn) (fun _ _ ha ↦ ha) (fun _ _ _ ↦ 0)
-    (fun _ _ _ ↦ 0) (fun _ _ _ _ ↦ 0) (fun _ ↦ 0) 0 (fun _ _ hs hss ↦ hs + hss) 0 (fun _ _ ha has ↦ ha + has)
-
-/-- `cntL` of arms. -/
-noncomputable def cntA : List (List Stmt) → ℕ :=
-  Stmt.rec_2 (motive_1 := fun _ ↦ ℕ) (motive_2 := fun _ ↦ ℕ) (motive_3 := fun _ ↦ ℕ)
-    (fun a ↦ bif allocAtom a then 1 else 0) (fun _ _ _ hz hn ↦ hz + hn) (fun _ _ ha ↦ ha) (fun _ _ _ ↦ 0)
-    (fun _ _ _ ↦ 0) (fun _ _ _ _ ↦ 0) (fun _ ↦ 0) 0 (fun _ _ hs hss ↦ hs + hss) 0 (fun _ _ ha has ↦ ha + has)
-
-section Cnt
-
-variable {σ : Val}
-
-/-- The events of an outcome. -/
-def evs : Out → List Ev
-  | .fall es => es
-  | .ret es _ => es
-  | .stuck => []
-
-theorem nA_pre (es : List Ev) : ∀ o : Out, (allocDsts (evs (o.pre es))).length ≤
-    (allocDsts es).length + (allocDsts (evs o)).length
-  | .fall _ | .ret _ _ => by simp [Out.pre, evs, allocDsts]
-  | .stuck => by simp [Out.pre, evs, allocDsts]
-
-theorem nA_seq (k : Out) : ∀ o : Out, (allocDsts (evs (o.seq k))).length ≤
-    (allocDsts (evs o)).length + (allocDsts (evs k)).length
-  | .fall es => by simp only [Out.seq]; exact nA_pre es k
-  | .ret _ _ => by simp [Out.seq, evs]
-  | .stuck => by simp [Out.seq, evs, allocDsts]
-
-theorem nA_pick {x : V} {args rets : List V} :
-    ∀ (fs : List String) (j : ℕ), (allocDsts (evs (pick σ x args rets j fs))).length = 0
-  | [], _ => by simp [pick, evs, allocDsts]
-  | f :: fs, j => by
-    rw [pick]
-    split_ifs
-    · simp [evs, allocDsts, Ev.allocDst?]
-    · exact nA_pick fs (j + 1)
-
-mutual
-theorem nA_walk1 : ∀ (s : Stmt), (allocDsts (evs (walk1 σ s))).length ≤ cntS s
-  | .atom a => by
-    change (allocDsts [Ev.atom a]).length ≤ bif allocAtom a then 1 else 0
-    rcases a with _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩ | _ <;>
-      simp [allocDsts, Ev.allocDst?, allocAtom, coreFlow]
-  | .ite c z n => by
-    change _ ≤ cntL z + cntL n
-    rw [walk1]
-    refine (nA_pre _ _).trans ?_
-    have h1 := nA_walk z
-    have h2 := nA_walk n
-    have h0 : (allocDsts [Ev.inK c]).length = 0 := rfl
-    split_ifs <;> omega
-  | .match_ x arms => by
-    change _ ≤ cntA arms
-    rw [walk1]
-    exact nA_arms x arms 0
-  | .call f args rets => by
-    change (allocDsts [Ev.call f args rets]).length ≤ 0
-    exact Nat.le_of_eq rfl
-  | .callIf c f args => by
-    change (allocDsts [.inK c, if σ c = 0 then .skip f args else .call f args []]).length ≤ 0
-    split_ifs <;> exact Nat.le_of_eq rfl
-  | .dispatch x fs args rets => by rw [walk1, nA_pick]; exact Nat.zero_le _
-  | .ret _ => by simp [walk1, evs, allocDsts]
-
-theorem nA_walk : ∀ (ss : List Stmt), (allocDsts (evs (walk σ ss))).length ≤ cntL ss
-  | [] => by simp [walk, evs, allocDsts]
-  | s :: ss => by
-    change _ ≤ cntS s + cntL ss
-    rw [walk]
-    exact (nA_seq _ _).trans (Nat.add_le_add (nA_walk1 s) (nA_walk ss))
-
-theorem nA_arms (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ), (allocDsts (evs (walkArms σ x j arms))).length ≤ cntA arms
-  | [], _ => by simp [walkArms, evs, allocDsts]
-  | a :: as, j => by
-    change _ ≤ cntL a + cntA as
-    rw [walkArms]
-    split_ifs
-    · exact (nA_walk a).trans (Nat.le_add_right _ _)
-    · exact (nA_arms x as (j + 1)).trans (Nat.le_add_left _ _)
-end
-
-/-- **A path allocates at most `cntL` buffers.** -/
-theorem allocDsts_le_cnt {body : List Stmt} {es : List Ev} {vs : List V} (h : walk σ body = .ret es vs) :
-    (allocDsts es).length ≤ cntL body := by
-  have := nA_walk (σ := σ) body
-  rw [h] at this
-  exact this
-
-end Cnt
+/-- **What the bump pointer check gives** of a function's context, body, code and advice (the bus
+era's `CurFacts`, from `curChk`, stated on the context; on Hotwire's hints the order of the hints at
+each pc, `ordHints`, replaces `bufsFirst`): the hints at each pc in their order, every jump before a
+buffer hint passing `bufJumpOk`, each frame hint passing `frameOk`, at most one frame hint's next
+jump at a jump, every jump through a call site's frame cell one frame hint's, no constant jump
+target, `match` arm target or call site's return pc pending. -/
+structure CurFactsX (X : AlignCtx) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Prop where
+  ord : ∀ q ∈ d.2.2, Memory.ordHints (isBuf X) (isFrame X) (pendIn code (frames X d) (q.1 - X.entry)) q.2 = true
+  bufs : ∀ (i oc od of : ℕ), code[i]? = some (.jump oc od of) →
+    (∀ q ∈ bufsOf X d, q.1 ≤ i) ∨ bufJumpOk X (bufsOf X d) i oc od of = true
+  frame : ∀ q ∈ frames X d, frameOk X code q.1 q.2 = true
+  uniq : FrUniq code (frames X d)
+  site : ∀ (i oc od of : ℕ), code[i]? = some (.jump oc od of) → (getF X.sites of).isSome = true →
+    ∃ r ∈ frames X d, allocPtr r.2 = some of ∧ nextJump code r.1 = i
+  tgt : ∀ (i oc od of : ℕ), code[i]? = some (.jump oc od of) → ∀ t, X.pcAt od = some t →
+    pendIn code (frames X d) (t - X.entry) = false
+  arm : ∀ s ∈ stmtsOf body, ∀ x arms, s = .match_ x arms → ∀ od a k t, getF X.arms od = some a → a.1 = x.idx →
+    k < arms.length → getF X.jt (a.2 + k) = some t → pendIn code (frames X d) (t - X.entry) = false
+  ret : ∀ q args rets s, X.siteAt q args rets = some s → pendIn code (frames X d) (s.r - X.entry) = false
 
 end
 

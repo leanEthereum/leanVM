@@ -1,119 +1,159 @@
 /-
   LeanVM.Prover.Complete
 
-  The completeness end statement for any honest prover that is the specification's honest
-  prover at some witness: `LeanVM.Completeness` with that prover.
+  leanVM's completeness, reduced to the honest script's phases, and its axioms.
 -/
 
 module
 
-public import LeanVM.Protocol.LeanVMRpm
-public import LeanVM.Protocol.WithHash
-
-@[expose] public section
+public import LeanVM.Prover.Complete.Assemble
+public import LeanVM.Prover.Complete.KeccakPhase
+public import LeanVM.Prover.Complete.Witness
+public import LeanVM.Prover.Complete.CostEnd
+public import LeanVM.Prover.Complete.RingSwitch
+public import LeanVM.Prover.Complete.Link.Open
+public import LeanVM.Prover.Complete.Link.Index
+public import LeanVM.Prover.Complete.Link.Column
+public import LeanVM.Prover.Complete.Link.RowId
+public import LeanVM.Prover.Complete.Link.TailRow
 
 /-!
-# Completeness for a prover that is the specification at a witness
+# leanVM's completeness
 
-The completeness theorem (`LeanVM.completeness_holds`) is proved for a prover that chooses a
-witness classically (`honestComp`). Its proof needs of the prover only that, on the executions it
-speaks of, it is the specification's honest prover (`Rom.honestComp?` at leanVM's seed and
-program, with the strategy `leanVmProver prog s ρ (stackOf prog s w)`) at some witness `w` at
-sizes `s` that is honest (`HonestFor`). Here it is restated for any such prover `A`:
+`LeanVM.Completeness` (`Statement/LeanVm.lean`) for the statement's honest prover
+`LeanVM.Prover.prove`, which runs `honestScript` against the verifier's own program:
 
-* `completeness_of_spec`: if on every valid execution within the cap, at a valid rate, `A` is the
-  specification at an honest witness, then the body of `LeanVM.Completeness` holds for `A`, with
-  the same bound `2^-256` (`completenessRpm_at`, `completenessRpm_le`).
-
-The prover may make no proof (`none`); the experiments count that a rejection. The verifier
-rejects the empty proof too, once it has its seed (`verifierWithHash_empty`), so in distribution an experiment is the one with the empty
-proof in place of `none` (`noProof_evalDistEq`), and with it `Rom.honestComp?` is
-`Rom.honestComp` (`honestComp_eq_getD`), where the theorems of the random-permutation model
-apply.
+* `Wins.lean`, `Replay.lean`: a script that wins the program (`Wins`) makes proofs the verifier
+  accepts, for every hash and permutation (`runProof_of_wins`);
+* `Pow.lean`, `Rom.lean`, `Rpm.lean`, `Numbers.lean`: in the random-oracle model the winning
+  script's proof is rejected only when a proof-of-work search runs out of fuel (`romComplete`), the
+  transfer to the random permutation adds `rpmError` (`rpmComplete`), and the numbers stay below
+  `2^-256` (`completenessBound_le`);
+* `End.lean`: `LeanVM.completeness_of : WitnessExists → HonestWins → HonestCosts → Completeness`;
+* `Witness.lean`: `witnessExists`; `Prefix.lean`, `Public.lean`: the announced sizes, the
+  out-of-domain sample and the public input win; `KeccakPhase.lean`: `keccakWins`;
+* `Assemble.lean`: `LeanVM.completeness_of_phases : CommitOpenWins → LinkWins → KeccakWins →
+  HonestCosts → Completeness`; `Cost*.lean`: `honestCosts`; so
+  `LeanVM.completeness_of_open_phases : CommitOpenWins → LinkWins → Completeness`;
+* `Link/*.lean`: the link's four identities on the honest witness (`linkIndexIdentity_honest`,
+  `rowIdentity_of`, `columnSplit_of`, `linkTailHolds_honest`), so `LeanVM.completeness_holds`.
 -/
 
-namespace LeanVM.Prover
+public section
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
-open LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.KeccakHash
-open OracleComp OracleSpec
-open scoped ENNReal
+namespace LeanVM
 
-/-! ## No proof is a rejection -/
+open LeanVM.Semantics
 
-section Empty
+/-- **Completeness from the two open phases**: the commitment and opening (`CommitOpenWins`) and the
+link (`LinkWins`); the witness, the Keccak reduction and the costs are proved. -/
+theorem completeness_of_open_phases (hco : Prover.CommitOpenWins) (hlink : Prover.LinkWins) :
+    Completeness :=
+  completeness_of_phases hco hlink Prover.Complete.Keccak.keccakWins Prover.Complete.Cost.honestCosts
 
-variable {m : Type → Type} [Monad m] [LawfulMonad m] (H : Bytes → m Digest)
-  (F : KeccakState → m KeccakState)
+/-- **Completeness from the link**: every other phase and the costs are proved
+(`commitOpenWins`, `keccakWins`, `honestCosts`, `witnessExists`). -/
+theorem completeness_of_link (hlink : Prover.LinkWins) : Completeness :=
+  completeness_of_open_phases Prover.commitOpenWins hlink
 
-/-- **No program reading first accepts the empty proof**: it rejects, with no call. -/
-theorem runProof_read_empty (k : E → VerifierProgram Bool) (sd : KeccakState) :
-    runProofWithHash H F (VerifierProgram.read k) sd ⟨[], []⟩ = pure false := by
-  simp only [runProofWithHash, runWithHash, pure_bind]
+/-- **Completeness from the link's four arithmetic facts** (`LinkCore`, `Link/Core.lean`). -/
+theorem completeness_of_linkCore
+    (h : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+      (W : Prover.Witness), Prover.Admitted prog input t ρ W → Prover.Complete.LinkCore W) :
+    Completeness :=
+  completeness_of_link (Prover.Complete.linkWins_of_core h)
 
-/-- The verifier's program reads first. -/
-theorem leanVmProgram_read (bytecode : List K) (publicInput : Digest) :
-    ∃ k, leanVmVerifierProgram bytecode publicInput = VerifierProgram.read k :=
-  ⟨_, rfl⟩
+/-- **Completeness from the link's four identities on the honest witness** (`Link/Open.lean`):
+`LinkIndexIdentity`, `RowIdentity`, `ColumnSplit`, `LinkTailHolds`. -/
+theorem completeness_of_linkIdentities
+    (h : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+      (W : Prover.Witness), Prover.Admitted prog input t ρ W →
+        Prover.Complete.LinkIndexIdentity W ∧ Prover.Complete.RowIdentity W ∧
+          Prover.Complete.ColumnSplit W ∧ Prover.Complete.LinkTailHolds W) :
+    Completeness :=
+  completeness_of_linkCore fun prog input t ρ W hA ↦
+    let hh := h prog input t ρ W hA
+    Prover.Complete.linkCore_of hA.witness hh.1 hh.2.1 hh.2.2.1 hh.2.2.2
 
-/-- **The verifier rejects the empty proof**, once it has its seed. -/
-theorem verifierWithHash_empty (prog : LeanIsaProgram) (input : PublicInput) :
-    verifierWithHash H F prog input ⟨[], []⟩ =
-      seedWithHash H F (bytecodeWords prog) (publicInputDigest input) >>= fun _ ↦ pure false := by
-  obtain ⟨k, hk⟩ := leanVmProgram_read (bytecodeWords prog) (publicInputDigest input)
-  simp only [verifierWithHash, verifyWithHash, hk, runProof_read_empty]
+/-- **Completeness from the row side's identity and the link's tail**: the index side's identity
+(`linkIndexIdentity_honest`) and the pointer columns' split (`columnSplit_of`) are proved. -/
+theorem completeness_of_rowTail
+    (h : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+      (W : Prover.Witness), Prover.Admitted prog input t ρ W →
+        Prover.Complete.RowIdentity W ∧ Prover.Complete.LinkTailHolds W) :
+    Completeness :=
+  completeness_of_linkIdentities fun prog input t ρ W hA ↦
+    ⟨Prover.Complete.linkIndexIdentity_honest hA, (h prog input t ρ W hA).1,
+      Prover.Complete.columnSplit_of hA, (h prog input t ρ W hA).2⟩
 
-end Empty
+/-- **Completeness from the link's tail**: the row side's identity (`rowIdentity_of`) is proved. -/
+theorem completeness_of_tail
+    (h : ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ)
+      (W : Prover.Witness), Prover.Admitted prog input t ρ W → Prover.Complete.LinkTailHolds W) :
+    Completeness :=
+  completeness_of_rowTail fun prog input t ρ W hA ↦
+    ⟨Prover.Complete.rowIdentity_of hA, h prog input t ρ W hA⟩
 
-/-- **No proof is a rejection**: where the verifier `V` rejects the empty proof after some calls
-`Y`, the experiment that fails when the prover `X` makes no proof is, in distribution, the one
-that runs `V` on the empty proof instead, against any stateful implementation of the calls. -/
-theorem noProof_evalDistEq {σ α : Type} (impl : QueryImpl KeccakCalls (StateT σ ProbComp))
-    (X : OracleComp KeccakCalls (Option Proof)) (V : Proof → OracleComp KeccakCalls Bool)
-    (Y : OracleComp KeccakCalls α) (hV : V ⟨[], []⟩ = Y >>= fun _ ↦ pure false) (s : σ) :
-    (simulateQ impl (do
-      match ← X with
-      | none => pure false
-      | some proof => V proof)).run' s =ᵈ
-      (simulateQ impl ((·.getD ⟨[], []⟩) <$> X >>= V)).run' s := by
-  rw [bind_map_left]
-  simp only [simulateQ_bind, StateT.run'_eq, StateT.run_bind, map_bind]
-  refine EvalDistEq.bind_right _ fun ⟨r, s'⟩ ↦ ?_
-  cases r with
-  | none =>
-    simp only [Option.getD_none, hV, simulateQ_bind, simulateQ_pure, StateT.run_bind,
-      StateT.run_pure, map_bind, map_pure]
-    refine EvalDistEq.of_evalDist_eq ?_
-    rw [OracleComp.evalDist_bind_const]
-  | some p => exact EvalDistEq.rfl
+/-- **leanVM is complete** for its honest prover, `LeanVM.Prover.prove`. -/
+theorem completeness_holds : Completeness :=
+  completeness_of_tail fun _ _ _ _ _ hA ↦ Prover.Complete.linkTailHolds_honest hA.witness
 
-/-- **The prover is the specification at an honest witness** on every valid execution within the
-verifier's cap, at a valid rate. -/
-def SpecOnValid (A : HonestProverWithHash) : Prop :=
-  ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-    ∃ w s, HonestFor prog input t ρ w s ∧
-      A prog input t ρ fuel = Rom.honestComp? (leanVmSeed (bytecodeWords prog) (publicInputDigest
-          input))
-        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-        (leanVmProver prog s ρ (stackOf prog s w)) fuel
-
-/-- **Completeness for a prover that is the specification at an honest witness**: the body of
-`LeanVM.Completeness` for `A`. No proof is a rejection, as the empty proof's is
-(`noProof_evalDistEq`). -/
-theorem completeness_of_spec (A : HonestProverWithHash) (hA : SpecOnValid A) :
-    ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-      ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
-      Pr{let v ← verifierCompletenessExperimentWithHash A prog input t ρ (2 ^ 35)}[v = false] ≤
-        (2 : ℝ≥0∞)⁻¹ ^ 256 := by
-  intro prog input t ρ hv hbudget hρ
-  obtain ⟨w, s, hw, hAw⟩ := hA prog input t ρ (2 ^ 35) hv hbudget hρ
-  refine le_of_eq_of_le ((noProof_evalDistEq keccakCallsOverRandomPermutation _ _ _
-    (verifierWithHash_empty _ _ prog input) []).prEvent_eq (· = false)) ?_
-  rw [hAw, ← honestComp_eq_getD]
-  exact (Rpm.completenessRpm_at hw (by norm_num)).trans Rpm.completenessRpm_le
-
-end LeanVM.Prover
+end LeanVM
 
 end
+
+/-- info: 'LeanVM.completeness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_holds
+
+/-- info: 'LeanVM.completeness_of_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_tail
+
+/-- info: 'LeanVM.completeness_of_rowTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_rowTail
+
+/-- info: 'LeanVM.completeness_of_linkIdentities' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_linkIdentities
+
+/-- info: 'LeanVM.completeness_of_linkCore' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_linkCore
+
+/-- info: 'LeanVM.Prover.commitOpenWins' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.commitOpenWins
+
+/-- info: 'LeanVM.completeness_of_open_phases' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_open_phases
+
+/-- info: 'LeanVM.Prover.Complete.Cost.honestCosts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Complete.Cost.honestCosts
+
+/-- info: 'LeanVM.completeness_of_phases' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completeness_of_phases
+
+/-- info: 'LeanVM.Prover.witnessExists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.witnessExists
+
+/-- info: 'LeanVM.Prover.Complete.Keccak.keccakWins' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.Complete.Keccak.keccakWins
+
+/-- info: 'LeanVM.Prover.runProof_of_wins' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.runProof_of_wins
+
+/-- info: 'LeanVM.Prover.rpmComplete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.rpmComplete
+
+/-- info: 'LeanVM.Prover.completenessBound_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Prover.completenessBound_le

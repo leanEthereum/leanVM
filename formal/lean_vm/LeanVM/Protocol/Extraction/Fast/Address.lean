@@ -14,14 +14,14 @@ worst-case.
   the key whenever there is one, and only such pairs;
 * `gLogTable_eq`: on at most `2^63` words the lookup is `gLogIn (powIndex κ)` (the lanes of `g^i`,
   `i < 2^κ`, are distinct: `lane_gpow_inj`);
-* `stepTable`, `haltLoopTable`, `candidateExecutionTable`: the halting search
-  with the tables, equal to the statement's with `powIndex` (`candidateExecutionTable_eq`).
+* `stepTable`, `haltLoopTable`: the step and the halting search with the tables, equal to those
+  with `powIndex` (`stepTable_eq`, `haltLoopTable_eq`); `stepVec`: the step reading a memory
+  vector.
 -/
 
 namespace LeanVM.Extraction.Fast
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol LeanVM.Protocol.Halting
-open LeanVM.Extraction LeanVM.Protocol.Compile
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Halting LeanVM.Extraction
 
 public section
 
@@ -200,14 +200,6 @@ theorem gLogTable_eq {κ : ℕ} (hκ : κ < 64) (a : K) :
       | none => none
       | some r' => haltLoopTable memT codeT prog L fuel (n + 1) r'
 
-/-- `candidateExecutionIn`, with tables. -/
-@[expose] def candidateExecutionTable (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram)
-    (input : PublicInput) (layout : Verifier.Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    Option (Execution prog) :=
-  ((haltLoopTable memT codeT prog (memoryImage layout q) (stepCap layout) 0
-      Registers.initial).map fun n ↦ ⟨layout.logMemory, memoryImage layout q, n⟩).filter
-    (boundaryOK input)
-
 theorem stepTable_eq {prog : LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) (r :
     Registers K) :
     stepTable (powTable κ) (powTable prog.logSize) prog L r =
@@ -226,37 +218,18 @@ theorem haltLoopTable_eq {prog : LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L :
       | none => rfl
       | some r' => exact haltLoopTable_eq hκ L fuel (n + 1) r'
 
-/-- **The halting search with the tables is the statement's**, on at most `2^63` words. -/
-theorem candidateExecutionTable_eq {prog : LeanIsaProgram} {input : PublicInput} {layout :
-    Verifier.Layout}
-    (hκ : layout.logMemory < 64) {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    candidateExecutionTable (powTable layout.logMemory) (powTable prog.logSize) prog input layout q =
-      candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout q := by
-  rw [candidateExecutionTable, candidateExecutionIn, haltingRunIn, haltLoopTable_eq hκ]
+/-! ## The step on a memory vector -/
 
-/-- **A stack's execution, fast**: through the address tables, built once, on at most `2^63`
-words; through the statement's hash maps otherwise. -/
-@[expose] def candidateExecutionFast (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : Verifier.Layout) : Vector K (2 ^ layout.stackLog) → Option (Execution prog) :=
-  if layout.logMemory < 64 then
-    let memT := powTable layout.logMemory
-    let codeT := powTable prog.logSize
-    candidateExecutionTable memT codeT prog input layout
-  else
-    let memIdx := powIndex layout.logMemory
-    let codeIdx := powIndex prog.logSize
-    candidateExecutionIn memIdx codeIdx prog input layout
+/-- `stepTable`, reading the memory vector. -/
+@[expose] def stepVec (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ}
+    (mem : Vector E (2 ^ κ)) (r : Registers K) : Option (Registers K) :=
+  (gLogTable codeT prog.logSize r.pc).map prog.instructions >>=
+    executeWith (fun a ↦ (gLogTable memT κ a).map mem.get) r
 
-theorem candidateExecutionFast_eq (prog : LeanIsaProgram) (input : PublicInput)
-    (layout : Verifier.Layout) :
-    candidateExecutionFast prog input layout =
-      candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input layout := by
-  rw [candidateExecutionFast]
-  split
-  · rename_i h
-    funext q
-    exact candidateExecutionTable_eq h q
-  · rfl
+theorem stepVec_eq (memT codeT : Array (ℕ × ℕ)) (prog : LeanIsaProgram) {κ : ℕ}
+    (mem : Vector E (2 ^ κ)) (r : Registers K) :
+    stepVec memT codeT prog mem r = stepTable memT codeT prog mem.get r :=
+  rfl
 
 end
 

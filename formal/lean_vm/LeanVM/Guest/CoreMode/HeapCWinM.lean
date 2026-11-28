@@ -18,7 +18,7 @@ the previous arm's end (`CSt.cnt`), then `joinSt`, which reads of each arm only 
 entries it added (`blkSum`), and of the last arm its serials. So the arms split (`chkArmsC_append`): a window of
 arms (`armsOkW`) decides that their passes, from the state before the `match` with stated serials, give stated
 summaries and end at stated serials; consecutive arm windows chain (`armsWins_chain`), and the join
-(`joinOk`), from the summaries, gives the window's end state (`winOk_of_arms`).
+(`joinOk`), from the summaries, gives the window's end state (`winOk_of_arms`, `winOkF_of_arms`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -284,6 +284,16 @@ theorem winOk_of_arms {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : H
   obtain ⟨hg, -, -, hc⟩ := chkC_of_arms hj hw hl
   rw [show a + 1 - a = 1 by omega]
   simp only [winOk, hr, withCx_eq, hc, ngL_eq, hg, decide_true, Bool.and_self]
+
+/-- **A window that is one `match`, from windows of its arms** (a function's window). -/
+theorem winOkF_of_arms {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {L : List Stmt} {a N : ℕ}
+    {st st' : CSt} {l : List (ℕ × Cnt)} {ss : List (List BlkSum)} {cf : Cnt}
+    (hj : joinOk (L.drop a) N st ss.flatten cf st' = true)
+    (hw : armsWins pows sigOf f H (L.drop a) st ((0, cntOf st) :: l) ss) (hl : lastA l (0, cntOf st) = (N, cf)) :
+    winOkF pows sigOf f H ((L.drop a).take (a + 1 - a)) st st' = true := by
+  obtain ⟨hg, he, -, hc⟩ := chkC_of_arms hj hw hl
+  rw [show a + 1 - a = 1 by omega]
+  simp only [winOkF, he, withCx_eq, hc, ngL_eq, hg, decide_true, Bool.and_self, Bool.not_false]
 
 end
 

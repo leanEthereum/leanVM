@@ -15,9 +15,7 @@ public import LeanVM.Guest.Bridge.AllocCur
 For a function's advice `d` with pcs increasing from its entry (`HintsUp`), the hints of offset
 `off`, `hs`, split the function's hints (`hintsOff_split`): those before (offsets below `off`), `hs`
 at `off`, those after (offsets above). So the `i`-th of `hs`, a buffer hint, is the buffer hint of
-index `nbAt off` plus the buffer hints before it in `hs` (`bufsOf_idx`). `bufsFirst` is a pairwise
-order (`bufsFirst_pairwise`): at a buffer hint, no frame hint before it, so none pending or reserved
-before it at its offset (`buf_noFrame`); at a frame hint, every buffer hint before it (`frame_allBufs`).
+index `nbAt off` plus the buffer hints before it in `hs` (`bufsOf_idx`). Restored in part from the tag.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -91,21 +89,6 @@ theorem bufsOf_eq : bufsOf X d = (hintsOff d).filter fun q ↦ isBuf X q.2 := by
   · simp
   · simp [isBuf_ptr hb]
 
-/-- `bufsFirst` as a pairwise order: no buffer hint after a frame hint. -/
-theorem bufsFirst_pairwise : ∀ (seen : Bool) (l : List (ℕ × Prover.Exec.Hint)), bufsFirst X seen l = true →
-    l.Pairwise (fun a b ↦ isFrame X a.2 = true → isBuf X b.2 = false) ∧ (seen = true → ∀ b ∈ l, isBuf X b.2 = false)
-  | _, [], _ => ⟨List.Pairwise.nil, fun _ _ h ↦ by simp at h⟩
-  | seen, q :: qs, h => by
-    simp only [bufsFirst, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨h1, h2⟩ := h
-    obtain ⟨ih1, ih2⟩ := bufsFirst_pairwise _ qs h2
-    refine ⟨List.Pairwise.cons (fun b hb hf ↦ ih2 (by simp [hf]) b hb) ih1, fun hs b hb ↦ ?_⟩
-    rcases List.mem_cons.mp hb with rfl | hb
-    · rcases h1 with h | h
-      · rw [hs] at h; cases h
-      · exact h
-    · exact ih2 (by simp [hs]) b hb
-
 theorem filter_take_idx {α : Type} (p : α → Bool) : ∀ (l : List α) (i : ℕ) {x : α}, l[i]? = some x → p x = true →
     (l.filter p)[(l.take i).countP p]? = some x
   | [], _, _, h, _ => by simp at h
@@ -157,133 +140,6 @@ theorem bufsOf_idx {entry off : ℕ} (hU : HintsUp d entry) {i : ℕ} {h : Prove
   rw [List.getElem?_append_left]
   · exact this
   · exact (List.getElem?_eq_some_iff.mp this).1
-
-/-- The hints split at an offset, by the function's allocation hints. -/
-theorem allocHints_split {entry off : ℕ} (hU : HintsUp d entry) {i : ℕ} {h : Prover.Exec.Hint}
-    (hi : (hintsAtD d entry off)[i]? = some h) :
-    ∃ P S : List (ℕ × Prover.Exec.Hint), allocHints d = (P.filter fun q ↦ (allocPtr q.2).isSome) ++
-        (((hintsAtD d entry off).take i).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome) ++
-        ([(off, h)].filter fun q ↦ (allocPtr q.2).isSome) ++
-        (((hintsAtD d entry off).drop (i + 1)).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome) ++
-        (S.filter fun q ↦ (allocPtr q.2).isSome) ∧
-      (∀ q ∈ P, q.1 < off) ∧ ∀ q ∈ S, off < q.1 := by
-  have hl : d.2.2.lookup (entry + off) = some (hintsAtD d entry off) := by
-    unfold hintsAtD at hi ⊢
-    cases hlk : d.2.2.lookup (entry + off) with
-    | none => rw [hlk] at hi; simp at hi
-    | some _ => rfl
-  obtain ⟨P, S, he, hP, hS⟩ := hintsOff_split hU hl
-  refine ⟨P, S, ?_, hP, hS⟩
-  have hsplit : hintsAtD d entry off = (hintsAtD d entry off).take i ++ [h] ++ (hintsAtD d entry off).drop (i + 1) := by
-    conv_lhs => rw [← List.take_append_drop i (hintsAtD d entry off)]
-    rw [List.append_assoc, List.drop_eq_getElem_cons (List.getElem?_eq_some_iff.mp hi).1]
-    simp [(List.getElem?_eq_some_iff.mp hi).2]
-  unfold allocHints
-  rw [he]
-  conv_lhs => rw [hsplit]
-  simp only [List.map_append, List.filter_append, List.map_cons, List.map_nil, List.append_assoc]
-
-theorem pw_cross {α : Type} {R : α → α → Prop} {l1 l2 : List α} (h : (l1 ++ l2).Pairwise R) :
-    ∀ a ∈ l1, ∀ b ∈ l2, R a b := (List.pairwise_append.mp h).2.2
-
-theorem countP_offs (p : Prover.Exec.Hint → Bool) {off : ℕ} (l : List Prover.Exec.Hint) :
-    ((l.map fun h ↦ (off, h)).filter fun q ↦ (allocPtr q.2).isSome).countP (fun q ↦ p q.2) =
-      l.countP (fun h ↦ (allocPtr h).isSome && p h) := by
-  rw [List.countP_filter, List.countP_map]
-  apply List.countP_congr
-  intro x _
-  simp [Function.comp, Bool.and_comm]
-
-/-- **At a buffer hint, no frame hint before it**: none at an offset below its own, none before it
-at its own. -/
-theorem buf_noFrame {entry off : ℕ} (hU : HintsUp d entry) (hF : bufsFirst X false (allocHints d) = true) {i : ℕ}
-    {h : Prover.Exec.Hint} (hi : (hintsAtD d entry off)[i]? = some h) (hb : isBuf X h = true) :
-    (∀ q ∈ frames X d, off ≤ q.1) ∧ ((hintsAtD d entry off).take i).countP (isFrame X) = 0 := by
-  obtain ⟨P, S, he, hP, hS⟩ := allocHints_split hU hi
-  set Pf := P.filter fun q ↦ (allocPtr q.2).isSome
-  set Tf := (((hintsAtD d entry off).take i).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome)
-  set Hf := [(off, h)].filter fun q ↦ (allocPtr q.2).isSome
-  set Df := (((hintsAtD d entry off).drop (i + 1)).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome)
-  set Sf := S.filter fun q ↦ (allocPtr q.2).isSome
-  have hpw := (bufsFirst_pairwise false _ hF).1
-  rw [he] at hpw
-  have h1 : ((Pf ++ Tf) ++ (Hf ++ Df ++ Sf)).Pairwise (fun a b ↦ isFrame X a.2 = true → isBuf X b.2 = false) := by
-    simpa only [List.append_assoc] using hpw
-  have hh : (off, h) ∈ Hf ++ Df ++ Sf :=
-    List.mem_append_left _ (List.mem_append_left _ (by simp [Hf, isBuf_ptr hb]))
-  refine ⟨fun q hq ↦ ?_, ?_⟩
-  · unfold frames at hq
-    have hf := (List.mem_filter.mp hq).2
-    rw [he] at hq
-    have hq' := (List.mem_filter.mp hq).1
-    simp only [List.mem_append] at hq'
-    rcases hq' with (((hq' | hq') | hq') | hq') | hq'
-    · exfalso
-      have := pw_cross h1 q (List.mem_append_left _ hq') (off, h) hh hf
-      rw [hb] at this; cases this
-    · obtain ⟨_, -, rfl⟩ := List.mem_map.mp (List.mem_filter.mp hq').1; exact le_rfl
-    · have : q = (off, h) := by simpa [Hf] using (List.mem_filter.mp hq').1
-      rw [this]
-    · obtain ⟨_, -, rfl⟩ := List.mem_map.mp (List.mem_filter.mp hq').1; exact le_rfl
-    · exact (hS q (List.mem_filter.mp hq').1).le
-  · rw [List.countP_eq_zero]
-    intro x hx hf
-    have hm : (off, x) ∈ Tf := List.mem_filter.mpr ⟨List.mem_map.mpr ⟨x, hx, rfl⟩, isFrame_ptr hf⟩
-    have := pw_cross h1 (off, x) (List.mem_append_right _ hm) (off, h) hh hf
-    rw [hb] at this; cases this
-
-/-- **At a frame hint, every buffer hint before it**: those at offsets below its own and those
-before it at its own. -/
-theorem frame_allBufs {entry off : ℕ} (hU : HintsUp d entry) (hF : bufsFirst X false (allocHints d) = true) {i : ℕ}
-    {h : Prover.Exec.Hint} (hi : (hintsAtD d entry off)[i]? = some h) (hf : isFrame X h = true) :
-    nbAt X d off + ((hintsAtD d entry off).take i).countP (isBuf X) = (bufsOf X d).length := by
-  obtain ⟨P, S, he, hP, hS⟩ := allocHints_split hU hi
-  set Pf := P.filter fun q ↦ (allocPtr q.2).isSome
-  set Tf := (((hintsAtD d entry off).take i).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome)
-  set Hf := [(off, h)].filter fun q ↦ (allocPtr q.2).isSome
-  set Df := (((hintsAtD d entry off).drop (i + 1)).map (fun h ↦ (off, h))).filter (fun q ↦ (allocPtr q.2).isSome)
-  set Sf := S.filter fun q ↦ (allocPtr q.2).isSome
-  have hpw := (bufsFirst_pairwise false _ hF).1
-  rw [he] at hpw
-  have h2 : ((Pf ++ Tf ++ Hf) ++ (Df ++ Sf)).Pairwise (fun a b ↦ isFrame X a.2 = true → isBuf X b.2 = false) := by
-    simpa only [List.append_assoc] using hpw
-  have hh : (off, h) ∈ Pf ++ Tf ++ Hf := List.mem_append_right _ (by simp [Hf, isFrame_ptr hf])
-  have hnb : ∀ q ∈ Df ++ Sf, isBuf X q.2 = false := fun q hq ↦ pw_cross h2 (off, h) hh q hq hf
-  have hlen : (bufsOf X d).length = (allocHints d).countP (fun q ↦ isBuf X q.2) := by
-    unfold bufsOf; rw [List.countP_eq_length_filter]
-  have hnbAt : nbAt X d off = (allocHints d).countP (fun q ↦ decide (q.1 < off) && isBuf X q.2) := by
-    unfold nbAt; rw [List.countP_eq_length_filter]
-  have hP' : Pf.countP (fun q ↦ decide (q.1 < off) && isBuf X q.2) = Pf.countP (fun q ↦ isBuf X q.2) :=
-    List.countP_congr fun q hq ↦ by simp [hP q (List.mem_filter.mp hq).1]
-  have hz : ∀ L : List (ℕ × Prover.Exec.Hint), (∀ q ∈ L, off ≤ q.1) →
-      L.countP (fun q ↦ decide (q.1 < off) && isBuf X q.2) = 0 :=
-    fun L hL ↦ List.countP_eq_zero.mpr fun q hq ↦ by have := hL q hq; simp; omega
-  have hTo : ∀ q ∈ Tf, off ≤ q.1 := fun q hq ↦ by
-    obtain ⟨_, -, rfl⟩ := List.mem_map.mp (List.mem_filter.mp hq).1; exact le_rfl
-  have hHo : ∀ q ∈ Hf, off ≤ q.1 := fun q hq ↦ by
-    have : q = (off, h) := by simpa [Hf] using (List.mem_filter.mp hq).1
-    rw [this]
-  have hDo : ∀ q ∈ Df, off ≤ q.1 := fun q hq ↦ by
-    obtain ⟨_, -, rfl⟩ := List.mem_map.mp (List.mem_filter.mp hq).1; exact le_rfl
-  have hSo : ∀ q ∈ Sf, off ≤ q.1 := fun q hq ↦ (hS q (List.mem_filter.mp hq).1).le
-  have hT : Tf.countP (fun q ↦ isBuf X q.2) = ((hintsAtD d entry off).take i).countP (isBuf X) := by
-    rw [countP_offs]
-    apply List.countP_congr
-    intro x _
-    cases hb : isBuf X x
-    · simp
-    · simp [isBuf_ptr hb]
-  have hH : Hf.countP (fun q ↦ isBuf X q.2) = 0 := by
-    have : isBuf X h = false := by unfold isBuf; simp [hf]
-    simp [Hf, this]
-  have hD : Df.countP (fun q ↦ isBuf X q.2) = 0 :=
-    List.countP_eq_zero.mpr fun q hq hb ↦ by rw [hnb q (List.mem_append_left _ hq)] at hb; cases hb
-  have hS0 : Sf.countP (fun q ↦ isBuf X q.2) = 0 :=
-    List.countP_eq_zero.mpr fun q hq hb ↦ by rw [hnb q (List.mem_append_right _ hq)] at hb; cases hb
-  rw [hlen, hnbAt, he]
-  simp only [List.countP_append]
-  rw [hP', hz _ hTo, hz _ hHo, hz _ hDo, hz _ hSo, hT, hH, hD, hS0]
-  omega
 
 end
 

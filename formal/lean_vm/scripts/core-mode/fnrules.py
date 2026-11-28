@@ -12,20 +12,14 @@ Tables (each a dict by core name, or a list of entries whose first field is a co
   FEATURES     inference feature sets tried after the generic ones (`callcres.py`), a list of extra sets
   EXP_FACTS    `(k, parameter, offset, bound)` (`Res.expFacts`); DIM_FACTS `(k, base, bound, pairs)` (`Res.dimFacts`)
   EXP_VALS     `(k, value, bound)`: a value `g^e`, `e < bound` (`CoreMode.expVal`)
-  ST_LOOPS     stream-cursor loops `(D, v, S)` (`CoreMode.stLoops`)
+  ST_LOOPS     cursor-run loops `(Dbase, Dbound, W, v, S)` (`CoreMode.stLoops`)
   CM_LOOPS     the gap walk's frame loops, claims a frame (`CoreMode.cmK`)
   SPLITS       `g`-power splits (`CoreMode.splitsC`)
+  RES_EQ       equation residuals `(a, b)`, cells over the function's values (`CRes.eq`): the pass's first kept
+               equations, true at its honest instances by its own family (`fam`)
   CTR_PRE      loops whose run preconditions may be over the counter (`infer.py`)
   CONTRACTS    contracts given by hand (`sigc.py`), as `Mode.Sig` literal fields past the entry
   CORE_WIN, PAIR_WIN, FRAME_WIN: functions checked in windows of their own sizes, and the sizes (`windows.py`)
-  The counts (`scripts/count`, by stable name; `gen.py`, `vscount.py` name no function):
-  STATIC       the entry's statically bounded callees `Count/Static.lean` bounds: `(order, kind, Lean name)`, kind
-               `const`, `loop` or one its `count_static` writes
-  RATIOV       functions counted within ratios of their words (`Count/RatioV*`): `(order, Lean name)`
-  COUNT_SHAPE  functions counted by their trees' shapes (`count_walk`, `count_parts`), not a certificate: the family
-               letter whose certificates cover their other callees
-  RATIO_WORDS  callees counted within a ratio of these words: a number, or a function of the counts and the name
-  COUNT_OM     functions whose frame weights a count module holds: `(module, order)`
 Hooks (functions; each answers for its own core names only, else `None`/`False`):
   fam(k, r)        a ghost-free residual of the function's family (`CoreMode.resFamG`'s own families)
   ghost(k, r)      a residual of its ghost family (no bound on its values)
@@ -38,14 +32,6 @@ Hooks (functions; each answers for its own core names only, else `None`/`False`)
   gl(k, np)        the caller's cells linked to a ghost family's or a frame loop's slots (`CoreMode.mlGl`, `cmGl`),
                    `{d: (slot, k)}`, `np` its parameters' count
   split(k)         `(x, n)`: its heap certificate split at the top-level selector `x` of `n` arms (`HCert.arms`)
-Count hooks (`scripts/count`; a function's may name its callees, as its counts are made of theirs):
-  count_arms(g)    the opening arms, by stack log (`gen.G.os_names`)
-  count_static(n, kind, N, certs, OPS, opdef, hcf): `Count/Static.lean`'s text for its `STATIC` entry of another kind
-  count_walk(C, k, n): its instructions at opcode index `k` by its tree's shape, from its family's counts `C`
-  count_words_by_name(g): text appended to `Count/Words.lean`'s tables
-  count_parts(g, OPS): its parts of the count modules (`vscount.write`)
-  deployed_value(W, name), deployed_parts(W): its values of `B1.Main.mainWords` and its parts of the
-                   `Count/Deployed*` modules (`deployed.py`)
 """
 import os, re, sys, glob, importlib.util
 HERE = os.path.dirname(os.path.abspath(__file__))

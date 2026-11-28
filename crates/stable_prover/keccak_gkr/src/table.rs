@@ -5,17 +5,16 @@
 //! ([`PackFold`]). The table holds a row of positions per group, block and segment, and each round folds it in
 //! half while summing the next round's values over the rows it writes ([`Summand::pair`]).
 
-use primitives::field::lanes::transpose_bytes;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PACK, along};
 
-use crate::kernels::{FieldMap, field_map, map_sums};
+use crate::kernels::{FieldMap, field_map, lane_bytes, map_sums};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 use crate::skip::SKIP;
-use crate::witness::{BLOCK_WORDS, Shape};
+use crate::witness::Shape;
 
 /// The table and the half it folds into, allocated once for every layer: row `half + 2 (g + n_blocks segment)` is
 /// group `half` of block `g` of segment `segment`.
@@ -79,20 +78,11 @@ impl PackFold {
 
     /// Both groups of a block, folded: entry `BITS * half + j` of `out` is group `half` at position `j`.
     fn rows(&self, block: &[u64], out: &mut [F128]) {
-        for j in (0..BITS).step_by(64) {
-            // Byte `t` of a position's 64 bytes, for each of the 64 positions from `j`, in `bytes[t]`.
-            let mut bytes = [[0u64; 8]; 64];
-            let positions = block[j * BLOCK_WORDS..][..64 * BLOCK_WORDS]
-                .as_chunks::<BLOCK_WORDS>()
-                .0;
-            for (k, positions) in positions.as_chunks::<16>().0.iter().enumerate() {
-                for (bytes, t) in bytes.iter_mut().zip(transpose_bytes(positions)) {
-                    bytes[2 * k..][..2].copy_from_slice(&[t as u64, (t >> 64) as u64]);
-                }
-            }
+        for lane in 0..BITS / 64 {
+            let bytes = lane_bytes(block, lane);
             for half in 0..2 {
                 let values = map_sums(&self.0, |t| bytes[32 * half + t]);
-                for (out, v) in out[BITS * half + j..][..64].iter_mut().zip(values) {
+                for (out, v) in out[BITS * half + 64 * lane..][..64].iter_mut().zip(values) {
                     *out = F128::from(v);
                 }
             }

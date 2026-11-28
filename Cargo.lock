@@ -349,6 +349,7 @@ dependencies = [
  "isa",
  "tracing",
  "verifier",
+ "zkdsl_compiler",
 ]
 
 [[package]]
@@ -844,12 +845,15 @@ dependencies = [
  "bench_harness",
  "clap",
  "experimental_dispatch",
+ "experimental_lean_vm_core",
+ "experimental_primitives",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
  "stable_lean_vm_core",
+ "stable_primitives",
  "tracing",
  "verifier",
  "zkdsl_compiler",
@@ -1327,7 +1331,6 @@ dependencies = [
  "isa",
  "keccak256",
  "stable_lean_vm_core",
- "stable_parallel",
  "stable_primitives",
  "verifier",
 ]

@@ -8,7 +8,7 @@ in a run), a callee's `prePR` is met by a run in scope (the run rule), by its po
 caller's own.
 """
 import infer as I
-from infer import mk, shift, num, base, F
+from infer import mk, shift, base, F
 
 
 def scope(st, conds):

@@ -1,19 +1,18 @@
 /-
   LeanVM.Protocol.Extraction.Run
 
-  The extractor's computable halting search (`LeanVM/Protocol/Extraction/Extractor.lean`, §7) against the
-  specification: its addresses, step and run are the specification's, it finds the specification's
-  halting run whenever that run fits the cap, and what it returns for any stack is a valid
-  execution. A halting run never repeats a state.
+  The machine's computable step and halting search through address indices, against the
+  specification: its addresses, step and run are the specification's. A halting run never repeats
+  a state.
 -/
 
 module
 
-public import LeanVM.Protocol.Extraction.Defs
+public import Statement.Prover.Witness
 public import LeanVM.Semantics.Lemmas
 
 /-!
-# The halting search, proved
+# The step and the halting search, proved
 
 * `gLogIn_powIndex`: on at most `2^63` words (`κ < 64`), the index lookup is `addressIndex?`
   (the powers `g^i`, `i < 2^κ < 2^64 − 1`, are distinct, and so are their lanes).
@@ -21,18 +20,43 @@ public import LeanVM.Semantics.Lemmas
 * `haltLoop_eq_some_iff`: the search from `r` returns `m` exactly when the run reaches the final
   state from `r` in `m − n ≤ fuel` steps.
 * `run_final_unique`: a run reaches the final state after at most one number of steps (it halts
-  there). `haltingRun_eq_some_iff`: so `haltingRun` returns that number.
-* **`haltingRunC_eq_haltingRun`**: when every halting run fits the cap, the capped search is
-  `haltingRun`. `haltingRunC_eq_some_iff`: the capped search returns the halting run of at most
-  `cap` steps.
-* `boundaryOK_iff`: the Boolean boundary is `HoldsPublicInput`. **`candidateExecution_valid`**:
-  what a stack's execution is, is a valid execution, for every stack and every layout.
+  there).
 * `run_injective`: a halting run never repeats a state (from the repeat it would reach the final
   state before its end, and halt there).
 
 The index is reasoned about through Lean core's `Std.HashMap` lemmas (`getElem?_insert`,
 `getElem?_insert_self`, `getElem?_empty`; Lean FRO, Apache-2.0).
 -/
+
+namespace LeanVM.Extraction
+
+open LeanVM.Parameters LeanVM.Semantics
+
+@[expose] public section
+
+/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
+fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
+`memIdx`. -/
+def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
+    (L : MemoryImage κ) (r : Registers K) : Option (Registers K) :=
+  (gLogIn codeIdx prog.logSize r.pc).map prog.instructions >>=
+    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
+
+/-- The halting search from `r`, reached after `n` steps, with at most `fuel` more steps: `some m`
+when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs
+out first. -/
+def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
+    (L : MemoryImage κ) : ℕ → ℕ → Registers K → Option ℕ
+  | 0, n, r => if r = Registers.final prog then some n else none
+  | fuel + 1, n, r =>
+    if r = Registers.final prog then some n
+    else
+      match stepIn memIdx codeIdx prog L r with
+      | none => none
+      | some r' => haltLoop memIdx codeIdx prog L fuel (n + 1) r'
+
+end
+end LeanVM.Extraction
 
 namespace LeanVM.Protocol.Halting
 
@@ -183,106 +207,7 @@ theorem run_final_unique {r : Registers K} {m n : ℕ}
   · exact absurd hn (key h hm)
   · exact h
   · exact absurd hm (key h hn)
-
-/-- **`haltingRun` returns the number of steps after which the run halts**, if there is one. -/
-theorem haltingRun_eq_some_iff {t : Execution prog} :
-    haltingRun prog L = some t ↔
-      ∃ n, t = ⟨κ, L, n⟩ ∧ run prog L n Registers.initial = some (Registers.final prog) := by
-  unfold haltingRun
-  split_ifs with h
-  · constructor
-    · intro ht
-      exact ⟨_, (Option.some.inj ht).symm, Nat.find_spec h⟩
-    · rintro ⟨n, rfl, hn⟩
-      rw [run_final_unique (Nat.find_spec h) hn]
-  · refine ⟨fun ht ↦ by simp at ht, ?_⟩
-    rintro ⟨n, -, hn⟩
-    exact absurd ⟨n, hn⟩ h
-
-/-- The steps of `haltingRun`'s execution are those of any halting run. -/
-theorem haltingRun_steps {t : Execution prog} (ht : haltingRun prog L = some t) {n : ℕ}
-    (hn : run prog L n Registers.initial = some (Registers.final prog)) : t.stepCount = n := by
-  obtain ⟨m, rfl, hm⟩ := haltingRun_eq_some_iff.mp ht
-  exact run_final_unique hm hn
-
-/-- What the capped search returns is the image, with the number of steps it found. -/
-theorem haltingRunC_eq_some {cap : ℕ} {t : Execution prog} (h : haltingRunC prog L cap = some t) :
-    t = ⟨κ, L, t.stepCount⟩ ∧
-      haltLoop (powIndex κ) (powIndex prog.logSize) prog L cap 0 Registers.initial = some t.stepCount := by
-  dsimp only [haltingRunC, haltingRunIn] at h
-  obtain ⟨n, hn, rfl⟩ := Option.map_eq_some_iff.mp h
-  exact ⟨rfl, hn⟩
-
-/-- **The capped search returns the halting run of at most `cap` steps.** -/
-theorem haltingRunC_eq_some_iff (hκ : κ < 64) {cap : ℕ} {t : Execution prog} :
-    haltingRunC prog L cap = some t ↔
-      ∃ n, t = ⟨κ, L, n⟩ ∧ n ≤ cap ∧ run prog L n Registers.initial = some (Registers.final prog) := by
-  have hS := stepIn_powIndex (prog := prog) hκ L
-  constructor
-  · intro h
-    obtain ⟨ht, hl⟩ := haltingRunC_eq_some h
-    obtain ⟨d, hd, hcap, hrun⟩ := (haltLoop_eq_some_iff hS cap 0 _ _).mp hl
-    rw [Nat.zero_add] at hd
-    exact ⟨t.stepCount, ht, hd ▸ hcap, hd ▸ hrun⟩
-  · rintro ⟨n, rfl, hcap, hrun⟩
-    dsimp only [haltingRunC, haltingRunIn]
-    rw [(haltLoop_eq_some_iff hS cap 0 _ n).mpr ⟨n, (Nat.zero_add n).symm, hcap, hrun⟩]
-    rfl
-
-/-- **The capped search is `haltingRun` whenever every halting run fits the cap.** -/
-theorem haltingRunC_eq_haltingRun (hκ : κ < 64) {cap : ℕ}
-    (hcap : ∀ n, run prog L n Registers.initial = some (Registers.final prog) → n ≤ cap) :
-    haltingRunC prog L cap = haltingRun prog L := by
-  refine Option.ext fun t ↦ ?_
-  rw [haltingRunC_eq_some_iff hκ, haltingRun_eq_some_iff]
-  exact ⟨fun ⟨n, h, _, h'⟩ ↦ ⟨n, h, h'⟩, fun ⟨n, h, h'⟩ ↦ ⟨n, h, hcap n h', h'⟩⟩
-
 end Search
-
-/-! ## 4. The boundary and a candidate's execution -/
-
-/-- **The Boolean boundary is `HoldsPublicInput`.** -/
-theorem boundaryOK_iff {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog) :
-    boundaryOK input t = true ↔ HoldsPublicInput input t := by
-  unfold boundaryOK HoldsPublicInput
-  split_ifs with h
-  · have hκ : t.logMemorySize < 64 := by have := h.2; unfold maxLogMem at this; omega
-    have h1 : 1 < 2 ^ t.logMemorySize := Nat.one_lt_two_pow (by unfold minLogMem at h; omega)
-    rw [show addressOfIndex 0 = addressOfIndex ((⟨0, Nat.two_pow_pos t.logMemorySize⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
-      show addressOfIndex 1 = addressOfIndex ((⟨1, h1⟩ : Fin (2 ^ t.logMemorySize)) : ℕ) from rfl,
-      MemoryImage.read_gpow hκ, MemoryImage.read_gpow hκ]
-    simp only [Bool.and_eq_true, decide_eq_true_eq, Option.some.injEq]
-    exact ⟨fun h' ↦ ⟨h.1, h.2, h'⟩, fun h' ↦ h'.2.2⟩
-  · simp only [false_iff]
-    exact fun h' ↦ h ⟨h'.1, h'.2.1⟩
-
-/-- A candidate's execution is the capped halting run of its memory image, filtered by the
-boundary. -/
-theorem candidateExecution_eq {prog : LeanIsaProgram} (input : PublicInput) (layout :
-    Verifier.Layout)
-    {μ : ℕ} (q : Vector K (2 ^ μ)) :
-    candidateExecution prog input layout q =
-      (haltingRunC prog (memoryImage layout q) (stepCap layout)).filter (boundaryOK input) :=
-  rfl
-
-/-- **A candidate's execution is valid**, for every candidate: the boundary bounds the memory, so
-the search's addresses and run are the specification's. -/
-theorem candidateExecution_valid {prog : LeanIsaProgram} {input : PublicInput} {layout :
-    Verifier.Layout}
-    {μ : ℕ} {q : Vector K (2 ^ μ)} {t : Execution prog}
-    (h : candidateExecution prog input layout q = some t) :
-    ValidExecution prog input t := by
-  rw [candidateExecution_eq] at h
-  obtain ⟨hr, hb⟩ := Option.filter_eq_some_iff.mp h
-  have hB := (boundaryOK_iff input t).mp hb
-  obtain ⟨ht, -⟩ := haltingRunC_eq_some hr
-  have hκ : layout.logMemory < 64 := by
-    have h2 := hB.2.1
-    rw [ht] at h2
-    unfold maxLogMem at h2
-    exact lt_of_le_of_lt h2 (by norm_num)
-  obtain ⟨n, rfl, -, hn⟩ := (haltingRunC_eq_some_iff hκ).mp hr
-  exact ⟨hB, hn⟩
 
 /-! ## 5. A halting run never repeats a state -/
 

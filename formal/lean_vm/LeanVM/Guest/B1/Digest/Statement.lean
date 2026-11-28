@@ -13,7 +13,7 @@ import LeanVM.Guest.B1.Digest.StatementLink
 # `statement_digest`
 
 `statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)` hashes 32 cells: the
-eight header cells, then the 24 deferred cells read at `defer`, and returns the first two cells of
+eight header cells, then the 26 deferred cells read at `defer`, and returns the first two cells of
 the digest. Its core function is its reference function (`sd_linked`), whose meaning is the
 statement's (`sdRef_sem`).
 -/

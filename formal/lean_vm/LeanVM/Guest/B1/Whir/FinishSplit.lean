@@ -42,8 +42,8 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
     osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
     rs.1 ++ od.1 ++
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
-      osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat],
-   [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)])
+      osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat, osCp (k + 6) st.cb],
+   [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5), .n (k + 6)])
 
 theorem osFinish_eq (c : OsCfg) (st : OsSt) (tch : ℕ) :
     osFinish c st tch = (osFinishA c st tch).1 ++ [.ret (osFinishA c st tch).2] := by

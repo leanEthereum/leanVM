@@ -1,19 +1,24 @@
 /-
   LeanVM.Guest.Bridge.JumpCellsOf
 
-  The jump cells of the deployed guest along the reference run, from the program's alignment (`progAl`).
+  The jump cells of the deployed guest along the reference run, on the aligned allocator, from the
+  program's alignment (`progAl`).
 -/
 
 module
 
 public import LeanVM.Guest.Bridge.JumpCells
+public import LeanVM.Guest.Bridge.JumpCells.All
 public import LeanVM.Guest.Bridge.ProgAl
+public import LeanVM.Guest.Memory.Discharge
 
 /-!
 # The jump cells along the reference run
 
-`jumpCells_of` (`JumpCells.lean` states its parts): apart from them, since it reads the program's alignment
-`progAl`, whose checks (`ProgAl/Link*`, a long function's windows in `CoreMode/AlignOk`) a reader of the parts need not import.
+`jumpCells_ofA` (`JumpCells.lean` states its parts): the bus era's `jumpCells_of` on b2c's aligned
+honest tree (`honestInstsA`, `RefOk.framesA`, `rootA_inst`, `insts_main_orA`), every function's data
+check (`JumpCells.jcData_all`) discharged, the chained `match`es' arms (`ChainArm`) the one premise.
+Apart from `JumpCells.lean`, since it reads the program's alignment `progAl`.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -23,22 +28,24 @@ open LeanVM.Guest.Check (getF getF_eq)
 
 @[expose] public section
 
-variable {hdr : E × E} {rd rd0 : Reader} {T : Tree} {κ : ℕ} {L : MemoryImage κ} {M : ℕ → E}
+variable {al : String → Bool} {hdr : E × E} {rd rd0 : Reader} {T : Tree} {κ : ℕ} {L : MemoryImage κ} {M : ℕ → E}
 
-/-- **The jump cells of the deployed guest**: the top frame of every state of the track against the
-run holds what its jumps read, on a memory covering the honest writes. -/
-theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2C.H B2C.C hdr T B2C.cert rd [] [])
-    (hL : Covers coreProgram B2C.fs B2C.H B2C.C hdr T L)
-    (hD : ∀ j, 1 ≤ j → j < nFns → jcData j = true)
-    (hCh : ChainArm rd0 (honestInsts coreProgram B2C.fs B2C.H hdr T) T M alignA) {pc fp : ℕ} {done : List Pop}
-    {e : Ent} {st : List Ent}
-    (h : RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H hdr T) T M (entOf alignA) (alOf alignA) pc fp
-      (done, e :: st)) : JumpCells L alignA e pc := by
-  obtain ⟨hIe, j, bufs, kids, vs, hj, ht, hcore, hw, hF⟩ := h.frames hT hH hL e List.mem_cons_self
+/-- **The jump cells of the deployed guest**, aligned: the top frame of every state of the track
+against the run holds what its jumps read, on a memory covering the honest writes. -/
+theorem jumpCells_ofA (hT : T.name = "main")
+    (hH : HonestAtA coreProgram B2C.fs al B2C.H B2C.C hdr T B2C.cert rd [] [])
+    (hL : Covers coreProgram B2C.fs al B2C.H B2C.C hdr T L)
+    (hCh : ChainArm rd0 (honestInstsA coreProgram B2C.fs al B2C.H hdr T) T M alignA) {pc fp : ℕ}
+    {done : List Pop} {e : Ent} {st : List Ent}
+    (h : RefOk coreProgram rd0 (honestInstsA coreProgram B2C.fs al B2C.H hdr T) T M (entOf alignA) (alOf alignA)
+      pc fp (done, e :: st)) : JumpCells L alignA e pc := by
+  obtain ⟨hIe, j, bufs, kids, vs, hj, ht, hcore, hw, hF⟩ := RefOk.framesA hT hH hL h e List.mem_cons_self
   have hE := h.track.ents e List.mem_cons_self
   obtain ⟨i0, rfl, -, -, -, -, -, -, h1, h2⟩ := fn_of_idx hj
   have hA : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
-  have hd := hD _ h1 h2
+  have hD : jcData (i0 + 1) = true :=
+    JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
+  have hd := hD
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hstat, harms⟩, hsites⟩, huniq⟩, hextra⟩, hblock⟩, hloop⟩, -⟩, -⟩ := hd
@@ -54,10 +61,11 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     refine ⟨hF.stat _ hm hb.1.1 hb.1.2, fun a b hw' ↦ ?_⟩
     subst hw'
     simpa only [Bool.and_eq_true, Nat.blt_eq] using hb.2
-  have hroot : ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H hdr T, I.t.name = "main" → I.fp = 0 := fun I hI hn ↦ by
-    rcases insts_main_or T _ hdr hH.toHonest.valid I hI with ⟨h0, -⟩ | h0
-    · exact h0
-    · exact absurd hn h0
+  have hroot : ∀ I ∈ honestInstsA coreProgram B2C.fs al B2C.H hdr T, I.t.name = "main" → I.fp = 0 :=
+    fun I hI hn ↦ by
+      rcases insts_main_orA T _ hdr hH.valid I hI with ⟨h0, -⟩ | h0
+      · exact h0
+      · exact absurd hn h0
   have hmain : (i0 + 1 == 1) = true → e.I.fp = 0 := fun h1' ↦
     hroot _ hIe ((idx_one_iff hj).mp (by simpa using h1'))
   have hok := progAl.ok _ _ hE.find
@@ -70,6 +78,11 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     ⟨by omega, by have := two_le_fsz e.I.t; omega⟩
   have hf0 : ∀ {I : Inst}, I.t = T → I.fp = 0 → I.Frame B2C.fs 0 := fun {I} _ h0 ↦
     ⟨by omega, by have := two_le_fsz I.t; omega⟩
+  have hmainOf : e.I.fp = 0 → e.I.t.name = "main" := fun h0 ↦ by
+    obtain ⟨I0, hI0, hI0t, hI0fp, -⟩ :=
+      rootA_inst (P := coreProgram) (fs := B2C.fs) (al := al) (H := B2C.H) (hdr := hdr) (T := T)
+    have := insts_same hIe hI0 (hfe h0) (hf0 hI0t hI0fp)
+    rw [this, hI0t, hT]
   refine ⟨?zero, ?nz, ?self, ?pcw, ?cond, ?arm, ?site, ?tail, ?hdr, ?main, ?bot⟩
   case zero =>
     intro o hz
@@ -172,8 +185,8 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
         · exact h'
       exact numbered_eq (blockB_sels _ _ hblock _ (zok_stmts hz0 hmem) x arms rfl)
     have hσx : e.σ (V.n a.1) = ofK (addressOfIndex k) := by rw [hax, ← hnum]; exact hσk
-    have hjt := End.jtHolds_of (jumpTables_cover hH.toHonest hL hT)
-    have htab := jumpTables_cover hH.toHonest hL hT
+    have htab := jumpTables_cover hH.toHonestA hL hT
+    have hjt := End.jtHolds_of htab
     have hglob : glob.jt.get (a.2 + k) = some t := by
       change Data.jtTrie.get (a.2 + k) = some t
       rw [← getF_eq]; exact ht'
@@ -241,7 +254,7 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     intro off oc od q hpc hcode hnx es' vs' hw' i c hc htk hi
     obtain rfl := hes es' vs' hw'
     rw [hA] at hnx hcode
-    obtain ⟨hl, hn1, kfp, hkfp, -, hread⟩ := next_read h1 h2 (hD _ h1 h2) hF hwc hc hi hcode hnx
+    obtain ⟨hl, hn1, kfp, hkfp, -, hread⟩ := next_read h1 h2 hD hF hwc hc hi hcode hnx
     obtain ⟨hk0, hk1, -, -⟩ := hF.kid i c kfp hc hkfp
     have hkh : kidHdr (i0 + 1) e.I.fp e.I.hdr (e.pre ++ e.es) i = e.I.hdr := by
       unfold kidHdr
@@ -249,10 +262,7 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
       dsimp only
       rw [ite_eq_left ⟨hl, hi⟩]
     refine ⟨fun h0 ↦ ?_, kfp, hkfp, ?_, ?_, ?_⟩
-    · obtain ⟨I0, hI0, hI0t, hI0fp, -⟩ := root_inst (P := coreProgram) (fs := B2C.fs) (H := B2C.H) (hdr := hdr) (T := T)
-      have := insts_same hIe hI0 (hfe h0) (hf0 hI0t hI0fp)
-      have hn : e.I.t.name = "main" := by rw [this, hI0t, hT]
-      have := (idx_one_iff hj).mpr hn
+    · have := (idx_one_iff hj).mpr (hmainOf h0)
       simp [this] at hn1
     · rw [cellAt, hread]
     · rw [cellAt, cellAt, hk0, hkh, hF.hdr0]
@@ -267,10 +277,7 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
     exact hmain hm
   case bot =>
     intro h0
-    obtain ⟨I0, hI0, hI0t, hI0fp, -⟩ := root_inst (P := coreProgram) (fs := B2C.fs) (H := B2C.H) (hdr := hdr) (T := T)
-    have := insts_same hIe hI0 (hfe h0) (hf0 hI0t hI0fp)
-    have hn : e.I.t.name = "main" := by rw [this, hI0t, hT]
-    have h01 : i0 + 1 = 1 := (idx_one_iff hj).mpr hn
+    have h01 : i0 + 1 = 1 := (idx_one_iff hj).mpr (hmainOf h0)
     rw [hA]
     show (i0 + 1 == 1) = true
     rw [h01]; rfl

@@ -14,7 +14,7 @@ public import LeanVM.Guest.Logic
 
 The registers `(g^pc, g^fp)` are `regs pc fp`. A frame is **at** pc `pc` (`AtPc`) when `pc` is its function's entry (`ent`, by name) plus an offset whose aligned body position (`al`, by name and offset: the position a function's alignment check computes there) is the frame's past atoms that pop nothing (those the alignment's normalization skips). `Linked M ent al pc fp st`: the top frame of the stack `st` is the instance at frame `fp`, at pc `pc`; each frame below is at the registers the header of the frame above holds in the reference memory `M` (`M (fp + 0) = g^r`, `M (fp + 1) = g^fp'`); the bottom one is at frame `0`. `RefOk`: `TrackOk` and `Linked`, the track's invariant against the run.
 
-`StepRule`: from a state of an invariant `Q` at registers `(pc, fp)`, a step of the reference to registers short of the final ones lands at `regs pc' fp'` with a state of `Q` there, reached by moves. `refTrace`: given that rule and a run of `n` steps to the final registers from a state of `Q`, a trace `tr` of states, the `k`-th at the run's registers after `k` steps for every `k < n`, each reached from the one before by moves.
+`StepRule`: from a state of an invariant `Q` at registers `(pc, fp)`, a step of the reference to registers short of the final ones lands at `regs pc' fp'` with a state of `Q` there, reached by moves. `refTrace`: given that rule and a run of `n` steps to the final registers from a state of `Q`, a trace `tr` of states, the `k`-th at the run's registers after `k` steps for every `k < n`, each reached from the one before by moves. `run_after`: the run past its first `m` steps, so a trace can start at `main`'s entry, after the prologue.
 
 The frame lemmas: `Linked.top` (the top frame is at the registers: the frame-to-instance map the hints' and residuals' premises read), `Linked.retop` (a step inside the top frame), `Linked.push` (a call: the callee entered, its header holding the return pc and the caller's frame, the caller at the return pc), `Linked.pop` (a return: the caller at the registers the callee's header holds), `Linked.tail` (a loop's tail call: the callee in the caller's place, its header the caller's).
 -/
@@ -88,6 +88,23 @@ theorem run_of_step {k : ℕ} {r0 r r' : Registers K} (h : run prog img k r0 = s
   rw [run_add, h]
   change run prog img 1 r = some r'
   rw [run_one, ite_eq_right hf, hs]
+
+/-- **The run past its first `m` steps**: a run of `n` steps to `t` passing through `r'` after
+`m` steps takes `m ≤ n`, and goes on from `r'` to `t` in `n - m`. -/
+theorem run_after {n m : ℕ} {r t r' : Registers K} (ht : run prog img n r = some t)
+    (htf : t = Registers.final prog) (hm : run prog img m r = some r') :
+    m ≤ n ∧ run prog img (n - m) r' = some t := by
+  have hle : m ≤ n := by
+    by_contra hc
+    obtain ⟨j, rfl⟩ : ∃ j, m = n + (j + 1) := ⟨m - n - 1, by omega⟩
+    rw [run_add, ht] at hm
+    change run prog img (j + 1) t = some r' at hm
+    rw [run_succ_of_eq htf] at hm
+    cases hm
+  refine ⟨hle, ?_⟩
+  have := ht
+  rw [show n = m + (n - m) by omega, run_add, hm] at this
+  exact this
 
 /-- **The trace of an invariant along a run**: from a state of `Q` at the run's first registers,
 one state per step before the last, at the run's registers, each reached by moves from the one

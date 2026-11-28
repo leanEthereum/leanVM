@@ -16,9 +16,9 @@ public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 
 `LayerW` collects, for one reading of `keccak_layer`'s arguments (the claim `c`, `y`, the waiting
 word `w`), the facts its body gives: the product read, the projection check, the
-squeeze after the product, the instance weights written, the pack rounds' records and calls, the
+squeeze after the product, the instance weights written, the pack rounds' two dispatches, the
 eleven position rounds, `t`, the final check, the squeeze `β` and the next claim's record.
-`layer_of_w` turns them into the meaning: `layer_runsTo` with `pack_chain`'s messages, and the
+`layer_of_w` turns them into the meaning: `layer_runsTo` with `pack_rounds`' messages, and the
 record of `layerClaim` (`batch_factor`).
 -/
 
@@ -46,21 +46,26 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
   hsq : layerSq (plainStart first [f0, f1, f2, f3, f4] w) prod nonce = (sv, ⟨capS, []⟩)
   hmuOut : ∀ i < 16, LoadHolds rd out (6 + i) ((keccakInstanceWeights sv).getD i 0)
   hkapOut : LoadHolds rd out 1 (sumE (keccakInstanceWeights sv))
-  rc : E
   pt : E
   pp : E
   hpp : LoadHolds rd claim 2 pp
   tb : E
-  h0 : RoundRec rd rc 0 capS (cur * gen ^ (productBits + 1)) (polyEval prod sv)
-  hloop : IsInK (1 + sg) ∧
-    (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rc, pp, pt, tb] [])
-  hrem : IsInK (1 + rg) ∧
-    (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rc * sg, pp * sg ^ 8, tb,
-      pt * sg ^ 8] [])
+  hcapS : capS.length = 5
+  j1 : ℕ
+  hj1 : j1 < 2
+  hsgj : sg = gen ^ j1
+  r1 : List E
+  hr1 : coreProgram.Rel rd (stepNames.getD j1 "")
+    (capS ++ [cur * gen ^ (productBits + 1), polyEval prod sv, pp, pt, tb]) r1
+  j2 : ℕ
+  hj2 : j2 < 16
+  hrgj : rg = gen ^ j2
+  r2 : List E
+  hr2 : coreProgram.Rel rd (remNames.getD j2 "") (r1 ++ [pp * sg ^ krStep, pt * sg ^ krStep, tb]) r2
   capL : List E
   curL : E
   vL : E
-  hlast : RoundRec rd (rc * sg * rg) 0 capL curL vL
+  hr2v : r2 = capL ++ [curL, vL]
   msgs : List (E × E × E)
   hmsgsL : msgs.length = keccakLocalBits
   hmsgs : ReadsAt rd curL (msgs.flatMap fun m ↦ [m.1, m.2.1, m.2.2])
@@ -94,7 +99,7 @@ theorem lanesOut_length (loc : List E) (beta : E) : (lanesOut loc beta).length =
   simp [lanesOut]
 
 /-- **A layer, from its facts**. -/
-theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
+theorem layer_of_w {first : ℕ} (_hf : first < 2) {rd : Reader}
     {f0 f1 f2 f3 f4 cur sg rg claim out iota : E} {rets : List E} {y step : ℕ} {c : KeccakClaim}
     {w : E} (hy32 : y < 32) (hsg : sg = gen ^ (y / krStep)) (hrg : rg = gen ^ (y % krStep))
     (hcr : ClaimRec rd (first = 1) claim c y) (hiota : iota = keccakIota (y + 3) step c)
@@ -105,10 +110,14 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
       ClaimRec rd false out c' y ∧ rets = cap' ++ [cur * gen ^ xs.length] := by
   obtain ⟨-, hptL, -, -, -, ⟨pp', hpp', hppR⟩, -⟩ := hcr
   have epp : W.pp = pp' := loadHolds_unique W.hpp hpp'
-  obtain ⟨msgsP, chs, hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2⟩ :=
-    pack_chain hf hsg hrg hy32 hptL (epp ▸ hppR) W.h0 W.hloop W.hrem W.hlast
+  obtain ⟨msgsP, chs, capL', curL', vL', hr2', hcapL', hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2⟩ :=
+    pack_rounds hsg hrg hy32 W.hcapS hptL (epp ▸ hppR) W.hj1 W.hsgj W.hr1 W.hj2 W.hrgj W.hr2
+  obtain ⟨hcapE, hcv⟩ := List.append_inj' (W.hr2v.symm.trans hr2') rfl
+  simp only [List.cons.injEq, and_true] at hcv
+  obtain ⟨hcurE, hvE⟩ := hcv
   have hpack : packRunF c.point msgsP (polyEval W.prod W.sv) ⟨W.capS, []⟩ =
-      ((W.vL, chs), ⟨W.capL, []⟩) := Prod.ext hrun1 hrun2
+      ((W.vL, chs), ⟨W.capL, []⟩) := by
+    rw [hvE, hcapE]; exact Prod.ext hrun1 hrun2
   have hsq1 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).1 = W.sv := by
     rw [W.hsq]
   have hsq2 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).2 = ⟨W.capS, []⟩ := by
@@ -136,11 +145,11 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
     rw [W.hlocal, W.hmsgsL] at this
     exact this
   have hc' : W.curL = cur * gen ^ (48 + 2 * y) := by
-    rw [hcurL, mul_assoc, ← pow_add]; rfl
+    rw [hcurE, hcurL, mul_assoc, ← pow_add]; rfl
   refine ⟨_, _, W.capB, ?_, hrun, ?_, ?_⟩
   · simp only [List.append_assoc]
     rw [readsAt_append, readsAt_append, readsAt_append, readsAt_append, W.hprodL,
-      List.length_singleton, flatMap_pairs_length, hmL, flatMap_triples_length, W.hmsgsL]
+      List.length_singleton, length_flatMap_pairs, hmL, flatMap_triples_length, W.hmsgsL]
     refine ⟨W.hprod, fun k hk => ?_, ?_, ?_, ?_⟩
     · simp only [List.length_singleton, Nat.lt_one_iff] at hk
       subst hk
@@ -166,7 +175,7 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
   · refine W.hrets.trans ?_
     rw [hc']
     simp only [List.length_append, List.length_cons, List.length_nil, W.hprodL,
-      flatMap_pairs_length, hmL, flatMap_triples_length, W.hmsgsL]
+      length_flatMap_pairs, hmL, flatMap_triples_length, W.hmsgsL]
     rw [mul_assoc, ← pow_add]
     congr 3
 

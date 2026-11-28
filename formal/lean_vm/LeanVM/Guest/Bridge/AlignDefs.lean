@@ -12,7 +12,7 @@ public import LeanVM.Guest.Check
 /-!
 # The alignment check
 
-A **cursor** `(up, k)` names a body position: index `k` of the innermost block, `up` the enclosing statements' indices with the sub-block taken (an `ite`'s `0` zero side, `1` other side; a `match`'s arm), innermost first. `blockAt body up` is the innermost block.
+A **cursor** `(up, k)` names a body position: index `k` of the innermost block, `up` the enclosing statements' indices with the sub-block taken (an `ite`'s `0` zero side, `1` other side; a `match`'s arm), innermost first. `blockAt body up` is the innermost block, `posOf body up k` the statements left from there: the rest of the block, then the rest of each enclosing block past its statement.
 
 The pass carries a cursor with its statements, a **zipper** (`Zip`): each enclosing level's index, sub-block and statements after it, and the innermost block's statements from `k`, so a step reads the head and never walks from the body's root. `Zip.pos` is the position. `normZ` pops finished blocks and skips the atoms that pop nothing (neither witness nor computed hints), so two arrivals at one offset agree when their cursors (`Zip.keyEq`) are equal.
 
@@ -43,6 +43,11 @@ def subBlock : Stmt → ℕ → List Stmt
 def blockAt (body : List Stmt) : List (ℕ × ℕ) → List Stmt
   | [] => body
   | (k, c) :: up => subBlock ((blockAt body up).getD k default) c
+
+/-- **The statements left at a cursor**: the rest of its block, then of each enclosing one. -/
+def posOf (body : List Stmt) : List (ℕ × ℕ) → ℕ → List Stmt
+  | [], k => body.drop k
+  | (k', c) :: up, k => (blockAt body ((k', c) :: up)).drop k ++ posOf body up (k' + 1)
 
 /-- An atom the frame's flow carries: a witness or computed hint. -/
 def flowAtom : Atom → Bool
@@ -431,9 +436,10 @@ noncomputable def alignAt (X : AlignCtx) (body : List Stmt) (code : List OffsetI
 
 /-! ## Windows
 
-A long function's pass (the pairing's, `CoreMode/PairSlice.lean`) is checked in windows of offsets. A state is
-named by its cursors (`KSt`: the offset, the hints consumed, the cursor falling in, the arrivals pending), each
-zipper rebuilt from the body (`zipOf`). -/
+A long function's pass is checked in windows of offsets. A state is named by its cursors (`KSt`: the
+offset, the hints consumed, the cursor falling in, the arrivals pending), each zipper rebuilt from the
+body (`zipOf`), and `winOk` runs the pass from one named state over the window's instructions to the
+next. -/
 
 /-- The enclosing levels of a cursor with their statements after them. -/
 def zUp (body : List Stmt) : List (ℕ × ℕ) → List (ℕ × ℕ × List Stmt)
@@ -467,6 +473,17 @@ def lenTR {α : Type} : List α → ℕ → ℕ
 def keyOfSt (hs : List (ℕ × List Prover.Exec.Hint)) (st : St) : KSt :=
   ⟨st.i, lenTR hs 0 - lenTR st.hs 0, st.cur.map Zip.key, st.pend.map (fun p ↦ (p.1, p.2.key)),
     st.tabs.map fun t ↦ (t.1, t.2.1.key, t.2.2)⟩
+
+/-- **A window of the pass**: from the state `Ka` at offset `Ka.i` over the instructions to offset
+`Kb.i`, the pass reaches `Kb`. -/
+noncomputable def winOk (X : AlignCtx) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) (Ka Kb : KSt) : Bool :=
+  X.seq fun X ↦ decide ((alignGo X ((code.drop Ka.i).take (Kb.i - Ka.i)) (stOfK body d.2.2 Ka) []).map
+    (fun p ↦ keyOfSt d.2.2 p.1) = some Kb)
+
+/-- The last state of a chain: at the end, no fall-through past it, nothing pending. -/
+def chainEnd (code : List OffsetInstruction) (K : KSt) : Bool :=
+  Nat.beq K.i (lenTR code 0) && K.cur.isNone && K.pend.isEmpty
 
 /-- The checks of `alignOk` but the pass's. -/
 noncomputable def alignPre (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=

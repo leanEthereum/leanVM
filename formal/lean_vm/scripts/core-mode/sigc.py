@@ -10,7 +10,7 @@ function's signature, and its callers' certificates, change only when its contra
 one whose frame layout changed, or one named by `--fresh` needs one in its rule file; without one there, the script
 stops and names it.
 
-usage (from formal/lean_vm): python3 -I scripts/core-mode/sigc.py [--check] [--fresh NAME,..]"""
+usage (from formal/lean_vm): python3 -I scripts/core-mode/sigc.py [--check] [--fresh NAME,..] [--minimal]"""
 import os, re, sys, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -38,10 +38,15 @@ SIG_HEAD = ('/-\n  %s\n\n  What a caller knows of compiled functions: their cont
             '  stops on a function with neither.\n-/\n\nmodule\n\n')
 
 
+# The contracts as written (the bus era's, kept where the frame layout is unchanged); `CoreMode/Sig/` as written takes
+# precedence.
+CONTRACTS = os.path.join(HERE, 'contracts')
+
+
 def written():
     """Each function's signature as written, the literal's fields past its entry, by key."""
     out = {}
-    for f in glob.glob(os.path.join(OUT, '*.lean')):
+    for f in glob.glob(os.path.join(CONTRACTS, '*.lean')) + glob.glob(os.path.join(OUT, '*.lean')):
         for m in CSIG.finditer(open(f, encoding='utf-8').read()):
             out[m.group(1)] = ' '.join(m.group(2).split())
     return out
@@ -54,8 +59,9 @@ def layout_ok(fields, fsig):
     return ent == fsig[0] and ret == fsig[2] and slf == (('id', 'none') if fsig[1] is None else ('some', fsig[1]))
 
 
-def signatures(fresh=()):
-    """Each function's signature's fields past its entry, by compiled name, and how many were kept."""
+def signatures(fresh=(), minimal=False):
+    """Each function's signature's fields past its entry, by compiled name, and how many were kept. With `minimal`, a
+    function with no contract gets its frame layout's cells and no heap facts (`sigseed.sig`)."""
     D = C.code()
     old = written()
     out, kept, need = {}, 0, []
@@ -67,9 +73,16 @@ def signatures(fresh=()):
         elif k in old and k not in fresh and layout_ok(old[k], D['fsig'][f['entry']]):
             out[n] = old[k]
             kept += 1
+        elif minimal:
+            import sigseed
+            e, slf, ret = D['fsig'][f['entry']][:3]
+            out[n] = ' '.join(sigseed.sig(list(e), slf, list(ret)).split())
+            need.append(k)
         else:
             need.append(k)
-    if need:
+    if need and minimal:
+        print('sigc: %d functions without a contract given their layout\'s, no heap facts' % len(need), file=sys.stderr)
+    elif need:
         raise SystemExit('sigc: no contract written or in its rule file (fn/<f>.py CONTRACTS) for: ' + ', '.join(sorted(need)))
     return out, kept
 
@@ -77,17 +90,19 @@ def signatures(fresh=()):
 def files(lits):
     out = {}
     D = C.code()
+    SP = C.sig_pack()
     for p, names in sorted(C.packs().items()):
         sec = '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
         body = [SIG_HEAD % ('LeanVM.Guest.CoreMode.Sig.«%s»' % p),
                 'public import LeanVM.Guest.Mode.Abs\npublic import LeanVM.Guest.CoreMode.GlueE.«%s»\n' % p, sec]
+        # Hotwire's guest-cert writes each function's entry pc (`Fn.«k».entry`) in its pack's `Sig.lean`
         glue = [header('LeanVM.Guest.CoreMode.GlueE.«%s»' % p, 'The entry pc of each compiled function of the pack.'),
-                'namespace LeanVM.Guest\n\n@[expose] public section\n\n']
+                ''.join('public import LeanVM.Guest.Pack.«%s».Sig\n' % q
+                        for q in sorted({SP[D['fns'][n]['ns']] for n in names}))]
         for n in sorted(names, key=lambda n: D['fns'][n]['ns']):
             k = D['fns'][n]['ns']
             body.append('noncomputable def Fn.«%s».csig : Mode.Sig :=\n  ⟨Fn.«%s».entry, %s⟩\n' % (k, k, lits[n]))
-            glue.append('abbrev Fn.«%s».entry : Nat := %d\n' % (k, D['fns'][n]['entry']))
-        body.append('\nend\n\nend LeanVM.Guest\n'); glue.append('\nend\n\nend LeanVM.Guest\n')
+        body.append('\nend\n\nend LeanVM.Guest\n')
         out[os.path.join(OUT, '%s.lean' % p)] = C.wrap(''.join(body))
         out[os.path.join(GLUE, '%s.lean' % p)] = ''.join(glue)
     return out
@@ -106,7 +121,7 @@ def glue_g():
 
 def main(argv):
     fresh = set(argv[argv.index('--fresh') + 1].split(',')) if '--fresh' in argv else set()
-    lits, kept = signatures(fresh)
+    lits, kept = signatures(fresh, '--minimal' in argv)
     want = files(lits)
     want.update(glue_g())
     check = '--check' in argv

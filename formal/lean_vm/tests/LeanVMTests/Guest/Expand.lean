@@ -73,8 +73,7 @@ def showProgram (p : Source.Program) : String :=
   %s4#0 = mem[%s8#0 g^0]
   %s9#0 = 1
   %s9#1 = 2
-  %s9#2 = %s9#0 * %s9#1
-  %s4#0 = mem[%s9#2 g^0]
+  %s4#0 = mem[%s9#1 g^0]
   return
 def __loop0_main(%#0, %#0[1]):
   %s0#0 = %#0[1] * %#0
@@ -113,8 +112,7 @@ def __loop0_main(%#0, %#0[1]):
   %s10#0 = %s5#1 + %s7#0[1]
   %s10#1 = 1
   %s10#2 = 2
-  %s10#3 = %s10#1 * %s10#2
-  %s10#0 = mem[%s10#3 g^0]
+  %s10#0 = mem[%s10#2 g^0]
   return
 def hash_pair__L0(%#0):
   %s1#0 = mem[%#0 g^0]
@@ -182,8 +180,7 @@ def packMain (a b : Expr) : Source.Program :=
   %s3#0 = 0
   %s3#1 = 1
   %s3#2 = 2
-  %s3#3 = %s3#1 * %s3#2
-  %s3#0 = mem[%s3#3 g^0]
+  %s3#0 = mem[%s3#2 g^0]
   return -/
 #guard_msgs in
 #eval IO.println (showProgram (packMain (.lit 3) (.lit 5)))
@@ -239,8 +236,7 @@ def keccak64 : Source.Program :=
   %s0#0 = mem[%s3#0 g^0]
   %s4#0 = 1
   %s4#1 = 2
-  %s4#2 = %s4#0 * %s4#1
-  %s0#0[1] = mem[%s4#2 g^0]
+  %s0#0[1] = mem[%s4#1 g^0]
   return -/
 #guard_msgs in
 #eval IO.println (showProgram keccak64)

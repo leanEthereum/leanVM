@@ -82,6 +82,7 @@ theorem RefOk.congr {M : ℕ → E} {s s1 : St} (hfp : s1.fp = s.fp) {op : Op} (
   | mul a b c => simpa only [RefOk, hfp] using h
   | deref a o c mode => simpa only [RefOk, hfp] using h
   | jump c d f => simpa only [RefOk, hfp] using h
+  | keccak ins out inOdd outOdd count => simpa only [RefOk, hfp] using h
   | _ => trivial
 
 /-! ## A predicate the step preserves -/
@@ -89,13 +90,14 @@ theorem RefOk.congr {M : ℕ → E} {s s1 : St} (hfp : s1.fp = s.fp) {op : Op} (
 /-- **What the step's instruction gives, past its hints**, joined to the step's obligations. -/
 theorem stepOk_conj {C : Ctx} {M : ℕ → E} {op : Op} {I J : St → Prop} (s0 : St) :
     ∀ (l : List Hint) (s : St), Moves M s0 s →
-      (∀ s1 s', l.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 → runOp C s1 op = .ok s' → Fine M s' →
-        I { s' with steps := s'.steps + 1 } → J { s' with steps := s'.steps + 1 }) →
+      (∀ s1 s', l.foldlM (runHint C) s = .ok s1 → Moves M s0 s1 → OpModed M s1 op → runOp C s1 op = .ok s' →
+        Fine M s' → I { s' with steps := s'.steps + 1 } → J { s' with steps := s'.steps + 1 }) →
       StepOk C M I op l s → StepOk C M J op l s
-  | [], s, hm, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e hf hle ↦ hJ s s' rfl hm e hf (h2 s' e hf hle)⟩
+  | [], s, hm, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e hf hle ↦ hJ s s' rfl hm h1 e hf (h2 s' e hf hle)⟩
   | x :: l, s, hm, hJ, ⟨h1, h2⟩ => ⟨h1, fun s' e m ↦
       stepOk_conj s0 l s' (hm.trans m)
-        (fun s1 s'' e1 m1 e2 hf hI ↦ hJ s1 s'' (by rw [List.foldlM_cons, e, ok_bind]; exact e1) m1 e2 hf hI)
+        (fun s1 s'' e1 m1 hmo e2 hf hI ↦
+          hJ s1 s'' (by rw [List.foldlM_cons, e, ok_bind]; exact e1) m1 hmo e2 hf hI)
         (h2 s' e m)⟩
 
 end

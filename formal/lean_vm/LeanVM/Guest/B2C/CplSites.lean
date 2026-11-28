@@ -428,7 +428,7 @@ theorem u_ite (c : V) (z n ss : List Stmt) (st : CW) (ihz : ∀ st, UGood X j σ
     (ihn : ∀ st, UGood X j σ n st) (ih : ∀ st, UGood X j σ ss st) :
     UGood X j σ (.ite c z n :: ss) st := by
   intro hok
-  obtain ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, hb, -, -, -, -, -, hsn, hz, hn, hsj, hcw⟩ :=
+  obtain ⟨st', od, of, x, t, sn, J, c1, u1, J', c2, u2, c1', sj, hb, -, -, -, -, -, hsn, hz, hn, -, hsj, hcw⟩ :=
     cw_ite hok
   obtain ⟨its, cc, -, rfl⟩ := brAtC_eq hb
   obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hsn
@@ -443,7 +443,7 @@ theorem u_ite (c : V) (z n ss : List Stmt) (st : CW) (ihz : ∀ st, UGood X j σ
       exact ⟨fun eb hw ↦ sitesG_mono (hz'.1 eb hw J c1 u1 (Or.inl hz))
         (fun y hy ↦ by rw [testBit_lorC, hy, Bool.true_or]), fun eb vb hw ↦ hz'.2 eb vb hw⟩
     · simp only [hwb, h0, ↓reduceIte]
-      exact ⟨fun eb hw ↦ sitesG_mono (hn'.1 eb hw J c2 u2 (Or.inl hn))
+      exact ⟨fun eb hw ↦ sitesG_mono (hn'.1 eb hw J' c2 u2 (Or.inl hn))
         (fun y hy ↦ by rw [testBit_lorC, hy, Bool.or_true]), fun eb vb hw ↦ hn'.2 eb vb hw⟩
   have hw1 : walk1 σ (.ite c z n) = wb.pre [.inK c] := rfl
   have hci : ∀ eb, calls ([Ev.inK c] ++ eb) = calls eb := fun eb ↦ by rw [calls_appendC]; rfl

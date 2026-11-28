@@ -85,7 +85,7 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier, Keccak-256 the sponge over `π` and
 Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` children of the
 bytecode's shapes one of whose claims is false is at most
-`(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, for the program's query bound
+`(QA + QV + 1) · max(2M + 2, 16) · 2^-131 + 5 (QA + QV)² · 2^-256`, for the program's query bound
 `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free
 (`BatchingSound`'s bound, which says where the factor comes from).
 
@@ -100,8 +100,8 @@ def BatchingSoundWithHash : Prop :=
     Pr{let z ← runAdversaryThen A fun z ↦
          runBatchingWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2}[
       z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
-          (2 : ℝ≥0∞)⁻¹ ^ 130 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M + 2) 16 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 131 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 end Batch

@@ -1,21 +1,19 @@
 module
 
 public import LeanVM.Cost.AS.End
-public import LeanVM.Protocol.KnowledgeSoundness
 
 /-!
 # The extractor program
 
-`compiledKnowledgeExtractor`, the cost-machine program `LeanVM.theorems_hold` names as the end
-statement's extractor (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`): the compiled
-agreement-set extractor behind its entry (`Cost/AS/Program.lean`).
+`compiledKnowledgeExtractor`, the cost-machine program whose extractor
+(`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`) is the lite agreement-set extractor:
+the compiled `extractL` behind its entry (`Cost/AS/Program.lean`).
 
-* `extractorProgram_size_le`: its size is within `leanVmKnowledgeExtractorSizeBound`
+* **`extractorProgram_size_le`**: its size is within `leanVmKnowledgeExtractorSizeBound`
   (`asProgram_size_le`, `Cost/AS/ProgramSize.lean`);
-* the compiled extractor's price is proved within `asBudget` wherever it extracts (`asPrice_within`,
-  `Cost/AS/End.lean`), within the statement's budget (`asBudget_le_statement`);
-* **`extractorOf_extractorProgram`**: the extractor it computes is `transcriptExtractor`
-  (`asExtractor_output`).
+* **`extractorOf_extractorProgram`**: the extractor it computes is `transcriptExtractorL`
+  (`asExtractor_output`): its price is within `asBudget` wherever it extracts (`asPrice_within`),
+  which is the statement's budget (`asBudget_le_statement`).
 -/
 
 namespace LeanVM.Cost
@@ -30,13 +28,13 @@ theorem extractorProgram_size_le :
     compiledKnowledgeExtractor.size ≤ leanVmKnowledgeExtractorSizeBound :=
   AS.asProgram_size_le.trans (by decide)
 
-/-- **The extractor `compiledKnowledgeExtractor` computes is `transcriptExtractor`**: its spec and
-its price within `asBudget`, within the statement's budget (`asBudget_le_statement`). -/
+/-- **The extractor `compiledKnowledgeExtractor` computes is `transcriptExtractorL`.** -/
 theorem extractorOf_extractorProgram :
-    LeanVM.extractorComputedBy compiledKnowledgeExtractor = transcriptExtractor := by
+    LeanVM.extractorComputedBy compiledKnowledgeExtractor = LeanVM.Extraction.AS.transcriptExtractorL := by
   funext prog input T proof
   exact AS.asExtractor_output leanVmKnowledgeExtractorSizeBound extractorProgram_size_le
     leanVmKnowledgeExtractorBudget Bounds.AS.asBudget_le_statement prog input T proof
+
 end
 
 end LeanVM.Cost

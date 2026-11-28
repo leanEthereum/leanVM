@@ -90,3 +90,55 @@ OWN = []
 # `expCarry`, `CoreMode.carryExpB`)
 import fnrules as _R
 EXP_FACTS = _R.lean_def('level_residual', 'Data', 'expFacts')
+
+
+# ---- contracts of the specializations new to Hotwire's guest, in the bus era's shape (`level_residual__L14_L6_L3`'s):
+# `level_residual__L{n}_L{h}_L{b}` reads `row_d[g^k]`, `k < n`, `hs[g^k]`, `k < h`, the batches' positions
+# `positions·g^(8i + j)`, `i < e(batches_g)`, and the rest's from `positions·batches_g^8`
+from sigseed import sig as _sig, num as _num, ex as _ex, run as _run, lt_fact as _lt
+
+
+def _c(k, bs):
+    return '⟨0, %d, [%s]⟩' % (k, ', '.join('((.fr %d), %d)' % b for b in bs))
+
+
+def _pre(a, b, n, h, first=()):
+    out = []
+    for k in range(max(n, h, len(first))):
+        if k < len(first):
+            out.append(first[k])
+        if k < n:
+            out.append(_c(k, [(a, 1)]))
+        if k < h:
+            out.append(_c(k, [(b, 1)]))
+    return out
+
+
+def _r(bs, lo, hi, S=1, d=0):
+    return _run('⟨0, 0, [%s]⟩' % ', '.join('((.fr %d), %d)' % b for b in bs), lo, hi, S, d)
+
+
+def _body(n, h):
+    batches = [_r([(2, 1)], _num(0), _ex(6), 8, j) for j in range(8)]
+    tail = _r([(2, 1), (6, 8)], _num(0), _ex(7))
+    return _sig(range(8), None, [8, 9], pre=_pre(3, 4, n, h), preR=batches + [tail],
+                post=[_c(k, [(4, 1)]) for k in range(h)], postR=batches + [_r([(3, 1)], _num(0), _num(n)), tail])
+
+
+def _loop(n, h, q, ins, outs):
+    """loop `q` (`0` the batches', `1` the rest's): its accumulator cells `[2]^2·[q]·g^(0, 1)` read, its runs `ins`
+    read and `outs` written."""
+    first = [_c(i, [(2, 2), (q, 1)]) for i in range(2)]
+    return _sig(range(9), 9, [], pre=_pre(6, 7, n, h, first), preR=ins, term=[_lt(_ex(2), _ex(3))], postL=outs)
+
+
+def _it(o, S, d):
+    return _r([(o, 1)], _ex(2), _ex(3), S, d)
+
+
+NEW = [(n, 6, 3) for n in range(10, 14)]
+for _n, _h, _b in NEW:
+    _k = 'level_residual__L%d_L%d_L%d' % (_n, _h, _b)
+    CONTRACTS[_k] = _body(_n, _h)
+    CONTRACTS[_k + '_loop0'] = _loop(_n, _h, 5, [_it(4, 8, j) for j in range(8)], [_it(5, 2, 2), _it(5, 2, 3)])
+    CONTRACTS[_k + '_loop1'] = _loop(_n, _h, 4, [_it(5, 1, 0)], [_it(4, 2, 2), _it(4, 2, 3)])

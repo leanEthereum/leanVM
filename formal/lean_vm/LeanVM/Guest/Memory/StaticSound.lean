@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.Value.FieldBits
+public import LeanVM.Guest.Exact.Every
 
 /-!
 # Soundness of the static checker
@@ -66,7 +67,7 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
       rw [decide_eq_true_eq] at h0
       rw [h0, Parameters.addressOfIndex, g_pow_eq_ofBits h64]
     · rw [decide_eq_true_eq] at h0
-      rw [h0, Pow.ofBits_gpowN, Pow.gpowW_eq he]
+      rw [h0, Pow.gpowW_eq he]
   refine ⟨E.ext fun i => ?_, he⟩
   rw [limb_ofK]
   fin_cases i
@@ -77,6 +78,19 @@ theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e))
 
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
+
+theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ := by
+  induction ρ with
+  | nil => simp [vlookup]
+  | cons q l ih =>
+    intro h
+    simp only [vlookup] at h
+    split_ifs at h with hq
+    · cases h
+      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
+      rw [hq.2]
+      exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (ih h)
 
 theorem vidx_get {v : V} : ∀ {ps : List V} {k j : ℕ}, vidx v ps k = some j → k ≤ j ∧ ps[j - k]? = some v
   | [], _, _, h => by simp [vidx] at h
@@ -101,7 +115,7 @@ theorem cls_pow (hρ : EnvOk σ ρ) {v : V} {e : ℕ} (h : cls ρ ps v = .pow e)
   split at h
   · rename_i e' he'
     cases h
-    exact hρ _ (lookupV_mem he')
+    exact hρ _ (lookup_mem he')
   · split at h <;> cases h
 
 theorem cls_param (hp : ps.map σ = args) {v : V} {k : ℕ} (h : cls ρ ps v = .param k) :
@@ -129,6 +143,18 @@ def BndOk (σ : Val) (args : List E) (β : BEnv) : Prop :=
 
 /-- The constants and the bounds hold. -/
 def Env2Ok (σ : Val) (args : List E) (ρ : Env × BEnv) : Prop := EnvOk σ ρ.1 ∧ BndOk σ args ρ.2
+
+theorem blookup_mem {β : BEnv} {v : V} {b : Aff} : blookup v β = some b → (v, b) ∈ β := by
+  induction β with
+  | nil => intro h; cases h
+  | cons q l ih =>
+      intro h
+      simp only [blookup] at h
+      split_ifs at h with hq
+      · cases h
+        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
+        rw [hq.2]; exact List.mem_cons_self
+      · exact List.mem_cons_of_mem _ (ih h)
 
 /-- **`logG` of a product by `g^c`**: at most `c` more (a non-power stays one). -/
 theorem logG_mul_le (w : E) (c : ℕ) : logG (w * ofK (addressOfIndex c)) ≤ logG w + c := by
@@ -173,7 +199,7 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
       rw [hg] at h
       simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
       subst h
-      exact ((hρ.2 _ (lookupV_mem hb')).1 hg).1
+      exact ((hρ.2 _ (blookup_mem hb')).1 hg).1
   · split at h
     · rename_i e he
       cases h
@@ -197,7 +223,7 @@ theorem bnd_pow {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ = a
       rw [hg] at h
       simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
       subst h
-      exact ((hρ.2 _ (lookupV_mem hb')).1 hg).2 ha
+      exact ((hρ.2 _ (blookup_mem hb')).1 hg).2 ha
   · split at h
     · rename_i e he
       exact ⟨e, (cls_pow hρ.1 he).1⟩
@@ -547,7 +573,7 @@ theorem siteBL_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω
     unfold guardB at hgd
     split at hgd
     · rename_i b hb'
-      exact (hρ.2 _ (lookupV_mem hb')).2 a0 k hgd
+      exact (hρ.2 _ (blookup_mem hb')).2 a0 k hgd
     · cases hgd
   have hne : σ (V.n k) ≠ ofK (addressOfIndex a0) := by
     intro h0; rw [h0, CharTwo.add_self_eq_zero] at hgv; exact hc hgv
@@ -814,7 +840,7 @@ theorem guardAtom_ok {ρ : Env × BEnv} {d x y : V} (hρ : Env2Ok σ args ρ) (h
     Env2Ok σ args (guardAtom ks ρ d x y) := by
   unfold guardAtom
   split_ifs
-  · cases hx : lookupV x ρ.1 with
+  · cases hx : vlookup x ρ.1 with
     | none => exact hρ
     | some a =>
       cases hs : selIs y.idx y with
@@ -828,7 +854,7 @@ theorem guardAtom_ok {ρ : Env × BEnv} {d x y : V} (hρ : Env2Ok σ args ρ) (h
           simp only at hg
           rw [hgo] at hg
           cases hg
-          obtain ⟨hxv, -⟩ := hρ.1 _ (lookupV_mem hx)
+          obtain ⟨hxv, -⟩ := hρ.1 _ (lookup_mem hx)
           simp only
           rw [hh, hxv]
           congr 1
@@ -1090,6 +1116,7 @@ variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ks :
 
 theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
   simp [Acc.zero, Acc.add, Aff.add]
+
 theorem addAcc_assoc (a b c : Option Acc) :
     Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
   cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]
@@ -1368,7 +1395,7 @@ theorem defAtom_mul {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.mu
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
+      · cases h; simpa using hb
       · exact defAtom_mul h
   | .ite .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
@@ -1382,7 +1409,7 @@ theorem defAtom_add {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.ad
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
+      · cases h; simpa using hb
       · exact defAtom_add h
   | .ite .. :: l, h => defAtom_add (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_add (by simpa [defAtom] using h)
@@ -1396,7 +1423,7 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
+      · cases h; simpa using hb
       · exact defAtom_const h
   | .ite .. :: l, h => defAtom_const (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_const (by simpa [defAtom] using h)
@@ -1496,6 +1523,84 @@ theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = so
 end Loop
 
 /-! ## The main induction -/
+
+/-! ## Hand functions
+
+A function the checker cannot bound from its arguments alone (a size or a loop's end computed from
+hints or read from memory) is checked over **virtual parameters**: chosen values of its body taken as
+further parameters (`Fn.withVps`), its inner certificate's bound naming them. Its callers see an outer
+`stat` certificate in its arguments; that the inner bound at the node's valuation is within the outer
+one, and the inner preconditions hold, is a fact about the node's valuation (`HandFact`), asked of
+every node of a tree (`Exact/Every.lean`'s `Tree.Every`). An absent function (`A`) is one no node of the tree runs. -/
+
+/-- A function's parameters with virtual ones appended. -/
+def _root_.LeanVM.Guest.Core.Fn.withVps (fn : Fn) (vps : List V) : Fn := { fn with params := fn.params ++ vps }
+
+/-- A hand function: its virtual parameters and its inner `stat` certificate over them. -/
+structure Hand where
+  vps : List V
+  pre : List (ℕ × ℕ)
+  b : Aff
+  ks : List (V × ℕ)
+
+/-- A hand function's inner check, as `chkFn`'s `stat` check, over its virtual parameters. -/
+noncomputable def chkHand (look : String → Cert) (wl : String → Option ℕ) (α : Bool) (h : Hand) (w : ℕ)
+    (fn : Fn) : Bool :=
+  statB look wl α h.pre h.b h.ks w (fn.withVps h.vps) fn.body ||
+    selSplit fn.body (statB look wl α h.pre h.b h.ks w (fn.withVps h.vps))
+
+/-- **A program checked with hand functions `H`**, but the absent functions `A`: each other function
+passes its check, a hand function its inner check. -/
+def CheckedH (P : Core.Program) (α : Bool) (cert : String → Cert) (ω : String → ℕ)
+    (H : String → Option Hand) (A : String → Prop) : Prop :=
+  ∀ fn ∈ P, ¬ A fn.name → ∃ look wl, LookOk look cert ∧ WlOk wl ω ∧
+    match H fn.name with
+    | none => chkFn look wl α (cert fn.name) (ω fn.name) fn = true
+    | some h => chkHand look wl α h (ω fn.name) fn = true
+
+/-- **`σ'` runs `f`'s path as `σ` does**: on the path `σ` takes, `σ'` takes it too, with the same
+parameters, returns, calls' words and allocations, every event holding. A hand function's virtual
+parameters off its path (a value of a branch not taken) are then free: the hand fact may read them at
+such a `σ'`. -/
+def SameOnPath (P : Core.Program) (f : String) (σ σ' : Val) : Prop :=
+  ∀ fn, P.find? f = some fn → fn.params.map σ' = fn.params.map σ ∧ ∀ es vs, walk σ fn.body = .ret es vs →
+    walk σ' fn.body = .ret es vs ∧ vs.map σ' = vs.map σ ∧ (∀ rd, ∀ e ∈ es, e.Holds rd σ → e.Holds rd σ') ∧
+    (∀ c ∈ calls es, c.args.map σ' = c.args.map σ ∧ c.rets.map σ' = c.rets.map σ) ∧ allocs σ' es = allocs σ es
+
+theorem SameOnPath.refl {P : Core.Program} {f : String} {σ : Val} : SameOnPath P f σ σ :=
+  fun _ _ => ⟨rfl, fun _ _ hw => ⟨hw, rfl, fun _ _ _ h => h, fun _ _ => ⟨rfl, rfl⟩, rfl⟩⟩
+
+/-- **A node's hand fact**: its function is not absent, and if it is a hand function, under its
+outer certificate's preconditions the inner preconditions hold at the virtual parameters' values and
+the inner bound there is within the outer one, the values read at a valuation running the node's path
+as its own (`SameOnPath`). -/
+def HandFact (P : Core.Program) (cert : String → Cert) (H : String → Option Hand) (A : String → Prop)
+    (f : String) (σ : Val) : Prop :=
+  ¬ A f ∧ ∀ h, H f = some h → ∀ fn, P.find? f = some fn → ∃ σ', SameOnPath P f σ σ' ∧
+    match cert f with
+    | .none => True
+    | .stat preO bO _ => ArgsPre preO (fn.params.map σ) →
+        ArgsPre h.pre (fn.params.map σ ++ h.vps.map σ') ∧
+          h.b.eval (fn.params.map σ ++ h.vps.map σ') ≤ bO.eval (fn.params.map σ)
+    | .loop .. => False
+
+/-- The callees' validity reads the caller's valuation only at the calls' words. -/
+theorem kidsValid_congr {P : Core.Program} {rd : Reader} {σ σ' : Val} : ∀ {cs : List Call} {ks : List Tree},
+    (∀ c ∈ cs, c.args.map σ' = c.args.map σ ∧ c.rets.map σ' = c.rets.map σ) →
+    Tree.KidsValid P rd σ cs ks → Tree.KidsValid P rd σ' cs ks
+  | [], [], _, h => by simp only [Tree.KidsValid] at h ⊢
+  | c :: cs, k :: ks, hc, h => by
+      simp only [Tree.KidsValid] at h ⊢
+      obtain ⟨hn, hk, hks⟩ := h
+      obtain ⟨ha, hr⟩ := hc c List.mem_cons_self
+      refine ⟨hn, ?_, kidsValid_congr (fun c' h' => hc c' (List.mem_cons_of_mem _ h')) hks⟩
+      rw [ha, hr]; exact hk
+  | [], _ :: _, _, h => by simp only [Tree.KidsValid] at h
+  | _ :: _, [], _, h => by simp only [Tree.KidsValid] at h
+
+theorem Tree.every_of_mem {p : String → Val → Prop} {ks : List Tree} {k : Tree}
+    (h : Tree.EveryKids p ks) (hm : k ∈ ks) : k.Every p :=
+  Tree.everyKids_iff.mp h k hm
 
 section Main
 
@@ -1693,6 +1798,291 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
             · cases hc'
           · cases hc'
 
+/-- **A hand function's node within its inner bound**, at its virtual parameters' values, its
+callees satisfying their certificates. -/
+theorem hand_node_le {look : String → Cert} {wl : String → Option ℕ} (hlook : LookOk look cert)
+    (hwl : WlOk wl ω) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} {fn : Fn} {h : Hand}
+    {args : List E} (hf : P.find? f = some fn) (hp : fn.params.map σ = args) {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) (hes : ∀ e ∈ es, e.Holds rd σ)
+    (hk : Tree.KidsValid P rd σ (calls es) kids) (hbk : Tree.BufsOkKids P kids)
+    (hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P → Bound P α cert ω k args')
+    (hc : chkHand look wl α h (ω f) fn = true) (hpre : ArgsPre h.pre (args ++ h.vps.map σ)) :
+    (Tree.node f σ bufs kids).cost P α ω ≤ h.b.eval (args ++ h.vps.map σ) := by
+  have hcost : (Tree.node f σ bufs kids).cost P α ω = ω f + aw α σ es + Tree.costKids P α ω kids := by
+    rw [Tree.cost]
+    simp only [Tree.events, Tree.name, Tree.val, hf, hw, aw]
+  obtain ⟨body', hst, hw'⟩ : ∃ body', statB look wl α h.pre h.b h.ks (ω f) (fn.withVps h.vps) body' = true ∧
+      walk σ body' = .ret es vs := by
+    rcases Bool.or_eq_true_iff.mp hc with h1 | h1
+    · exact ⟨fn.body, h1, hw⟩
+    · exact selSplit_sound h1 hw
+  have hp' : (fn.withVps h.vps).params.map σ = args ++ h.vps.map σ := by
+    simp only [Fn.withVps, List.map_append, hp]
+  unfold statB at hst
+  split at hst
+  · rename_i r hb
+    simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hst
+    have hpr : ArgsPre r.2 (args ++ h.vps.map σ) := fun q hq => hpre q (hst.2 q hq)
+    rw [blockR_eq] at hb
+    replace hb := blockB_mono hlook _ _ hb
+    have hkb := blockB_sound (rd := rd) (ω := ω) hp' hwl body' ([], []) r
+      ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩
+      hb hpr (by rw [hw']; exact hes) kids (by rw [hw']; exact hk) hbk hIH
+    rw [hw'] at hkb
+    simp only [Out.evs] at hkb
+    rw [hcost]
+    have := Aff.eval_le_of_leB hst.1 (args ++ h.vps.map σ)
+    simp only [Aff.eval] at this hkb ⊢
+    omega
+  · cases hst
+
+/-- `hand_node_le` with the virtual parameters read at a valuation running the node's path. -/
+theorem hand_node_le_same {look : String → Cert} {wl : String → Option ℕ} (hlook : LookOk look cert)
+    (hwl : WlOk wl ω) {f : String} {σ σ' : Val} {bufs : List ℕ} {kids : List Tree} {fn : Fn} {h : Hand}
+    {args : List E} (hf : P.find? f = some fn) (hp : fn.params.map σ = args) {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) (hes : ∀ e ∈ es, e.Holds rd σ)
+    (hk : Tree.KidsValid P rd σ (calls es) kids) (hbk : Tree.BufsOkKids P kids)
+    (hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P → Bound P α cert ω k args')
+    (hc : chkHand look wl α h (ω f) fn = true) (hs : SameOnPath P f σ σ')
+    (hpre : ArgsPre h.pre (args ++ h.vps.map σ')) :
+    (Tree.node f σ bufs kids).cost P α ω ≤ h.b.eval (args ++ h.vps.map σ') := by
+  obtain ⟨hp', hrest⟩ := hs fn hf
+  obtain ⟨hw', -, hes', hcs, hal⟩ := hrest es vs hw
+  have hle := hand_node_le (bufs := bufs) hlook hwl hf (hp'.trans hp) hw' (fun e he => hes' rd e he (hes e he))
+    (kidsValid_congr hcs hk) hbk hIH hc hpre
+  have hc1 : (Tree.node f σ bufs kids).cost P α ω = (Tree.node f σ' bufs kids).cost P α ω := by
+    rw [Tree.cost, Tree.cost]
+    simp only [Tree.events, Tree.name, Tree.val, hf, hw, hw', hal]
+  rw [hc1]; exact hle
+
+/-- **Soundness of the check with hand functions**: on a tree every node of which has its hand fact,
+every node satisfies its certificate. -/
+theorem chk_soundH {H : String → Option Hand} {A : String → Prop} (hchk : CheckedH P α cert ω H A) :
+    ∀ (n : ℕ) (t : Tree) (args rets : List E), t.count ≤ n → t.Valid P rd args rets → t.BufsOk P →
+      t.Every (HandFact P cert H A) → Bound P α cert ω t args
+  | 0, t, _, _, hc, _, _, _ => by have := count_pos t; omega
+  | _ + 1, .phantom .., _, _, _, hv, _, _ => hv.elim
+  | n + 1, .node f σ bufs kids, args, rets, hc, hv, hbo, hev => by
+      simp only [Tree.Every] at hev
+      obtain ⟨hfact, hevk⟩ := hev
+      have hbk : Tree.BufsOkKids P kids := by simp only [Tree.BufsOk] at hbo; exact hbo.2
+      obtain ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩ := hv
+      have hcost : (Tree.node f σ bufs kids).cost P α ω = ω f + aw α σ es + Tree.costKids P α ω kids := by
+        rw [Tree.cost]
+        simp only [Tree.events, Tree.name, Tree.val, hf, hw, aw]
+      have hname := fn_name_of_find hf
+      obtain ⟨look, wl, hlook, hwl, hc'⟩ := hchk fn (List.mem_of_find?_eq_some hf) (by rw [hname]; exact hfact.1)
+      have hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P →
+          Bound P α cert ω k args' :=
+        fun k hk' a' r' hv' hb' => chk_soundH hchk n k a' r' (by
+          have := countKids_le hk'; rw [Tree.count] at hc; omega) hv' hb' (Tree.every_of_mem hevk hk')
+      rw [hname] at hc'
+      unfold Bound
+      simp only [Tree.name]
+      cases hH : H f with
+      | some h =>
+        rw [hH] at hc'
+        simp only at hc'
+        obtain ⟨σ', hs, hfa⟩ := hfact.2 h hH fn hf
+        cases hcf : cert f with
+        | none => trivial
+        | loop _ _ _ _ => rw [hcf] at hfa; dsimp only at hfa
+        | stat preO bO ksO =>
+          rw [hcf] at hfa
+          dsimp only at hfa
+          intro hpreO
+          rw [hp] at hfa
+          obtain ⟨hpreI, hle⟩ := hfa hpreO
+          exact (hand_node_le_same hlook hwl hf hp hw hes hk hbk hIH hc' hs hpreI).trans hle
+      | none =>
+        rw [hH] at hc'
+        simp only at hc'
+        unfold chkFn at hc'
+        cases hcf : cert f with
+        | none => trivial
+        | stat pre b ks =>
+            rw [hcf] at hc'
+            simp only at hc'
+            -- the body, or the body at the arm of its first top-level selector its path takes (`selSplit_sound`)
+            obtain ⟨body', hst, hw'⟩ : ∃ body', statB look wl α pre b ks (ω f) fn body' = true ∧
+                walk σ body' = .ret es vs := by
+              rcases Bool.or_eq_true_iff.mp hc' with h1 | h1
+              · exact ⟨fn.body, h1, hw⟩
+              · exact selSplit_sound h1 hw
+            unfold statB at hst
+            split at hst
+            · rename_i r hb
+              simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hst
+              intro hpre
+              have hpr : ArgsPre r.2 args := fun q hq => hpre q (hst.2 q hq)
+              rw [blockR_eq] at hb
+              replace hb := blockB_mono hlook _ _ hb
+              have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl body' ([], []) r
+                ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩
+                hb hpr (by rw [hw']; exact hes) kids (by rw [hw']; exact hk) hbk hIH
+              rw [hw'] at hkb
+              simp only [Out.evs] at hkb
+              rw [hcost]
+              have := Aff.eval_le_of_leB hst.1 args
+              simp only [Aff.eval] at this hkb ⊢
+              omega
+            · cases hst
+        | loop endc pre b ks =>
+            rw [hcf] at hc'
+            simp only at hc'
+            split at hc'
+            · rename_i pre' hsh
+              split at hc'
+              · rename_i r hb
+                simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hc'
+                obtain ⟨⟨⟨hle, hpre⟩, hbc⟩, hpc⟩ := hc'
+                obtain ⟨c, i', p0, prest, hps, hbody, hnr, hst, x, y, hadd, hxy⟩ := loopShape_spec hsh
+                rw [blockR_eq] at hb
+                replace hb := blockB_mono hlook _ _ hb
+                rw [hname] at hbody
+                rw [hbody, walk_append] at hw
+                rcases walk_noRet (σ := σ) pre' hnr with ⟨es1, hw1⟩ | hw1
+                · rw [hw1] at hw
+                  have hwt : walk σ [.callIf c f (i' :: prest), .ret []] =
+                      .ret [.inK c, if σ c = 0 then .skip f (i' :: prest) else .call f (i' :: prest) []] [] := by
+                    simp [walk, walk1, Out.seq, Out.pre]
+                  rw [hwt] at hw
+                  simp only [Out.seq, Out.pre, Out.ret.injEq] at hw
+                  obtain ⟨rfl, rfl⟩ := hw
+                  have hes1 : HoldsAll rd σ es1 := fun e he => hes e (List.mem_append_left _ he)
+                  rw [calls_append] at hk
+                  obtain ⟨ks1, ks2, rfl, hk1, hk2⟩ := kidsValid_split hk
+                  obtain ⟨hbk1, hbk2⟩ := bufsOkKids_split ks1 ks2 hbk
+                  intro a0 e h0 hend hae hord hpre0
+                  have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl pre' ([], []) r
+                    ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩ hb (fun q hq => hpre0 q (hpre q hq))
+                    (by rw [hw1]; exact hes1) ks1 (by rw [hw1]; exact hk1) hbk1
+                    (fun k hk' => hIH k (List.mem_append_left _ hk'))
+                  have hle' := Aff.eval_le_of_leB hle args
+                  simp only [Aff.eval] at hle' hkb
+                  have hcalls : calls [Ev.inK c, if σ c = 0 then .skip f (i' :: prest)
+                      else .call f (i' :: prest) []] = [⟨f, i' :: prest, [], !decide (σ c = 0)⟩] := by
+                    by_cases h0c : σ c = 0 <;> simp only [h0c, ↓reduceIte, decide_true, decide_false,
+                      Bool.not_true, Bool.not_false] <;> rfl
+                  rw [hcalls] at hk2
+                  have hargs : args = σ p0 :: prest.map σ := by rw [← hp, hps, List.map_cons]
+                  have hp0 : σ p0 = ofK (addressOfIndex a0) := by rw [← h0, hargs]; rfl
+                  have hi' : σ i' = ofK (addressOfIndex (a0 + 1)) := by
+                    rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mulS, gpow_succ']
+                  have hM : 1 ≤ e - a0 := by omega
+                  match ks2, hk2 with
+                  | [tk], ⟨htn, htv, _⟩ =>
+                    have htail : aw α σ [Ev.inK c, if σ c = 0 then .skip f (i' :: prest)
+                        else .call f (i' :: prest) []] = 0 := by
+                      unfold aw allocs; split_ifs <;> rfl
+                    rw [hw1] at hkb
+                    simp only [Out.evs] at hkb
+                    rw [hcost, aw_append, htail, costKids_append, Tree.costKids, Tree.costKids]
+                    by_cases h0c : σ c = 0
+                    · simp only [h0c, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at htv
+                      obtain ⟨⟨g', σ', rfl⟩, -⟩ := htv
+                      simp only [Tree.name] at htn
+                      subst htn
+                      simp only [Tree.cost, Aff.eval] at hkb hle' ⊢
+                      have : b.eval args ≤ (e - a0) * b.eval args := Nat.le_mul_of_pos_left _ hM
+                      simp only [Aff.eval] at this
+                      omega
+                    · simp only [h0c, decide_false, Bool.not_false, ↓reduceIte] at htv
+                      have hb' := hIH tk (List.mem_append_right _ List.mem_cons_self) _ _ htv
+                        (by simp only [Tree.BufsOkKids] at hbk2; exact hbk2.1)
+                      unfold Bound at hb'
+                      rw [htn, hcf] at hb'
+                      simp only at hb'
+                      have hargs'' : (i' :: prest).map σ = σ i' :: prest.map σ := rfl
+                      have hget : ∀ k, k ≠ 0 → ((i' :: prest).map σ).getD k 0 = args.getD k 0 := by
+                        intro k hk0
+                        rw [hargs'', hargs]
+                        cases k with
+                        | zero => exact absurd rfl hk0
+                        | succ k => simp
+                      have hendeq : endOf endc ((i' :: prest).map σ) = endOf endc args := by
+                        cases endc with
+                        | some _ => rfl
+                        | none => exact hget 1 (by omega)
+                      have hyv : ∀ {z : V}, isEnd pre' prest.head? endc z = true → σ z = ofK (addressOfIndex e) := by
+                        intro z hz
+                        obtain ⟨h1, h2⟩ := isEnd_val hnr hw1 hes1 hz
+                        cases endc with
+                        | some e' => rw [h2 e' rfl]; exact hend
+                        | none =>
+                            have := h1 rfl
+                            cases prest with
+                            | nil => cases this
+                            | cons y' ys =>
+                                simp only [List.head?_cons, Option.some.injEq] at this
+                                subst this
+                                rw [← hend]
+                                simp [endOf, hargs]
+                      have hcv : σ c = σ x + σ y := defAtom_holds hnr hw1 hes1 hadd
+                      have hne : a0 + 1 ≠ e := by
+                        intro hae'
+                        apply h0c
+                        rw [hcv, e_add_eq_zero_iff]
+                        rcases hxy with ⟨hsx, hey⟩ | ⟨hsy, hex⟩
+                        · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mulS, gpow_succ', hyv hey, hae']
+                        · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mulS, gpow_succ', hyv hex, hae']
+                      have hpre'' : ArgsPre pre ((i' :: prest).map σ) := by
+                        intro q hq
+                        rw [hget q.1 (hpc q hq)]
+                        exact hpre0 q hq
+                      have hbev : b.eval ((i' :: prest).map σ) = b.eval args := by
+                        unfold Aff.eval
+                        congr 1
+                        congr 1
+                        refine List.map_congr_left fun q hq => ?_
+                        unfold argExp
+                        rw [hget q.1 (hbc q hq)]
+                      have htk := hb' (a0 + 1) e (by rw [hargs'']; simpa using hi') (by rw [hendeq]; exact hend)
+                        (by omega) hord hpre''
+                      rw [hbev] at htk
+                      have he1 : e - a0 = (e - (a0 + 1)) + 1 := by omega
+                      rw [he1, Nat.add_mul, Nat.one_mul]
+                      simp only [Aff.eval] at htk ⊢
+                      omega
+                · rw [hw1] at hw; simp [Out.seq] at hw
+              · cases hc'
+            · cases hc'
+
+/-- **A hand function's tree within its inner bound**, at the root: every node below it has its hand
+fact. -/
+theorem cost_le_of_hand {H : String → Option Hand} {A : String → Prop} (hchk : CheckedH P α cert ω H A)
+    {f : String} {h : Hand} (hH : H f = some h) (hA : ¬ A f) {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    {args rets : List E} (hv : (Tree.node f σ bufs kids).Valid P rd args rets)
+    (hb : (Tree.node f σ bufs kids).BufsOk P) (hev : Tree.EveryKids (HandFact P cert H A) kids)
+    (hpre : ArgsPre h.pre (args ++ h.vps.map σ)) :
+    (Tree.node f σ bufs kids).cost P α ω ≤ h.b.eval (args ++ h.vps.map σ) := by
+  have hbk : Tree.BufsOkKids P kids := by simp only [Tree.BufsOk] at hb; exact hb.2
+  obtain ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩ := hv
+  have hname := fn_name_of_find hf
+  obtain ⟨look, wl, hlook, hwl, hc'⟩ := hchk fn (List.mem_of_find?_eq_some hf) (by rw [hname]; exact hA)
+  rw [hname, hH] at hc'
+  simp only at hc'
+  exact hand_node_le hlook hwl hf hp hw hes hk hbk
+    (fun k hk' a' r' hv' hb' => chk_soundH hchk k.count k a' r' le_rfl hv' hb' (Tree.every_of_mem hev hk'))
+    hc' hpre
+
+/-- **The check with hand functions from a checked program**: the functions it certifies keep their
+certificates, the hand functions pass their inner checks. -/
+theorem checkedH_of {cert0 : String → Cert} {H : String → Option Hand} {A : String → Prop}
+    (h0 : Checked P α cert0 ω) (hagree : ∀ g, cert0 g ≠ .none → cert g = cert0 g)
+    (hnone : ∀ g, H g = none → cert g = cert0 g)
+    (hhand : ∀ fn ∈ P, ¬ A fn.name → ∀ h, H fn.name = some h → ∃ look wl, LookOk look cert ∧
+      WlOk wl ω ∧ chkHand look wl α h (ω fn.name) fn = true) : CheckedH P α cert ω H A := by
+  intro fn hfn hA
+  by_cases hH : H fn.name = none
+  · obtain ⟨look, wl, hl, hw, hc⟩ := h0 fn hfn (fun h => h)
+    refine ⟨look, wl, fun g hg => (hl g hg).trans (hagree g (by rw [← hl g hg]; exact hg)).symm, hw, ?_⟩
+    rw [hH, hnone _ hH]
+    exact hc
+  · obtain ⟨h, hh⟩ := Option.ne_none_iff_exists'.mp hH
+    obtain ⟨look, wl, hl, hw, hc⟩ := hhand fn hfn hA h hh
+    exact ⟨look, wl, hl, hw, by rw [hh]; exact hc⟩
+
 /-- **A checked bound**: every valid tree of a function with a `stat` certificate costs at most
 its bound, under its preconditions, the functions of `X` satisfying theirs by hypothesis. -/
 theorem cost_le_of_stat {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
@@ -1752,6 +2142,124 @@ theorem weight_le_of_loop (hchk : Checked P false cert ω) {f : String}
   exact (cost_le_of_loop hchk noHand hcf hn hv hb ha he hae heo hpre).trans (by simp)
 
 end Main
+
+/-! ## Loop hands
+
+A loop helper whose iteration's bound reads values of the iteration (a list's length hinted in
+it) is a **loop hand**: its iteration is checked over its parameters and virtual ones
+(`chkHandL`, in `Memory/FamilyHand.lean`), and a run's bound is the sum of its iterations' inner
+bounds, which no certificate in its arguments states. `LoopRun` is a run with that sum, and
+`loopRun_cost_le` bounds the run's cost by it. -/
+
+/-- A loop hand's check: its iteration over its parameters and virtual ones (`loopShape`), within
+its inner bound. -/
+noncomputable def chkHandL (look : String → Cert) (wl : String → Option ℕ) (α : Bool) (h : Hand)
+    (endc : Option ℕ) (w : ℕ) (fn : Fn) : Bool :=
+  match loopShape fn endc with
+  | some pre => match blockR look wl α h.ks (fn.params ++ h.vps) fn.name pre ([], []) with
+    | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ h.b && r.2.all (· ∈ h.pre)
+    | none => false
+  | none => false
+
+/-- **A loop hand's run** of `f`, its parameters `ps`, with the sum `S` of its iterations' inner
+bounds at their values and its last, untaken, tail call's frame `w`: each iteration's callees
+satisfy `Q` and its inner preconditions hold. -/
+inductive LoopRun (f : String) (ps : List V) (h : Hand) (w : ℕ) (Q : Tree → Prop) : Tree → ℕ → Prop
+  | last (σ : Val) : LoopRun f ps h w Q (.phantom f σ) w
+  | step {σ : Val} {bufs : List ℕ} {ks : List Tree} {tk : Tree} {S : ℕ} :
+      (∀ k ∈ ks, Q k) → ArgsPre h.pre ((ps ++ h.vps).map σ) → LoopRun f ps h w Q tk S →
+      LoopRun f ps h w Q (.node f σ bufs (ks ++ [tk])) (h.b.eval ((ps ++ h.vps).map σ) + S)
+
+section LoopHand
+
+variable {P : Core.Program} {cert : String → Cert} {ω : String → ℕ} {rd : Reader}
+
+/-- **A loop hand's run within its iterations' sum**, counting words. -/
+theorem loopRun_cost_le {look : String → Cert} {wl : String → Option ℕ} (hlook : LookOk look cert)
+    (hwl : WlOk wl ω) {f : String} {fn : Fn} (hf : P.find? f = some fn) {h : Hand} {endc : Option ℕ}
+    (hc : chkHandL look wl true h endc (ω f) fn = true) {Q : Tree → Prop}
+    (hQ : ∀ k, Q k → ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P → Bound P true cert ω k args')
+    {t : Tree} {S : ℕ} (hrun : LoopRun f fn.params h (ω f) Q t S) :
+    ∀ {args rets : List E}, t.Valid P rd args rets → t.BufsOk P → t.cost P true ω ≤ S := by
+  have hname := fn_name_of_find hf
+  unfold chkHandL at hc
+  split at hc
+  · rename_i pre hsh
+    split at hc
+    · rename_i r hb
+      simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hc
+      obtain ⟨hle, hpreS⟩ := hc
+      obtain ⟨c, i', p0, prest, hps, hbody, hnr, hst, x, y, hadd, hxy⟩ := loopShape_spec hsh
+      rw [blockR_eq] at hb
+      replace hb := blockB_mono hlook _ _ hb
+      rw [hname] at hbody
+      induction hrun with
+      | last σ => intro _ _ hv; exact hv.elim
+      | @step σ bufs ks tk S hks hpre htk ih =>
+          intro args rets hv hbo
+          have hbk : Tree.BufsOkKids P (ks ++ [tk]) := by simp only [Tree.BufsOk] at hbo; exact hbo.2
+          obtain ⟨fn', hf', hp, es, vs, hw, hr, hes, hk⟩ := hv
+          rw [hf] at hf'
+          cases hf'
+          have hcost : (Tree.node f σ bufs (ks ++ [tk])).cost P true ω =
+              ω f + aw true σ es + Tree.costKids P true ω (ks ++ [tk]) := by
+            rw [Tree.cost]
+            simp only [Tree.events, Tree.name, Tree.val, hf, hw, aw]
+          rw [hbody, walk_append] at hw
+          rcases walk_noRet (σ := σ) pre hnr with ⟨es1, hw1⟩ | hw1
+          · rw [hw1] at hw
+            have hwt : walk σ [.callIf c f (i' :: prest), .ret []] =
+                .ret [.inK c, if σ c = 0 then .skip f (i' :: prest) else .call f (i' :: prest) []] [] := by
+              simp [walk, walk1, Out.seq, Out.pre]
+            rw [hwt] at hw
+            simp only [Out.seq, Out.pre, Out.ret.injEq] at hw
+            obtain ⟨rfl, rfl⟩ := hw
+            have hes1 : HoldsAll rd σ es1 := fun e he => hes e (List.mem_append_left _ he)
+            rw [calls_append] at hk
+            obtain ⟨ks1, ks2, hks12, hk1, hk2⟩ := kidsValid_split hk
+            have hcalls : calls [Ev.inK c, if σ c = 0 then .skip f (i' :: prest)
+                else .call f (i' :: prest) []] = [⟨f, i' :: prest, [], !decide (σ c = 0)⟩] := by
+              by_cases h0c : σ c = 0 <;> simp only [h0c, ↓reduceIte, decide_true, decide_false,
+                Bool.not_true, Bool.not_false] <;> rfl
+            rw [hcalls] at hk2
+            match ks2, hk2 with
+            | [tk2], ⟨htn, htv, _⟩ =>
+              obtain ⟨rfl, hl⟩ := List.append_inj' hks12 rfl
+              simp only [List.cons.injEq, and_true] at hl
+              subst hl
+              obtain ⟨hbk1, hbk2⟩ := bufsOkKids_split ks [tk] hbk
+              have hp' : (fn.params ++ h.vps).map σ = args ++ h.vps.map σ := by
+                rw [List.map_append, hp]
+              have hpre' : ArgsPre h.pre (args ++ h.vps.map σ) := by rw [← hp']; exact hpre
+              have hkb := blockB_sound (rd := rd) (ω := ω) hp' hwl pre ([], []) r
+                ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩ hb
+                (fun q hq => hpre' q (hpreS q hq))
+                (by rw [hw1]; exact hes1) ks (by rw [hw1]; exact hk1) hbk1
+                (fun k hk' => hQ k (hks k hk'))
+              rw [hw1] at hkb
+              simp only [Out.evs] at hkb
+              have hle' := Aff.eval_le_of_leB hle (args ++ h.vps.map σ)
+              simp only [Aff.eval] at hle' hkb
+              have htail : aw true σ [Ev.inK c, if σ c = 0 then .skip f (i' :: prest)
+                  else .call f (i' :: prest) []] = 0 := by
+                unfold aw allocs; split_ifs <;> rfl
+              have hS : tk.cost P true ω ≤ S := by
+                by_cases h0c : σ c = 0
+                · simp only [h0c, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at htv
+                  obtain ⟨⟨g', σ', rfl⟩, -⟩ := htv
+                  cases htk with
+                  | last => simp [Tree.cost]
+                · simp only [h0c, decide_false, Bool.not_false, ↓reduceIte] at htv
+                  exact ih htv (by simp only [Tree.BufsOkKids] at hbk2; exact hbk2.1)
+              rw [hcost, aw_append, htail, costKids_append, Tree.costKids, Tree.costKids, hp']
+              unfold Aff.eval
+              omega
+          · rw [hw1] at hw; simp [Out.seq] at hw
+    · cases hc
+  · cases hc
+
+end LoopHand
+
 
 end
 end LeanVM.Guest.Memory

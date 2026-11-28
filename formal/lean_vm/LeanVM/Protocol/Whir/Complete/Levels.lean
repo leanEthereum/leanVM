@@ -8,12 +8,14 @@
 module
 
 public import LeanVM.Protocol.Whir.Complete.Rounds
-public import LeanVM.Protocol.Whir.Complete.Script
+public import LeanVM.Prover.Complete.Follows
 public import LeanVM.Protocol.Whir.Complete.Encoding
 public import LeanVM.Prover.WhirTables
 import LeanVM.Protocol.Whir.SubspaceAt
 
 namespace LeanVM.Protocol.Whir.Complete
+
+open LeanVM.Protocol.Tables
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
   LeanVM.Protocol.Whir LeanVM.Prover LeanVM.Prover.Enc Finset
@@ -21,7 +23,7 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.
 @[expose] public section
 
 /-- **One fold round follows the verifier's.** -/
-theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Commits) :
+theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : List Committed) :
     Follows (fun cs' (a : Array E × Array E) (b : WhirState × FoldRound) ↦ cs' = cs ∧
         ∃ α β u₀ w₁ c₀ c₁,
           roundTableA f w s (halfA f s) (mulXA (halfA f s) (s / 2)) = [u₀, w₁, c₀, c₁] ∧
@@ -35,8 +37,9 @@ theorem follows_foldRoundA (f w : Array E) (s : ℕ) (sv : WhirState) (cs : Comm
     Whir.foldGrindingBits, roundTableA, Script.bind_eq, VerifierProgram.bind_eq, Script.pure_eq,
     VerifierProgram.pure_eq, Script.grindS, Script.sampleE, Script.sendList,
     VerifierProgram.readScalar, VerifierProgram.sampleChallenge, Script.bind, VerifierProgram.bind]
-  intro α β
-  exact ⟨rfl, α, β, _, _, _, _, rfl, rfl, rfl, rfl⟩
+  refine Wins.read (Wins.read (Wins.read (Wins.read (Wins.grind (by decide)
+    (Wins.sample fun α ↦ Wins.sample fun β ↦ ?_)))))
+  exact Wins.ret ⟨rfl, rfl, α, β, _, _, _, _, rfl, rfl, rfl, rfl⟩
 
 /-! ## The invariant of a level's fold rounds -/
 
@@ -106,13 +109,13 @@ theorem FoldInv.step {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ 
 
 /-- **A level's fold rounds follow the verifier's**, keeping the invariant. -/
 theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf : ℕ → List E}
-    (cs : Commits) : ∀ (n j : ℕ) (sv : WhirState) (f w : Array E) (pre : List FoldRound),
+    (cs : List Committed) : ∀ (n j : ℕ) (sv : WhirState) (f w : Array E) (pre : List FoldRound),
     FoldInv μ lf B κ P rowOf j n sv f w pre →
     Follows (fun cs' (a : Array E × Array E) (b : WhirState × List FoldRound) ↦ cs' = cs ∧
         b.2.length = n ∧ FoldInv μ lf B κ P rowOf (j + n) 0 b.1 a.1 a.2 (pre ++ b.2))
       (foldRoundsA n (2 ^ n) f w) (foldRounds n sv) cs
   | 0, j, sv, f, w, pre, hI => by
-    simpa [foldRoundsA, foldRounds, Follows] using hI
+    exact ⟨rfl, rfl, rfl, by simpa using hI⟩
   | n + 1, j, sv, f, w, pre, hI => by
     simp only [foldRoundsA, foldRounds, Script.bind_eq, VerifierProgram.bind_eq]
     refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (follows_foldRoundA f w (2 ^ (n + 1)) sv cs)
@@ -127,27 +130,36 @@ theorem follows_foldRoundsA {μ lf : ℕ} {B : List E → E} {κ P : ℕ} {rowOf
     refine Follows.bind (fun cs₂ a' b' h' ↦ ?_) _ _ _
       (follows_foldRoundsA cs₁ n (j + 1) _ _ _ _ hI')
     obtain ⟨hcs', hl, hI''⟩ := h'
-    refine ⟨hcs'.trans hcs, by simp [hl], ?_⟩
+    refine Wins.ret ⟨rfl, hcs'.trans hcs, by simp [hl], ?_⟩
     rw [show j + (n + 1) = j + 1 + n by ring]
     simpa using hI''
 
 /-! ## The queries -/
 
-/-- **The query positions**: the script receives the verifier's, each below `2^depth`. -/
-theorem follows_sampleQueriesS (depth : ℕ) (cs : Commits) : ∀ (fuel rem : ℕ),
-    Follows (fun cs' (a b : List ℕ) ↦ cs' = cs ∧ a = b ∧ ∀ q ∈ b, q < 2 ^ depth)
+/-- **The query positions**: the script receives the verifier's, each below `2^depth`; from a
+waiting challenge when there is a position to draw. -/
+theorem follows_sampleQueriesS (depth : ℕ) (cs : List Committed) : ∀ (fuel rem : ℕ) {g : Bool},
+    (g = true → 0 < fuel ∧ 0 < rem) →
+    FollowsG g (fun cs' (a b : List ℕ) ↦ cs' = cs ∧ a = b ∧ ∀ q ∈ b, q < 2 ^ depth)
       (sampleQueriesS depth fuel rem) (sampleQueriesAux depth fuel rem) cs
-  | 0, rem => by simp [sampleQueriesS, sampleQueriesAux, Follows]
-  | fuel + 1, rem => by
+  | 0, rem, g, hg => by
+    cases g
+    · exact ⟨rfl, rfl, rfl, by simp⟩
+    · exact absurd (hg rfl).1 (by omega)
+  | fuel + 1, rem, g, hg => by
     by_cases h0 : rem = 0
-    · simp [sampleQueriesS, sampleQueriesAux, h0, Follows]
+    · cases g
+      · simp only [sampleQueriesS, sampleQueriesAux, h0, ↓reduceIte]
+        exact ⟨rfl, rfl, rfl, by simp⟩
+      · exact absurd (hg rfl).2 (by omega)
     · simp only [sampleQueriesS, sampleQueriesAux, h0, ite_false, Script.bind_eq,
         VerifierProgram.bind_eq, Script.pure_eq, VerifierProgram.pure_eq]
       refine Follows.bind (fun cs₁ c c' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE cs)
       obtain ⟨hcs, rfl⟩ := h
-      refine Follows.bind (fun cs₂ a b h ↦ ?_) _ _ _ (follows_sampleQueriesS depth cs₁ fuel _)
+      refine Follows.bind (fun cs₂ a b h ↦ ?_) _ _ _
+        (follows_sampleQueriesS depth cs₁ fuel _ (by simp))
       obtain ⟨hcs', rfl, hb⟩ := h
-      refine ⟨hcs'.trans hcs, rfl, fun q hq ↦ ?_⟩
+      refine ⟨rfl, hcs'.trans hcs, rfl, fun q hq ↦ ?_⟩
       rcases List.mem_append.mp hq with hq | hq
       · obtain ⟨c, -, rfl⟩ := List.mem_map.mp hq
         exact Nat.mod_lt _ (Nat.two_pow_pos _)
@@ -159,7 +171,7 @@ theorem grindingBits_two : grindingBits 2 = 0 := by decide
 
 /-- **The tail sumcheck follows the verifier's**: from the claim `⟨w, g⟩` on tables of `2^n`
 entries, it ends at the challenges' point on the claim `w̃(r) g̃(r)`. -/
-theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 ^ n → g.size = 2 ^ n →
+theorem follows_tail (cs : List Committed) : ∀ (n : ℕ) (w g : Array E), w.size = 2 ^ n → g.size = 2 ^ n →
     Follows (fun cs' _ (b : List E × E) ↦ cs' = cs ∧ b.1.length = n ∧
         b.2 = multilinearEval w.toList b.1 * multilinearEval g.toList b.1)
       (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
@@ -170,8 +182,8 @@ theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 
     have h2 : g.toList.length = 1 := by simp [hg]
     obtain ⟨a, ha⟩ := List.length_eq_one_iff.mp h1
     obtain ⟨b, hb⟩ := List.length_eq_one_iff.mp h2
-    show cs = cs ∧ ([] : List E).length = 0 ∧
-      dot w.toList g.toList = multilinearEval w.toList [] * multilinearEval g.toList []
+    refine Wins.ret ⟨rfl, rfl, rfl, ?_⟩
+    change dot w.toList g.toList = multilinearEval w.toList [] * multilinearEval g.toList []
     rw [ha, hb]
     simp [dot, multilinearEval]
   | n + 1, w, g, hw, hg => by
@@ -181,8 +193,8 @@ theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 
       List.drop_succ_cons, List.drop_zero, sumcheckRoundPoly, VerifierProgram.grindProofOfWork,
       VerifierProgram.bind_eq, VerifierProgram.pure_eq, Script.sendList, Script.sampleE,
       VerifierProgram.readScalar, VerifierProgram.readScalars, VerifierProgram.sampleChallenge,
-      Script.bind, VerifierProgram.bind]
-    intro c
+      Script.bind, VerifierProgram.bind, List.length_nil, zero_add]
+    refine Wins.read (Wins.read (Wins.sample fun c ↦ ?_))
     have hW : w.toList.length = g.toList.length := by simp [hw, hg]
     have hE : Even w.toList.length := by simp [hw, pow_succ]
     have hpoly := polyEval_roundQuad c w.toList g.toList hW hE
@@ -194,7 +206,7 @@ theorem follows_tail (cs : Commits) : ∀ (n : ℕ) (w g : Array E), w.size = 2 
     refine Follows.bind (fun cs₂ _ b h ↦ ?_) _ _ _
       (follows_tail cs n (foldPairsA c w) (foldPairsA c g) (hs w hw) (hs g hg))
     obtain ⟨rfl, hl, hb⟩ := h
-    refine ⟨rfl, by simp [hl], ?_⟩
+    refine Wins.ret ⟨rfl, rfl, by simp [hl], ?_⟩
     simp only [multilinearEval_cons, ← toList_foldPairsA]
     exact hb
 
@@ -455,9 +467,10 @@ most `2^κ` rounds (its high part fits below `X_(2^(κ+1))`), on stacks of at mo
 def ladderOK : ℕ → List Whir.Level → Bool
   | _, [] => false
   | mu, [level] => decide (level.fold ≤ mu) && decide (level.fold ≤ 2 ^ (mu - level.fold)) &&
-      decide (mu ≤ 30)
+      decide (mu ≤ 30) && decide (1 ≤ level.queries)
   | mu, level :: next :: rest => decide (level.fold ≤ mu) &&
       decide (level.fold ≤ 2 ^ (mu - level.fold)) && decide (mu ≤ 30) &&
+      decide (1 ≤ level.queries) && decide (1 ≤ mu - level.fold) &&
       ladderOK (mu - level.fold) (next :: rest)
 
 /-- Every admissible ladder satisfies `ladderOK`. -/
@@ -476,12 +489,25 @@ def lanesOfV (index : ℕ) (row : List K) : List E :=
   if index = 0 then row.reverse.map ofK else extRow row
 
 theorem ladderOK_cons {mu : ℕ} {l : Whir.Level} {r : List Whir.Level} (h : ladderOK mu (l :: r) = true) :
-    l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 30 := by
+    l.fold ≤ mu ∧ l.fold ≤ 2 ^ (mu - l.fold) ∧ mu ≤ 30 ∧ 1 ≤ l.queries := by
   cases r with
-  | nil => simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h; exact ⟨h.1.1, h.1.2, h.2⟩
+  | nil =>
+    simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h
+    exact ⟨h.1.1.1, h.1.1.2, h.1.2, h.2⟩
   | cons n r =>
     simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨h.1.1.1, h.1.1.2, h.1.2⟩
+    exact ⟨h.1.1.1.1.1, h.1.1.1.1.2, h.1.1.1.2, h.1.1.2⟩
+
+theorem ladderOK_cons_cons {mu : ℕ} {l n : Whir.Level} {r : List Whir.Level}
+    (h : ladderOK mu (l :: n :: r) = true) :
+    1 ≤ mu - l.fold ∧ ladderOK (mu - l.fold) (n :: r) = true := by
+  simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at h
+  exact ⟨h.1.2, h.2⟩
+
+/-- The rows a commitment answers at positions below its height are its word's. -/
+theorem rows_eq_map {c : Committed} {ps : List ℕ} (h : ∀ q ∈ ps, q < 2 ^ c.height) :
+    c.rows ps = ps.map c.word :=
+  List.map_congr_left fun q hq ↦ by rw [Nat.mod_eq_of_lt (h q hq)]
 
 theorem size_queryTableA {κ : ℕ} (hκ : κ ≤ 64) (qs : List ℕ) (ws : List E) :
     (queryTableA κ qs ws).size = 2 ^ κ := by
@@ -547,9 +573,9 @@ theorem foldInv_next {μ lf : ℕ} {B : List E → E} {κ ℓ ℓ' R' : ℕ} (h�
 
 /-- **The honest levels follow the verifier's.** -/
 theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
-    ∀ (levels : List Whir.Level) (index mu : ℕ) (f w : Array E) (sv : WhirState) (cs : Commits)
+    ∀ (levels : List Whir.Level) (index mu : ℕ) (f w : Array E) (sv : WhirState) (cs : List Committed)
       (word : Word) (width : ℕ), ladderOK mu levels = true → cs.length = index + 1 →
-      (∀ level ∈ levels.head?, cs[index]? = some (mu - level.fold + level.logInvRate, width, word) ∧
+      (∀ level ∈ levels.head?, cs[index]? = some ⟨mu - level.fold + level.logInvRate, width, word⟩ ∧
         FoldInv μ lf B (mu - level.fold) (2 ^ (mu - level.fold + level.logInvRate))
           (fun p ↦ lanesOfV index (word p)) 0 level.fold sv f w []) →
       Follows (fun _ _ _ ↦ True) (levelsA mu levels f w) (whirLevels μ lf B index levels sv) cs
@@ -578,26 +604,22 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
       simp only [vfold] at hv'
       rw [vfold, hv']
       rfl
-    have hans : ∀ qs : List ℕ, (∀ q ∈ qs, q < 2 ^ (κ + level.logInvRate)) →
-        answerOf cs₁ index qs = some (qs.map word) := by
-      intro qs hqs
-      rw [answerOf, hcsi, Option.map_some]
-      exact congrArg some (List.map_congr_left fun q hq ↦ by
-        simp only; rw [Nat.mod_eq_of_lt (hqs q hq)])
     cases rest with
     | nil =>
       dsimp only
+      obtain ⟨-, h2, h3, hq1⟩ := ladderOK_cons hok
       have hplen : p.toList.length = 2 ^ κ + level.fold := by simp [hp']
       rw [← hplen]
       refine Follows.bind (fun cs₂ _ folded h ↦ ?_) _ _ _ (Follows.sendList_readN cs₁ p.toList)
       obtain ⟨rfl, rfl⟩ := h
-      refine Follows.bind (fun cs₃ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ cs₂)
-      subst h
+      refine Follows.grindBits_then (by decide) (by decide) ?_
       rw [sampleQueries]
-      refine Follows.bind (fun cs₄ _ queries h ↦ ?_) _ _ _ (follows_sampleQueriesS _ cs₃ _ _)
+      refine Follows.bind (fun cs₄ _ queries h ↦ ?_) _ _ _
+        (follows_sampleQueriesS _ cs₂ _ _ fun _ ↦ ⟨hq1, hq1⟩)
       obtain ⟨rfl, rfl, hq⟩ := h
-      refine Follows.bind (fun cs₅ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP (hans _ hq))
+      refine Follows.bind (fun cs₅ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP hcsi)
       obtain ⟨rfl, -, rfl⟩ := h
+      rw [rows_eq_map hq]
       rw [require_bind_of]
       · unfold tailA
         have hg : (p.extract 0 (2 ^ κ)).size = 2 ^ κ := by simp [hp']
@@ -621,27 +643,21 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
         change runW B lf sv' b.1 * _ = _
         rw [hW b.1 (by simp [hbl]), ht, hb]
       · simp only [lanesOfV] at hrow0
-        have hl := hok
-        simp only [ladderOK, Bool.and_eq_true, decide_eq_true_eq] at hl
         rw [← List.map_prod_left_eq_zip, List.all_eq_true]
         intro x hx
         obtain ⟨q, hq', rfl⟩ := List.mem_map.mp hx
         refine decide_eq_true ?_
-        have h2 : level.fold ≤ 2 ^ κ := hl.1.2
-        have h3 : mu ≤ 30 := hl.2
+        have h2' : level.fold ≤ 2 ^ κ := h2
         rw [hrow0 q (hq q hq'), novelEval_subspaceAt (by omega) _ (by
-            rw [hplen, pow_succ]; omega), laneVal_zero]
+            simp only [hplen, pow_succ]; omega), laneVal_zero]
         simp only [hplen, Enc.array_getD_toList]
         rw [hp']; simp
     | cons next rest' =>
       dsimp only
       simp only [levelShape]
-      obtain ⟨h1, h2, h28⟩ := ladderOK_cons hok
-      have hok' : ladderOK κ (next :: rest') = true := by
-        rw [ladderOK] at hok
-        simp only [Bool.and_eq_true] at hok
-        exact hok.2
-      obtain ⟨hn1, -, -⟩ := ladderOK_cons hok'
+      obtain ⟨h1, h2, h28, hq1⟩ := ladderOK_cons hok
+      obtain ⟨hκ1, hok'⟩ := ladderOK_cons_cons hok
+      obtain ⟨hn1, -, -, -⟩ := ladderOK_cons hok'
       have hp'' : p.size = 2 ^ κ + level.fold := by rw [hp']; ring
       have hw'' : w'.size = 2 ^ κ := by rw [hw']; ring
       have hlowsz : (p.extract 0 (2 ^ κ)).size = 2 ^ κ := by simp [hp'']
@@ -651,36 +667,36 @@ theorem follows_levelsA (μ lf : ℕ) (B : List E → E) :
         (Follows.commitS_commitP (hwf ▸ wellShaped_levelWord _ _ _ _) cs₁)
       subst h
       have hhl : (p.extract (2 ^ κ) p.size).toList.length = level.fold := by simp [hp'']
-      have hsend := Follows.sendList_readN (cs₁ ++ [(κ - next.fold + next.logInvRate,
+      have hsend := Follows.sendList_readN (cs₁ ++ [⟨κ - next.fold + next.logInvRate,
         2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
-          (p.extract 0 (2 ^ κ)))]) (p.extract (2 ^ κ) p.size).toList
+          (p.extract 0 (2 ^ κ))⟩]) (p.extract (2 ^ κ) p.size).toList
       rw [hhl] at hsend
       refine Follows.bind (fun cs₃ _ high h ↦ ?_) _ _ _ hsend
       obtain ⟨rfl, rfl⟩ := h
-      refine Follows.bind (fun cs₃' _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
-      subst h
-      refine Follows.bind (fun cs₄ z z' h ↦ ?_) _ _ _ (Follows.sampleN_sampleN _ κ)
+      refine Follows.grindBits_then (by decide) (by decide) ?_
+      refine Follows.bind (fun cs₄ z z' h ↦ ?_) _ _ _
+        (Follows.sampleN_sampleN _ κ fun _ ↦ hκ1)
       obtain ⟨rfl, rfl, hz⟩ := h
       have hood := Follows.sendE_readE (dotA (p.extract 0 (2 ^ κ)) (eqTable z))
-        (cs₁ ++ [(κ - next.fold + next.logInvRate, 2 * 2 ^ next.fold,
-          levelWordFast (κ - next.fold) next.fold next.logInvRate (p.extract 0 (2 ^ κ)))])
+        (cs₁ ++ [⟨κ - next.fold + next.logInvRate, 2 * 2 ^ next.fold,
+          levelWordFast (κ - next.fold) next.fold next.logInvRate (p.extract 0 (2 ^ κ))⟩])
       refine Follows.bind (fun cs₆ _ y h ↦ ?_) _ _ _ hood
       obtain ⟨rfl, rfl⟩ := h
-      refine Follows.bind (fun cs₇ _ _ h ↦ ?_) _ _ _ (Follows.grindBits_grindP _ _)
-      subst h
+      refine Follows.grindBits_then (by decide) (by decide) ?_
       rw [sampleQueries]
-      refine Follows.bind (fun cs₈ queries queries' h ↦ ?_) _ _ _ (follows_sampleQueriesS _ _ _ _)
+      refine Follows.bind (fun cs₈ queries queries' h ↦ ?_) _ _ _
+        (follows_sampleQueriesS _ _ _ _ fun _ ↦ ⟨hq1, hq1⟩)
       obtain ⟨rfl, rfl, hq⟩ := h
       refine Follows.bind (fun cs₁₀ lam lam' h ↦ ?_) _ _ _ (Follows.sampleE_sampleE _)
       obtain ⟨rfl, rfl⟩ := h
-      have hans' : answerOf (cs₁ ++ [(κ - next.fold + next.logInvRate,
+      have hcsi' : (cs₁ ++ [⟨κ - next.fold + next.logInvRate,
           2 * 2 ^ next.fold, levelWordFast (κ - next.fold) next.fold next.logInvRate
-            (p.extract 0 (2 ^ κ)))]) index queries = some (queries.map word) := by
-        rw [answerOf, List.getElem?_append_left (by omega), hcsi, Option.map_some]
-        exact congrArg some (List.map_congr_left fun q hq' ↦ by
-          simp only; rw [Nat.mod_eq_of_lt (hq q hq')])
-      refine Follows.bind (fun cs₁₁ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP hans')
+            (p.extract 0 (2 ^ κ))⟩])[index]? =
+          some ⟨mu - level.fold + level.logInvRate, width, word⟩ := by
+        rw [List.getElem?_append_left (by omega), hcsi]
+      refine Follows.bind (fun cs₁₁ _ words h ↦ ?_) _ _ _ (Follows.queryS_queryP hcsi')
       obtain ⟨rfl, -, rfl⟩ := h
+      rw [rows_eq_map hq]
       refine follows_levelsA μ lf B (next :: rest') (index + 1) κ (p.extract 0 (2 ^ κ)) _ _ _
         (levelWordFast (κ - next.fold) next.fold next.logInvRate (p.extract 0 (2 ^ κ)))
         (2 * 2 ^ next.fold) hok' (by simp [hcs]) ?_

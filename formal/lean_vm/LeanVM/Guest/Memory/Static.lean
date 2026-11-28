@@ -27,7 +27,7 @@ through), the bound of one iteration (`loop`): a valid tree started at `i = g^a`
 counting words, its run's one phantom (its last iteration's untaken tail call) more.
 
 **The checker** (`chkFn`) walks a body once (`blockB`), threading the constants its atoms make
-(those the certificate names, each checked `g^e` by `Pow.gpowN`, and their copies), and sums each call site's bound
+(those the certificate names, each checked `g^e` by `Pow.gpowW`, and their copies), and sums each call site's bound
 (`siteB`): a callee's affine bound with its arguments classified (`cls`) as constants `g^e`,
 collapsing their terms and checking their preconditions, or as the caller's parameters, which
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
@@ -123,37 +123,12 @@ def guardOf (b : Aff) : Option (ℕ × ℕ) :=
 /-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
   decide (e < 2 ^ 20) && decide (w.limb 1 = 0) &&
-    (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = K.ofBits (Pow.gpowN e)))
+    (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
 
-/-- `lookupV`, compiled. -/
-def lookupVC {α : Type} (v : V) : List (V × α) → Option α
+/-- A value's entry, its index compared first. -/
+def vlookup (v : V) : List (V × ℕ) → Option ℕ
   | [] => none
-  | q :: l => bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else lookupVC v l
-
-/-- A value's entry, its index compared first; on the recursor, which the kernel unfolds in fewer steps
-than the equation compiler's `brecOn` (`lookupVC` where compiled). -/
-noncomputable def lookupV {α : Type} (v : V) (l : List (V × α)) : Option α :=
-  l.rec none fun q _ r => bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else r
-
-@[csimp] theorem lookupV_eq_lookupVC : @lookupV = @lookupVC := by
-  funext α v l
-  induction l with
-  | nil => rfl
-  | cons q l ih => exact congrArg (cond _ _) ih
-
-theorem lookupV_mem {α : Type} {v : V} {a : α} : ∀ {l : List (V × α)}, lookupV v l = some a → (v, a) ∈ l
-  | [], h => by cases h
-  | q :: l, h => by
-      by_cases hq : (Nat.beq v.idx q.1.idx && decide (v = q.1)) = true
-      · have hv : v = q.1 := by simp only [Bool.and_eq_true, decide_eq_true_eq] at hq; exact hq.2
-        have h' : some q.2 = some a := by
-          change (bif _ then some q.2 else _) = some a at h
-          rwa [hq] at h
-        cases h'; rw [hv]; exact List.mem_cons_self
-      · rw [Bool.not_eq_true] at hq
-        change (bif _ then some q.2 else lookupV v l) = some a at h
-        rw [hq] at h
-        exact List.mem_cons_of_mem _ (lookupV_mem h)
+  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else vlookup v l
 
 /-- A value's position among the parameters from `k`, its index compared first. -/
 def vidx (v : V) : List V → ℕ → Option ℕ
@@ -168,15 +143,20 @@ inductive VCls where
 
 /-- A value: a known constant, a parameter, or unknown. -/
 def cls (ρ : Env) (ps : List V) (v : V) : VCls :=
-  match lookupV v ρ with
+  match vlookup v ρ with
   | some e => .pow e
   | none => match vidx v ps 0 with
     | some k => .param k
     | none => .none
 
+/-- A value's bound entry. -/
+def blookup (v : V) : BEnv → Option Aff
+  | [] => none
+  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else blookup v l
+
 /-- A bound on a value's exponent: tracked, a known constant's, or a parameter's. -/
 def bnd (ρ : Env × BEnv) (ps : List V) (v : V) : Option Aff :=
-  match lookupV v ρ.2 with
+  match blookup v ρ.2 with
   | some b => bif (guardOf b).isSome then none else some b
   | none => match cls ρ.1 ps v with
     | .pow e => some ⟨e, []⟩
@@ -277,15 +257,15 @@ def siteB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ρ 
 /-- **A loop's guard `d = x + y`** marked in the certificate's constants (`guardE`), `x` a known constant `g^a`
 and `y` a value `V.n k`: kept as the tagged bound `⟨gT + a, [(k, 0)]⟩`. -/
 def guardAtom (ks : List (V × ℕ)) (ρ : Env × BEnv) (d x y : V) : Env × BEnv :=
-  if lookupV d ks == some guardE then
-    match lookupV x ρ.1 with
+  if vlookup d ks == some guardE then
+    match vlookup x ρ.1 with
     | some a => bif selIs y.idx y then (ρ.1, (d, ⟨gT + a, [(y.idx, 0)]⟩) :: ρ.2) else ρ
     | none => ρ
   else ρ
 
 /-- **A `callIf` site's guard**: its condition a tagged bound (`guardOf`), `g^a + [V.n k]`. -/
 def guardB (β : BEnv) (c : V) : Option (ℕ × ℕ) :=
-  match lookupV c β with
+  match blookup c β with
   | some b => guardOf b
   | none => none
 
@@ -330,14 +310,14 @@ bounds where the arguments `x`'s names are powers (`powPre`), a `HeapBuf(n)` add
 exponent bound (`bnd`), or fails. -/
 def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env × BEnv) :
     Atom → Option (Acc × (Env × BEnv))
-  | .const v w => match lookupV v ks with
+  | .const v w => match vlookup v ks with
       | some e => if constOk w e then some (Acc.zero, ((v, e) :: ρ.1, ρ.2)) else some (Acc.zero, ρ)
       | none => some (Acc.zero, ρ)
   | .copy d s => match cls ρ.1 ps s with
       | .pow e => some (Acc.zero, ((d, e) :: ρ.1, ρ.2))
       | _ => some (Acc.zero, ρ)
   | .mul d x y =>
-      if α && lookupV d ks == some trackE then
+      if α && vlookup d ks == some trackE then
         match bnd ρ ps x, cls ρ.1 ps y with
         | some b, .pow c => bif (guardOf (b.add ⟨c, []⟩)).isSome then none
             else some (Acc.zero, (ρ.1, (d, b.add ⟨c, []⟩) :: ρ.2))
@@ -476,16 +456,6 @@ def Stmt.noRetArms : List (List Stmt) → Bool
   | a :: as => Stmt.noRetListS a && Stmt.noRetArms as
 end
 
-/-- Equality of values, their indices compared first: the derived `DecidableEq V` compares their paths
-first, which the kernel walks slowly. -/
-def vBeq (a b : V) : Bool := Nat.beq a.idx b.idx && Nat.beq a.tag b.tag && decide (a.path = b.path)
-
-theorem vBeq_iff {a b : V} : vBeq a b = true ↔ a = b := by
-  obtain ⟨p, t, i⟩ := a
-  obtain ⟨p', t', i'⟩ := b
-  simp only [vBeq, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, V.mk.injEq]
-  tauto
-
 /-- The top-level atom of a block defining `d`. -/
 def defAtom (d : V) : List Stmt → Option Atom
   | [] => none
@@ -495,7 +465,7 @@ def defAtom (d : V) : List Stmt → Option Atom
         | .add x _ _ => some x
         | .mul x _ _ => some x
         | _ => none
-      if dst?.any (vBeq · d) then some a else defAtom d ss
+      if dst? = some d then some a else defAtom d ss
   | _ :: ss => defAtom d ss
 
 /-- `d = p · g` by a top-level `mul` with a constant `g`. -/

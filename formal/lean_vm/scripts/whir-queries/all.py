@@ -5,13 +5,11 @@
 `gen.py` reads the core IR (through `scripts/coredata.py`); the others write
 `B1/Bits/QueryWindowsBody0-1.lean` and `QueryWindowsData.lean` (`genqwdata`), `B1/Opening/QueriesBody0-3.lean` and
 `QueriesFns.lean`'s cases (`genoq`), `Guest/WalkOq0-3.lean`, `WalkOqOk0-3.lean` (`genwalkoq`),
-`Guest/WalkLq0-3.lean`, `WalkLqOk0-3.lean`, `WalkOs0-3.lean`, `WalkOsOk0-3.lean` (`genwalklqos`),
-`B1/Opening/QueriesPlacedE.lean` (`genplacedE`, from the hand-written `QueriesPlacedD0-2.lean`), and the
-specializations' lists in `QueryWindowsT.lean` and `QueriesLoops.lean` (`lists`).
-Functions are named by their stable names (`Guest/CoreRef.lean`), read from `Data/NameStrings.lean`.
+`Guest/WalkLq0-3.lean`, `WalkLqOk0-3.lean`, `WalkOs0-3.lean`, `WalkOsOk0-3.lean` (`genwalklqos`), and the
+specializations' lists in `QueryWindowsT.lean` and `QueriesLoops.lean` (`lists`). Functions are named by their stable names (`Guest/CoreRef.lean`), read from `Data/NameStrings.lean`.
 """
 import os, subprocess, sys
 here = os.path.dirname(os.path.abspath(__file__))
-for g in ['lists', 'genqwdata', 'genoq', 'genwalkoq', 'genwalklqos', 'genplacedE']:
+for g in ['lists', 'genqwdata', 'genoq', 'genwalkoq', 'genwalklqos']:
     subprocess.run([sys.executable, '-I', os.path.join(here, g + '.py'), sys.argv[1]], check=True,
                    stdout=subprocess.DEVNULL)

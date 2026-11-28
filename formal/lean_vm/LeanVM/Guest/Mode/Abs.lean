@@ -576,10 +576,10 @@ noncomputable def writeRun (A : Abs) (dst : Option ℕ × Option Mono) (pos n : 
 /-- **One hint**: the cells it reads must be known written. -/
 noncomputable def stepHint (A : Abs) : Hint → Option Abs
   | .frameAddress _ => some A
-  | .alloc ptr _ => some (A.addW ptr)
+  | .alloc ptr _ _ => some (A.addW ptr)
   | .allocDyn ptr size => if A.hasW size then some (A.addW ptr) else none
-  | .allocArm ptr sel _ => if A.hasW sel then some (A.addW ptr) else none
-  | .allocFrames ptr _ stop _ _ => if A.hasW stop then some (A.addW ptr) else none
+  | .allocArm ptr sel _ _ => if A.hasW sel then some (A.addW ptr) else none
+  | .allocFrames ptr _ stop _ _ _ => if A.hasW stop then some (A.addW ptr) else none
   | .cellAddress ptr cell => some (((A.addW ptr).addV ptr (.m (.own cell))).addNz ptr)
   | .witnessStack _ base len => some (writeRun A (some base, none) 0 len none)
   | .witnessHeap _ ptr lo len => (destOf A (.heap ptr)).map fun d ↦ writeRun A d lo len none
@@ -613,6 +613,8 @@ noncomputable def stepHint (A : Abs) : Hint → Option Abs
 noncomputable def stepHints (A : Abs) : List Hint → Option Abs
   | [] => some A
   | h :: hs => (stepHint A h).bind (stepHints · hs)
+
+/-! ## Cases on an exponent -/
 
 /-! ## Calls -/
 

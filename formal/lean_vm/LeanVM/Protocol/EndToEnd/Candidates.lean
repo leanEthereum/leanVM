@@ -10,8 +10,8 @@ module
 
 public import LeanVM.Protocol.Whir.NovelBasis
 import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.Field
 public import Statement.Prover.Script
+public import LeanVM.Protocol.Field
 
 /-!
 # The candidates of a commitment

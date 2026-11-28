@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Sound.Skeleton
-public import LeanVM.Protocol.EndToEnd.Sound.CutXrun
+public import LeanVM.Protocol.EndToEnd.Sound.SkelDefs
 
 /-!
 # The leaves' skeletons
@@ -58,6 +57,17 @@ theorem sample {k : E → VerifierProgram α} {sk : List Op} {Q : α → Prop}
     (hk : ∀ x, SkelP (k x) sk Q) : SkelP (.sample k) (.sample :: sk) Q :=
   ⟨Skel.sample fun x ↦ (hk x).1, fun b hb ↦ by cases hb with | sample x h => exact (hk x).2 b h⟩
 
+theorem readPacked {n : ℕ} {k : List E → VerifierProgram α} {sk : List Op} {Q : α → Prop}
+    (hk : ∀ xs, xs.length = n → SkelP (k xs) sk Q) : SkelP (.readPacked n k) (.readPacked n :: sk) Q :=
+  ⟨Skel.readPacked fun xs hx ↦ (hk xs hx).1, fun b hb ↦ by
+    cases hb with | readPacked _ xs hx h => exact (hk xs hx).2 b h⟩
+
+theorem samplePacked {n : ℕ} {k : List E → VerifierProgram α} {sk : List Op} {Q : α → Prop}
+    (hk : ∀ cs, cs.length = n → SkelP (k cs) sk Q) :
+    SkelP (.samplePacked n k) (.samplePacked n :: sk) Q :=
+  ⟨Skel.samplePacked fun cs hc ↦ (hk cs hc).1, fun b hb ↦ by
+    cases hb with | samplePacked _ cs hc h => exact (hk cs hc).2 b h⟩
+
 theorem grind {bits : ℕ} {k : VerifierProgram α} {sk : List Op} {Q : α → Prop}
     (hk : SkelP k sk Q) : SkelP (.grind bits k) (.grind bits :: sk) Q :=
   ⟨Skel.grind hk.1, fun b hb ↦ by cases hb with | grind _ h => exact hk.2 b h⟩
@@ -77,14 +87,19 @@ end SkelP
 
 /-! ## The leaves -/
 
-/-- The skeleton of a proof of work of `bits` bits: none when `bits = 0`. -/
-def skGrind (bits : ℕ) : List Op := if bits = 0 then [] else [.grind bits]
-
 theorem skel_readScalar : SkelP VerifierProgram.readScalar [.read] fun _ ↦ True :=
   SkelP.read fun _ ↦ SkelP.ret trivial
 
 theorem skel_sampleChallenge : SkelP VerifierProgram.sampleChallenge [.sample] fun _ ↦ True :=
   SkelP.sample fun _ ↦ SkelP.ret trivial
+
+theorem skel_readScalarsPacked (n : ℕ) :
+    SkelP (VerifierProgram.readScalarsPacked n) [.readPacked n] fun xs ↦ xs.length = n :=
+  SkelP.readPacked fun _ hx ↦ SkelP.ret hx
+
+theorem skel_sampleChallengesPacked (n : ℕ) :
+    SkelP (VerifierProgram.sampleChallengesPacked n) [.samplePacked n] fun cs ↦ cs.length = n :=
+  SkelP.samplePacked fun _ hc ↦ SkelP.ret hc
 
 theorem skel_readScalars : ∀ n, SkelP (VerifierProgram.readScalars n) (List.replicate n .read)
     fun xs ↦ xs.length = n
@@ -133,12 +148,6 @@ theorem skel_readCommitment (height width : ℕ) :
     SkelP (VerifierProgram.readCommitment height width) [.commit height width] fun _ ↦ True :=
   SkelP.commit (SkelP.ret trivial)
 
-/-- The skeleton of one sumcheck round of `count` coefficients, with an equality factor or
-without. -/
-def skRound (count : ℕ) : Bool → List Op
-  | false => .read :: List.replicate (count - 2) .read ++ skGrind (grindingBits (count - 1))
-  | true => List.replicate (count - 1) .read ++ skGrind (grindingBits (count - 1 + 1))
-
 theorem skel_sumcheckRoundPoly (count : ℕ) (claim : E) (e : Option E) :
     SkelP (sumcheckRoundPoly count claim e) (skRound count e.isSome) fun _ ↦ True := by
   cases e with
@@ -155,11 +164,6 @@ theorem skel_sumcheckRoundPoly (count : ℕ) (claim : E) (e : Option E) :
       (skel_grindProofOfWork _).bind fun _ _ ↦ SkelP.ret trivial).mono ?_ fun _ h ↦ h
     simp [skRound]
 
-/-- The skeleton of a sumcheck of `count` coefficients a round, its rounds' equality factors
-present or absent as `eqs`. -/
-def skSum (count : ℕ) (eqs : List Bool) : List Op :=
-  eqs.flatMap fun b ↦ skRound count b ++ [.sample]
-
 theorem skel_sumcheck (count : ℕ) : ∀ (claim : E) (eqs : List (Option E)),
     SkelP (sumcheck claim count eqs) (skSum count (eqs.map Option.isSome))
       fun r ↦ r.1.length = eqs.length
@@ -172,12 +176,6 @@ theorem skel_sumcheck (count : ℕ) : ∀ (claim : E) (eqs : List (Option E)),
         SkelP.ret (Q := fun r' : List E × E ↦ r'.1.length = (e :: eqs).length)
           (by simp [hr])).mono ?_ fun _ h ↦ h
     simp [skSum, List.flatMap_cons, List.append_assoc]
-
-/-- The samples of the query positions' loop. -/
-def sqSamples (depth : ℕ) : ℕ → ℕ → ℕ
-  | 0, _ => 0
-  | fuel + 1, remaining =>
-    if remaining = 0 then 0 else 1 + sqSamples depth fuel (remaining - min (128 / depth) remaining)
 
 theorem skel_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
     SkelP (sampleQueriesAux depth fuel remaining)

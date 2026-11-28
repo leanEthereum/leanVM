@@ -87,6 +87,15 @@ def runWithHash {α : Type} : VerifierProgram α → VerifierProgramState → m 
   | .sample k, s => do
     let (c, sp) ← squeeze F s.sponge
     runWithHash (k c) { s with sponge := sp }
+  | .readPacked n k, s =>
+    if s.sponge.ground.isNone ∧ n ≤ s.stream.length then do
+      let xs := s.stream.take n
+      let sp ← observePacked F s.sponge xs
+      runWithHash (k xs) { s with sponge := sp, stream := s.stream.drop n }
+    else pure none
+  | .samplePacked n k, s => do
+    let (cs, sp) ← samplesPacked F s.sponge n
+    runWithHash (k cs) { s with sponge := sp }
   | .grind bits k, s => match s.stream, s.sponge.ground with
     | n :: xs, none => do
       let (pow, sp) ← absorbNonce F s.sponge n
@@ -135,6 +144,12 @@ theorem runWithHash_bind {α β : Type} (p : VerifierProgram α) (f : α → Ver
     · exact ih _ _
     · rfl
   | sample k ih => exact ih _ _
+  | readPacked n k ih =>
+    simp only [VerifierProgram.bind, runWithHash]
+    split
+    · exact ih _ _
+    · rfl
+  | samplePacked n k ih => exact ih _ _
   | grind b k ih =>
     simp only [VerifierProgram.bind, runWithHash]
     split
@@ -219,11 +234,11 @@ def verifyWithHash (bytecode : List K) (publicInput : Digest) (π : Proof) : m B
 
 /-- **The deferring verifier** with the hash `H` and the permutation `F`, as an aggregate runs it
 on a child's proof (`verify_sub`): the IV is given rather than hashed from the bytecode, and the
-fixed polynomial's point and value are held to `c`. Only the bytecode's length is read. -/
-def verifyDeferredWithHash (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
+program's split at the link's point is held to the child's fresh claim `fresh` (`freshSplit`). -/
+def verifyDeferredWithHash (bytecode : List K) (iv publicInput : Digest) (fresh : FreshClaim)
     (π : Proof) : m Bool := do
   let seed ← F (seedInput iv publicInput)
-  runProofWithHash H F (deferringVerifierProgram c bytecode publicInput) seed π
+  runProofWithHash H F (deferringVerifierProgram fresh bytecode publicInput) seed π
 
 end Hash
 

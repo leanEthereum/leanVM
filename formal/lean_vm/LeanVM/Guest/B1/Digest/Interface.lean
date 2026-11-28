@@ -38,7 +38,7 @@ family's modules.
 
 | function | meaning |
 | --- | --- |
-| `statement_digest` | Keccak-256 of the eight header cells and the 24 deferred cells, two limbs each (`statementDigest`) |
+| `statement_digest` | Keccak-256 of the eight header cells and the 26 deferred cells, two limbs each (`statementDigest`) |
 | `list_split` | `n = 136 · bigs + 17 · groups + rest`, `bigs < 2^20`, `groups < 8`, `rest < 17` |
 | `claim_list_digest` | Keccak-256 of the `4n` cells of the list (`claimListDigest`) |
 | `child_claim_list_digest` | the same over cells read at hinted slots of this node's table, each slot marked in the coverage table (by hinted indices, `child_claim_list_any`, or by hinted gaps, `child_claim_list_mono`) |
@@ -75,15 +75,15 @@ abbrev ginvW : E := word 9223372036854775821 0
 
 /-! ## `statement_digest` (TRIAGE #86) -/
 
-/-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 23`
+/-- `DEFER_STMT_CELLS`: the cells of a statement's deferred claim, `BYTECODE_VARS = 25`
 coordinates and the value. -/
-abbrev deferStmtCells : ℕ := 24
+abbrev deferStmtCells : ℕ := 26
 
 /-- The bytes `statement_digest` hashes: the header cells (the seed, the two claim lists' digests,
 the DA digest), then the deferred cells, two limbs each. -/
 def stmtBytes (hdr defer : List E) : List UInt8 := cellsBytes hdr ++ defer.flatMap E.toBytes
 
-/-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 24
+/-- **`statement_digest(seed_0, seed_1, xd_0, xd_1, sd_0, sd_1, da_0, da_1, defer)`**: the 26
 deferred cells at `defer`; the function returns the two cells of the Keccak-256 digest of the
 header cells and the deferred cells. -/
 def MeaningStatementDigest (rd : Reader) : List E → List E → Prop

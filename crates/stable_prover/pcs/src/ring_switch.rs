@@ -11,7 +11,8 @@
 //! Ring switching (Annex A): a claim on the bits of the packed witness, at an `E`-point, becomes a claim on the
 //! packed `K` words against a transparent `E`-valued weight.
 //!
-//! A claim on `q_keccak`, `2^n` words of 64 bits each, is its 64 bit slices at a suffix point `r`,
+//! A claim on an aligned slice of the stack (`q_keccak`, or a link pointer column), `2^n` words of 64 bits each, is its
+//! 64 bit slices at a suffix point `r`,
 //! `s_hat_v[i] = sum_y eq(r, y) bit_i(q[y])`, which the caller has sent and checked. Their tensor-algebra transpose is
 //! 128 `K` elements `t_w` (`transpose_s_hat`). After the challenges of an F_2-linear map `Phi: E -> E`
 //! (`coordinate_weights`), the claim is
@@ -47,8 +48,11 @@ pub(crate) const MAP_CHALLENGES: usize = 16;
 ///
 /// A nonzero error on the transposed slices survives the batched check with probability at most `2 / |E|` (Annex A,
 /// `rs:map`).
-pub(crate) fn coordinate_weights(challenges: &[F128; MAP_CHALLENGES]) -> [F128; DEGREE_E] {
-    std::array::from_fn(|w| apply_map(F128::from(1u128 << w), challenges))
+///
+/// With `scale`, the weights are those of `v -> Phi(scale v)`: a claim that joins a merged ring switch as `scale` times
+/// itself, `Phi` not being `E`-linear.
+pub(crate) fn coordinate_weights(challenges: &[F128; MAP_CHALLENGES], scale: F128) -> [F128; DEGREE_E] {
+    std::array::from_fn(|w| apply_map(scale * F128::from(1u128 << w), challenges))
 }
 
 /// `Phi(value)` of [`coordinate_weights`], stage by stage.
@@ -85,24 +89,15 @@ pub(crate) fn transpose_s_hat(s_hat_v: &[F128; 64]) -> [F64; DEGREE_E] {
     s_hat_u
 }
 
-/// A ring claim's weight `Phi(eq(point, y))` over its suffix domain, `Phi` an F_2-linear map given by its images of
-/// the coordinate basis, the claim's batching scalar included.
-pub(crate) struct RingWeight {
-    pub(crate) phi: [F128; DEGREE_E],
-    pub(crate) point: Vec<F128>,
-}
-
-impl RingWeight {
-    /// `Phi(value)`.
-    pub(crate) fn apply(&self, value: F128) -> F128 {
-        let mut bits = u128::from(value);
-        let mut acc = F128::ZERO;
-        while bits != 0 {
-            acc += self.phi[bits.trailing_zeros() as usize];
-            bits &= bits - 1;
-        }
-        acc
+/// `Phi(value)`, for an F_2-linear `Phi` given by its images `phi` of the coordinate basis.
+pub(crate) fn apply(phi: &[F128; DEGREE_E], value: F128) -> F128 {
+    let mut bits = u128::from(value);
+    let mut acc = F128::ZERO;
+    while bits != 0 {
+        acc += phi[bits.trailing_zeros() as usize];
+        bits &= bits - 1;
     }
+    acc
 }
 
 /// `Phi(eq(point, y))` ready to be written out: `eq` as a low and a high table, `Phi` as a bit fold of the products.
@@ -172,15 +167,10 @@ mod tests {
     fn ring_fold_writes_phi_of_eq() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
         for vars in [0, 3, 10] {
-            let weight = RingWeight {
-                phi: std::array::from_fn(|_| rng.ext()),
-                point: rng.ext_vec(vars),
-            };
-            let want: Vec<F128> = eq_table_serial(&weight.point)
-                .iter()
-                .map(|&e| weight.apply(e))
-                .collect();
-            let fold = RingFold::new(weight.phi, &weight.point);
+            let phi = std::array::from_fn(|_| rng.ext());
+            let point = rng.ext_vec(vars);
+            let want: Vec<F128> = eq_table_serial(&point).iter().map(|&e| apply(&phi, e)).collect();
+            let fold = RingFold::new(phi, &point);
             for start in [0, want.len() / 3] {
                 let mut got = vec![F128::ZERO; want.len() - start];
                 fold.add_chunk(start, &mut got);
@@ -198,7 +188,7 @@ mod tests {
         for _ in 0..4 {
             let challenges = std::array::from_fn(|_| rng.ext());
             let s_hat_v: [F128; 64] = std::array::from_fn(|_| rng.ext());
-            let weights = coordinate_weights(&challenges);
+            let weights = coordinate_weights(&challenges, F128::ONE);
             let lhs: F128 = transpose_s_hat(&s_hat_v)
                 .iter()
                 .zip(weights)
@@ -233,6 +223,38 @@ mod tests {
                 frobenius = frobenius.square();
             }
             assert_eq!(apply_map(value, &challenges), expanded);
+        }
+    }
+
+    /// The scaled weights are the map of the scaled basis: weighting the column view by them applies `Phi` to `scale`
+    /// times each slice, so a claim merged as `rho^j` times itself takes `coordinate_weights(.., rho^j)`.
+    #[test]
+    fn scaled_weights_map_the_scaled_slices() {
+        let mut rng = Rng::new(0x5CA1_E000_0000_0001);
+        for _ in 0..4 {
+            let challenges: [F128; MAP_CHALLENGES] = std::array::from_fn(|_| rng.ext());
+            let scale = rng.ext();
+            let weights = coordinate_weights(&challenges, scale);
+            for (w, &weight) in weights.iter().enumerate() {
+                assert_eq!(
+                    weight,
+                    apply_map(scale * F128::from(1u128 << w), &challenges),
+                    "coordinate {w}"
+                );
+            }
+            let s_hat_v: [F128; 64] = std::array::from_fn(|_| rng.ext());
+            let lhs: F128 = transpose_s_hat(&s_hat_v)
+                .iter()
+                .zip(weights)
+                .map(|(&t, w)| w.mul_base(t))
+                .sum();
+            let x = F128::new(2, 0);
+            let (mut rhs, mut x_pow) = (F128::ZERO, F128::ONE);
+            for &y in &s_hat_v {
+                rhs += x_pow * apply_map(scale * y, &challenges);
+                x_pow *= x;
+            }
+            assert_eq!(lhs, rhs);
         }
     }
 }

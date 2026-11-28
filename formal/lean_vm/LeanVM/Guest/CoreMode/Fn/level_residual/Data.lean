@@ -45,7 +45,11 @@ def names : List String :=
     name% «level_residual__L6_L4_L2»,
     name% «level_residual__L7_L4_L2»,
     name% «level_residual__L8_L4_L2»,
-    name% «level_residual__L9_L4_L2»]
+    name% «level_residual__L9_L4_L2»,
+    name% «level_residual__L10_L6_L3»,
+    name% «level_residual__L11_L6_L3»,
+    name% «level_residual__L12_L6_L3»,
+    name% «level_residual__L13_L6_L3»]
 
 /-- **Its carried exponent bounds**: callee, parameter, lower and upper bound, every call site passing a value its
 caller pins so (`open_stacked`, from its rates' constants). -/

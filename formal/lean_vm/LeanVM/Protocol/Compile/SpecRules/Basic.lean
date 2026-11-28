@@ -60,6 +60,13 @@ def retSplit : VerifierProgram α → List Ev → Option (α × List Ev × List 
     else none
   | query _ _ k, Ev.query rows :: es =>
     ((k rows).retSplit es).map fun s ↦ (s.1, Ev.query rows :: s.2.1, s.2.2)
+  | readPacked n k, Ev.readPacked xs :: es =>
+    if xs.length = n then ((k xs).retSplit es).map fun s ↦ (s.1, Ev.readPacked xs :: s.2.1, s.2.2)
+    else none
+  | samplePacked n k, Ev.samplePacked cs :: es =>
+    if cs.length = n then
+      ((k cs).retSplit es).map fun s ↦ (s.1, Ev.samplePacked cs :: s.2.1, s.2.2)
+    else none
   | _, _ => none
 
 /-- `retSplit` finds a return of `p`. -/
@@ -75,6 +82,8 @@ theorem retSplit_spec : ∀ (p : VerifierProgram α) (l : List Ev) {a : α} {l�
   | grind _ k, [], _, _, _, h => by simp [retSplit] at h
   | commit _ _ k, [], _, _, _, h => by simp [retSplit] at h
   | query _ _ k, [], _, _, _, h => by simp [retSplit] at h
+  | readPacked _ k, [], _, _, _, h => by simp [retSplit] at h
+  | samplePacked _ k, [], _, _, _, h => by simp [retSplit] at h
   | read k, e :: es, _, _, _, h => by
     cases e <;> simp only [retSplit, Option.map_eq_some_iff, reduceCtorEq] at h
     obtain ⟨⟨a', m₁, m₂⟩, hs, he⟩ := h
@@ -120,6 +129,30 @@ theorem retSplit_spec : ∀ (p : VerifierProgram α) (l : List Ev) {a : α} {l�
       obtain ⟨rfl, rfl, rfl⟩ := he
       obtain ⟨rfl, h2⟩ := retSplit_spec _ es hs
       exact ⟨rfl, by simpa [after] using h2⟩
+    · simp at h
+  | readPacked n k, e :: es, _, _, _, h => by
+    cases e <;> simp only [retSplit, reduceCtorEq] at h
+    rename_i xs
+    split at h
+    · rename_i hc
+      simp only [Option.map_eq_some_iff] at h
+      obtain ⟨⟨a', m₁, m₂⟩, hs, he⟩ := h
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl, rfl⟩ := he
+      obtain ⟨rfl, h2⟩ := retSplit_spec _ es hs
+      exact ⟨rfl, by simpa [after, hc] using h2⟩
+    · simp at h
+  | samplePacked n k, e :: es, _, _, _, h => by
+    cases e <;> simp only [retSplit, reduceCtorEq] at h
+    rename_i cs
+    split at h
+    · rename_i hc
+      simp only [Option.map_eq_some_iff] at h
+      obtain ⟨⟨a', m₁, m₂⟩, hs, he⟩ := h
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl, rfl⟩ := he
+      obtain ⟨rfl, h2⟩ := retSplit_spec _ es hs
+      exact ⟨rfl, by simpa [after, hc] using h2⟩
     · simp at h
 
 /-- A return of `p` is the one `retSplit` finds. -/
@@ -261,6 +294,9 @@ theorem Reach.after_isSome {p : VerifierProgram α} {h₀ l : List Ev} (hl : p.R
   | read _ _ ha | sample _ _ ha | grind _ ha | commit _ _ ha | query _ ha =>
     rw [after_append_single _ ha]
     simp [after]
+  | readPacked _ _ ha hn | samplePacked _ _ ha hn =>
+    rw [after_append_single _ ha]
+    simp [after, hn]
 
 /-- The two cases of a local run of `p.bind f`. -/
 private def BindRun (p : VerifierProgram α) (f : α → VerifierProgram β) (h₀ l : List Ev) : Prop :=
@@ -340,6 +376,26 @@ private theorem bindRun {p : VerifierProgram α} {f : α → VerifierProgram β}
     · exact absurd hq (after_ne_ret_of_retSplit_eq_none hs _)
     · obtain ⟨rfl, rfl, -⟩ := ha
       exact .query hr hq hans
+  | @readPacked l n k xs _ ha hn ih =>
+    refine bindRun_step _ ih (fun hr hs ↦ ?_)
+      (fun a l₁ l₂ _ hf he ↦ .readPacked xs hf (he.trans ha) hn)
+    obtain ⟨q, hq⟩ := hr.after_isSome
+    rw [after_bind_of_retSplit_eq_none f p l hs, hq] at ha
+    simp only [Option.map_some, Option.some.injEq] at ha
+    cases q <;> simp [bind] at ha
+    · exact absurd hq (after_ne_ret_of_retSplit_eq_none hs _)
+    · obtain ⟨rfl, -⟩ := ha
+      exact .readPacked xs hr hq hn
+  | @samplePacked l n k cs _ ha hn ih =>
+    refine bindRun_step _ ih (fun hr hs ↦ ?_)
+      (fun a l₁ l₂ _ hf he ↦ .samplePacked cs hf (he.trans ha) hn)
+    obtain ⟨q, hq⟩ := hr.after_isSome
+    rw [after_bind_of_retSplit_eq_none f p l hs, hq] at ha
+    simp only [Option.map_some, Option.some.injEq] at ha
+    cases q <;> simp [bind] at ha
+    · exact absurd hq (after_ne_ret_of_retSplit_eq_none hs _)
+    · obtain ⟨rfl, -⟩ := ha
+      exact .samplePacked cs hr hq hn
 
 /-- A local run of `p.bind f` along which `p` has not returned is a run of `p`. -/
 theorem reach_of_reach_bind {p : VerifierProgram α} {f : α → VerifierProgram β} {h₀ l : List Ev}
@@ -367,6 +423,8 @@ theorem reach_nil_iff {P : VerifierProgram α} {l : List Ev} : P.Reach [] l ↔ 
     | grind _ ha ih => exact .grind ih ha
     | commit word _ ha hw ih => exact .commit word ih ha hw
     | query _ ha hans ih => exact .query ih ha (by simpa using hans)
+    | readPacked xs _ ha hn ih => exact .readPacked xs ih ha hn
+    | samplePacked cs _ ha hn ih => exact .samplePacked cs ih ha hn
   · intro hl
     induction hl with
     | nil => exact .nil
@@ -375,6 +433,8 @@ theorem reach_nil_iff {P : VerifierProgram α} {l : List Ev} : P.Reach [] l ↔ 
     | grind _ ha ih => exact .grind ih ha
     | commit word _ ha hw ih => exact .commit word ih ha hw
     | query _ ha hans ih => exact .query ih ha (by simpa using hans)
+    | readPacked xs _ ha hn ih => exact .readPacked xs ih ha hn
+    | samplePacked cs _ ha hn ih => exact .samplePacked cs ih ha hn
 
 end VerifierProgram
 

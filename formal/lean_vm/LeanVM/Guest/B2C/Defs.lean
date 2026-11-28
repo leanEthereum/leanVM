@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Guest.Memory
-public import LeanVM.Guest.Memory.TableCells
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Glob

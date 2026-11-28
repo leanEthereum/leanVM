@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.LevelMid
 public import LeanVM.Protocol.Whir.Sound.Tail
-import LeanVM.ToMathlib.List
 
 /-!
 # The final level
@@ -144,7 +143,7 @@ theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
       (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.alphas ++ tail).drop glued.foldStart))
       (eb ((s.alphas ++ tail).drop laneFolds ++ (s.alphas ++ tail).take laneFolds)) =
     runW eb laneFolds s tail := by
-  rw [runW_eq, List.foldl_add_eq_add_sum_map]
+  rw [runW_eq, foldl_add_map]
   refine congrArg₂ (· + ·) rfl (congrArg List.sum (List.map_congr_left fun g hgm ↦ ?_))
   rw [List.drop_append_of_le_length (hg g hgm)]
 
@@ -235,12 +234,17 @@ noncomputable def orInvSpec {α : Type} {p : VerifierProgram α} {Pre : List Ev 
     · exact zero_le
     · exact S.start_V h₀ (hp.resolve_right hx)
   read x hl ha hD := hD.imp id (S.read x hl ha)
+  readPacked xs hl ha hn hD := hD.imp id (S.readPacked xs hl ha hn)
   grind hl ha hD := hD.imp id (S.grind hl ha)
   commit word hl ha hw hD := hD.imp id (S.commit word hl ha hw)
   sample {h₀ l k} hl ha := by
     by_cases hx : X h₀
     · simp [hx]
     · simp only [hx, ↓reduceIte]; exact S.sample hl ha
+  samplePacked {h₀ l n k} hl ha := by
+    by_cases hx : X h₀
+    · simp [hx, avgPk_const]
+    · simp only [hx, ↓reduceIte]; exact S.samplePacked hl ha
   query {h₀ l i ps k rows} hl ha hans := by
     by_cases hx : X h₀
     · simp [hx]

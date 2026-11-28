@@ -7,6 +7,7 @@
 # (`signers_cache.rs` writes them to `lean_vm/target/signers-cache`)
 /lean_vm/scripts/rust-verifier-cli/target/
 /lean_vm/scripts/wire-diff/target/
+/lean_vm/scripts/executor-faults/target/
 /lean_vm/scripts/guest-export/target/
 /lean_vm/target/
 
@@ -22,50 +23,26 @@ __pycache__/
 .claude/
 /lean_vm/scripts/whir-fold-table/target/
 
-# What `lean_vm/scripts/regen-guest.sh` writes from the guest: never committed, regenerated before a build
+# What `lean_vm/scripts/regen-guest.sh` writes from the guest (its `export`, `core` and `cert` steps): never
+# committed, regenerated before a build
 /Statement/Data/
-/lean_vm/LeanVM/Cost/DecoderTablesFirewall.lean
-/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestLocs/
-/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestLocs.lean
-/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestTablesFirewall.lean
-/lean_vm/LeanVM/Cost/Decoder/GuestTables.lean
-/lean_vm/LeanVM/Cost/DecoderSize/Locs.lean
-/lean_vm/LeanVM/Cost/DecoderSize/Names[0-9]*.lean
-/lean_vm/LeanVM/Cost/DecoderSize/Rows[0-9]*.lean
 /lean_vm/LeanVM/Guest/Data/
 /lean_vm/LeanVM/Guest/Pack/
 /lean_vm/LeanVM/Guest/Checked/
 /lean_vm/LeanVM/Guest/Checked.lean
+/lean_vm/LeanVM/Guest/CoreNamesMod.lean
 /lean_vm/LeanVM/Guest/VsAt.lean
 /lean_vm/LeanVM/Guest/WalkKnownAll.lean
-/lean_vm/LeanVM/Guest/WalkLq[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkLqOk[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkOq[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkOqOk[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkOs[0-9]*.lean
-/lean_vm/LeanVM/Guest/WalkOsOk[0-9]*.lean
+# Its `core` step's `scripts/vs-windows`: verify_sub's windows
+/lean_vm/LeanVM/Guest/B1/VsC/VsWinData.lean
+/lean_vm/LeanVM/Guest/B1/VsC/VsRunData.lean
+# Its `core` step's `scripts/main-windows`: main's windows
+/lean_vm/LeanVM/Guest/Complete/MainWinData.lean
+# Its `whir` step (`whir-data`, `whir-mat-plan`, `whir-queries`, `stack-data`, `whir-tables.lean`): the
+# stacked opening's templates and data, and the decoder's call tables
+/lean_vm/LeanVM/Guest/B1/Bits/QueryWindowsBody[0-9]*.lean
 /lean_vm/LeanVM/Guest/B1/Bits/QueryWindowsData.lean
 /lean_vm/LeanVM/Guest/B1/Opening/QueriesBody[0-9]*.lean
-/lean_vm/LeanVM/Guest/B1/Opening/QueriesPlacedE.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/Air.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/CountTotal.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/FormsDiff.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/FormsT[0-9]*.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/PullSels.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/PullTotal.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/PushFw.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/PushPad.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/SelBlocks.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/SharedT.lean
-/lean_vm/LeanVM/Guest/B1/Tables/Vt/SortT.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/BGlueGen.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/BTwin.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/FAir.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/FForms[0-9]*.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/RcReads.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/SGrpT.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/SShT.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/Stores.lean
 /lean_vm/LeanVM/Guest/B1/Whir/Data[0-9]*.lean
 /lean_vm/LeanVM/Guest/B1/Whir/DataAll.lean
 /lean_vm/LeanVM/Guest/B1/Whir/HelperAll.lean
@@ -73,49 +50,59 @@ __pycache__/
 /lean_vm/LeanVM/Guest/B1/Whir/HelperFind[0-9]*.lean
 /lean_vm/LeanVM/Guest/B1/Whir/HelperTables.lean
 /lean_vm/LeanVM/Guest/B1/Whir/MatPlan.lean
+/lean_vm/LeanVM/Guest/B1/Stack/ColSelData[0-9]*.lean
+/lean_vm/LeanVM/Guest/B1/Stack/ColSelAll.lean
+/lean_vm/LeanVM/Guest/B1/VsC/ColSelCAll.lean
+/lean_vm/LeanVM/Guest/Fast/WhirTables.lean
+# Its `complete` step (`guest-cert --c`, `guest-memory`): B2's completeness data and checks
 /lean_vm/LeanVM/Guest/B2C/Chained/
 /lean_vm/LeanVM/Guest/B2C/Chained.lean
 /lean_vm/LeanVM/Guest/B2C/Cplw/
 /lean_vm/LeanVM/Guest/B2C/Cplw.lean
 /lean_vm/LeanVM/Guest/B2C/Shared/
 /lean_vm/LeanVM/Guest/B2C/Shared.lean
-/lean_vm/LeanVM/Guest/Count/Deployed*.lean
-/lean_vm/LeanVM/Guest/Count/Fast.lean
-/lean_vm/LeanVM/Guest/Count/MvCount*.lean
-/lean_vm/LeanVM/Guest/Count/RatioV.lean
-/lean_vm/LeanVM/Guest/Count/RatioVChk*.lean
-/lean_vm/LeanVM/Guest/Count/RatioVData.lean
-/lean_vm/LeanVM/Guest/Count/Static.lean
-/lean_vm/LeanVM/Guest/Count/VsCount*.lean
-/lean_vm/LeanVM/Guest/Count/VsOs[0-9]*.lean
-/lean_vm/LeanVM/Guest/Count/VsOsAll.lean
-/lean_vm/LeanVM/Guest/Count/VsOsTab.lean
-/lean_vm/LeanVM/Guest/Count/Words.lean
-/lean_vm/LeanVM/Guest/Fast/WhirTables.lean
+/lean_vm/LeanVM/Guest/B2C/Eq/
 /lean_vm/LeanVM/Guest/Memory/GuestCallees.lean
 /lean_vm/LeanVM/Guest/Memory/GuestCalleesOk.lean
-/lean_vm/LeanVM/Guest/Memory/GuestCnt/
-/lean_vm/LeanVM/Guest/Memory/GuestCnt.lean
 /lean_vm/LeanVM/Guest/Memory/GuestMem/
 /lean_vm/LeanVM/Guest/Memory/GuestMem.lean
-/lean_vm/LeanVM/Guest/Memory/GuestWords/
-/lean_vm/LeanVM/Guest/Memory/GuestWords.lean
+# The decoder's tables and their chunked checks (`regen-guest.sh`'s `decoder` step: `decoder-tables`,
+# `decoder-table-chunks`)
+/lean_vm/LeanVM/Cost/DecoderTablesFirewall.lean
+/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestLocs/
+/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestLocs.lean
+/lean_vm/LeanVM/Cost/Bounds/Decoder/GuestTablesFirewall.lean
+/lean_vm/LeanVM/Cost/Decoder/GuestTables.lean
+/lean_vm/LeanVM/Cost/Decoder/GuestLanes.lean
+/lean_vm/LeanVM/Cost/DecoderSize/Locs.lean
+/lean_vm/LeanVM/Cost/DecoderSize/Names[0-9]*.lean
+/lean_vm/LeanVM/Cost/DecoderSize/Rows[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkLq[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkLqOk[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkOq[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkOqOk[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkOs[0-9]*.lean
+/lean_vm/LeanVM/Guest/WalkOsOk[0-9]*.lean
+# `scripts/count/words.py`: the words certificates on the aligned allocator
+/lean_vm/LeanVM/Guest/Memory/GuestWordsA/
+/lean_vm/LeanVM/Guest/Memory/GuestWordsH/
+/lean_vm/LeanVM/Guest/Memory/GuestWordsZ/
+/lean_vm/LeanVM/Guest/Memory/GuestCntW/
+/lean_vm/LeanVM/Guest/Memory/GuestCntH/
+/lean_vm/LeanVM/Guest/Memory/GuestCntZ/
 /lean_vm/tests/LeanVMTests/Guest/Manifest.lean
 /lean_vm/tests/LeanVMTests/Spec/NodeVectors.lean
 
 # The verifier fixtures, the Rust prover's proofs: written by `lean_vm/scripts/export-verifier-fixtures-rust.sh`
 # before the differential tests that read them
 /lean_vm/tests/fixtures/verifier/
-# What the core route's, the hint bridge's and the count step's generators write (`regen-guest.sh`'s `core`, `vt`,
-# `bridge`, `core-mode`, `decoder` steps): never committed either. Not the core route's contracts
-# (`CoreMode/Sig/`, which `sigc.py` keeps as written): they are its input.
-/lean_vm/LeanVM/Guest/CoreNamesMod.lean
-/lean_vm/LeanVM/Guest/B1/Tables/VtC/FDataD.lean
-/lean_vm/LeanVM/Cost/Decoder/GuestLanes.lean
+# What the core route's and the hint bridge's generators write (`regen-guest.sh`'s `core-mode` step:
+# `scripts/core-mode/`, `scripts/bridge-cert/`): never committed. During the port to Hotwire's guest the contracts
+# `CoreMode/Sig/` are written too, from `scripts/core-mode/contracts/` and `sigc.py --minimal`.
 /lean_vm/LeanVM/Guest/Bridge/Align/
 /lean_vm/LeanVM/Guest/Bridge/AlignCtx/
 /lean_vm/LeanVM/Guest/Bridge/AllocChk/
-/lean_vm/LeanVM/Guest/Bridge/Chk/
+/lean_vm/LeanVM/Guest/Bridge/FrAlChk/
 /lean_vm/LeanVM/Guest/Bridge/JumpCells/
 /lean_vm/LeanVM/Guest/Bridge/PairChk/
 /lean_vm/LeanVM/Guest/Bridge/ProgAl/
@@ -132,3 +119,4 @@ __pycache__/
 /lean_vm/LeanVM/Guest/CoreMode/GlueG.lean
 /lean_vm/LeanVM/Guest/CoreMode/Pack/
 /lean_vm/LeanVM/Guest/CoreMode/Pows/
+/lean_vm/LeanVM/Guest/CoreMode/Sig/

@@ -39,7 +39,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
-LAST_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.Decoder.Top"]
+LAST_MODULES = ["LeanVM.Cost.Decoder.Top"]
 # The agreement-set extractor's branch of the chain (`Cost/AS/`), past the shared chain like the
 # decoder's: its indices overlap the decoder's, so it is dumped and applied on its own (`--as`).
 AS_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.AS.Program"]

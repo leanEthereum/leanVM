@@ -8,7 +8,8 @@
 module
 
 public import Statement.Prover.Mle
-public import LeanVM.Protocol.Whir.Complete.Tables
+public import LeanVM.Protocol.Tables
+public import LeanVM.Protocol.Whir.Complete.TablesExtra
 
 /-!
 # Array tables
@@ -18,19 +19,25 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 * `toList_foldPairsA`: a fold on the array is `foldPairs` on its list;
 * `mleA_eq`, `mleK_eq`: the evaluation on the array is `multilinearEval` on its list;
 * `sumRange_eq`: the loop is the sum;
-* `getD_toList`: arrays read as lists.
+* `getD_toList`, `toList_ofFn_range`: arrays read as lists.
 -/
 
 namespace LeanVM.Prover
 
+open LeanVM.Protocol.Tables
+
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Complete
-open LeanVM.Protocol.EndToEnd
 
 @[expose] public section
 
 /-- An array read at an index is its list read there. -/
 theorem getD_toList {α : Type} (a : Array α) (i : ℕ) (d : α) : a.getD i d = a.toList.getD i d := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
+
+/-- An array of a function of the indices, read in range. -/
+theorem getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (h : i < n) (d : α) :
+    (Array.ofFn f).getD i d = f ⟨i, h⟩ := by
+  simp [Array.getD_eq_getD_getElem?, h]
 
 /-- The equality table is the verifier's `eqKernel`. -/
 theorem toList_eqTable (p : List E) : (eqTable p).toList = eqKernel p := by

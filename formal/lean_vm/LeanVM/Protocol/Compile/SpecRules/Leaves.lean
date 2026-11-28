@@ -54,6 +54,7 @@ noncomputable def retExp (g : α → List Ev → ENNReal) (h₀ : List Ev) : Lis
   | l, query i ps k => match answer (h₀ ++ l) i ps with
     | some rows => retExp g h₀ (l ++ [Ev.query rows]) (k rows)
     | none => 0
+  | l, samplePacked n k => avgPk n fun cs ↦ retExp g h₀ (l ++ [Ev.samplePacked cs]) (k cs)
   | l, ret a => g a (h₀ ++ l)
   | _, _ => 0
 
@@ -70,6 +71,10 @@ theorem retExp_le_one {g : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤ 
   | ret a, l => by simpa [retExp] using hg a _
   | fail, l => by simp [retExp]
   | read k, l => by simp [retExp]
+  | readPacked n k, l => by simp [retExp]
+  | samplePacked n k, l => by
+    simp only [retExp]
+    exact avgPk_le_of_le fun cs _ ↦ retExp_le_one hg h₀ (k cs) _
   | grind b k, l => by simp [retExp]
   | commit ht w k, l => by simp [retExp]
   | sample k, l => by
@@ -95,6 +100,11 @@ theorem retExp_le_add {g g' : α → List Ev → ENNReal} {T : ENNReal}
   | ret a, l => by simpa [retExp] using hg a _
   | fail, l => by simp [retExp]
   | read k, l => by simp [retExp]
+  | readPacked n k, l => by simp [retExp]
+  | samplePacked n k, l => by
+    simp only [retExp]
+    rw [← avgPk_const n T, ← avgPk_add]
+    exact avgPk_mono fun cs _ ↦ retExp_le_add hg h₀ (k cs) _
   | grind b k, l => by simp [retExp]
   | commit ht w k, l => by simp [retExp]
   | sample k, l => by
@@ -119,14 +129,16 @@ variable {Pre : List Ev → Prop} {Post : α → List Ev → Prop} {εmax T : EN
 private theorem reach_ret {a : α} {h₀ l : List Ev} (hl : (ret a).Reach h₀ l) : l = [] := by
   induction hl with
   | nil => rfl
-  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
+  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     subst ih; simp [after] at ha
 
 private theorem reach_fail {h₀ l : List Ev} (hl : (fail : VerifierProgram α).Reach h₀ l) : l =
     [] := by
   induction hl with
   | nil => rfl
-  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
+  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     subst ih; simp [after] at ha
 
 open Classical in
@@ -138,6 +150,8 @@ noncomputable def ret (a : α) : Spec (VerifierProgram.ret a) (Post a) Post εma
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by intro _ _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
+  readPacked := by intro _ _ _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
+  samplePacked := by intro _ _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
   grind := by intro _ _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
   commit := by intro _ _ _ _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
   sample := by intro _ _ _ hl ha; obtain rfl := reach_ret hl; simp [after] at ha
@@ -160,6 +174,8 @@ def fail : Spec (VerifierProgram.fail : VerifierProgram α) Pre Post εmax 0 T w
   start_D _ _ := trivial
   start_V _ _ := le_rfl
   read := by intros; trivial
+  readPacked := by intros; trivial
+  samplePacked := by intro _ _ _ _ hl ha; obtain rfl := reach_fail hl; simp [after] at ha
   grind := by intros; trivial
   commit := by intros; trivial
   sample := by intro _ _ _ hl ha; obtain rfl := reach_fail hl; simp [after] at ha
@@ -180,7 +196,8 @@ private theorem reach_readE {h₀ l : List Ev} (hl : readScalar.Reach h₀ l) :
     rcases ih with rfl | ⟨y, rfl⟩
     · exact .inr ⟨x, rfl⟩
     · simp [readScalar, after] at ha
-  | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
+  | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     rcases ih with rfl | ⟨y, rfl⟩ <;> simp [readScalar, after] at ha
 
 open Classical in
@@ -209,6 +226,12 @@ noncomputable def readE {Post : E → List Ev → Prop}
     rcases reach_readE hl with rfl | ⟨y, rfl⟩
     · exact h h₀ x hD
     · simp [VerifierProgram.readScalar, after] at ha
+  readPacked := by
+    intro _ _ _ _ _ hl ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
+  samplePacked := by
+    intro _ _ _ _ hl ha
+    rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
   grind := by
     intro _ _ _ _ hl ha
     rcases reach_readE hl with rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.readScalar, after] at ha
@@ -259,7 +282,8 @@ private theorem reach_commitP {ht w : ℕ} {h₀ l : List Ev} (hl : (readCommitm
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨word, hw, rfl⟩
     · simp [readCommitment, after] at ha
-  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | query _ ha _ ih =>
+  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [readCommitment, after] at ha
 
 open Classical in
@@ -284,6 +308,14 @@ noncomputable def commitP {Post : Unit → List Ev → Prop} (ht w : ℕ)
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by
+    intro _ _ _ _ hl ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
+  readPacked := by
+    intro _ _ _ _ _ hl ha
+    rcases reach_commitP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
+  samplePacked := by
     intro _ _ _ _ hl ha
     rcases reach_commitP hl with
         rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.readCommitment, after] at ha
@@ -346,7 +378,8 @@ private theorem reach_grindNode {b : ℕ} {h₀ l : List Ev} (hl : (VerifierProg
       obtain ⟨rfl, -⟩ := ha
       exact .inr rfl
     · simp [after] at ha
-  | read _ _ ha ih | sample _ _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
+  | read _ _ ha ih | sample _ _ ha ih | commit _ _ ha _ ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     rcases ih with rfl | rfl <;> simp [after] at ha
 
 open Classical in
@@ -372,6 +405,10 @@ noncomputable def grindNode {Post : Unit → List Ev → Prop} (b : ℕ)
   start_D _ h := h
   start_V _ h := by simp [h]
   read := by
+    intro _ _ _ _ hl ha; rcases reach_grindNode hl with rfl | rfl <;> simp [after] at ha
+  readPacked := by
+    intro _ _ _ _ _ hl ha; rcases reach_grindNode hl with rfl | rfl <;> simp [after] at ha
+  samplePacked := by
     intro _ _ _ _ hl ha; rcases reach_grindNode hl with rfl | rfl <;> simp [after] at ha
   grind := by
     intro h₀ l b' k hl ha hD
@@ -452,7 +489,8 @@ private theorem reach_sampleE {h₀ l : List Ev} (hl : sampleChallenge.Reach h�
     rcases ih with rfl | ⟨y, rfl⟩
     · exact .inr ⟨c, rfl⟩
     · simp [sampleChallenge, after] at ha
-  | read _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih =>
+  | read _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih | query _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     rcases ih with rfl | ⟨y, rfl⟩ <;> simp [sampleChallenge, after] at ha
 
 /-- The doom of `Spec.sampleE`. -/
@@ -506,6 +544,14 @@ noncomputable def sampleE {Post : E → List Ev → Prop} (e : ENNReal)
           rw [avg_add_const, Finset.sum_boole]
       _ ≤ e + T := by gcongr; exact h h₀ hPre
   read := by
+    intro _ _ _ _ hl ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
+  readPacked := by
+    intro _ _ _ _ _ hl ha
+    rcases reach_sampleE hl with
+        rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
+  samplePacked := by
     intro _ _ _ _ hl ha
     rcases reach_sampleE hl with
         rfl | ⟨y, rfl⟩ <;> simp [VerifierProgram.sampleChallenge, after] at ha
@@ -563,7 +609,8 @@ private theorem reach_queryP {i : ℕ} {ps : List ℕ} {h₀ l : List Ev}
       obtain ⟨rfl, rfl, -⟩ := ha
       exact .inr ⟨rows, by simpa using hans, rfl⟩
     · simp [queryOpenings, after] at ha
-  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih =>
+  | read _ _ ha ih | sample _ _ ha ih | grind _ ha ih | commit _ _ ha _ ih
+  | readPacked _ _ ha _ ih | samplePacked _ _ ha _ ih =>
     rcases ih with rfl | ⟨y, -, rfl⟩ <;> simp [queryOpenings, after] at ha
 
 /-- The doom of `Spec.queryP`. -/
@@ -586,6 +633,14 @@ noncomputable def queryP {Post : List (List K) → List Ev → Prop} (i : ℕ) (
   start_D _ h := h
   start_V _ h := by simp [queryD, h]
   read := by
+    intro _ _ _ _ hl ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
+  readPacked := by
+    intro _ _ _ _ _ hl ha
+    rcases reach_queryP hl with
+        rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
+  samplePacked := by
     intro _ _ _ _ hl ha
     rcases reach_queryP hl with
         rfl | ⟨y, -, rfl⟩ <;> simp [VerifierProgram.queryOpenings, after] at ha
@@ -694,6 +749,17 @@ noncomputable def ofNoMove {p : VerifierProgram α} {e : ENNReal}
     intro a h'
     by_cases hc : Post a h' <;> simp [hc]
   read := by intro _ _ _ _ hl ha; exact absurd trivial (hnm hl ha)
+  readPacked := by intro _ _ _ _ _ hl ha; exact absurd trivial (hnm hl ha)
+  samplePacked := by
+    intro h₀ l n k hl ha
+    have hc : ∀ cs, cs.length = n → noMoveV p Post T h₀ (l ++ [Ev.samplePacked cs]) =
+        retExp (fun a h ↦ if Post a h then min 1 T else 1) h₀ (l ++ [Ev.samplePacked cs])
+          (k cs) := by
+      intro cs hcs
+      simp [noMoveV, after_snoc _ ha, after, hcs]
+    rw [avgPk_congr hc]
+    simp only [noMoveV, ha, retExp]
+    exact le_rfl
   grind := by intro _ _ _ _ hl ha; exact absurd trivial (hnm hl ha)
   commit := by intro _ _ _ _ _ _ hl ha; exact absurd trivial (hnm hl ha)
   sample := by
@@ -724,8 +790,9 @@ noncomputable def ofNoMove {p : VerifierProgram α} {e : ENNReal}
     intro h₀ l hl hne hm
     cases hl with
     | nil => exact absurd rfl hne
-    | read _ hl' ha | grind hl' ha | commit _ hl' ha _ => exact absurd trivial (hnm hl' ha)
-    | sample | query => simp [EndsMove] at hm
+    | read _ hl' ha | grind hl' ha | commit _ hl' ha _ | readPacked _ hl' ha _ =>
+      exact absurd trivial (hnm hl' ha)
+    | sample | query | samplePacked => simp [EndsMove] at hm
 
 end Spec
 

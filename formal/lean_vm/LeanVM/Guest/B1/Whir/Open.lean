@@ -101,10 +101,10 @@ structure FinStaticS (rd : Reader) (C : CallRel) (c : OsCfg) : Prop where
     SlowRet (c.levels.getD i default).queries (c.levels.getD i default).prefixLen c.yrLog
       (c.levels.getD i default).vanish rd a r
 
-/-- **A candidate, soundly**: from its body, its levels' facts, callees and rows at the rate's
+/-- **A candidate, soundly, with its cursor**: from its body, its levels' facts, callees and rows at the rate's
 selector, and its finish's facts, a call establishes `OpenOutW` at the witness's words and
-openings. -/
-theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (coreProgram.Rel rd))
+openings, and returns its cursor argument times `g^(osWordsLen c)`. -/
+theorem open_generic_cur {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (coreProgram.Rel rd))
     {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hdc : Whir.ladder μ r = some cfg)
     (hmu : c.nFolds + c.yrLog = μ)
     (hshape : stackShape μ r = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
@@ -118,7 +118,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     (hp : fn.params.map σ = sel :: fs ++ [target, root0, root1, cur, tabs])
     (hh : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
     OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n (valf% «open_stacked» "cursor@1"))) (osWordsLen c))
-      (osLevelsW rd V σ c 0 c.levels (osHead c).2) := by
+      (osLevelsW rd V σ c 0 c.levels (osHead c).2) ∧ rets.getD 5 0 = cur * gen ^ osWordsLen c := by
   -- the parameters
   obtain ⟨f0, f1, f2, f3, f4, rfl⟩ : ∃ f0 f1 f2 f3 f4, fs = [f0, f1, f2, f3, f4] := by
     match fs, hfs with
@@ -152,7 +152,7 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
     · rw [p6] at hr0; rw [← hroot]; exact hr0
     · rw [p7] at hr1; rw [← hroot]; exact hr1
   rw [hlv] at hL hT hLOk
-  obtain ⟨xs, recs', gs, fold, T, R', hxl, hrd, hrun, hrl, hrecs, -, hgl, hfch, hfm, hfl, hTr, hTl,
+  obtain ⟨xs, recs', gs, fold, T, R', hxl, hrd, hcurT, hrun, hrl, hrecs, -, hgl, hfch, hfm, hfl, hTr, hTl,
     hmT, es, hes, hesl, hesr⟩ :=
     osLevels_sound hU hle hwt' lv0.folds 0 lv0 rest cfg _ _ [] _ root hLOk hin hL hT
   simp only [List.nil_append] at hrun hfch hfch
@@ -182,7 +182,10 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
   -- the words and the openings
   have hcur : (osHead c).2.cur σ = cur := by
     rw [osHead_st]; simp [OsSt.cur, p8]
-  rw [hcur] at hrd
+  rw [hcur] at hrd hcurT
+  have hcb : σ (.n (osTail c (osLevels c 0 (lv0 :: rest) (osHead c).2).2).2.1.cb) = cur * gen ^ osWordsLen c := by
+    simp only [OsSt.cur, osTail_co_zero _ _ hFS.ylog, pow_zero, mul_one] at hcurT
+    rw [hcurT, osWordsLen_eq, hlv, ← hxl]
   have hwords : osReadN rd (σ (.n (valf% «open_stacked» "cursor@1"))) (osWordsLen c) = xs := by
     rw [p8, osWordsLen_eq, hlv, ← hxl]
     exact osReadN_of_readsAt hrd
@@ -200,11 +203,36 @@ theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (
           T.prod * recsDeficit recs' gs⟩
       ((osTail c (osLevels c 0 (lv0 :: rest) (osHead c).2).2).2.1.F σ) R' := by
     rw [whirOpen_eq hdc, hlane]; exact hrun
-  refine ⟨_, _, R', hrd, hrun2, ?_, pt, pt1, ?_, hpt, hpt1⟩
+  refine ⟨⟨_, _, R', hrd, hrun2, ?_, pt, pt1,
+    σ (.n (osTail c (osLevels c 0 (lv0 :: rest) (osHead c).2).2).2.1.cb), ?_, hpt, hpt1⟩, ?_⟩
   · simp [hgl, hTl, ← hFS.nF, hlv, ← hmu]; have := hFS.lane; rw [hhead, ← hFS.nF, hlv] at this
     omega
   · rw [← hret, ← hrv]
     simp only [osBodyRet, hlv]
+  · rw [← hret]
+    simp only [osBodyRet, hlv]
+    rw [hrv]
+    exact hcb
+
+/-- **A candidate, soundly**: from its body, its levels' facts, callees and rows at the rate's
+selector, and its finish's facts, a call establishes `OpenOutW` at the witness's words and
+openings. -/
+theorem open_generic {V : FrameMap} (hU : UnfoldsV rd C V) (hle : CallRel.Le C (coreProgram.Rel rd))
+    {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hdc : Whir.ladder μ r = some cfg)
+    (hmu : c.nFolds + c.yrLog = μ)
+    (hshape : stackShape μ r = ((c.levels.headD default).depth, lvWidth 0 (c.levels.headD default)))
+    (hoff0 : (c.levels.headD default).foldsOff = 0)
+    (hlane : (cfg.head?.map (·.fold)).getD 0 = (c.levels.headD default).folds)
+    (hLOk : LevelsOk rd C σ c μ 0 c.levels cfg) (hFS : FinStaticS rd C c)
+    (hrate : ∀ i < c.levels.length, LvRate σ c i (c.levels.getD i default))
+    {fn : Fn} (hfp : fn.params = osParams 11) (hfb : fn.body = osBody c)
+    {root : Digest} {sel : E} {fs : List E} {target root0 root1 cur tabs : E} {rets : List E}
+    (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root) (hwt : WinTabs rd tabs)
+    (hp : fn.params.map σ = sel :: fs ++ [target, root0, root1, cur, tabs])
+    (hh : Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets)) :
+    OpenOutW rd μ r root fs target cur rets (osReadN rd (σ (.n (valf% «open_stacked» "cursor@1"))) (osWordsLen c))
+      (osLevelsW rd V σ c 0 c.levels (osHead c).2) :=
+  (open_generic_cur hU hle hdc hmu hshape hoff0 hlane hLOk hFS hrate hfp hfb hfs hroot hwt hp hh).1
 
 end
 end LeanVM.Guest.B1.Whir

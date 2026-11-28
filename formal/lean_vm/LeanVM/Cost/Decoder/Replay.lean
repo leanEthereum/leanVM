@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Cost.Decoder.Memory
 public import LeanVM.Guest.Located.ReplayFast
-public import LeanVM.Protocol.Extraction.Fast.RunVec
 import all Statement.LeanIsa
 
 /-!
@@ -13,7 +12,7 @@ The decoder finds each callee's frame by replaying the run from `(g^0, 1)` over 
 `decode_eq_numbered`). Compiled here on the memory as a vector (`mem`, the image `L = mem.get`):
 
 * `statesVec memT codeT prog mem fin`: `statesTable`, each step the extractor's compiled step
-  `Extraction.Fast.stepVec` (the halting loop's, `Cost/Extractor/Runner.lean`: not compiled
+  `Extraction.Fast.stepVec` (`stepVecC`, `Cost/Decoder/Base.lean`: not compiled
   again, the compiler finds it by its head), the final registers `fin` an argument, computed once;
   recursive on the fuel (measure: the fuel);
 * `replayStatesOf memT codeT prog mem`: the replay of the run from `(g^0, 1)` over `replayFuel`,

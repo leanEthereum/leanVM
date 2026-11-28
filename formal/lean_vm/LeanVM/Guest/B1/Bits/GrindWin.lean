@@ -36,10 +36,11 @@ theorem wordNat_window (w : E) {s n : ℕ} (h : s + n ≤ 64) :
 
 /-- **`grind_check` inlined is exact at its honest values**: on a valuation holding `gcVals` on the expansion's own
 values, every statement of it is an atom exact on every memory. -/
-theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+theorem gcInline_exact_of_shape {rd0 : Reader} {σ : Val} {b o : ℕ}
+    (hb : 1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64) {w tabs : V}
     (hv : ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd0 b (σ w) (σ tabs) k) :
     ∀ s ∈ gcInlineT b o w tabs, ∃ a, s = .atom a ∧ ∀ rd, a.Exact rd σ := by
-  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
+  obtain ⟨hT1, hT, hsum⟩ := hb
   have hR : ∀ k, 2 ≤ k → k < gcLen b → σ (gcRen o w tabs (.n k)) = gcVals rd0 b (σ w) (σ tabs) k :=
     fun k h2 hk ↦ by rw [gcRen_own o w tabs h2]; exact hv k h2 hk
   intro s hs
@@ -74,6 +75,12 @@ theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hs0
     rcases hs0 with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp only [Stmt.rename] at e0 <;> subst e0 <;>
       exact ⟨_, rfl, fun _ ↦ trivial⟩
+
+/-- **`grind_check` inlined is exact at its honest values**, at a deployed `b`. -/
+theorem gcInline_exact_of_vals {rd0 : Reader} {σ : Val} {b o : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+    (hv : ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd0 b (σ w) (σ tabs) k) :
+    ∀ s ∈ gcInlineT b o w tabs, ∃ a, s = .atom a ∧ ∀ rd, a.Exact rd σ :=
+  gcInline_exact_of_shape (gc_shape b hb) hv
 
 end
 end LeanVM.Guest.B1

@@ -52,6 +52,18 @@ theorem esc_le {Q : Bool → List Ev → Prop} (S : Spec P (fun _ ↦ False) Q �
     split_ifs with hD
     · exact zero_le
     · exact S.moveEnd (reach_nil_iff.2 hl) ha trivial hD
+  | .readPacked n k, l, hl, ha => by
+    simp only [esc]
+    split_ifs with hD
+    · exact zero_le
+    · exact S.moveEnd (reach_nil_iff.2 hl) ha trivial hD
+  | .samplePacked n k, l, hl, ha => by
+    simp only [esc]
+    calc avgPk n (fun cs ↦ esc (S.D []) (l ++ [Ev.samplePacked cs]) (k cs))
+        ≤ avgPk n (fun cs ↦ S.V [] (l ++ [Ev.samplePacked cs])) :=
+          avgPk_mono fun cs hcs ↦ esc_le S (k cs) (.samplePacked cs hl ha hcs)
+            (by rw [after_snoc _ ha]; simp [after, hcs])
+      _ ≤ S.V [] l := S.samplePacked (reach_nil_iff.2 hl) ha
   | .grind b k, l, hl, ha => by
     simp only [esc]
     split_ifs with hD
@@ -90,6 +102,7 @@ noncomputable def toCert (S : Spec P (fun _ ↦ False) (fun b _ ↦ b = false) �
   D := S.D []
   ε := certε S
   read x hl ha hD := S.read x (reach_nil_iff.2 hl) ha hD
+  readPacked xs hl ha hn hD := S.readPacked xs (reach_nil_iff.2 hl) ha hn hD
   grind hl ha hD := S.grind (reach_nil_iff.2 hl) ha hD
   commit word hl ha hw hD := S.commit word (reach_nil_iff.2 hl) ha hw hD
   group {h p} hl hb ha _ hD := by
@@ -152,6 +165,7 @@ noncomputable def toCertG (S : Spec P (fun _ ↦ False) (fun b h ↦ b = false �
   D := S.D []
   ε := certε S
   read x hl ha hD := S.read x (reach_nil_iff.2 hl) ha hD
+  readPacked xs hl ha hn hD := S.readPacked xs (reach_nil_iff.2 hl) ha hn hD
   grind hl ha hD := S.grind (reach_nil_iff.2 hl) ha hD
   commit word hl ha hw hD := S.commit word (reach_nil_iff.2 hl) ha hw hD
   group {h p} hl hb ha _ hD := by

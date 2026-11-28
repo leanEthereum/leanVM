@@ -37,12 +37,8 @@ pub(super) fn eval_const_int(s: &str) -> Result<u128, String> {
 pub(crate) fn const_int_expr(e: &Expr) -> Option<u128> {
     match e {
         Expr::Lit(k) => Some(*k),
-        // `const(e)` asks for the integer reading, which is the only reading a
-        // parse-time position has, so it is transparent rather than redundant. It
-        // used to be a parse error in a `StackBuf` size and a `log` bound while
-        // being accepted in a `HeapBuf` size, an `unroll` count and a `GEN **`
-        // exponent, which is one construct with two meanings depending on where it
-        // stood.
+        // `const(e)` asks for the integer reading, the only one a parse-time position has: transparent, in every
+        // such position alike.
         Expr::Call(f, args) if f == "const" && args.len() == 1 => const_int_expr(&args[0]),
         Expr::Add(a, b) => const_int_expr(a)?.checked_add(const_int_expr(b)?),
         Expr::Sub(a, b) => const_int_expr(a)?.checked_sub(const_int_expr(b)?),
@@ -81,8 +77,7 @@ pub(super) fn is_int_arith(e: &Expr) -> bool {
 
 /// Evaluate a compile-time constant expression (integer literals, `GEN`,
 /// `GEN ** k`, and `+`/`*` combinations of those) to its field element.
-/// Used for the `# public_input: <elt>, <elt>` annotation of `.py` test
-/// programs (see `tests/suite/py_source.rs`).
+/// Reads the `# public_input: <elt>, <elt>` annotation of `.py` test programs.
 pub fn parse_const(s: &str) -> Result<F128, String> {
     fn eval(e: &Expr) -> Result<F128, String> {
         match e {
@@ -110,11 +105,7 @@ pub fn f128_literal(v: F128) -> String {
 /// power of `g` has no usable exponent).
 pub(super) fn gpow_bound(e: &Expr) -> Result<u64, String> {
     match e {
-        // `g` is `x`, so the literal `2^k` IS `g^k`, and `1` is `g^0`. Rejecting
-        // these used to make `mul_range(1, 8)` an error although it runs exactly
-        // like `mul_range(1, GEN ** 3)`, and `mul_range(2, GEN ** 5)` an error
-        // although `2 == GEN`. It also contradicted `gaddr_of`, which reads the
-        // same literal as the same element.
+        // `g` is `x`, so the literal `2^k` IS `g^k`, and `1` is `g^0`, as `gaddr_of` reads them.
         Expr::Lit(n) if (n.is_power_of_two() && *n < (1 << 64)) || *n == 1 => Ok(n.trailing_zeros() as u64),
         Expr::Gen => Ok(1),
         Expr::GPow(k) => u64::try_from(*k).map_err(|_| format!("bound exponent {k} does not fit in u64")),

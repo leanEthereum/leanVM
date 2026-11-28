@@ -252,22 +252,13 @@ pub fn env_usize(key: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
-/// One measure of one benchmark in Bencher Metric Format: a value, and for a
-/// timing the fastest and slowest pass.
+/// One timing of one benchmark in Bencher Metric Format: its mean, and the fastest and slowest pass.
 pub struct Metric {
     value: f64,
-    bounds: Option<(f64, f64)>,
+    bounds: (f64, f64),
 }
 
 impl Metric {
-    #[must_use]
-    pub fn exact(value: usize) -> Self {
-        Self {
-            value: value as f64,
-            bounds: None,
-        }
-    }
-
     /// In nanoseconds, the fastest and slowest pass as its bounds.
     #[must_use]
     pub fn nanoseconds(timing: &Timing) -> Self {
@@ -275,10 +266,10 @@ impl Metric {
         let samples = timing.samples();
         Self {
             value: ns(timing.mean()),
-            bounds: Some((
+            bounds: (
                 ns(samples.iter().copied().fold(f64::INFINITY, f64::min)),
                 ns(samples.iter().copied().fold(0.0, f64::max)),
-            )),
+            ),
         }
     }
 }
@@ -292,12 +283,12 @@ pub fn bencher_json(report: &[(String, Vec<(&str, Metric)>)]) -> String {
         .map(|(name, metrics)| {
             let measures: Vec<String> = metrics
                 .iter()
-                .map(|(measure, m)| match m.bounds {
-                    None => format!("\"{measure}\": {{\"value\": {}}}", m.value),
-                    Some((lo, hi)) => format!(
+                .map(|(measure, m)| {
+                    let (lo, hi) = m.bounds;
+                    format!(
                         "\"{measure}\": {{\"value\": {}, \"lower_value\": {lo}, \"upper_value\": {hi}}}",
                         m.value
-                    ),
+                    )
                 })
                 .collect();
             format!("  \"{name}\": {{{}}}", measures.join(", "))

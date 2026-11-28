@@ -33,7 +33,7 @@ theorem keccak_layer_holds_of (rd : Reader) (hgr : GcSoundOn rd 3) : keccak_laye
   · exact layer_sound (first := 1) (by decide) (weightOk_one _) find_layer264 layer_body264 rfl rd
       hgr args rets h
 
-/-- **`keccak_layer`**: its two specializations compute their meanings
+/-- **`keccak_layer`** (TRIAGE #60): its two specializations compute their meanings
 on a memory image. -/
 theorem keccak_layer_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
     keccak_layer_Spec L.read :=

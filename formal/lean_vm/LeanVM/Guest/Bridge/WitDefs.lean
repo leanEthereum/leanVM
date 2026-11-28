@@ -34,11 +34,6 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-- A load's pointer. -/
-def loadPtr : Atom → Option V
-  | .load _ p _ => some p
-  | _ => none
-
 /-- A load's pointer, at offset `0`. -/
 def loadPtr0 : Atom → Option V
   | .load _ p 0 => some p

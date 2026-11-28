@@ -28,7 +28,7 @@ witness's (`decWitNC` at the frames stage's closures, at most `Wn`) a parameter:
 * **`decTopStates_cost`**, **`decTopTables_cost`**, **`decTop_cost`**: the entry table (at most `E`),
   `main`'s valuation, the reader (`1271` at `κ ≤ 30`), the replay (`replayStatesOf_cost`), the
   tables built once (the preconditions' at most `Kpre`, the entries' at most `Kpc`, the readers'
-  `38708`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
+  `41956`): at most `(runnerStepPrice κ ℓ + 46)·|states| + E + Kpre + Kpc +
   addressTablesPrice κ ℓ + topConstPrice X Wn`, the address tables
   `(74κ + 121)·2^κ + (74ℓ + 121)·2^ℓ + 42` (`decoderTables_cost`);
 * `frameWit_cost`: the witness at the frames stage's closures, `Wn` from the frame map's price `F`
@@ -69,12 +69,12 @@ theorem babyTable_cost (hP : Includes P Decoder.babyTableC.costDeps) (b : K) (s 
       74 * (s * Nat.clog 2 s) + 120 * s + 16 := by
   rw [Decoder.babyTableC.costEq P hP, List.length_mergeSort, length_powPairsBy]
   have h1 := powPairsBy_cost P (by includes) b s 0 1 (by omega)
-  have h2 := mergeSortList_cost P (by includes) _ (.closure powTable.c110.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (powTable.c110.lam0.costSpec P (by includes) a b)) 7
+  have h2 := mergeSortList_cost P (by includes) _ (.closure LeanVM.Cost.Decoder.powTableC.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (LeanVM.Cost.Decoder.powTableC.lam0.costSpec P (by includes) a b)) 7
     (fun e ↦ e.1 < 2 ^ 64)
     (fun a b ha hb ↦ by
       simp only [appCost_fn, List.nil_append, List.length_nil]
-      rw [powTable.c110.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
+      rw [LeanVM.Cost.Decoder.powTableC.lam0.costEq P (by includes), limbs_of_lt ha, limbs_of_lt hb]
       omega)
     (powPairsBy b s 0 1) (by rw [length_powPairsBy]; omega)
     (fun e he ↦ (mem_powPairsBy_lt b s 0 1 e he).1)
@@ -123,10 +123,10 @@ theorem frameClosure_runs (hP : Includes P Decoder.decTopFramesC.lam0.costDeps)
 /-- The frame map the frames stage passes: `frameAtAC`'s price and `9`. -/
 theorem frameClosure_cost (hP : Includes P Decoder.decTopFramesC.lam0.costDeps)
     (table : Array (CallKey × K)) (F : ℕ)
-    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
       machineCost P Decoder.frameAtAC.costIdx
       [encodeValue table, rdV, encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
-    (k : ℕ) (a r : List E) (v : V) (hk : k < 2 ^ 64) (hlen : a.length + r.length ≤ 16) :
+    (k : ℕ) (a r : List E) (v : V) (hk : k < 2 ^ 64) (hlen : a.length + r.length ≤ 17) :
     appCost P (.closure Decoder.decTopFramesC.lam0.costIdx [rdV, encodeValue table])
       [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F + 9 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
@@ -162,7 +162,7 @@ variable {rd : Reader} {rdV : MachineValue}
   (hrd : ∀ a : K, RunsApp P rdV [encodeValue a] (encodeValue (rd a)))
   {R : ℕ} (hR : ∀ a : K, appCost P rdV [encodeValue a] ≤ R)
   (table : Array (CallKey × K)) {F : ℕ}
-  (hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 16 →
+  (hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 17 →
     machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
       encodeValue rets] ≤ F)
 include hrd hR hFp
@@ -346,10 +346,10 @@ theorem frameWit_cost (D : DiscreteLogTables) (hP : Includes P Decoder.decWitNC.
     (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
     {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
     (table : Array (CallKey × K)) (F : ℕ)
-    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+    (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
       machineCost P Decoder.frameAtAC.costIdx
       [encodeValue table, rdV, encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
-    (hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 16 →
+    (hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 17 →
       machineCost P Decoder.frameFpAC.costIdx [encodeValue table, encodeValue j, encodeValue args,
         encodeValue rets] ≤ F) (F4 : ℕ)
     (hFp4 : ∀ (args rets : List E), args.length + rets.length ≤ 64 →
@@ -532,11 +532,11 @@ program's of `2^ℓ` instructions, each sorted. -/
 /-- The top's constant, the address tables apart: the witness (at most `Wn`), the decoding, the
 replay's and the other tables' constants. -/
 @[expose] def topConstPrice (X Wn : ℕ) : ℕ :=
-  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 38708 + 12
+  framesPrice gLogPrice 1271 (1271 + 1525) X Wn + 42 + 2456 + 90351983 + 17565 + 41956 + 12
 
 /-- **The decoder's top** (`decTopC`) on a program of `ℓ` and a memory of `2^κ` words, `κ ≤ 30`:
 the tables built once (the logarithm's, the preconditions' at most `Kpre`, the powers, the readers'
-`38708`, the entries' at most `Kpc`, the address tables), the replay, the entry table (at most
+`41956`, the entries' at most `Kpc`, the address tables), the replay, the entry table (at most
 `E`), the witness (at most `Wn`), the counts within `K N X`: at most `(runnerStepPrice κ ℓ +
 46)·|states| + E + Kpre + Kpc + addressTablesPrice κ ℓ + topConstPrice X Wn`. -/
 theorem decTop_cost (hP : Includes P Decoder.decTopC.costDeps) (prog : Semantics.LeanIsaProgram)

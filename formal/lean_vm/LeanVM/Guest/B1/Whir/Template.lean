@@ -828,7 +828,7 @@ def osOodWeights (c : OsCfg) (tch : ℕ) :
 
 /-- The body after the closing rounds, from their state `st` and `tail_challenges`
 at `tch`: the final lane's low part at the tail challenges, the point, the basis rows, the
-residual sums, the out-of-domain weights, the returns. -/
+residual sums, the out-of-domain weights, the returns (the cursor last). -/
 def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let n := c.levels.length
   let mid := c.levels.take c.yrLevel
@@ -849,8 +849,8 @@ def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
     osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
     rs.1 ++ od.1 ++
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
-      osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat,
-      .ret [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]]
+      osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat, osCp (k + 6) st.cb,
+      .ret [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5), .n (k + 6)]]
 
 /-- **The body of `open_stacked` at a configuration.** -/
 def osBody (c : OsCfg) : List Stmt :=

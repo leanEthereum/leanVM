@@ -1,21 +1,21 @@
 /-
   LeanVM.Guest.Exact.Every
 
-  A predicate of every node of a call tree (`Tree.Every`), exactness as one (`ExactAt`), and the
+  A predicate of every node of a call tree (`Tree.Every`), exactness as one (`Tree.exact_iff_every`), and the
   call-closed sets of functions on whose valid trees one holds for free (`Program.EveryIn`, `every_of_everyIn`).
 -/
 
 module
 
 public import LeanVM.Guest.Exact.Defs
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.Memory.Callees
 
 /-!
 # Every node
 
 `Tree.Every Q t`: every node `node f σ _ _` of `t` satisfies `Q f σ`, phantoms nothing. It carries what the
-executor needs of the honest tree's valuations, node by node: exactness (`ExactAt`) and the
-residual facts of the mode walk, as one conjunction (`Tree.Every.and`).
+executor needs of the honest tree's valuations, node by node: exactness (`ExactAt`, `Tree.exact_iff_every`) and the
+residual facts of the mode walk, as one conjunction (`every_and`).
 
 `Program.EveryIn P rd Q S`: every function of `S` calls only functions of `S`, and each of its paths holding on `rd`
 satisfies `Q`. Then every valid tree of a function of `S` satisfies `Every Q` (`every_of_everyIn`), with no
@@ -52,6 +52,10 @@ theorem Tree.every_node {f : String} {σ : Val} {bufs : List ℕ} {kids : List T
 
 theorem Tree.every_phantom {f : String} {σ : Val} : (Tree.phantom f σ).Every Q := by
   rw [Tree.Every]; trivial
+
+theorem Tree.everyKids_iff : ∀ {ks : List Tree}, Tree.EveryKids Q ks ↔ ∀ k ∈ ks, k.Every Q
+  | [] => by rw [Tree.EveryKids]; simp
+  | k :: ks => by rw [Tree.EveryKids, Tree.everyKids_iff]; simp
 
 mutual
 theorem Tree.Every.mono (hQ : ∀ f σ, Q f σ → Q' f σ) : ∀ {t : Tree}, t.Every Q → t.Every Q'
@@ -92,6 +96,28 @@ theorem Tree.every_true : ∀ (t : Tree), t.Every fun _ _ => True
 theorem Tree.everyKids_true : ∀ (ks : List Tree), Tree.EveryKids (fun _ _ => True) ks
   | [] => by rw [Tree.EveryKids]; trivial
   | k :: ks => by rw [Tree.EveryKids]; exact ⟨Tree.every_true k, Tree.everyKids_true ks⟩
+end
+
+/-- **A conjunction of node predicates** is carried as one. -/
+theorem every_and {t : Tree} : t.Every (fun f σ => Q f σ ∧ Q' f σ) ↔ t.Every Q ∧ t.Every Q' :=
+  ⟨fun h => ⟨h.mono fun _ _ h => h.1, h.mono fun _ _ h => h.2⟩, fun h => h.1.and h.2⟩
+
+theorem events_node_eq (P : Core.Program) (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) :
+    (Tree.node f σ bufs kids).events P = (Tree.node f σ [] []).events P := by
+  simp only [Tree.events, Tree.name, Tree.val]
+
+mutual
+/-- **An exact tree is one whose every node is exact.** -/
+theorem Tree.exact_iff_every (P : Core.Program) (rd : Reader) : ∀ (t : Tree), t.Exact P rd ↔ t.Every (ExactAt P rd)
+  | .node f σ bufs kids => by
+      rw [Tree.Exact, Tree.every_node, Tree.exactKids_iff_every P rd kids, ExactAt, events_node_eq]
+  | .phantom .. => by rw [Tree.Exact, Tree.Every]
+
+theorem Tree.exactKids_iff_every (P : Core.Program) (rd : Reader) : ∀ (ks : List Tree),
+    Tree.ExactKids P rd ks ↔ Tree.EveryKids (ExactAt P rd) ks
+  | [] => by rw [Tree.ExactKids, Tree.EveryKids]
+  | k :: ks => by
+      rw [Tree.ExactKids, Tree.EveryKids, Tree.exact_iff_every P rd k, Tree.exactKids_iff_every P rd ks]
 end
 
 /-! ## Free on a call-closed set -/

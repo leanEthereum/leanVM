@@ -8,18 +8,21 @@ public import Statement.LeanDa
 /-!
 # The theorems
 
-Every end statement of the repository, one field of `Theorems` each, defined in the file named
-beside it. `lean_vm/LeanVM.lean` proves `Theorems` for its compiled programs
-(`LeanVM.theorems_hold`) with Lean's three axioms. `statement.tex` states each in mathematics,
-with what it does not give.
+Every end statement of the repository, one field each, defined in the file named beside it.
+`lean_vm/LeanVM.lean` proves `Theorems` (`LeanVM.theorems_hold`) with Lean's three axioms.
+`statement.tex` states each in mathematics, with what it does not give.
+
+`Theorems` takes two programs of the cost machine (`CostMachine.lean`), of the same type, so
+every use names them: `leanVmKnowledgeExtractor`, the extractor leanVM's knowledge soundness is
+stated for (`LeanVM.extractorComputedBy`), and `guestWitnessDecoder`, the decoder that names the
+guest program's witness (`GuestKnowledgeSoundness`, `LeanVmGuest.lean`).
 -/
 
 @[expose] public section
 
 namespace Statement
 
-/-- **The end theorems**, for the extractor program and the guest decoder program, two cost-machine
-programs (`CostMachine.lean`) of the same type, so every use names them. -/
+/-- **The end theorems**, for the extractor program and the guest decoder program. -/
 structure Theorems
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- leanVM is knowledge sound for the extractor the program computes (`LeanVm.lean`). -/
@@ -34,8 +37,9 @@ structure Theorems
   /-- A statement's digest binds the seed and the statement, up to a Keccak-256 collision
   (`LeanVmGuest.lean`). -/
   statementDigestBinds : LeanVM.Node.StatementDigestBinds
-  /-- The executor runs the guest program to a valid execution on every node within the deployed
-  limits, or a child's proof exhibits a Keccak-256 collision (`LeanVmGuestCompleteness.lean`). -/
+  /-- On every node `NodeRelation` admits under the deployed seed, within the deployed limits, the
+  executor runs the guest program to a valid execution, or a child's proof exhibits a Keccak-256
+  collision (`LeanVmGuestCompleteness.lean`). -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
   /-- The batching of the children's claims, run outside the circuit, is sound
   (`LeanVmGuestCompleteness.lean`). -/

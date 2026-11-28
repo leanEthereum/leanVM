@@ -92,11 +92,6 @@ def pack(costs, RB, MB, skip=()):
     return mods
 
 
-def enc_name(n):
-    """`encS n`: the name's UTF-8 bytes as digits in base `2^9`, each shifted by one."""
-    return sum((b + 1) << (9 * i) for i, b in enumerate(n.encode('utf-8')))
-
-
 def write_callees(LD, fns):
     """`Memory/GuestCallees.lean`, each function's name and callees' indices, and
     `Memory/GuestCalleesOk.lean`, their checks."""
@@ -106,14 +101,11 @@ def write_callees(LD, fns):
     cl = [(i, sorted(by[g] for g in callees(fns[i]['body'], set()))) for i in range(N)]
     cl = [(i, l) for i, l in cl if l]
     body = header('LeanVM.Guest.Memory.GuestCallees',
-                  'The functions of the guest\'s core IR by index: their names (`nameT`) and their encodings\n'
-                  '  (`encT`, `encS`), and their callees\' indices (`calleeT`), for the certificate families\n'
-                  '  (`Memory/Family`).',
+                  'The functions of the guest\'s core IR by index: their names (`nameT`) and their\n'
+                  '  callees\' indices (`calleeT`), for the certificate families (`Memory/Family`).',
                   'public import LeanVM.Guest.Memory.Static\n')
     body += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\n@[expose] public section\n\n'
     body += tree_defs('nameT', 'String', names, lambda s: '"%s"' % s, 'The functions\' names, by index.') + '\n'
-    encs = [(i, enc_name(n)) for i, n in names]
-    body += tree_defs('encT', 'ℕ', encs, str, 'The functions\' names\' encodings (`encS`), by index.') + '\n'
     body += tree_defs('calleeT', 'List ℕ', cl, lambda l: '[' + ', '.join(map(str, l)) + ']',
                       'The functions\' callees\' indices, by index.') + '\n'
     body += ('/-- The indices of function `j`\'s callees. -/\n'
@@ -123,18 +115,13 @@ def write_callees(LD, fns):
     rs = [(a, min(R, N - a)) for a in range(0, N, R)]
     chk = '(fun j fn => decide (Data.nameT.find j = some fn.name))'
     ok = header('LeanVM.Guest.Memory.GuestCalleesOk',
-                'The names of `Memory/GuestCallees` and their encodings are the functions\', and its callees\' indices in range.',
+                'The names of `Memory/GuestCallees` are the functions\', and its callees\' indices in range.',
                 'public import LeanVM.Guest.Memory.Family\n')
     ok += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\npublic section\n'
     for a, n in rs:
         ok += '\ntheorem nameT_ok_%d : RangeOk %s %d %d := by\n  unfold RangeOk; decide +kernel\n' % (a, chk, a, n)
     ok += ('\n/-- **The names are the functions\'.** -/\ntheorem nameT_ok : RangeOk %s 0 coreProgram.length := by\n'
            '  rw [coreProgram_length]\n  have h := %s\n  exact h\n' % (chk, chain(rs, lambda a: 'nameT_ok_%d' % a)))
-    echk = '(fun j fn => decide (Data.encT.find j = some (encS fn.name)))'
-    for a, n in rs:
-        ok += '\ntheorem encT_ok_%d : RangeOk %s %d %d := by\n  unfold RangeOk; decide +kernel\n' % (a, echk, a, n)
-    ok += ('\n/-- **The encodings are the functions\' names\'.** -/\ntheorem encT_ok : RangeOk %s 0 coreProgram.length := by\n'
-           '  rw [coreProgram_length]\n  have h := %s\n  exact h\n' % (echk, chain(rs, lambda a: 'encT_ok_%d' % a)))
     ok += ('\n/-- **The callees\' indices are in range.** -/\n'
            'theorem calleeT_lt : calleeT.all (fun l => l.all fun k => Nat.blt k %d) = true := by\n'
            '  decide +kernel\n' % N)
@@ -144,14 +131,7 @@ def write_callees(LD, fns):
            '  have hname := RangeOk.all nameT_ok hk\n'
            '  simp only [decide_eq_true_eq] at hname\n'
            '  rw [hname, Option.some.injEq] at h\n'
-           '  rw [List.getElem?_eq_getElem hk, Option.map_some, h]\n')
-    ok += ('\n/-- **`encT` encodes the functions\' names.** -/\n'
-           'theorem encT_spec {k e : ℕ} (hk : k < coreProgram.length) (h : encT.find k = some e) :\n'
-           '    encS coreProgram[k].name = e := by\n'
-           '  have he := RangeOk.all encT_ok hk\n'
-           '  simp only [decide_eq_true_eq] at he\n'
-           '  rw [he, Option.some.injEq] at h\n'
-           '  exact h\n\nend\nend LeanVM.Guest.Data\n')
+           '  rw [List.getElem?_eq_getElem hk, Option.map_some, h]\n\nend\nend LeanVM.Guest.Data\n')
     write(os.path.join(LD, 'GuestCalleesOk.lean'), ok)
 
 

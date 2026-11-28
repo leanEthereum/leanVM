@@ -8,14 +8,13 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.ResA
+public import LeanVM.Guest.EndExecCoreLinkA
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoReplay
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs
 public import LeanVM.Guest.B1.Digest.ChildDigest
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
-import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L0»
 
 /-!
 # The gap walk's records down the honest tree
@@ -35,7 +34,7 @@ the header and the records and steps the counter, below the end where the call i
 `child_claim_list_digest` on a nonempty list (`n_g ≠ 1`, the path past the empty list's branch,
 `digest_zero_calls`), `child_claim_list_mono` gets `list_split`'s counts, not all `g^0`.
 
-`nzVal_ml0`: the last claims' region is nonzero at every honest instance (`NzVal`).
+The last claims' region is nonzero at every honest instance: `EndExecResNzD.nzValA_ml0`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -83,33 +82,24 @@ structure MonoOk : Prop where
 
 section
 
-variable {r : Ref}
+variable {al : String → Bool} {D : Ref → RefD} {r : Ref}
 
 /-- Every honest instance's subtree within `2^28` words. -/
-theorem inst_total (hr : r.Ok) :
-    ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, I.t.total B2C.fs ≤ 2 ^ 28 := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  have hle := le_two_pow_logMem (r.T.total B2C.fs)
-  have h28 : 2 ^ logMem (r.T.total B2C.fs) ≤ 2 ^ 28 :=
-    Nat.pow_le_pow_right (by norm_num) (logMemorySize_le_28 (e := r.exec) hr.size)
-  refine Res.insts_down (Res.insts_total Res.fs_pos _ _) r.T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
-  obtain ⟨J', rest', he', ht, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H) r.T
-    (0, r.T.block B2C.fs coreProgram.loop) r.hdr
+theorem inst_totalA (hR : RefH (layB al) (D r) r) (hr : r.Ok) :
+    ∀ I ∈ instsR al D r, I.t.total B2C.fs ≤ 2 ^ 28 := by
+  obtain ⟨rd, hHa, -, hcov⟩ := hR.coversR
+  have hv := Covers.valid hHa.toHonestA hcov
+  have hle := le_two_pow_logMem ((D r).T.wordsA B2C.fs coreProgram.loop al)
+  have h28 : 2 ^ logMem ((D r).T.wordsA B2C.fs coreProgram.loop al) ≤ 2 ^ 28 :=
+    Nat.pow_le_pow_right (by norm_num) (hR.log hr)
+  have hw := Res.total_le_wordsA (fs := B2C.fs) (lp := coreProgram.loop) (al := al) (D r).T
+  refine Res.insts_downA (Res.insts_total Res.fs_pos _ _) (D r).T _ r.hdr hv (fun J h ↦ h) (fun J rest he ↦ ?_)
+  obtain ⟨J', rest', he', ht, -⟩ := head_instsA (fs := B2C.fs) (lp := coreProgram.loop) (al := al) (H := B2C.H)
+    (D r).T (0, (D r).T.block B2C.fs coreProgram.loop) r.hdr
   rw [he'] at he
   obtain ⟨rfl, -⟩ := List.cons.inj he
   rw [ht]
   omega
-
-/-- An honest node is valid on the reference. -/
-theorem inst_valid (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
-    {f : String} {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
-    ∃ args rets, (Memory.Tree.node f σ bufs kids).Valid coreProgram r.img.read args rets := by
-  obtain ⟨rd, hH, hXh⟩ := hr.honest
-  have hv := Covers.valid hH.toHonest hXh.covers
-  rcases insts_good r.T _ r.hdr hv I hI with ⟨args, rets, hval⟩ | ⟨_, _, hph⟩
-  · rw [ht] at hval; exact ⟨args, rets, hval⟩
-  · rw [ht] at hph; cases hph
 
 /-- A frame loop's facts. -/
 theorem monoLoop_facts {f : String} (hf : f = name% «child_claim_list_mono_loop0» ∨
@@ -180,8 +170,8 @@ theorem monoSite_of {o : ℕ} {f : String} {args rets : List V} (h : Res.monoSit
       · exact h2.2
 
 /-- **The gap walk passes down a call.** -/
-theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+theorem monoQ_stepA (hO : MonoOk) (hR : RefH (layB al) (D r) r) (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (instsR al D r)
       (MonoQ (refMem r.img) r.img.read) := by
   intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ hhdr hname hval hph hQI
     f σ bufs kids hJt
@@ -199,7 +189,7 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
   have hfnI : fnI ∈ coreProgram := List.mem_of_find?_eq_some hfI
   have hnI : fnI.name = fI := fn_name_of_find hfI
   have hJtot : (Memory.Tree.node f σ bufs kids).total B2C.fs ≤ 2 ^ 28 := by
-    have := inst_total hr J hJS; rwa [hJt] at this
+    have := inst_totalA hR hr J hJS; rwa [hJt] at this
   have hcall : Res.monoCallers.all (fun p => p.1 != c.f || fnI.name == p.2 || (fnI.name == c.f && fnI.loop)) =
       true := Res.calls_sites (hO.callers fnI hfnI) hw c hc
   -- the callers of the walk's functions
@@ -235,12 +225,12 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
       Nat.blt_eq] at hO'
     obtain ⟨⟨⟨⟨⟨⟨⟨-, hloop⟩, hps⟩, hc0⟩, hc1⟩, hc3⟩, h5⟩, hsites⟩ := hO'
     have hs := Res.calls_sites hsites hw c hc
-    obtain ⟨args, rets, hvI⟩ := inst_valid hr hI hIt
+    obtain ⟨args, rets, hvI⟩ := inst_validA hR hI hIt
     obtain ⟨-, hbI⟩ := Res.holds_of_valid Res.fs_pos hvI B1.Digest.find_child_claim_list_mono
-    have hT := inst_total hr I hI
+    have hT := inst_totalA hR hr I hI
     rw [hIt] at hT
     obtain ⟨a, b, L, ha, hb, ha', hb', hL', hL, h32, h42, h49, hra, hrb, hreg⟩ :=
-      Res.mono_replay (ref_memOk hr) hT hbI
+      Res.mono_replay (ref_memOkA hR hr) hT hbI
     -- the header
     obtain ⟨s, hs'⟩ : ∃ s, siteOf fn_idx% «child_claim_list_mono» c = some s :=
       Option.isSome_iff_exists.mp ((monoSite_of hs).2.2.2 (by rw [hcf]; exact hm))
@@ -250,13 +240,13 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
     dsimp only at hH
     rw [ite_eq_right (by rw [hloop]; simp), hs'] at hH
     -- the cells
-    have hfb := inst_fb hr hI (by rw [hIt]) hj
-    have hF0 := inst_frame hr hI hIt hj hw
+    have hfb := inst_fbA hR hr hI (by rw [hIt]) hj
+    have hF0 := inst_frameA hR hI hIt hj hw
     have hval' : ∀ u ∈ (coreOf fn_idx% «child_claim_list_mono»).params, 2 ≤ cellJ fn_idx% «child_claim_list_mono» u →
         cellJ fn_idx% «child_claim_list_mono» u < fsN fn_idx% «child_claim_list_mono» →
         I.fp + cellJ fn_idx% «child_claim_list_mono» u < maxCells ∧
           refMem r.img (I.fp + cellJ fn_idx% «child_claim_list_mono» u) = σI u := fun u hu h2 hlt ↦
-      ref_read hr (by omega) (hF0.val u (List.mem_append_left _ (List.mem_append_left _ hu)) h2 hlt)
+      ref_readA hr (by omega) (hF0.val u (List.mem_append_left _ (List.mem_append_left _ hu)) h2 hlt)
     obtain ⟨-, hm0⟩ := hval' (.n 0) (by rw [hps]; simp) (by omega) (by omega)
     obtain ⟨-, hm1⟩ := hval' (.n 1) (by rw [hps]; simp) (by omega) (by omega)
     obtain ⟨hlt5, hm3⟩ := hval' (.n 3) (by rw [hps]; simp) (by omega) (by omega)
@@ -407,13 +397,13 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
         rw [List.contains_iff_mem.mpr this] at hDz
         cases hDz
       -- `list_split`'s counts
-      obtain ⟨args, rets, hvI⟩ := inst_valid hr hI hIt
+      obtain ⟨args, rets, hvI⟩ := inst_validA hR hI hIt
       obtain ⟨-, hbI⟩ := Res.holds_of_valid Res.fs_pos hvI B1.Digest.find_child_claim_list_digest
       rw [B1.Digest.child_claim_list_digest_shape] at hbI
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hbI
       obtain ⟨c5, a6, -, -, hnz⟩ := hbI
       obtain ⟨hsplit, -⟩ := hnz h6I
-      obtain ⟨a, ha, b, hb, c', hc', hn, habc⟩ := B1.Digest.list_split_sound _ (ref_memOk hr) _ _ hsplit.rel
+      obtain ⟨a, ha, b, hb, c', hc', hn, habc⟩ := B1.Digest.list_split_sound _ (ref_memOkA hR hr) _ _ hsplit.rel
       simp only [List.cons.injEq, and_true] at habc
       obtain ⟨h15, h16, h17⟩ := habc
       simp only [B1.Digest.claimGroup, B1.Digest.bigGroups] at hb hc'
@@ -430,20 +420,14 @@ theorem monoQ_step (hO : MonoOk) (hr : r.Ok) :
       exact absurd hl' (by decide +kernel)
 
 /-- **The gap walk at every honest instance.** -/
-theorem monoQ_all (hO : MonoOk) (hr : r.Ok) :
-    ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, MonoQ (refMem r.img) r.img.read J := by
-  refine insts_all hr (monoQ_step hO hr) fun J hm ↦ ?_
+theorem monoQ_allA (hO : MonoOk) (hR : RefH (layB al) (D r) r) (hr : r.Ok) :
+    ∀ J ∈ instsR al D r, MonoQ (refMem r.img) r.img.read J := by
+  refine insts_allA hR (monoQ_stepA hO hR hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt
   have hn := hm _ _ _ _ hJt
   subst hn
   refine ⟨fun h ↦ absurd h (by decide), fun h ↦ absurd h (by decide), fun h ↦ absurd h (by decide)⟩
 
-
-/-- **The last claims' region at every honest instance of the empty rest** is nonzero. -/
-theorem nzVal_ml0 (hO : MonoOk) : NzVal name% «child_claim_list_mono_last__L0» (.n (val% «child_claim_list_mono_last__L0» "region")) := by
-  intro r hr I hI σ bufs kids ht
-  obtain ⟨-, -, -, -, -, h, -⟩ := (monoQ_all hO hr I hI _ σ bufs kids ht).2.1 (by decide)
-  exact h
 
 end
 

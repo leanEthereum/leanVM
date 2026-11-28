@@ -122,7 +122,7 @@ theorem monoVal_slotL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {m 
 
 /-- **A bound's value is its heap index's exponent, if it has one**, the caller's cells linked. -/
 theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : Mode.Idx} {ci : CIdx}
-    (hi : idxL gl i = some ci) (hc : SlotEqL gl gp s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) {y : ℕ}
+    (hi : idxL gl gp i = some ci) (hc : SlotEqL gl gp s ws (idxB i)) {x : ℕ} (h : IdxVal s i x) {y : ℕ}
     (hy : rep ((idxC ci).valW (slotW ws)) = some y) : y = x := by
   -- the base's word, a power of `g`
   have hbase : ∀ b, IdxVal s (.ex b 0) x → (∃ w, BaseL gl gp ws b = some w ∧ ∀ u, BaseVal s b u → u = w) →
@@ -162,20 +162,35 @@ theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : 
       exact hy
     | hp q d =>
       simp only [idxL] at hi
-      split_ifs at hi with hn
-      obtain ⟨rfl, rfl⟩ := hn
-      obtain ⟨⟨b, k⟩, hl, rfl⟩ := Option.map_eq_some_iff.mp hi
-      obtain ⟨w, hw, hr⟩ := hbase _ h (hc _ List.mem_cons_self)
-      simp only [BaseL, ite_true, hl, Option.map_some, Option.some.injEq] at hw
-      subst hw
-      cases k with
-      | zero =>
-        simpa [idxC, valW_baseC] using hr
-      | succ k =>
-        simpa [idxC, CCell.valW, prodW, addressOfIndex] using hr
+      split_ifs at hi with hn hn'
+      · obtain ⟨rfl, rfl⟩ := hn
+        obtain ⟨⟨b, k⟩, hl, rfl⟩ := Option.map_eq_some_iff.mp hi
+        obtain ⟨w, hw, hr⟩ := hbase _ h (hc _ List.mem_cons_self)
+        simp only [BaseL, ite_true, hl, Option.map_some, Option.some.injEq] at hw
+        subst hw
+        cases k with
+        | zero =>
+          simpa [idxC, valW_baseC] using hr
+        | succ k =>
+          simpa [idxC, CCell.valW, prodW, addressOfIndex] using hr
+      · -- a parameter's word at its ghost slot, plus the offset `c`
+        obtain ⟨hq1, hc28⟩ := hn'
+        obtain ⟨b, hl, rfl⟩ := Option.map_eq_some_iff.mp hi
+        obtain ⟨v, e, hv, rfl, he, rfl⟩ := h
+        obtain ⟨w, hw, hu⟩ := hc _ List.mem_cons_self
+        simp only [BaseL, hq1, ↓reduceIte, hl, Option.map_some, Option.some.injEq] at hw
+        subst hw
+        have hy' := hy
+        rw [valW_idxO, ← hu _ hv] at hy'
+        obtain ⟨hy1, hy2⟩ := rep_spec hy'
+        rw [capE_eq] at hy1
+        have hyx : y = e + c := gpow_inj_lt (by omega) (by omega) (by
+          rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul'])
+        rw [← hyx]
+        exact hy
 
 theorem rngL_spec {gl : List (ℕ × ℕ × ℕ)} {r : Mode.Rng} {q : CRun} (h : rngL gl gp r = some q) :
-    ∃ lo hi c, idxL gl r.lo = some lo ∧ idxL gl r.hi = some hi ∧ monoF (baseOfL gl gp) r.q = some c ∧
+    ∃ lo hi c, idxL gl gp r.lo = some lo ∧ idxL gl gp r.hi = some hi ∧ monoF (baseOfL gl gp) r.q = some c ∧
       q = ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩ := by
   unfold rngL at h
   split at h

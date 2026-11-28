@@ -118,11 +118,11 @@ theorem cursor_past {X : AlignCtx} {S : String} {C : Ctx} {s s1 : St}
 
 /-- A stream's next entry, read off the honest pushes: where they have `(S, w)` at the cursor among those
 of `S`, it is the executor's stream's next. -/
-theorem streamNext_of {r : Ref} {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) (hSh : PushShape) {s1 : St}
+theorem streamNext_of {r : Ref} {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s1 : St}
     {S : String} {w : List E}
-    (h : ((Hints.honestPushes End.bytecode r.seed r.s r.w).filter (·.1 == S))[s1.cursor.getD S 0]? = some (S, w)) :
+    (h : ((Prover.honestPushes (bytecodeWords guestProgram) r.seed r.s r.w).filter (·.1 == S))[s1.cursor.getD S 0]? =
+      some (S, w)) :
     StreamNext C s1 S w := by
-  rw [hSh] at h
   have hmem := List.mem_of_getElem? h
   rw [List.mem_filter] at hmem
   refine ⟨_, streams_guest hC ⟨_, hmem.1, rfl⟩, ?_⟩
@@ -131,21 +131,22 @@ theorem streamNext_of {r : Ref} {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok 
 
 /-- **Each witness hint pops the next entry of its stream, the reference's words at its
 destination**, after the hints of its pc before it, a buffer's below `2^κ`. -/
-theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
-    (hW : WitCells A) (hSh : PushShape) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YCur A r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      MovesW (refMem r.img) s s1 → isWitnessHint h = true →
-        HeapB (2 ^ r.κ) s1 h ∧ (Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h) := by
-  intro r hr C hC s hon pre h post hL s1 ef hm hw
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
+theorem witness_core {L : Lay} {D : Ref → RefD} {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
+    (hAd : AdvAl A) (hW : WitCells L D A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YCur L D A r s)
+    {r : Ref} (hR : RefH L (D r) r) (hr : r.Ok) {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St}
+    (hon : OnRun (XOf Y) r s) {pre : List Hint} {h : Hint} {post : List Hint}
+    (hL : (C.hints[s.pc]?).getD [] = pre ++ h :: post) {s1 : St} (ef : pre.foldlM (runHint C) s = .ok s1)
+    (hm : MovesW (refMem r.img) s s1) (hw : isWitnessHint h = true) :
+    HeapB (2 ^ r.κ) s1 h ∧ (Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h) := by
+  have hκ : r.κ ≤ 28 := hr.log
   have hne : (C.hints[s.pc]?).getD [] ≠ [] := by rw [hL]; simp
   have hge : proLen ≤ s.steps := by
     by_contra hlt
-    rcases hon.1.1 with ⟨-, hpc, -⟩ | ⟨hge, -⟩
-    · exact hne (hints_pro hC rfl (by omega))
-    · omega
-  obtain ⟨done, st, htr, hcur⟩ := (hY r s hon.1.2.2).2 hge hon.2.2.1
+    have hpc19 := pc_lt_of_hints hC hne
+    rw [guest_logSize] at hpc19
+    have hpc := ((posAt hR hon.1.1 (by omega) hon.2.1.fp).1 (by omega)).1
+    exact hne (hints_pro hC rfl (by omega))
+  obtain ⟨done, st, htr, hcur⟩ := (hY r s hon.1.2).2 hge hon.2.2.1
   obtain ⟨e, st', rfl, hE, hfp, hat⟩ := htr.top
   obtain ⟨off, hpc, p, hal', as0, hpops, hpos0⟩ := hat
   obtain ⟨ins, z, tabs, rr, as, hins, -, hpos, hpair, -⟩ := alignAt_step (hP.ok _ _ hE.find) hal'
@@ -159,8 +160,8 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   have hb2 : ∀ x ∈ ([] : List Atom), flowAtom x = false := fun _ h ↦ nomatch h
   have hposE : e.pos = (as0 ++ as1 ++ []).map Stmt.atom ++ (.atom a :: (as2.map Stmt.atom ++ z.pos)) := by
     rw [hpos0, hpos]; simp
-  obtain ⟨e1, hm1, hI1, hfn1, hp1', -⟩ := moves_atoms (P := coreProgram) (rd := r.rd0)
-    (Is := honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (as0 ++ as1 ++ []) (done := done) (st := st') hposE
+  obtain ⟨e1, hm1, hI1, hfn1, hp1', -⟩ := moves_atoms (P := coreProgram) (rd := (D r).rd0)
+    (Is := instsOf L (D r) r) (as0 ++ as1 ++ []) (done := done) (st := st') hposE
   have htr1 := htr.track.moves hm1
   have hE1 := htr1.ents e1 List.mem_cons_self
   have hσ1 : e1.σ = e.σ := by simp only [Ent.σ, hI1]
@@ -173,11 +174,11 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   cases h with
   | witnessStack S base len =>
     obtain ⟨vs, rfl⟩ := compiles_wStack hcomp
-    have hn := htr1.witness_next hp1' hr.pops
+    have hn := htr1.witness_next hp1' hR.pops
     rw [← cursor_past ef hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
-    have hnext := streamNext_of hC hSh hn
+    have hnext := streamNext_of hC hn
     obtain ⟨-, rfl, hloc⟩ := compiles_stack hcomp
-    have hcells := hW r hr s.pc s.fp done e st' htr _ _ hwalk S (.stack vs) hon1
+    have hcells := hW r hR hr s.pc s.fp done e st' htr _ _ hwalk S (.stack vs) hon1
     refine ⟨trivial, fun _ ↦ ⟨_, hnext, by simp [Dest.words], by simpa [posHintOk] using hhpos,
       fun k hk ↦ ?_⟩⟩
     simp only [Dest.words, List.length_map] at hk
@@ -189,31 +190,31 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
     exact h2
   | witnessHeap S ptr lo len =>
     obtain ⟨pv, rfl, rfl⟩ := compiles_wHeap hcomp
-    have hn := htr1.witness_next hp1' hr.pops
+    have hn := htr1.witness_next hp1' hR.pops
     rw [← cursor_past ef hcur hpops hb2 (by rw [has1]; exact hp1)] at hn
-    have hnext := streamNext_of hC hSh hn
-    obtain ⟨b, hb, hσp, -, hc2⟩ := hW r hr s.pc s.fp done e st' htr _ _ hwalk S (.heap pv lo len) hon1
+    have hnext := streamNext_of hC hn
+    obtain ⟨b, hb, hσp, -, hc2⟩ := hW r hR hr s.pc s.fp done e st' htr _ _ hwalk S (.heap pv lo len) hon1
     have hlo : lo + len < 2 ^ 30 := by simpa [advHintOk] using hhadv
-    have hwords : (Dest.heap pv lo len).words r.rd0 e1.σ =
-        (List.range len).map fun k ↦ (r.rd0 (Parameters.g ^ (b + lo + k))).getD 0 := by
+    have hwords : (Dest.heap pv lo len).words (D r).rd0 e1.σ =
+        (List.range len).map fun k ↦ ((D r).rd0 (Parameters.g ^ (b + lo + k))).getD 0 := by
       rw [hσ1]; exact words_heap hσp
     have hcell : ∀ k < len, b + lo + k < 2 ^ r.κ ∧
-        refMem r.img (b + lo + k) = (r.rd0 (Parameters.g ^ (b + lo + k))).getD 0 := by
+        refMem r.img (b + lo + k) = ((D r).rd0 (Parameters.g ^ (b + lo + k))).getD 0 := by
       intro k hk
       obtain ⟨f, bufs, kids, hIt⟩ := hE.node
-      have hA : Parameters.g ^ (b + lo + k) ∈ hintWords coreProgram B2C.fs B2C.H r.hdr r.T := by
+      have hA : Parameters.g ^ (b + lo + k) ∈ hintWords coreProgram L.fs L.al L.H r.hdr (D r).T := by
         refine List.mem_flatMap.mpr ⟨e.I, hE.mem, ?_⟩
         have hf : coreProgram.find? f = some e.fn := by have := hE.find; rwa [hIt] at this
         simp only [Inst.hintAddrs, hIt, events_node hf hwalk, heapHintAddrs]
         refine List.mem_flatMap.mpr ⟨_, hon1, ?_⟩
         simp only [Ev.hintAddrs, hintDest?, destHeap?, Option.bind_some, hσp, Parameters.limb_ofK]
         exact List.mem_map.mpr ⟨k, List.mem_range.mpr hk, by simp [addressOfIndex, ← pow_add, Nat.add_assoc]⟩
-      obtain ⟨v, hv1, hv2⟩ := hr.hintWords _ hA
+      obtain ⟨v, hv1, hv2⟩ := hR.hintWords _ hA
       have hb' : b < 2 ^ 28 := hb
       obtain ⟨hc, hM⟩ := refRd_imgK hκ r.img (by omega) hv2
       exact ⟨hc, by rw [hM, hv1]; rfl⟩
     have h2k : 2 ^ r.κ ≤ maxCells := Nat.pow_le_pow_right (by norm_num) hκ
-    refine ⟨fun b' hpt k hk ↦ ?_, fun hin ↦ ⟨b, (Dest.heap pv lo len).words r.rd0 e1.σ, ⟨?_, hb⟩, hnext,
+    refine ⟨fun b' hpt k hk ↦ ?_, fun hin ↦ ⟨b, (Dest.heap pv lo len).words (D r).rd0 e1.σ, ⟨?_, hb⟩, hnext,
       by rw [hwords]; simp, by simpa [posHintOk] using hhpos, ?_⟩⟩
     · obtain ⟨v, hv, rfl⟩ := get_of_ptrAt hpt
       have hMv := hm.2 _ _ hv
@@ -235,13 +236,14 @@ theorem witness_core {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
 
 /-- **Each witness hint pops the next entry of its stream, the reference's words at its
 destination**, after the hints of its pc before it. -/
-theorem hintWitness_cur {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
-    (hW : WitCells A) (hSh : PushShape) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YCur A r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isWitnessHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
-  fun r hr C hC s hon pre h post hL s1 ef hm hw hin ↦
-    (witness_core hP hAd hW hSh hY r hr C hC s hon pre h post hL s1 ef hm.w hw).2 hin
+theorem hintWitness_cur {L : Lay} {D : Ref → RefD} {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
+    (hAd : AdvAl A) (hW : WitCells L D A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YCur L D A r s)
+    {r : Ref} (hR : RefH L (D r) r) (hr : r.Ok) {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St}
+    (hon : OnRun (XOf Y) r s) {pre : List Hint} {h : Hint} {post : List Hint}
+    (hL : (C.hints[s.pc]?).getD [] = pre ++ h :: post) {s1 : St} (ef : pre.foldlM (runHint C) s = .ok s1)
+    (hm : Moves (refMem r.img) s s1) (hw : isWitnessHint h = true) (hin : Mode.HintIn s1 h) :
+    HintOk C (refMem r.img) s1 h :=
+  (witness_core hP hAd hW hY hR hr hC hon hL ef hm.w hw).2 hin
 
 end
 

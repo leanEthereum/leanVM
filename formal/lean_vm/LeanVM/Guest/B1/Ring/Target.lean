@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Ring.Interface
 public import LeanVM.Guest.B1.Ring.TargetMath
-public import LeanVM.Guest.B1.KeccakGkr.Lib
+public import LeanVM.Guest.B1.Ring.Lib
 public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
@@ -62,7 +62,7 @@ def psRow (r : ℕ) : List Stmt := psRowAt (psBase r) r
 theorem psStage_noRet (b k : ℕ) : Stmt.noRetList (psStage b k) = true := rfl
 
 theorem psRow_noRet (r : ℕ) : Stmt.noRetList (psRow r) = true := by
-  rw [psRow, psRowAt, noRetList_append, noRetList_flatten_map _ (psStage_noRet _) _]; rfl
+  rw [psRow, psRowAt, ringNoRetList_append, ringNoRetList_flatten_map _ (psStage_noRet _) _]; rfl
 
 /-- The challenges `g_0 .. g_7`, at `4 .. 11`. -/
 def gVals (σ : Val) : List E := (List.range 8).map fun b ↦ σ (.n (4 + b))
@@ -127,8 +127,8 @@ def hzRow (p : ℕ) : List Stmt := hzRowAt (hzBase p) p
 theorem hzStep_noRet (a p r : ℕ) : Stmt.noRetList (hzStep a p r) = true := rfl
 
 theorem hzRow_noRet (p : ℕ) : Stmt.noRetList (hzRow p) = true := by
-  rw [hzRow, hzRowAt, noRetList_append, noRetList_append,
-    noRetList_flatten_map _ (hzStep_noRet _ _) _]; rfl
+  rw [hzRow, hzRowAt, ringNoRetList_append, ringNoRetList_append,
+    ringNoRetList_flatten_map _ (hzStep_noRet _ _) _]; rfl
 
 /-- The eight images `Ψ(s_r)` of a chunk. -/
 def psVals (σ : Val) : List E := (List.range 8).map fun r ↦ σ (.n (psBase r + 22))
@@ -295,8 +295,8 @@ def tbBlock (p : ℕ) : List Stmt :=
     .atom (.add (.n (tbBase p + 8 * p + 3)) (.n (tbPrev p)) (.n (tbBase p + 8 * p + 2)))]
 
 theorem tbBlock_noRet (p : ℕ) : Stmt.noRetList (tbBlock p) = true := by
-  rw [tbBlock, noRetList_append, noRetList_append, sqRunT,
-    noRetList_flatten_map _ (fun _ ↦ rfl) _]; rfl
+  rw [tbBlock, ringNoRetList_append, ringNoRetList_append, sqRunT,
+    ringNoRetList_flatten_map _ (fun _ ↦ rfl) _]; rfl
 
 theorem holds_tbBlock {p : ℕ} {kret : List E → Prop}
     (hb : Stmt.HoldsList C rd σ (tbBlock p) True kret) :
@@ -307,7 +307,7 @@ theorem holds_tbBlock {p : ℕ} {kret : List E → Prop}
   rw [tbBlock, holdsList_append, holdsList_append] at hb
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at hb
   obtain ⟨l0, hb⟩ := hb
-  rw [holdsList_noRet _ (by rw [sqRunT]; exact noRetList_flatten_map _ (fun _ ↦ rfl) _)] at hb
+  rw [holdsList_noRet _ (by rw [sqRunT]; exact ringNoRetList_flatten_map _ (fun _ ↦ rfl) _)] at hb
   obtain ⟨hs, l1, e2, e3, -⟩ := hb
   refine ⟨l0, l1, ?_⟩
   rw [e3, e2, holds_sqRunT hs (8 * p) le_rfl]
@@ -359,7 +359,7 @@ theorem ring_switch_target_holds : ring_switch_target_Spec := by
     (fun p ↦ tbBlock_noRet (p + 1)) _ _).mp hb
   -- the loop's rows
   have hrows : ∀ j, j < 8 → RowOk13 rd (σ (.n (val% «ring_switch_target» "map_challenges"))) (σ (.n (val% «ring_switch_target» "slices"))) (σ (.n (val% «ring_switch_target» "rs_chain"))) (gen ^ j) := by
-    have := loop_sound (P := coreProgram) (f := name% «ring_switch_target_loop0») (ps := [σ (.n (val% «ring_switch_target» "map_challenges")),
+    have := ringLoop_sound (P := coreProgram) (f := name% «ring_switch_target_loop0») (ps := [σ (.n (val% «ring_switch_target» "map_challenges")),
         σ (.n (val% «ring_switch_target» "slices")), σ (.n (val% «ring_switch_target» "rs_chain"))])
       (N := gen ^ 8) (m := 8) (B := RowOk13 rd (σ (.n (val% «ring_switch_target» "map_challenges"))) (σ (.n (val% «ring_switch_target» "slices"))) (σ (.n (val% «ring_switch_target» "rs_chain"))))
       (fun d x h => loop13_step d x _ _ _ h) rfl (by decide) 0

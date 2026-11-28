@@ -1,31 +1,43 @@
 /-
   Writes LeanVM/Guest/Fast/WhirTables.lean: `open_stacked`'s template's stream words and
   `level_queries` dispatches at every size and rate (`osQCalls`, `Fast/WhirTemplate.lean`), each
-  function a dispatch names by its index, read off `Data.nameT` (`Memory/GuestCallees.lean`).
-  `Fast/WhirCalls.lean` checks the tables against the template in the kernel.
+  function a dispatch names by its index (one past its index in `coreProgram`, read off the
+  generated `Data.N` and `Data.I`, `Guest/Data/NameStrings.lean`, `Names.lean`), and the core
+  functions' names in index order (`coreNameList`). `Fast/WhirCalls.lean` checks the tables against
+  the template in the kernel.
 
-  Run from lean_vm after `lake build LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.Memory.GuestCallees`:
-  `lake env lean --run scripts/whir-tables.lean [--check]`; `--check` writes nothing and fails when
-  the file differs (`scripts/regen-guest.sh` runs it).
+  Run from lean_vm after `lake build LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesLoops
+  LeanVM.Guest.Data.Names`: `lake env lean scripts/whir-tables.lean`; with `WHIR_TABLES_CHECK=1` it
+  writes nothing and fails when the file differs (`scripts/regen-guest.sh` runs it).
 -/
 import LeanVM.Guest.Fast.WhirTemplate
 import LeanVM.Guest.B1.Opening.QueriesLoops
-import LeanVM.Guest.Memory.GuestCallees
+import LeanVM.Guest.Data.Names
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
-  LeanVM.Guest.Fast
+open Lean Meta LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Whir LeanVM.Guest.Fast
 
 def out : System.FilePath := "LeanVM/Guest/Fast/WhirTables.lean"
 
-/-- The entries of a search tree. -/
-def entries {α : Type} : NTree α → List (ℕ × α)
-  | .leaf => []
-  | .node k v l r => entries l ++ (k, v) :: entries r
+/-- The core functions' names by index, read off `Data.N.«s»` and `Data.I.«s»`. -/
+def coreNames : MetaM (Array String) := do
+  let env ← getEnv
+  let mut acc : Array (Nat × String) := #[]
+  for (n, ci) in env.constants.toList do
+    if n.getPrefix == `LeanVM.Guest.Data.N then
+      let some v := ci.value? | continue
+      let v ← whnf v
+      let .lit (.strVal str) := v | continue
+      let some iv := env.find? (`LeanVM.Guest.Data.I ++ Name.mkSimple n.getString!) | continue
+      let some e := iv.value? | continue
+      let some i ← evalNat e |>.run | continue
+      acc := acc.push (i, str)
+  let sorted := acc.qsort (fun a b ↦ a.1 < b.1)
+  return sorted.map (·.2)
 
-def text : String := Id.run do
+def text (names : Array String) : String := Id.run do
   -- a function's index is one past its core index
   let idx : Std.HashMap String Nat :=
-    (entries Data.nameT).foldl (fun m (k, n) => m.insert n (k + 1)) {}
+    (names.toList.zipIdx).foldl (fun m (n, k) => m.insert n (k + 1)) {}
   let ix := fun (n : String) => idx.getD n 0
   let words := (List.range (ligNSizes * ligNRates)).map fun j => osWordsLen (osCfgAt j)
   let wl := (List.range ligNRates).map fun ri =>
@@ -42,6 +54,7 @@ def text : String := Id.run do
   let cfgs := (List.range (ligNSizes * ligNRates)).map fun j =>
     let c := osCfgAt j
     s!"  -- size {j % ligNSizes}, rate index {j / ligNSizes}\n  [{",\n    ".intercalate ((osQCalls c).map (call c))}]"
+  let nl := ",\n    ".intercalate (names.toList.map fun s => "\"" ++ s ++ "\"")
   return "/-
   LeanVM.Guest.Fast.WhirTables
 
@@ -58,7 +71,8 @@ What `verify_sub`'s child proof reader takes from `open_stacked`'s template (`B1
 at the configurations `osCfgR m ri` of the `LIG_*` tables), precomputed and checked equal to it by
 kernel evaluation (`Fast/WhirTablesCheck.lean`): each size and rate's stream words, and its
 levels' `level_queries` dispatches (`osQCalls`), each as an `OsCall` of numbers. Entry
-`j = ri · ligNSizes + m` is the size `m` at the rate index `ri`.
+`j = ri · ligNSizes + m` is the size `m` at the rate index `ri`. `coreNameList`: the core
+functions' names in index order (`Fast/WhirCalls.lean` checks it against `coreProgram`).
 -/
 
 namespace LeanVM.Guest.Fast
@@ -92,18 +106,21 @@ def osWordsTab : List Nat := [
 def osCallsTab : List (List OsCall) := [
 " ++ ",\n".intercalate cfgs ++ "]
 
+/-- The core functions' names, in index order. -/
+def coreNameList : List String := [
+    " ++ nl ++ "]
+
 end
 end LeanVM.Guest.Fast
 "
 
-def main (args : List String) : IO UInt32 := do
-  let s := text
-  if args.contains "--check" then
+#eval show MetaM Unit from do
+  let names ← coreNames
+  if names.size == 0 then throwError "no core function names found"
+  let s := text names
+  if (← IO.getEnv "WHIR_TABLES_CHECK").isSome then
     let same ← if ← out.pathExists then pure ((← IO.FS.readFile out) == s) else pure false
-    if !same then
-      IO.eprintln s!"stale: {out}"
-      return 1
-    return 0
-  IO.FS.writeFile out s
-  IO.println s!"wrote {out}"
-  return 0
+    unless same do throwError s!"stale: {out}"
+  else
+    IO.FS.writeFile out s
+    IO.println s!"wrote {out} ({names.size} functions)"

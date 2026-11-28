@@ -1,10 +1,9 @@
-//! Four lanes of products in YMM registers, for a machine with VPCLMULQDQ but no AVX-512: the
-//! 256-bit counterpart of the AVX-512 `x8`'s `F64x8`, `F128x8` and `Mixed8` for the leaf builder,
-//! and the halves of the eight-lane `f128x8` types.
+//! Four lanes of products in YMM registers, for a machine with VPCLMULQDQ but no AVX-512: the halves of the
+//! eight-lane `f128x8` types.
 
 use core::arch::x86_64::*;
 use core::mem::MaybeUninit;
-use core::ops::{Add, BitXor, BitXorAssign, Mul};
+use core::ops::{Add, BitXorAssign, Mul};
 
 use super::gf2_64::F64;
 use super::gf2_64x2::x86_64::{fold, reduce_halves256 as reduce_halves, times_x256};
@@ -26,10 +25,6 @@ pub struct Mixed4 {
     even: [__m256i; 2],
     odd: [__m256i; 2],
 }
-
-/// The sum over lanes of unreduced products, y-folded: per coefficient, two 128-bit partials.
-#[derive(Clone, Copy, Debug)]
-pub struct Sum4([__m256i; 2]);
 
 #[inline(always)]
 fn xor(a: __m256i, b: __m256i) -> __m256i {
@@ -159,15 +154,6 @@ impl F128x4 {
             odd: karatsuba(self.0, rhs.0, clmul::<0x11>),
         }
     }
-
-    /// The lane-wise products, summed over the lanes and left unreduced. Karatsuba's products are summed
-    /// before their one fold.
-    #[inline(always)]
-    pub fn mul_sum(self, rhs: Self) -> Sum4 {
-        Sum4(karatsuba(self.0, rhs.0, |x, y| {
-            xor(clmul::<0x00>(x, y), clmul::<0x11>(x, y))
-        }))
-    }
 }
 
 impl Mul for F128x4 {
@@ -175,33 +161,6 @@ impl Mul for F128x4 {
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
         self.mul_unreduced(rhs).reduce()
-    }
-}
-
-impl Sum4 {
-    // SAFETY: an all-zero bit pattern is a valid `__m256i`.
-    pub const ZERO: Self = Self(unsafe { std::mem::zeroed() });
-
-    /// The lane sum, reduced.
-    #[inline]
-    pub fn reduce(self) -> F128 {
-        reduce_lanes(self.0)
-    }
-}
-
-impl BitXorAssign for Sum4 {
-    #[inline(always)]
-    fn bitxor_assign(&mut self, rhs: Self) {
-        self.0 = std::array::from_fn(|k| xor(self.0[k], rhs.0[k]));
-    }
-}
-
-impl BitXor for Sum4 {
-    type Output = Self;
-    #[inline(always)]
-    fn bitxor(mut self, rhs: Self) -> Self {
-        self ^= rhs;
-        self
     }
 }
 
@@ -305,8 +264,6 @@ mod tests {
             acc ^= va.mul_unreduced(va);
             assert_eq!(acc.sum(), (0..4).map(|i| a[i] * a[i]).sum());
             assert_eq!((va * vb).to_array(), std::array::from_fn(|i| a[i] * b[i]));
-            assert_eq!(va.mul_sum(vb).reduce(), (0..4).map(|i| a[i] * b[i]).sum());
-            assert_eq!((va.mul_sum(vb) ^ vb.mul_sum(va)).reduce(), F128::ZERO);
             let k: [F64; 4] = std::array::from_fn(|_| F64(rng.next_u64()));
             assert_eq!(F128x4::from(F64x4::new(k)).to_array(), k.map(F128::from));
         }

@@ -26,11 +26,11 @@ public import LeanVM.Guest.B1.Eq.FoldFinal
 /-!
 # `open_stacked`, soundly (TRIAGE G #42)
 
-`open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW`: for every stack log `20 ≤ μ ≤ 30` and rate
-`1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - 20}` on the rate's selector establishes `OpenOutW`
+`open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW`: for every stack log `16 ≤ μ ≤ 30` and rate
+`1 ≤ r ≤ 4`, a call of `open_stacked__L{μ - 16}` on the rate's selector establishes `OpenOutW`
 (at the witness's words and openings): the words it reads and the openings run the Spec's
 `whirOpen μ r target` (the stacked WHIR opening up to its terminal check, `verifyWhir_split`), and
-it returns the terminal's claim, point, glued weight and residual. From the size's core IR
+it returns the terminal's claim, point, glued weight and residual, and the cursor. From the size's core IR
 (`osData_all`), its body at the rate's levels (`osBody_rate`), its checked facts at the rate
 (`candB_all`), its semantic facts (`vanish_allR`, `hsScale_mid`, `hsScale_final`), B1-a's
 callees, the helpers' tables and `open_generic`.
@@ -81,10 +81,20 @@ theorem semOk_of {m ri μ r : ℕ} (hm : m < ligNSizes) {cfg : List Whir.Level}
     rw [osCfgR_levels_getD hy] at hi ⊢
     exact hsScale_final hm hi
 
-/-- **`open_stacked` is sound with its witness named**, at every size and rate. -/
-theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
-  intro κ hκ hwb L C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets fn σ hfs
-    hroot hwt hfind hp hh
+/-- **`open_stacked` is sound with its witness named, and returns its cursor past its words**, at every size and
+rate: under `open_stacked_sound_w_Spec`'s hypotheses, `OpenOutW` at `open_stacked_osW`, and the sixth return is the
+cursor argument times `g^(osWordsLen (osCfgR (μ - minOpenLog) (r - 1)))`. -/
+theorem open_stacked_sound_cur {κ : ℕ} (hκ : κ ≤ 32) (hwb : winTabBits ≤ κ) (L : MemoryImage κ) (C : CallRel)
+    (V : FrameMap) (hU : UnfoldsV L.read C V) (hle : CallRel.Le C (coreProgram.Rel L.read))
+    (μ r : ℕ) (h1 : minOpenLog ≤ μ) (h2 : μ ≤ 30) (h3 : 1 ≤ r) (h4 : r ≤ 4)
+    (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E) (fn : Fn) (σ : Val)
+    (hfs : fs.length = 5) (hroot : (root0, root1) = digestHalves root) (hwt : WinTabs L.read tabs)
+    (hfind : coreProgram.find? (openName μ) = some fn)
+    (hp : fn.params.map σ = rateSel r :: fs ++ [target, root0, root1, cur, tabs])
+    (hh : Stmt.HoldsList C L.read σ fn.body False (fun rs ↦ rs = rets)) :
+    OpenOutW L.read μ r root fs target cur rets (open_stacked_osW L.read (μ - minOpenLog) r σ V).1
+        (open_stacked_osW L.read (μ - minOpenLog) r σ V).2 ∧
+      rets.getD 5 0 = cur * gen ^ osWordsLen (osCfgR (μ - minOpenLog) (r - 1)) := by
   set m := μ - minOpenLog with hmdef
   set ri := r - 1 with hridef
   have hm : m < ligNSizes := by simp only [m, minOpenLog, ligNSizes]; omega
@@ -119,8 +129,15 @@ theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
     ⟨ri, hri, h0, osCfgR_lvAt_length m ri i, osCfgR_lvAt_getD i hri⟩
   obtain ⟨hmu, hshape, hoff0, hlane, -, -, -, -, -, -, -, -, -, hlv⟩ := hC
   have hLOk := levelsOk_of (logN := μ) hcal hsem hle hrate 0 _ cfg List.drop_zero hlv
-  exact open_generic hU hle hdc hmu hshape hoff0 hlane hLOk hFS hrate hps hbody (by rfl) hroot hwt
+  exact open_generic_cur hU hle hdc hmu hshape hoff0 hlane hLOk hFS hrate hps hbody (by rfl) hroot hwt
     hp hh
+
+/-- **`open_stacked` is sound with its witness named**, at every size and rate. -/
+theorem open_stacked_sound_w : open_stacked_sound_w_Spec open_stacked_osW := by
+  intro κ hκ hwb L C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets fn σ hfs
+    hroot hwt hfind hp hh
+  exact (open_stacked_sound_cur hκ hwb L C V hU hle μ r h1 h2 h3 h4 root fs target root0 root1 cur tabs rets fn σ
+    hfs hroot hwt hfind hp hh).1
 
 end
 end LeanVM.Guest.B1.Whir

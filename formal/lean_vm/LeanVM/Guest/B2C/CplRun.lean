@@ -16,9 +16,8 @@ public import LeanVM.Guest.B2C.CplWalk
 `checkWin_cpl` reads off a soundness window's check what the completeness walk relies on: the
 window's cells are the certificate's, its segments are linked, its first segment's environment
 holds where its start's does, and it hands on to the next window's start an environment holding
-the next window's. `wh_part`: the walk's hypotheses hold in every part, so that the parts of the
-windows compose, part after part along the path, into the run `CplRun` states (`cpl_run`,
-`CplComp.lean`).
+the next window's. `cplRun_of_walk`: given the walk lemma (`WGood` for every block and position),
+the parts of the windows compose, part after part along the path, into the run `CplRun` states.
 -/
 
 namespace LeanVM.Guest.B2C

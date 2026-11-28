@@ -32,8 +32,8 @@ Level `i` of a shape's fold certificate `(κ, R, k, Aend, rounds)` is the code `
   their grinds;
 * `listMax₀ μ R`, level 0's list bound, with the out-of-domain and
   batching rows `ood_row`, `lambda_row`, and the candidates' count `card_candidates_le`;
-* **`deployedStackedSpec`**: `verifyStackedOpening μ R claims` from `StackedPre` at level 0's
-  threshold `thr0Of μ R`, with lead `eBatch J (listMax₀ μ R)`.
+* **`deployedStackedSpec`**: `verifyStackedOpening μ R claims λ` from `StackedPre` at level 0's
+  threshold `thr0Of μ R`, at the batching challenge `λ` ring switching draws.
 -/
 
 namespace LeanVM.Protocol.Whir.Params
@@ -390,7 +390,7 @@ theorem shapeOK_facts {μ R : ℕ} (hok : shapeOK μ R = true) :
     ∃ cfg lv rest, Whir.ladder μ R = some cfg ∧ levelsOf μ R = lv :: rest ∧
       chainChecks μ (lv :: rest) cfg = true ∧ lv.2.1 = R ∧ lv.2.2.1 = 6 ∧
       degOf lv < lv.2.2.2.1 - lv.2.2.1 ∧ jlStart lv ≤ 166 ∧
-      (maxStackedClaims + 1) * jlStart lv ≤ 2 ^ countBits Whir.batchGrindingBits ∧
+      (maxStackedClaims + 2) * jlStart lv ≤ 2 ^ countBits Whir.batchGrindingBits ∧
       (jlStart lv).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits := by
   unfold shapeOK at hok
   rcases hc : Whir.ladder μ R with _ | cfg <;> rcases hl : levelsOf μ R with _ | ⟨lv, rest⟩ <;>
@@ -466,10 +466,10 @@ theorem ood_row {μ R : ℕ} (h : Whir.Admissible μ R) :
   rw [listMax₀, hl]
   exact ho
 
-/-- The stacked opening's batching row with the ring's map:
-`(maxStackedClaims + 1)·L₀ ≤ 2^(countBits batchGrindingBits)`. -/
+/-- The stacked opening's batching row with the ring switch's map and `ρ`:
+`(maxStackedClaims + 2)·L₀ ≤ 2^(countBits batchGrindingBits)`. -/
 theorem lambda_row {μ R : ℕ} (h : Whir.Admissible μ R) :
-    (maxStackedClaims + 1) * listMax₀ μ R ≤ 2 ^ countBits Whir.batchGrindingBits := by
+    (maxStackedClaims + 2) * listMax₀ μ R ≤ 2 ^ countBits Whir.batchGrindingBits := by
   obtain ⟨cfg, lv, rest, -, hl, -, -, -, -, -, hlam, -⟩ := shapeOK_facts (shapeOK_of_admissible h)
   rw [listMax₀, hl]
   exact hlam
@@ -496,15 +496,14 @@ theorem traceGood_cands {μ R : ℕ} (h : Whir.Admissible μ R) (Bad : Column μ
 
 /-! ## The stacked opening -/
 
-/-- **The deployed stacked opening's specification**: from `StackedPre` at level 0's threshold,
-every group within `εmsg = 2^-125` after its grind, the batching challenge with lead
-`(J − 1)·L₀/|E|`. -/
+/-- **The deployed stacked opening's specification** at the batching challenge `λ`: from
+`StackedPre` at level 0's threshold, every group within `εmsg = 2^-125` after its grind. -/
 noncomputable def deployedStackedSpec {μ R : ℕ} (h : Whir.Admissible μ R)
-    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (Bad : Column μ → Prop) :
-    Spec (verifyStackedOpeningG μ R claims)
-      (fun h ↦ StackedPre μ R (thr0Of μ R) claims Bad (commits h))
-      (fun tr h ↦ traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr (commits h)) εmsg
-      (eBatch claims.length (listMax₀ μ R)) 0 :=
+    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (lam : E)
+    (Bad : Column μ → Prop) :
+    Spec (verifyStackedOpeningG μ R claims lam)
+      (fun h ↦ StackedPre μ R (thr0Of μ R) claims lam Bad (commits h))
+      (fun tr h ↦ traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr (commits h)) εmsg 0 0 :=
   match hc : Whir.ladder μ R with
   | some (level :: rest) =>
     have F : Level0Facts μ R level rest := by
@@ -513,10 +512,8 @@ noncomputable def deployedStackedSpec {μ R : ℕ} (h : Whir.Admissible μ R)
       rw [hc, Option.some.injEq, List.cons.injEq] at heq
       obtain ⟨rfl, rfl⟩ := heq
       exact F
-    (stackedSpec claims hcl F.hc F.hℓ F.hμ F.hκ₀ F.hR₀ F.hthr
-      (deployedBounds (shapeOK_of_admissible h)) F.hA (listMax₀ μ R)
-      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).1)
-      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).2) Bad).mono
+    (stackedSpec claims hcl lam F.hc F.hℓ F.hμ F.hκ₀ F.hR₀ F.hthr
+      (deployedBounds (shapeOK_of_admissible h)) F.hA Bad).mono
       (fun _ hp ↦ by rw [F.hthr₀]; exact hp) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
   | some [] => False.elim (by
       obtain ⟨level', rest', F⟩ := level0Facts (shapeOK_of_admissible h)

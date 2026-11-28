@@ -10,8 +10,10 @@ accepted proof of the leanISA guest program establishes (`AggregateSound`), and 
 prover, run on a node's statement and witness, makes a proof the verifier accepts
 (`GuestProverComplete`). `lean_vm` proves
 `LeanVM.corollaries_of_theorems`, that `Statement.Theorems` implies `Statement.Corollaries` for the
-same extractor and decoder programs, from the fields of `Theorems` alone, and
-`LeanVM.corollaries_hold`. A reviewer who trusts `Theorems` need not read this file.
+same extractor and decoder programs, from its fields and the lemma that `NodeRelation` gives the
+deferred claim the split program's shape (`LeanVM.Node.NodeRelation.hasBytecodeShape`), and
+`LeanVM.corollaries_hold` at the compiled programs. A reviewer who trusts `Theorems` need not read
+this file.
 -/
 
 @[expose] public section
@@ -37,16 +39,16 @@ open OracleComp OracleSpec in
 /-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
 `LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
 accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `statement`
-whose deferred claim holds of the guest program's bytecode (`DeferredBytecodeClaim.HoldsWithShape`, as the
-deployed outer verifier checks by recomputing it), and yet the execution the knowledge extractor
+whose deferred claim holds of the guest program's bytecode
+(`DeferredBytecodeClaim.HoldsWithShape`, as the deployed outer verifier checks by recomputing it),
+and yet the execution the knowledge extractor
 `extractor` reads off the adversary's transcript and the proof does not explain `statement`: no
 execution is extracted, or the decoder program `guestWitnessDecoder`, run on it within its budget
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`. The
-digest, the seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks
-meet here). -/
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`. The digest, the
+seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks meet here). -/
 def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
@@ -99,7 +101,7 @@ end LeanVM.Guest.Completeness
 namespace Statement
 
 /-- **The corollaries**, each following from `Theorems`, for the same extractor and decoder
-programs (two parameters of the same type: every use names them). -/
+programs. -/
 structure Corollaries
     (leanVmKnowledgeExtractor guestWitnessDecoder : LeanVM.Cost.MachineProgram) : Prop where
   /-- An accepted proof of the leanISA guest program on the digest of `s` under the deployed seed,

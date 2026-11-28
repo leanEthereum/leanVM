@@ -54,7 +54,7 @@ def sdMsg : List (Tm SdName) :=
 def sdRef : Func SdName where
   params := [.arg 0, .arg 1, .arg 2, .arg 3, .arg 4, .arg 5, .arg 6, .arg 7, .arg 8]
   body := unroll 0 deferStmtCells (fun i => [.load (.v (.cell i)) (.v (.arg 8)) i]) ++
-    sponge (fun b c => .v (.state b c)) sdMsg 32 [.v (.out 0), .v (.out 1)]
+    sponge (fun b c => .v (.state b c)) sdMsg 34 [.v (.out 0), .v (.out 1)]
   rets := [.v (.out 0), .v (.out 1)]
 
 /-- The hashed cells, on the names. -/
@@ -63,7 +63,7 @@ private theorem sdMsg_eval (ρ : SdName → E) : sdMsg.map (Tm.eval ρ) =
       ρ (.arg 7)] ++ (List.range deferStmtCells).map (ρ <| .cell ·) := by
   simp [sdMsg, List.range_succ, Tm.eval]
 
-private theorem sdMsg_length : sdMsg.length = 32 := by simp [sdMsg, deferStmtCells]
+private theorem sdMsg_length : sdMsg.length = 34 := by simp [sdMsg, deferStmtCells]
 
 /-- The statement's bytes are its cells'. -/
 private theorem stmtBytes_eq (hdr defer : List E) :
@@ -76,7 +76,7 @@ private def sdVal (args cells : List E) : SdName → E
   | .arg i => args.getD i 0
   | .cell i => cells.getD i 0
   | .state b c => if h : c < 13 then
-      spongeSt (padCells (args.take 8 ++ cells) (16 * 32)) (blocks 32) b ⟨c, h⟩ else 0
+      spongeSt (padCells (args.take 8 ++ cells) (16 * 34)) (blocks 34) b ⟨c, h⟩ else 0
   | .out j => (digestCells (keccak256 (cellsBytes (args.take 8 ++ cells)))).getD j 0
 
 /-- **`statement_digest`'s reference function is its meaning.** -/

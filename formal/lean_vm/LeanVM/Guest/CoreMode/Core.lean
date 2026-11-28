@@ -499,16 +499,18 @@ def baseOfL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) : 
     | some (b, 0) => some (b, e)
     | _ => none) else (gp.lookup (q, d)).map fun b ↦ (b, e)
 
-/-- **A run bound as a heap index, the caller's cells linked**: `idxX`, or the exponent of the caller's cell
-`d` linked to slot `b` times `g^k`. -/
-def idxL (gl : List (ℕ × ℕ × ℕ)) : Mode.Idx → Option CIdx
+/-- **A run bound as a heap index, the caller's cells linked**: `idxX`, the exponent of the caller's cell
+`d` linked to slot `b` times `g^k`, or the exponent of a parameter's word (`gp`: the word at cell `d` past frame cell
+`q`'s, at its ghost slot `b`) plus a constant offset below `2 ^ 28` (`idxO`). -/
+def idxL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) : Mode.Idx → Option CIdx
   | .ex (.hp q d) c => if q = 1 ∧ c = 0 then (gl.lookup d).map fun p ↦
-      bif Nat.beq p.2 0 then .val p.1 else .mono ⟨[(p.1, 1)], p.2⟩ else none
+      bif Nat.beq p.2 0 then .val p.1 else .mono ⟨[(p.1, 1)], p.2⟩
+    else if q ≠ 1 ∧ c < 2 ^ 28 then (gp.lookup (q, d)).map fun b ↦ idxO b c else none
   | i => idxX i
 
 /-- **A run as a heap run over slots, the caller's cells linked.** -/
 def rngL (gl : List (ℕ × ℕ × ℕ)) (gp : List ((ℕ × ℕ) × ℕ)) (r : Mode.Rng) : Option CRun :=
-  match idxL gl r.lo, idxL gl r.hi, monoF (baseOfL gl gp) r.q with
+  match idxL gl gp r.lo, idxL gl gp r.hi, monoF (baseOfL gl gp) r.q with
   | some lo, some hi, some c => some ⟨⟨c.bases, c.off + r.d⟩, r.S, lo, hi⟩
   | _, _, _ => none
 
@@ -609,13 +611,23 @@ noncomputable def idxPowC (Cf : CFun) (args : List V) (i : CIdx) : Bool :=
   idxPow Cf.pows Cf.fn.body args i || expArg Cf.xc Cf.fn.params.length args i || resArg Cf.H.res args i
 
 /-- **A callee's run bound at a call on `args` its ghost slot `b`** (`|args| ≤ b`): the word the certificate names there
-(`gargsOf`) a parameter's whose entry cell's word has an exponent (`xc`). -/
+(`gargsOf`) a parameter's whose entry cell's word has an exponent (`xc`); or, the bound that slot's word times `g^o`,
+the word `[v]·g^d`, `v` a value a residual bounds (`e(v) < n`, `n + d + o < 2^62`). -/
 noncomputable def ghostArg (Cf : CFun) (f : String) (args : List V) : CIdx → Bool
   | .val b => decide (args.length ≤ b) && match (gargsOf Cf.H.gargs f args)[b - args.length]? with
     | some c => match c.bases with
       | [(k, 1)] => Nat.beq c.off 0 && decide (k < Cf.fn.params.length) && Cf.xc.contains (2 + k)
       | _ => false
     | none => false
+  | .mono m => match m.bases with
+    | [(b, 1)] => decide (args.length ≤ b) && match (gargsOf Cf.H.gargs f args)[b - args.length]? with
+      | some c => match c.bases with
+        | [(v, 1)] => Cf.H.res.any fun
+            | .lt (.val v') (.num n) => Nat.beq v' v && decide (n + c.off + m.off < capE)
+            | _ => false
+        | _ => false
+      | none => false
+    | _ => false
   | _ => false
 
 /-- A callee's run bound at a call of `f` on `args` has an exponent: `idxPowC`, or its ghost slot's (`ghostArg`). -/
@@ -769,9 +781,15 @@ def nubP : List (ℕ × ℕ) → List (ℕ × ℕ) → List (ℕ × ℕ)
   | acc, [] => acc.reverse
   | acc, x :: l => nubP (bif acc.contains x then acc else x :: acc) l
 
-/-- A caller's cell's exponent bound (`.hp 1 d`, no offset) as a base. -/
+/-- A bound a parameter's word's exponent plus a constant (`.hp q d`, `q ≠ 1`, an offset below `2 ^ 28`). -/
+def isHpW : Mode.Idx → Bool
+  | .ex (.hp q _) c => !Nat.beq q 1 && decide (c < 2 ^ 28)
+  | _ => false
+
+/-- A caller's cell's exponent bound (`.hp 1 d`, no offset) or an argument's word's (`.hp q d`, `q ≠ 1`, `isHpW`) as a
+base. -/
 def hpBnd : Mode.Idx → List (Mode.Base × ℕ)
-  | .ex (.hp q d) c => bif Nat.beq q 1 && Nat.beq c 0 then [(.hp q d, 1)] else []
+  | .ex (.hp q d) c => bif (Nat.beq q 1 && Nat.beq c 0) || isHpW (.ex (.hp q d) c) then [(.hp q d, 1)] else []
   | _ => []
 
 /-- **A callee's pointer bases** (`.hp q d`) its entry runs' products and its entry products but pointer facts
@@ -807,10 +825,12 @@ def isHp1 : Mode.Idx → Bool
   | .ex (.hp q _) c => Nat.beq q 1 && Nat.beq c 0
   | _ => false
 
-/-- A run bound: a constant or a frame cell's exponent (`idxX`), or a caller's cell's (`isHp1`). -/
-def bndX (i : Mode.Idx) : Bool := (idxX i).isSome || isHp1 i
+/-- A run bound: a constant or a frame cell's exponent (`idxX`), a caller's cell's (`isHp1`), or a parameter's word's
+(`isHpW`). -/
+def bndX (i : Mode.Idx) : Bool := (idxX i).isSome || isHp1 i || isHpW i
 
-/-- A run whose bounds are constants, frame cells' exponents (`idxX`) or caller's cells' (`isHp1`). -/
+/-- A run whose bounds are constants, frame cells' exponents (`idxX`), caller's cells' (`isHp1`) or parameters' words'
+(`isHpW`). -/
 def boundsX (r : Mode.Rng) : Bool := bndX r.lo && bndX r.hi
 
 /-- A run of constant bounds. -/
@@ -921,7 +941,7 @@ theorem allAnyPos_all {α β : Type} {p : α → β → Bool} {gs : List α} {hs
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
-points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `rngLIs`);
+points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
 each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
 loop's, or one of them extended by its next point, `rngXExt`; a run at a cell's word one of `G`'s over one pointer base,
 `rngQIn`; a pointer fact one such of constant bounds gives, `hpRunIn`); each returned word's monomial of `h` one `G` promises
@@ -1002,12 +1022,23 @@ noncomputable def ghostW (Cf : CFun) (as : List ℕ) (p : ℕ × ℕ) : Option C
   bif Nat.beq p.1 1 then some ⟨[(p.2 - 2, 1)], 0⟩ else
     (as[p.1 - 2]?).bind fun a ↦ (hpValS Cf.pows Cf.fn.body a p.2).map (wordNf Cf.pows Cf.fn.body wordFuel)
 
+/-- **A callee's ghost word as the loaded value itself**, of its pointer base `(q, d)`, `q ≠ 1`: the value `hpValS`
+names, `⟨[(n, 1)], 0⟩` (a value the certificate names by itself, a seeded equation residual's). -/
+noncomputable def ghostV (Cf : CFun) (as : List ℕ) (p : ℕ × ℕ) : Option CCell :=
+  bif Nat.beq p.1 1 then none else
+    (as[p.1 - 2]?).bind fun a ↦ (hpValS Cf.pows Cf.fn.body a p.2).map fun n ↦ ⟨[(n, 1)], 0⟩
+
+/-- A ghost word the certificate gives: `ghostW`'s monomial or the value itself (`ghostV`). -/
+noncomputable def ghostOk (Cf : CFun) (as : List ℕ) (p : ℕ × ℕ) (c : CCell) : Bool :=
+  decide (ghostW Cf as p = some c) || decide (ghostV Cf as p = some c)
+
 /-- **A callee's ghost words** (`hpBs`): each caller cell `d` an entry cell of a parameter, and each ghost list the
-certificate gives the callee `f` (`HCert.gargs`) the words `ghostW` names. -/
+certificate gives the callee `f` (`HCert.gargs`) the words `ghostW` or `ghostV` names. -/
 noncomputable def hpArgOk (Cf : CFun) (G : Mode.Sig) (f : String) : Bool :=
   (hpBs G).all (fun p ↦ !Nat.beq p.1 1 || (decide (2 ≤ p.2) && decide (p.2 - 2 < Cf.fn.params.length) &&
     decide (p.2 < 2 ^ 28) && Cf.frame.sig.entry.contains p.2)) &&
-  Cf.H.gargs.all fun x ↦ !(x.1 == f) || decide (x.2.2.map some = (hpBs G).map (ghostW Cf x.2.1))
+  Cf.H.gargs.all fun x ↦ !(x.1 == f) || (Nat.beq x.2.2.length (hpBs G).length &&
+    (List.zip x.2.2 (hpBs G)).all fun cp ↦ ghostOk Cf x.2.1 cp.2 cp.1)
 
 /-- **A call's callee** `f` at a site of `na` arguments and `nr` returned words, of mode signature `G`: a
 callee whose contract is its heap signature's (`hcs`), its counts the site's, its header cells entry cells; or
@@ -1131,6 +1162,13 @@ noncomputable def retVOk (Cf : CFun) (G : Mode.Sig) : Bool :=
     retVGo Cf.X G Cf.fn.params.length ⟨Cf.pows, R, P⟩ Cf.fn.body ⟨.nil, .nil, 0⟩
 
 /-! ## The shape -/
+
+/-- A straight-line body: atoms and returns. -/
+def straight (body : List Stmt) : Bool :=
+  body.all fun s ↦ match s with
+    | .atom _ => true
+    | .ret _ => true
+    | _ => false
 
 /-- A statement the core route takes: an atom, a branch, a `match`, a return, a call or a conditional
 call. -/
@@ -1265,45 +1303,9 @@ def trieNil {α : Type} : Exec.Trie α → Bool
   | .nil => true
   | _ => false
 
-/-- Every key of a trie holding a value passes `p`: by the recursor, over the trie's nodes (the key of
-the left child of key `m` is `2m + 1`, of the right `2m + 2`). -/
-noncomputable def keysAll {α : Type} (t : Exec.Trie α) : (ℕ → Bool) → Bool :=
-  Exec.Trie.rec (motive := fun _ ↦ (ℕ → Bool) → Bool) (fun _ ↦ true)
-    (fun v _ _ al ar p ↦ (v.isNone || p 0) && al (fun m ↦ p (2 * m + 1)) && ar (fun m ↦ p (2 * m + 2))) t
-
-theorem keysAll_get {α : Type} : ∀ {t : Exec.Trie α} {p : ℕ → Bool} {n : ℕ} {v : α}, keysAll t p = true →
-    t.get n = some v → p n = true
-  | .nil, _, _, _, _, h => by simp at h
-  | .node w l r, p, n, v, hk, h => by
-    have hk' : (w.isNone || p 0) = true ∧ keysAll l (fun m ↦ p (2 * m + 1)) = true ∧
-        keysAll r (fun m ↦ p (2 * m + 2)) = true := by
-      simpa [keysAll, Bool.and_eq_true, and_assoc] using hk
-    rw [Exec.Trie.get_node] at h
-    split at h
-    · rename_i h0
-      subst h0 h
-      simpa using hk'.1
-    · split at h
-      · rename_i _ h1
-        have := keysAll_get hk'.2.1 h
-        rwa [show 2 * (n / 2) + 1 = n by omega] at this
-      · rename_i h0 h1
-        have := keysAll_get hk'.2.2 h
-        rwa [show 2 * (n / 2 - 1) + 2 = n by omega] at this
-
-/-- No callee's signature at an offset of the function past its entry: no key of `sigs` in
-`(entry, entry + len)`. -/
-noncomputable def sigsOut {α : Type} (sigs : Exec.Trie α) (entry len : ℕ) : Bool :=
-  keysAll sigs fun t ↦ Nat.ble t entry || Nat.ble (entry + len) t
-
-theorem sigsOut_get {α : Type} {sigs : Exec.Trie α} {entry len o : ℕ} (h : sigsOut sigs entry len = true)
-    (ho : o < len) : (Nat.beq o 0 || (sigs.get (entry + o)).isNone) = true := by
-  rcases hg : sigs.get (entry + o) with _ | v
-  · simp
-  · have := keysAll_get h hg
-    simp only [Bool.or_eq_true, Nat.ble_eq] at this
-    obtain rfl : o = 0 := by omega
-    rfl
+/-- No callee's signature at an offset of the function past its entry. -/
+def sigsOut {α : Type} (sigs : Exec.Trie α) (entry len : ℕ) : Bool :=
+  (List.range len).all fun o ↦ Nat.beq o 0 || (sigs.get (entry + o)).isNone
 
 /-- `main`'s code before its halting pc (any other function: no condition). -/
 def mainOk (Cf : CFun) : Bool :=

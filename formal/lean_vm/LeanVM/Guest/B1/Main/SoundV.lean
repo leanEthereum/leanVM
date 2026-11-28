@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.SoundVX
+public import LeanVM.Guest.B1.Main.Aggregate
 public import LeanVM.Guest.B1.Sig.XmssSegSound
 public import LeanVM.Guest.B1.Sig.XmssSegData
 public import LeanVM.Guest.Data.NameStrings
@@ -26,9 +27,10 @@ callees' (`Da.dvWit`), a child proof by `piOf` off `verify_sub`'s (B1-d), the ba
 `main_sound_V bytecode piOf` (G6's `MainSoundV bytecode (fun σ rd V ↦ decWitV σ rd V piOf)`):
 under any call relation `C` that unfolds at `V` and lies below `coreProgram.Rel`, a run of
 `main`'s body gives the statement of the public input's digest, held by `decWitV σ rd V piOf`.
-`main_sound_V_of_sub`: it holds given `SubSoundW bytecode piOf`, `verify_sub`'s statement with its
-proof named by `piOf` (the form B1-d's `verify_sub_sound_w` takes): `SoundVX`'s
-`main_sound_VX` at the leanXMSS segment's proof (`Sig.verify_lean_xmss_sound_holds`).
+`main_sound_V_of_sub`: for a stacked program of `2^(19 + BYTECODE_SLOT_BITS)` words, it holds given
+`SubSoundW bytecode piOf`, `verify_sub`'s statement with its proof named by `piOf`: `SoundVX`'s
+`main_sound_VX` at the leanXMSS segment's proof (`Sig.verify_lean_xmss_sound_holds`) and
+`aggregate_claims`' (`aggregate_claims_holds`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -50,7 +52,7 @@ noncomputable def decWitV (σ : Val) (rd : Reader) (V : FrameMap)
 
 /-- **`main`, soundly, its witness decoded from the frame map** (G6's `MainSoundV`). -/
 def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof) : Prop :=
-  bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
+  bytecode.length = 2 ^ (bytecodeLog + bytecodeSlotBits) → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
     UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
       LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
       Stmt.HoldsList C rd σ (fn% «main»).body False (fun rs ↦ rs = []) →
@@ -61,7 +63,7 @@ def main_sound_V (bytecode : List K) (piOf : Reader → Val → FrameMap → Pro
 with its proof named. -/
 theorem main_sound_V_of_sub {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
     (hv : SubSoundW bytecode piOf) : main_sound_V bytecode piOf :=
-  main_sound_VX Sig.verify_lean_xmss_sound_holds hv
+  main_sound_VX Sig.verify_lean_xmss_sound_holds hv aggregate_claims_holds
 
 end
 end LeanVM.Guest.B1.Main

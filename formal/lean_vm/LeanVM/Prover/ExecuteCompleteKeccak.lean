@@ -5,7 +5,7 @@ public import LeanVM.Prover.ExecuteCompleteOp
 /-!
 # The executor's `KECCAK` is complete
 
-`keccak_complete`: with its thirteen input cells written, the executor's `KECCAK` reads the
+`keccak_complete`: with its thirteen input cells written and its blocks each in one window, the executor's `KECCAK` reads the
 reference's input, writes the reference's outputs, which the reference's relation fixes, and moves
 to the next instruction. The permutation's value is generalized away at once, never evaluated.
 -/
@@ -39,6 +39,16 @@ theorem Agree.putOuts {M : ℕ → E} (O : Fin 13 → E) :
 theorem cellCount_le (o : KeccakOutputCells) : o.cellCount ≤ 13 := by
   cases o <;> decide
 
+theorem cellCount_pos (o : KeccakOutputCells) : 0 < o.cellCount := by
+  cases o <;> decide
+
+theorem inWindow_eq {fp off n : ℕ} (hc : fp + off < maxCells) (hw : InWindow (fp + off) n) :
+    inWindow fp off n = .ok () := by
+  unfold inWindow InWindow at *
+  rw [cellAt_eq hc, ok_bind]
+  simp only [show ¬keccakWindow < (fp + off) % keccakWindow + n by omega, ↓reduceIte]
+  rfl
+
 theorem keccak_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E} {r' : Registers K}
     {om : Fin 4 → K} {otail ob8 ocap : K} {outCells : KeccakOutputCells} {L : List ℕ} {out : ℕ}
     {inOdd outOdd : Bool} (hs : Fine M s) (hrd : RefRd rd M)
@@ -60,7 +70,7 @@ theorem keccak_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E}
   generalize hO : cellsOfState (keccakF1600 (stateOfCells inp inOdd)) outOdd = O at hu
   obtain ⟨hsmI, hout⟩ := hsm
   have hsmI' : ∀ i ∈ L, i < 2 ^ 28 := fun i hi ↦ hsmI i (by simpa using hi)
-  have hmo' : ∀ i ∈ L, s.mem.written (s.fp + i) = true := fun i hi ↦ hmo i (by simpa using hi)
+  have hmo' : ∀ i ∈ L, s.mem.written (s.fp + i) = true := fun i hi ↦ hmo.1 i (by simpa using hi)
   have hlL : L.length = 13 := by rw [← hL.length_eq, List.length_finRange]
   have hin : ∀ (j : ℕ) (hj : j < 13), s.fp + L[j]'(by rw [hlL]; exact hj) < maxCells ∧
       M (s.fp + L[j]'(by rw [hlL]; exact hj)) = inp ⟨j, hj⟩ := by
@@ -83,6 +93,16 @@ theorem keccak_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E}
       Fin.ext (Nat.mod_eq_of_lt (by omega))
     refine ⟨h2, ?_⟩
     rw [hk13, h3, hu ⟨k, by omega⟩ hk]
+  have hwin : keccakWindows s.fp L.toArray out outCells.cellCount = .ok () := by
+    obtain ⟨w4, w9, wo⟩ := hmo.2
+    have hget : ∀ j (hj : j < 13), L.toArray.getD j 0 = L[j]'(by rw [hlL]; exact hj) := fun j hj ↦ by
+      simp [Array.getD, hlL, hj]
+    have hout0 := (hou 0 (cellCount_pos outCells)).1
+    rw [Nat.add_zero] at hout0
+    unfold keccakWindows
+    rw [inWindow_eq (by rw [hget 4 (by decide)]; exact hcu _ (List.getElem_mem _)) w4, ok_bind,
+      inWindow_eq (by rw [hget 9 (by decide)]; exact hcu _ (List.getElem_mem _)) w9, ok_bind,
+      inWindow_eq hout0 wo]
   have hcells : L.toArray.toList.mapM (cellAt s.fp) = .ok (L.map (s.fp + ·)) := by
     rw [List.toList_toArray]
     exact exMapM_eq L fun i hi ↦ cellAt_eq (hcu i hi)
@@ -119,7 +139,7 @@ theorem keccak_complete {C : Ctx} {M : ℕ → E} {s : St} {rd : K → Option E}
       (fun k ↦ s.fp + (out + k))).foldl Mem.ensure m1, pc := s.pc + 1 }, ?_,
     next_done ⟨h2, hs.dl, hs.small, hs.fp⟩ (Mem.le_trans le1 le2) rfl rfl rfl hr.symm hnext hpc hsz⟩
   simp only [runOp]
-  rw [hcells, ok_bind, hinput, ok_bind, houts, ok_bind, hcell, hO,
+  rw [hwin, ok_bind, hcells, ok_bind, hinput, ok_bind, houts, ok_bind, hcell, hO,
     St.withMem_eq (by rw [e1, ok_bind]; rfl), ok_bind]
   rfl
 

@@ -12,6 +12,7 @@
 #[cfg(target_arch = "aarch64")]
 pub mod neon;
 
+pub mod each;
 pub mod f128x8;
 pub mod gf2_64;
 pub mod gf2_64x2;
@@ -22,16 +23,14 @@ pub mod gf2_64x2;
     not(target_feature = "avx512f")
 ))]
 pub mod x4;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-pub mod x8;
 
 pub use f128x8::{
-    Acc8, F64x8, F128x8, Prod8, fold_lones8_ext, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext, mul_base_splat8,
-    xor_into8,
+    Acc8, F64x8, F128x8, Prod8, adjacent_products, fold_adjacent, fold_pairs8_ext, msg_lone8_ext, msg_terms8_ext,
+    mul_base_splat8, xor_into8,
 };
 pub use gf2_64::F64;
 use gf2_64::R64;
-pub use gf2_64x2::{F128, F128Unreduced, Weights8, dot_base, mul_unreduced4, mul2, mul4};
+pub use gf2_64x2::{F128, F128Unreduced, Weights8, dot_base, mul4};
 
 // ---------------------------------------------------------------------------
 // leanVM g-power helpers: domain separators / opcodes as x^k, and the g-power

@@ -29,7 +29,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 
 @[expose] public section
 
-variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ) (H : Inst → ℕ → E × E)
+variable (P : Core.Program) (fs : String → ℕ) (al : String → Bool) (cert : String → V → ℕ) (H : Inst → ℕ → E × E)
   (C : Inst → List (ℕ × E)) (hdr : E × E) (T : Tree) (ex : String → List (ℕ × ℕ))
 
 /-- An instance's words at its function's hint-only cells: for each `(i, c)` of `ex f`, the value
@@ -40,19 +40,19 @@ def Inst.extraW (I : Inst) : List Write :=
   | .phantom .. => []
 
 /-- **The words at the hint-only cells** of the placed instances. -/
-noncomputable def extraWrites : List Write := (honestInsts P fs H hdr T).flatMap (Inst.extraW ex)
+noncomputable def extraWrites : List Write := (honestInstsA P fs al H hdr T).flatMap (Inst.extraW ex)
 
 /-- **The hint-only cells are fresh**: past the header and in the frame, no cell of `C` nor a
 temporary's, one entry per cell. -/
 structure ExtraFresh : Prop where
-  cell : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ p ∈ ex f,
+  cell : ∀ I ∈ honestInstsA P fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ p ∈ ex f,
     2 ≤ p.2 ∧ p.2 < fs f ∧ (∀ q ∈ C I, q.1 ≠ p.2) ∧ ∀ t ∈ P.temps f, cert f t ≠ p.2
   inj : ∀ f, ∀ p ∈ ex f, ∀ p' ∈ ex f, p.2 = p'.2 → p = p'
 
-variable {P fs cert H C hdr T ex} {R : ℕ → Prop} {M : MemoryImage (logMem (T.total fs))} {args rets : List E}
+variable {P fs al cert H C hdr T ex} {R : ℕ → Prop} {M : MemoryImage (logMem (T.wordsA fs P.loop al))} {args rets : List E}
 
-theorem mem_extraWrites {q : Write} (hq : q ∈ extraWrites P fs H hdr T ex) :
-    ∃ I ∈ honestInsts P fs H hdr T, ∃ f σ bufs kids, I.t = .node f σ bufs kids ∧ ∃ p ∈ ex f,
+theorem mem_extraWrites {q : Write} (hq : q ∈ extraWrites P fs al H hdr T ex) :
+    ∃ I ∈ honestInstsA P fs al H hdr T, ∃ f σ bufs kids, I.t = .node f σ bufs kids ∧ ∃ p ∈ ex f,
       q = (addressOfIndex (I.fp + p.2), σ ⟨[], 0, p.1⟩) := by
   obtain ⟨I, hI, hq⟩ := List.mem_flatMap.mp hq
   unfold Inst.extraW at hq
@@ -64,21 +64,21 @@ theorem mem_extraWrites {q : Write} (hq : q ∈ extraWrites P fs H hdr T ex) :
 
 section Proof
 
-variable (h : DischargeHyps P fs cert H C hdr T R M args rets) (hE : ExtraFresh P fs cert H C hdr T ex)
+variable (h : DischargeHyps P fs al cert H C hdr T R M args rets) (hE : ExtraFresh P fs al cert H C hdr T ex)
 include h hE
 
-variable {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+variable {I : Inst} (hI : I ∈ honestInstsA P fs al H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
   {kids : List Tree} (hIt : I.t = .node f σ bufs kids) {p : ℕ × ℕ} (hp : p ∈ ex f)
 include hI hIt hp
 
 /-- A hint-only cell is a word of its instance's frame. -/
-theorem extra_at : I.fp + p.2 < T.total fs ∧ I.Frame fs (I.fp + p.2) := by
+theorem extra_at : I.fp + p.2 < T.wordsA fs P.loop al ∧ I.Frame fs (I.fp + p.2) := by
   obtain ⟨-, hlt, -, -⟩ := hE.cell I hI f σ bufs kids hIt p hp
   have hn : I.t.fsz fs = fs f := by rw [hIt]; rfl
   exact ⟨h.within hI (by rw [hn]; exact hlt), ⟨Nat.le_add_right _ _, by rw [hn]; omega⟩⟩
 
 /-- **A hint-only cell is no other frame cell.** -/
-theorem extra_not_cell {J : Inst} (hJ : J ∈ honestInsts P fs H hdr T) {q : ℕ × E} (hq : q ∈ J.cells C) :
+theorem extra_not_cell {J : Inst} (hJ : J ∈ honestInstsA P fs al H hdr T) {q : ℕ × E} (hq : q ∈ J.cells C) :
     addressOfIndex (J.fp + q.1) ≠ addressOfIndex (I.fp + p.2) := by
   intro hx
   obtain ⟨hlt, hF⟩ := extra_at h hE hI hIt hp
@@ -94,20 +94,20 @@ theorem extra_not_cell {J : Inst} (hJ : J ∈ honestInsts P fs H hdr T) {q : ℕ
   · exact hC q hq (by omega)
 
 /-- **A hint-only cell is no `HeapBuf` word.** -/
-theorem extra_not_buf {K : Inst} (hK : K ∈ honestInsts P fs H hdr T) {i : ℕ} (hb : K.Buf i) :
+theorem extra_not_buf {K : Inst} (hK : K ∈ honestInstsA P fs al H hdr T) {i : ℕ} (hb : K.Buf i) :
     addressOfIndex i ≠ addressOfIndex (I.fp + p.2) := by
   intro hx
   obtain ⟨hlt, hF⟩ := extra_at h hE hI hIt hp
-  have hi := honest_owns (P := P) hK (Or.inr hb)
+  have hi := honestA_owns (P := P) hK (Or.inr hb)
   have heq := h.inj hi hlt hx
   rw [heq] at hb
   by_cases hKI : K = I
   · subst hKI
-    exact (insts_placed T _ hdr (Nat.zero_add _).le _ hK).frame_buf hF hb
-  · exact (insts_pairwise T _ hdr (Nat.zero_add _).le).forall hK hI hKI _ (Or.inr hb) (Or.inl hF)
+    exact (instsA_placed T _ hdr (Nat.zero_add _).le _ hK).frame_buf hF hb
+  · exact (instsA_pairwise T _ hdr (Nat.zero_add _).le).forall hK hI hKI _ (Or.inr hb) (Or.inl hF)
 
 /-- **A hint-only cell is no word of an equation** of an atom but a range check. -/
-theorem extra_not_eqn {K : Inst} (hK : K ∈ honestInsts P fs H hdr T) {g : String} {σK : Val} {bK : List ℕ}
+theorem extra_not_eqn {K : Inst} (hK : K ∈ honestInstsA P fs al H hdr T) {g : String} {σK : Val} {bK : List ℕ}
     {kK : List Tree} (hKt : K.t = .node g σK bK kK) {a : Atom} (he : Ev.atom a ∈ K.t.events P)
     (hta : atomTmps a = []) {q : Write} (hq : q ∈ atomEqns σK a) : q.1 ≠ addressOfIndex (I.fp + p.2) := by
   intro hx
@@ -117,7 +117,7 @@ theorem extra_not_eqn {K : Inst} (hK : K ∈ honestInsts P fs H hdr T) {g : Stri
   · obtain ⟨hlt, hF⟩ := extra_at h hE hI hIt hp
     obtain ⟨h2, hlt', -, -⟩ := hE.cell I hI f σ bufs kids hIt p hp
     rcases h.region i hR with hi2 | hR'
-    · have := h.two_le_total
+    · have := h.two_le_wordsA
       have heq := h.inj (by omega) hlt (hqi.symm.trans hx)
       omega
     · have hn : I.t.fsz fs = fs f := by rw [hIt]; rfl
@@ -127,7 +127,7 @@ theorem extra_not_eqn {K : Inst} (hK : K ∈ honestInsts P fs H hdr T) {g : Stri
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hrun)) (by rw [← hx, hqi])
 
 /-- **A hint-only cell is no temporary's cell.** -/
-theorem extra_not_temp {τ : Inst × V × K} (hτ : TempsOn P fs H hdr T τ) :
+theorem extra_not_temp {τ : Inst × V × K} (hτ : TempsOn P fs al H hdr T τ) :
     tempCell cert τ ≠ addressOfIndex (I.fp + p.2) := by
   intro hx
   obtain ⟨g, σ', bufs', kids', ht, hmem, hcell, hlt', hF'⟩ := h.temp_cell hτ
@@ -141,7 +141,7 @@ theorem extra_not_temp {τ : Inst × V × K} (hτ : TempsOn P fs H hdr T τ) :
   exact (hE.cell I hI f σ bufs kids hIt p hp).2.2.2 τ.2.1 hmem (by omega)
 
 /-- **A hint-only cell is no word of the data**, nor a header word. -/
-theorem extra_not_data {i : ℕ} (hd : T.Data P fs cert (0, T.block fs P.loop) i ∨ i < 2) :
+theorem extra_not_data {i : ℕ} (hd : T.DataA P fs al cert (0, T.block fs P.loop) i ∨ i < 2) :
     addressOfIndex i ≠ addressOfIndex (I.fp + p.2) := by
   rcases hd with hd | hd
   · rcases h.data_cases hd with ⟨K, hK, hb⟩ | ⟨K, hK, g, σK, bK, kK, hKt, pK, r, rs, he, k, hk, rfl, -, -⟩
@@ -152,14 +152,14 @@ theorem extra_not_data {i : ℕ} (hd : T.Data P fs cert (0, T.block fs P.loop) i
   · intro hx
     obtain ⟨hlt, -⟩ := extra_at h hE hI hIt hp
     obtain ⟨h2, -, -, -⟩ := hE.cell I hI f σ bufs kids hIt p hp
-    have := h.two_le_total
+    have := h.two_le_wordsA
     have heq := h.inj (by omega) hlt hx
     omega
 
 omit hI hIt hp
 
 /-- **The words at the hint-only cells are consistent.** -/
-theorem extra_consistent : Consistent (extraWrites P fs H hdr T ex) := by
+theorem extra_consistent : Consistent (extraWrites P fs al H hdr T ex) := by
   intro a ha b hb hab
   obtain ⟨I, hI, f, σ, bufs, kids, hIt, p, hp, rfl⟩ := mem_extraWrites ha
   obtain ⟨J, hJ, g, σ', bufs', kids', hJt, p', hp', rfl⟩ := mem_extraWrites hb
@@ -177,36 +177,36 @@ theorem extra_consistent : Consistent (extraWrites P fs H hdr T ex) := by
 every heap hint word in the tree's data or a header word and the hint-only cells fresh, the
 temporaries re-chosen, the tree is `HonestAt` and `HonestX` with the hints' words read off `M` and
 the hint-only cells' words, each hint word a word of `M`, and its heap hint words the tree's. -/
-theorem honestX_retempE (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.block fs P.loop)) :
-    ∃ ν, HonestAt P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) cert
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets ∧
-      HonestX P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))
-        (honest P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop))).read args rets
-        (readerWrites M.read (hintWords P fs H hdr T) ++ extraWrites P fs H hdr T ex) ∧
-      hintWords P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)) ⊆ hintWords P fs H hdr T ∧
-      ∀ a ∈ hintWords P fs H hdr T, ∃ w, M.read a = some w := by
-  have hA : ∀ a ∈ hintWords P fs H hdr T, ∃ i, a = addressOfIndex i ∧
-      (T.Data P fs cert (0, T.block fs P.loop) i ∨ i < 2) := by
+theorem honestX_retempE (hhint : T.HintsIn P fs al cert (fun i => i < 2) (0, T.block fs P.loop)) :
+    ∃ ν, HonestAtA P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop)) cert
+        (honestA P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop))).read args rets ∧
+      HonestX P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop))
+        (honestA P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop))).read args rets
+        (readerWrites M.read (hintWords P fs al H hdr T) ++ extraWrites P fs al H hdr T ex) ∧
+      hintWords P fs al H hdr (T.retempA P fs al ν (0, T.block fs P.loop)) ⊆ hintWords P fs al H hdr T ∧
+      ∀ a ∈ hintWords P fs al H hdr T, ∃ w, M.read a = some w := by
+  have hA : ∀ a ∈ hintWords P fs al H hdr T, ∃ i, a = addressOfIndex i ∧
+      (T.DataA P fs al cert (0, T.block fs P.loop) i ∨ i < 2) := by
     intro a ha
     obtain ⟨I, hI, haI⟩ := List.mem_flatMap.mp ha
     exact hints_insts T _ _ hdr hhint I hI a haI
-  have hlt : ∀ a ∈ hintWords P fs H hdr T, ∃ i, a = addressOfIndex i ∧ i < T.total fs := by
+  have hlt : ∀ a ∈ hintWords P fs al H hdr T, ∃ i, a = addressOfIndex i ∧ i < T.wordsA fs P.loop al := by
     intro a ha
     obtain ⟨i, rfl, hd | hd⟩ := hA a ha
     · exact ⟨i, rfl, h.data_lt hd⟩
-    · have := h.two_le_total; exact ⟨i, rfl, by omega⟩
+    · have := h.two_le_wordsA; exact ⟨i, rfl, by omega⟩
   -- the reader's words miss the hint-only cells
-  have hRE : ∀ a ∈ readerWrites M.read (hintWords P fs H hdr T), ∀ b ∈ extraWrites P fs H hdr T ex,
+  have hRE : ∀ a ∈ readerWrites M.read (hintWords P fs al H hdr T), ∀ b ∈ extraWrites P fs al H hdr T ex,
       a.1 ≠ b.1 := by
     intro a ha b hb hab
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp ha
     obtain ⟨I, hI, f, σ, bufs, kids, hIt, p, hp, rfl⟩ := mem_extraWrites hb
     obtain ⟨i, rfl, hd⟩ := hA c hc
     exact extra_not_data h hE hI hIt hp hd hab
-  have hcons : Consistent (readerWrites M.read (hintWords P fs H hdr T) ++ extraWrites P fs H hdr T ex) :=
+  have hcons : Consistent (readerWrites M.read (hintWords P fs al H hdr T) ++ extraWrites P fs al H hdr T ex) :=
     (readerWrites_consistent _ _).append (extra_consistent h hE) fun a ha b hb hab ↦ absurd hab (hRE a ha b hb)
   obtain ⟨ν, hν, hY⟩ := honestAt_retempW h
-    (fun x w => (x, w) ∈ readerWrites M.read (hintWords P fs H hdr T) ++ extraWrites P fs H hdr T ex)
+    (fun x w => (x, w) ∈ readerWrites M.read (hintWords P fs al H hdr T) ++ extraWrites P fs al H hdr T ex)
     (fun _ _ _ hw hw' => hcons _ hw _ hw' rfl)
     (fun x w w' hw hw' => by
       rcases List.mem_append.mp hw' with hw' | hw'
@@ -230,10 +230,10 @@ theorem honestX_retempE (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.bloc
         · exact h.temp_not_hdr hτ hd ((congrArg Prod.fst he).symm.trans hi)
       · obtain ⟨I, hI, f, σ, bufs, kids, hIt, p, hp, he⟩ := mem_extraWrites hw
         exact extra_not_temp h hE hI hIt hp hτ (congrArg Prod.fst he))
-  have htot : (T.retemp P fs ν (0, T.block fs P.loop)).total fs = T.total fs := total_retemp T _
-  refine ⟨ν, hν, HonestX.mk hν.toHonest ?_ hcons (fun a ha b hb hab => hY a ha b.2 (by rw [hab]; exact hb)), ?_, ?_⟩
+  have htot : (T.retempA P fs al ν (0, T.block fs P.loop)).wordsA fs P.loop al = T.wordsA fs P.loop al := wordsA_retempA T _
+  refine ⟨ν, hν, HonestX.mk hν.toHonestA ?_ hcons (fun a ha b hb hab => hY a ha b.2 (by rw [hab]; exact hb)), ?_, ?_⟩
   · intro q hq
-    have hle := le_two_pow_logMem (T.total fs)
+    have hle := le_two_pow_logMem (T.wordsA fs P.loop al)
     rcases List.mem_append.mp hq with hq | hq
     · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hq
       obtain ⟨i, rfl, hd⟩ := hlt a ha
@@ -248,13 +248,13 @@ theorem honestX_retempE (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.bloc
     unfold Inst.hintAddrs at haI ⊢
     cases hIt : I.t with
     | phantom f σ =>
-      rw [hIt, retemp_phantom] at hteq
+      rw [hIt, retempA_phantom] at hteq
       rw [hteq] at haI
       exact (List.not_mem_nil haI).elim
     | node f σ bufs kids =>
       obtain ⟨fn, es, vs, hf, hw, hev⟩ := h.path hI hIt
       have hag := evAgree_retemp (ν := ν) h.fresh hf (fp := I.fp) hw
-      rw [hIt, retemp_node] at hteq
+      rw [hIt, retempA_node] at hteq
       rw [hteq] at haI
       simp only at haI ⊢
       rw [events_retemp h.fresh (bufs' := bufs) (ks' := kids), ← hIt, hev, heapHintAddrs_congr hag] at haI
@@ -262,20 +262,20 @@ theorem honestX_retempE (hhint : T.HintsIn P fs cert (fun i => i < 2) (0, T.bloc
       exact haI
   · intro a ha
     obtain ⟨i, rfl, hd⟩ := hlt a ha
-    have := le_two_pow_logMem (T.total fs)
+    have := le_two_pow_logMem (T.wordsA fs P.loop al)
     exact ⟨_, MemoryImage.read_gpow h.lt_64 M ⟨i, by omega⟩⟩
 
 /-- **The extension holds each hint-only value at its cell**, at each node instance of the re-chosen
 tree, for a value its path names (each such value being the one of its index). -/
 theorem extra_read {ν : ℕ → String → Val → V → E} {rd : Reader} {Xr : List Write}
-    (hX : HonestX P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) rd args rets
-      (Xr ++ extraWrites P fs H hdr T ex))
+    (hX : HonestX P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop)) rd args rets
+      (Xr ++ extraWrites P fs al H hdr T ex))
     (hn : ∀ f σ bufs kids, ∀ v ∈ ((Tree.node f σ bufs kids).events P).flatMap Ev.uses, ∀ c,
       (ex f).lookup v.idx = some c → v = ⟨[], 0, v.idx⟩) :
-    ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)), ∀ f σ' bufs kids,
+    ∀ I' ∈ honestInstsA P fs al H hdr (T.retempA P fs al ν (0, T.block fs P.loop)), ∀ f σ' bufs kids,
       I'.t = .node f σ' bufs kids → ∀ v ∈ (I'.t.events P).flatMap Ev.uses, ∀ c,
         (ex f).lookup v.idx = some c → I'.fp + c < 2 ^ 30 ∧
-          (honestX P fs H C hdr (T.retemp P fs ν (0, T.block fs P.loop)) (Xr ++ extraWrites P fs H hdr T ex)).read
+          (honestX P fs al H C hdr (T.retempA P fs al ν (0, T.block fs P.loop)) (Xr ++ extraWrites P fs al H hdr T ex)).read
             (addressOfIndex (I'.fp + c)) = some (σ' v) := by
   intro I' hI' f σ' bufs kids hI't v hv c hc
   obtain ⟨I, hI, hfp, -, hteq⟩ := insts_retemp (H := H) T _ hdr hdr I' (by rwa [honestInsts_retemp] at hI')
@@ -291,7 +291,7 @@ theorem extra_read {ν : ℕ → String → Val → V → E} {rd : Reader} {Xr :
     obtain ⟨l₁, l₂, he, -⟩ := List.lookup_eq_some_iff.mp hc
     rw [he]
     exact List.mem_append_right _ List.mem_cons_self
-  have hmem : (addressOfIndex (I.fp + c), σ ⟨[], 0, v.idx⟩) ∈ extraWrites P fs H hdr T ex :=
+  have hmem : (addressOfIndex (I.fp + c), σ ⟨[], 0, v.idx⟩) ∈ extraWrites P fs al H hdr T ex :=
     List.mem_flatMap.mpr ⟨I, hI, by
       unfold Inst.extraW
       rw [hIt]

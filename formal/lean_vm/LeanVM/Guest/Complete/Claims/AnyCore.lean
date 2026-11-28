@@ -1,0 +1,457 @@
+module
+
+public import LeanVM.Guest.B1.Digest.ChildListCChk1
+public import LeanVM.Guest.B1.Digest.ChildListCW0
+public import LeanVM.Guest.B1.Digest.ChildListCW1
+public import LeanVM.Guest.B1.Digest.ChildListCW2
+public import LeanVM.Guest.B1.Digest.ChildListCW3
+public import LeanVM.Guest.B1.Digest.ChildListCRec
+public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.Memory.LowDef
+public import LeanVM.Guest.Memory.Straight
+public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.Memory.Placed
+import LeanVM.Guest.ValRef
+import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
+
+/-!
+# `child_claim_list_any`'s blocks and last group, their honest valuations
+
+Restored from the archive's `B1/Digest/{ChildListCLast, ChildListCore}` (tag `formal-bus-archive`),
+layout-free. `any_core`: a frame loop's block at the counter `x = g^xj` (`child_claim_list_any_loop0`,
+136 claims, or `child_claim_list_any_loop1`, 17), from the state after whole blocks `pre` at `chain ·
+x^13`, `m` honest records (`RecMem`: slots `os j` below the bound `g^L = last · g`, marks `base ·
+x^m · g^j` at `region · g^(os j)`, cells at `entries · g^(4 os j)`) and the state after their cells
+at `chain · x^13` from offset `13`: the body's evaluated valuation (`Fwd.ev`, the slots from
+`slotW`) holds its atoms, and every load reads the state's or the next state's words, a record's
+mark or a record's cells. `ccl_core`: `child_claim_list_last__L{k}`'s, from the state after whole
+blocks and `k` honest records, returning the digest. `recMem_group`: a group of honest records.
+-/
+
+namespace LeanVM.Guest.B1.Digest
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.B1 (LowDef)
+
+@[expose] public section
+
+variable {rd : Reader}
+
+theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = addressOfIndex (b + k) := by
+  rw [gen_pow_eq_ofK, Main.addr_ofK]
+
+
+theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (idx% «child_claim_list_last__L0»
+    + k) default) = true := by
+  rcases Nat.lt_or_ge k 9 with h | h
+  · exact ccc_lo k h
+  · have := ccc_hi (k - 9) (by omega)
+    rwa [show 9 + (k - 9) = k by omega, show idx% «child_claim_list_last__L9» + (k - 9) =
+      idx% «child_claim_list_last__L0» + k by omega] at this
+
+/-- The records' message is their cells. -/
+theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)
+    (hv : ∀ j < K, ∀ c < 4, σ (.n (ccCell o0 j c)) = cells.getD (4 * j + c) 0) :
+    (ccMsg o0 K).map (srcVal σ) = cells := by
+  refine List.ext_getElem (by simp [ccMsg, hl]) fun i h1 h2 => ?_
+  have hi : i < 4 * K := by simpa [ccMsg] using h1
+  simp only [ccMsg, List.getElem_map, List.getElem_range, srcVal]
+  rw [hv (i / 4) (by omega) (i % 4) (by omega), show 4 * (i / 4) + i % 4 = i by omega,
+    List.getD_eq_getElem _ _ h2]
+
+theorem edge_parts {A S : List Atom} {o0 p0 K stp : ℕ} {outs : List V}
+    (h : edgeOk A S o0 p0 K stp outs = true) :
+    (∀ a ∈ S, storesOk o0 stp a = true) ∧ markPtrB o0 stp = false ∧
+      (∀ a ∈ A.take p0, needsSide a = false) ∧
+      ∀ a ∈ A.drop (ccPos p0 K), needsSide a = false ∨ isStLd stp a = true ∨
+        isStSt outs stp a = true := by
+  simp only [edgeOk, Bool.and_eq_true, List.all_eq_true, Bool.not_eq_true', Bool.or_eq_true] at h
+  obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
+  exact ⟨h1, h2, h3, fun a ha => (h4 a ha).elim (fun h => h.elim Or.inl (fun h => Or.inr (Or.inl h)))
+    (fun h => Or.inr (Or.inr h))⟩
+
+/-- **A record's load reads** its mark's slot `region · g^(os j)` or a cell at
+`entries · g^(4 os j)`. -/
+theorem sideW_addr {σ : Val} {F : List Atom} {P : ClaimVs} {o0 j : ℕ} {e rg eP : ℕ} {d p : V}
+    {off : ℕ} (hF : ∀ a ∈ F, a.Holds rd σ) (hwit : σ (.n (ccOV o0 j)) = gen ^ e)
+    (hrg : σ P.region = gen ^ rg) (hen : σ P.entries = gen ^ eP)
+    (h : sideW F P o0 j (.load d p off) = true) :
+    (σ p).limb 0 * addressOfIndex off = addressOfIndex (rg + e) ∨
+      ∃ c < 4, (σ p).limb 0 * addressOfIndex off = addressOfIndex (eP + 4 * e + c) := by
+  simp only [sideW, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+  rcases h with ⟨⟨rfl, -⟩, hperm⟩ | ⟨hoff, hc⟩
+  · left
+    rw [monoPerm_sound hperm hF]
+    simp only [List.map_cons, List.map_nil, List.prod_cons, List.prod_nil, mul_one]
+    rw [hrg, hwit, ← pow_add, limb0_gen_pow_mul, Nat.add_zero]
+  · simp only [isCellLd, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq, Bool.not_eq_true'] at hc
+    obtain ⟨-, hperm⟩ := hc
+    refine Or.inr ⟨off, hoff, ?_⟩
+    rw [cells_ptr hperm hF hwit, hen, ← pow_add, limb0_gen_pow_mul]
+
+theorem isStSt_nil {stp : ℕ} {a : Atom} (h : isStSt [] stp a = true) : False := by
+  cases a <;> simp only [isStSt, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
+    decide_eq_true_eq, List.length_nil, Nat.add_zero] at h
+  omega
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 4000000 in
+/-- **A frame of child claims' honest valuation** (a frame loop's block at `x = g^xj`), with
+where its loads read: the state's `13` words and the next state's at `chain · x^13`, a record's
+mark at `region · g^(os j)`, a record's cells at `entries · g^(4 os j)`. -/
+theorem any_core {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
+    (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
+    (hhd : anycHead (coreProgram.getD j default) f = true)
+    (hedge : anycEdge (coreProgram.getD j default) m o0 p0 mk st0 = true)
+    (hrecs : ∀ i < m,
+      recW (ccOwn (loopAtoms (coreProgram.getD j default)) p0 i) (anyP mk) o0 i = true)
+    (hnb : (anySpec m o0 st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
+    {x N chain entries region base last : E} {xj chP eP rg L : ℕ}
+    (hx : x = gen ^ xj) (hch : chain = gen ^ chP) (hen : entries = gen ^ eP)
+    (hrg : region = gen ^ rg) {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
+    (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
+    {os : ℕ → ℕ} {cells : List E} (hl : cells.length = 4 * m)
+    (hrec : RecMem rd region (gen ^ L) entries (base * x ^ m) m os cells)
+    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L)
+    (hS' : StateAt rd (chain * x ^ 13) 13
+      (absorbChunks (n + nb) zeroState (pre ++ cellsBytes cells))) :
+    ∃ σ : Val, (coreProgram.getD j default).params.map σ =
+        [x, N, chain, entries, region, base, last] ∧
+      (∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)), a.Holds rd σ) ∧
+      (∀ q ∈ (loopPre (coreProgram.getD j default)).filterMap B1.Stmt.loadS,
+        (∃ o < 26, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (chP + 13 * xj + o)) ∨
+        (∃ i < m, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + os i)) ∨
+        (∃ i < m, ∃ c < 4,
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os i + c))) ∧
+      ∀ a ∈ atomsIn (loopPre (coreProgram.getD j default)),
+        Good rd (storesOf 7 (coreProgram.getD j default).body) (slotW o0 os) σ a := by
+  set fn := coreProgram.getD j default
+  set A := loopAtoms fn with hAdef
+  set S := storesOf 7 fn.body with hSdef
+  simp only [anyOk, Bool.and_eq_true, decide_eq_true_eq] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨-, hlen7⟩, hck⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hok
+  simp only [anycHead, Bool.and_eq_true, Option.isSome_iff_exists] at hhd
+  obtain ⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, -⟩ := hhd
+  have heqA' := atomsEqbL_sound heqA
+  simp only [anycEdge, Bool.and_eq_true] at hedge
+  obtain ⟨⟨⟨hedge, hst⟩, hm12⟩, hmk⟩ := hedge
+  obtain ⟨hSt, hst12, hhd0, htl⟩ := edge_parts hedge
+  let args : List E := [x, N, chain, entries, region, base, last]
+  obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (slotW o0 os) args fn.body) := ⟨_, rfl⟩
+  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
+  obtain ⟨-, -, hgs⟩ := ev_spec rd (slotW o0 os) fn.body args hchk
+  rw [show args.length = 7 from rfl, ← hσ] at hgs
+  have hg : ∀ a ∈ A, Good rd S (slotW o0 os) σ a := fun a ha =>
+    hgs (.atom a) (cl_pre_mem (cl_atom_mem (by rw [heqA']; exact ha)))
+  have hpar : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] := by
+    have hs2 := hshape
+    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs2
+    rw [hs2.1.2, hlen7]; rfl
+  have par : ∀ i (hi : i < 7), σ (.n i) = args.getD i 0 := fun i hi => by
+    rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
+  have e0 : σ (.n 0) = x := par 0 (by omega)
+  have e2 : σ (.n 2) = chain := par 2 (by omega)
+  have e3 : σ (.n 3) = entries := par 3 (by omega)
+  have e4 : σ (.n 4) = region := par 4 (by omega)
+  have e5 : σ (.n 5) = base := par 5 (by omega)
+  have e6 : σ (.n 6) = last := par 6 (by omega)
+  have hF := pure_holds hg
+  have v12 : σ (.n 12) = chain * x ^ 13 := by rw [monoIs_sound hm12 hF, e2, e0]
+  have vmk : σ (.n mk) = base * x ^ m := by rw [monoIs_sound hmk hF, e5, e0]
+  have hrec' : RecMem rd (σ (anyP mk).region) (gen ^ L) (σ (anyP mk).entries)
+      (σ (anyP mk).marks) m os cells := by
+    show RecMem rd (σ (.n 4)) (gen ^ L) (σ (.n 3)) (σ (.n mk)) m os cells
+    rw [e4, e3, vmk]; exact hrec
+  have hlast' : σ (anyP mk).last * gen = gen ^ L := by
+    show σ (.n 6) * gen = _; rw [e6]; exact hlast
+  obtain ⟨hwit, -, vc, hside⟩ := recsW_holds hrecs hg hSt hrec' hlast' hL33 hdef
+  have hpv : ∀ {p : V}, p.idx = 12 → σ p = chain * x ^ 13 := fun hp => by rw [hidx, hp, v12]
+  have hnSl : ∀ {d p : V} {off : ℕ}, p.idx = 12 → off < 13 → Atom.load d p off ∉ S :=
+    fun hp ho => notS_of_ptr hSt (by rw [hp]; exact hst12) ho
+  have vst : ∀ c : Fin 13, σ ((anySt st0).getD c default) =
+      cellsOfState (absorbChunks n zeroState pre) false c := by
+    intro c
+    simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
+    rw [load_val (hst.2 c c.isLt) hg (hnSl rfl (by have := c.isLt; omega)), v12,
+      rdAt_of_load (hS c)]
+  have hat : ∀ a ∈ A, a.Holds rd σ := by
+    refine blockW_holds (c := 7) (ss := fn.body) (p0 := p0) (stp := 12)
+      (outs := anyOuts m o0 st0 A) hg hedge hside ?_ ?_ ?_
+    · intro a ha h haS
+      cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq] at h
+      rename_i d p off
+      have hv := hS ⟨off, h.2⟩
+      rw [Nat.zero_add, ← hpv h.1] at hv
+      exact load_holds_of haS (hg _ ha) hv
+    · intro a ha h haS
+      cases a <;> simp only [isStSt, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq] at h
+      rename_i d p off
+      obtain ⟨⟨⟨hp, ho1⟩, ho2⟩, -⟩ := h
+      obtain ⟨c, rfl⟩ : ∃ c, off = 13 + c := ⟨off - 13, by omega⟩
+      have hv := hS' ⟨c, by simp [anyOuts] at ho2; omega⟩
+      rw [← hpv hp] at hv
+      exact load_holds_of haS (hg _ ha) hv
+    · intro h1 a ha h haS
+      cases a <;> simp only [isStSt, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq] at h
+      rename_i d p off
+      obtain ⟨⟨⟨hp, ho1⟩, ho2⟩, hd⟩ := h
+      obtain ⟨c, rfl⟩ : ∃ c, off = 13 + c := ⟨off - 13, by omega⟩
+      have hc13 : c < 13 := by simp [anyOuts] at ho2; omega
+      have hG : ∀ b ∈ A.filter (fun a => decide (a ∉ S)), b.Holds rd σ :=
+        fun b hb => h1 b (List.mem_filter.mp hb).1 (by simpa using (List.mem_filter.mp hb).2)
+      have hq : ∀ a, isLoadB a = false → decide (a ∉ S) = true := by
+        intro a ha'
+        simp only [decide_eq_true_eq]
+        intro hm
+        obtain ⟨_, _, _, rfl⟩ := storesOf_load hm
+        simp [isLoadB] at ha'
+      have hchk' : (anySpec m o0 st0 A).check (A.filter (fun a => decide (a ∉ S))) = true := by
+        rw [check_filter hq]; exact hck
+      obtain ⟨hw, -⟩ := chain_whole hchk' rfl hG hpre (fun c => vst c)
+      have hv : (anySpec m o0 st0 A).vals σ = cells := ccMsg_vals hl vc
+      have hwc := hw ⟨c, hc13⟩
+      rw [hv, hnb, show ((⟨c, hc13⟩ : Fin 13) : ℕ) = c from rfl] at hwc
+      have hd' : d = (anySpec m o0 st0 A).outV ((anySpec m o0 st0 A).nb - 1) c := by
+        rw [hd, show 13 + c - 13 = c by omega]
+        simp [anyOuts, List.getD_eq_getElem?_getD, hc13]
+      show LoadHolds rd (σ p) (13 + c) (σ d)
+      rw [hd', hnb, hwc, hpv hp]
+      exact hS' ⟨c, hc13⟩
+  have h12g : chain * x ^ 13 = gen ^ (chP + 13 * xj) := by
+    rw [hch, hx, ← pow_mul, ← pow_add, mul_comm xj 13]
+  refine ⟨σ, ?_, fun a ha => hat a (by rwa [heqA'] at ha), fun q hq => ?_,
+    fun a ha => hg a (by rwa [heqA'] at ha)⟩
+  · rw [hpar]
+    simp only [List.map_cons, List.map_nil]
+    rw [e0, par 1 (by omega), e2, e3, e4, e5, e6]
+    rfl
+  · obtain ⟨s, hs, hsq⟩ := List.mem_filterMap.mp hq
+    have := List.all_eq_true.mp hpreA s hs
+    cases s <;> simp only [isAtomS, Bool.false_eq_true] at this
+    rename_i a
+    cases a with
+    | load d p off =>
+      simp only [B1.Stmt.loadS, Option.some.injEq] at hsq
+      subst hsq
+      have ha : Atom.load d p off ∈ A := by have := cl_mem_atoms hs; rwa [heqA'] at this
+      rcases mem_parts (p0 := p0) (K := m) ha with h | ⟨i, hi, h⟩ | h
+      · exact absurd (hhd0 _ h) (by simp [needsSide])
+      · have hFi : ∀ b ∈ (ccOwn A p0 i).filter pureB, b.Holds rd σ :=
+          fun b hb => hat b (mem_ccOwn (List.mem_filter.mp hb).1)
+        rcases sideW_addr hFi (hwit i hi) (show σ (.n 4) = _ by rw [e4, hrg])
+            (show σ (.n 3) = _ by rw [e3, hen])
+            ((recW_parts (hrecs i hi)).2.2.2 _ h rfl) with h' | ⟨c, hc4, h'⟩
+        · exact Or.inr (Or.inl ⟨i, hi, h'⟩)
+        · exact Or.inr (Or.inr ⟨i, hi, c, hc4, h'⟩)
+      · rcases htl _ h with h' | h' | h'
+        · exact absurd h' (by simp [needsSide])
+        · simp only [isStLd, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h'
+          refine Or.inl ⟨off, by omega, ?_⟩
+          show (σ p).limb 0 * addressOfIndex off = _
+          rw [hpv h'.1, h12g, limb0_gen_pow_mul]
+        · simp only [isStSt, anyOuts, List.length_map, List.length_range, Bool.and_eq_true,
+            beq_iff_eq, decide_eq_true_eq] at h'
+          refine Or.inl ⟨off, by omega, ?_⟩
+          show (σ p).limb 0 * addressOfIndex off = _
+          rw [hpv h'.1.1.1, h12g, limb0_gen_pow_mul]
+    | _ => simp [B1.Stmt.loadS] at hsq
+
+/-! ## The two frame loops -/
+
+theorem any136c_recs : ∀ i < 136,
+    recW (ccOwn (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop0» default)) 15 i)
+        (anyP 21) 22 i = true :=
+  recs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => by
+    have hw : ∀ i < 16, anycWin i = true := by
+      intro i hi
+      interval_cases i
+      exacts [anycWin_0, anycWin_1, anycWin_2, anycWin_3, anycWin_4, anycWin_5, anycWin_6,
+        anycWin_7, anycWin_8, anycWin_9, anycWin_10, anycWin_11, anycWin_12, anycWin_13,
+        anycWin_14, anycWin_15]
+    exact hw i hi
+
+theorem any17c_parts : anycHead (coreProgram.getD idx% «child_claim_list_any_loop1» default)
+    name% «child_claim_list_any_loop1» = true ∧
+    anycEdge (coreProgram.getD idx% «child_claim_list_any_loop1» default) 17 19 12 18 255 = true ∧
+    ∀ i < 17, recW (ccOwn (loopAtoms (coreProgram.getD idx% «child_claim_list_any_loop1» default))
+        12 i) (anyP 18) 19 i = true := by
+  have h := any17c_ok
+  simp only [anycOk, Bool.and_eq_true] at h
+  exact ⟨h.1.1, h.1.2, recs_of_wins (w := 17) (W := 1) le_rfl fun i hi => by
+    rw [show i = 0 by omega]; exact h.2⟩
+
+
+/-! ## The last group -/
+
+/-- `child_claim_list_last__L{k}`'s atoms. -/
+noncomputable def cclAtoms (k : ℕ) : List Atom :=
+  ((splitBody (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body).map
+      (·.1)).getD []
+
+set_option maxRecDepth 100000 in
+theorem ccl_shape_all : ∀ k < 17, ((cclAtoms k).all (fun a => !Memory.atomAllocB a &&
+    (Memory.atomAddr? a).isNone) && ((coreProgram.getD (idx% «child_claim_list_last__L0» + k)
+        default).loop == false)) = true := by
+  decide +kernel
+
+theorem ccl_name {k : ℕ} (hk : k < 17) :
+    coreProgram.find? (cclNames.getD k "") = some (coreProgram.getD
+        (idx% «child_claim_list_last__L0» + k) default) :=
+  find_of_idx (ccl_idx k hk)
+
+theorem ccl_loop {k : ℕ} (hk : k < 17) : coreProgram.loop (cclNames.getD k "") = false := by
+  rw [Program.loop_of_find? (ccl_name hk)]
+  have := ccl_shape_all k hk
+  simp only [Bool.and_eq_true, beq_iff_eq] at this
+  exact this.2
+
+theorem ccl_na {k : ℕ} (hk : k < 17) : (cclAtoms k).all (fun a => !Memory.atomAllocB a) = true := by
+  have := ccl_shape_all k hk
+  simp only [Bool.and_eq_true, List.all_eq_true] at this
+  exact List.all_eq_true.mpr fun a ha => (this.1 a ha).1
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 4000000 in
+/-- **The last child claims' honest valuation** (`[state, entries, region, marks, last]`), with
+where its loads read. -/
+theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP eP rg L : ℕ}
+    (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
+    {n : ℕ} {pre : List UInt8} (hpre : pre.length = rate * n)
+    (hS : StateAt rd sp 0 (absorbChunks n zeroState pre)) {os : ℕ → ℕ} {cells : List E}
+    (hl : cells.length = 4 * k)
+    (hrec : RecMem rd region (gen ^ L) entries marks k os cells)
+    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
+    ∃ (vs : List V) (σ : Val),
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map
+          Stmt.atom ++ [.ret vs] ∧
+      (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp,
+          entries, region, marks, last] ∧
+      (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧
+      vs.map σ = digestCells (keccak256 (pre ++ cellsBytes cells)) ∧
+      (∀ q ∈ (cclAtoms k).filterMap Memory.atomLoad?,
+        (∃ o < 13, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (sP + o)) ∨
+        (∃ j < k, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (rg + os j)) ∨
+        (∃ j < k, ∃ c < 4,
+          (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex (eP + 4 * os j + c))) ∧
+      ∀ a ∈ cclAtoms k, Good rd (storesOf 5 (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body)
+        (slotW 5 os) σ a := by
+  have hok := ccl_all k hk
+  have hcok := ccc_all hk
+  set fn := coreProgram.getD (idx% «child_claim_list_last__L0» + k) default
+  simp only [cclOk, Bool.and_eq_true, decide_eq_true_eq] at hok
+  obtain ⟨hpar, hok⟩ := hok
+  simp only [cccOk, Bool.and_eq_true, Option.isSome_iff_exists] at hcok
+  obtain ⟨⟨c', hchk⟩, hcok⟩ := hcok
+  split at hok
+  · rename_i atoms r0 r1 hsb
+    rw [hsb] at hcok
+    have hatoms : cclAtoms k = atoms := by
+      show ((splitBody fn.body).map (·.1)).getD [] = atoms
+      rw [hsb]; rfl
+    rw [hatoms]
+    simp only [Bool.and_eq_true, List.all_eq_true, List.mem_range] at hok hcok
+    obtain ⟨⟨⟨hck, hret⟩, -⟩, hst⟩ := hok
+    obtain ⟨⟨hedge, hrecs⟩, -⟩ := hcok
+    obtain ⟨hSt, hst0, -, htl⟩ := edge_parts hedge
+    set S := storesOf 5 fn.body with hSdef
+    let args : List E := [sp, entries, region, marks, last]
+    obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (slotW 5 os) args fn.body) := ⟨_, rfl⟩
+    have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
+    obtain ⟨-, -, hgs⟩ := ev_spec rd (slotW 5 os) fn.body args hchk
+    rw [show args.length = 5 from rfl, ← hσ] at hgs
+    have hbody := splitBody_eq hsb
+    have hg : ∀ a ∈ atoms, Good rd S (slotW 5 os) σ a := fun a ha =>
+      hgs (.atom a) (by rw [hbody]; exact List.mem_append_left _ (List.mem_map_of_mem ha))
+    have par : ∀ i (hi : i < 5), σ (.n i) = args.getD i 0 := fun i hi => by
+      rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
+    have e0 : σ (.n (valf% «child_claim_list_last» "state")) = sp := par 0 (by omega)
+    have e1 : σ (.n (valf% «child_claim_list_last» "entries_ptr")) = entries := par 1 (by omega)
+    have e2 : σ (.n (valf% «child_claim_list_last» "region")) = region := par 2 (by omega)
+    have e3 : σ (.n (valf% «child_claim_list_last» "marks")) = marks := par 3 (by omega)
+    have e4 : σ (.n (valf% «child_claim_list_last» "last_g")) = last := par 4 (by omega)
+    have hrec' : RecMem rd (σ cclP.region) (gen ^ L) (σ cclP.entries) (σ cclP.marks) k os cells := by
+      show RecMem rd (σ (.n (valf% «child_claim_list_last» "region"))) (gen ^ L) (σ (.n (valf% «child_claim_list_last» "entries_ptr"))) (σ (.n (valf% «child_claim_list_last» "marks"))) k os cells
+      rw [e2, e1, e3]; exact hrec
+    have hlast' : σ cclP.last * gen = gen ^ L := by show σ (.n (valf% «child_claim_list_last» "last_g")) * gen = _; rw [e4]; exact hlast
+    obtain ⟨hwit, -, vc, hside⟩ := recsW_holds hrecs hg hSt hrec' hlast' hL33 hdef
+    have hpv : ∀ {p : V}, p.idx = 0 → σ p = sp := fun hp => by rw [hidx, hp, e0]
+    have hnSl : ∀ {d p : V} {off : ℕ}, p.idx = 0 → off < 13 → Atom.load d p off ∉ S :=
+      fun hp ho => notS_of_ptr hSt (by rw [hp]; exact hst0) ho
+    have vst : ∀ c : Fin 13, σ ((cclSt k).getD c default) =
+        cellsOfState (absorbChunks n zeroState pre) false c := by
+      intro c
+      simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
+      rw [load_val (hst.2 c c.isLt) hg (hnSl rfl (by have := c.isLt; omega)), e0,
+        rdAt_of_load (hS c)]
+    have hat : ∀ a ∈ atoms, a.Holds rd σ := by
+      refine blockW_holds (c := 5) (ss := fn.body) (p0 := 0) (stp := 0) (outs := [])
+        hg hedge hside ?_
+        (fun a _ h => (isStSt_nil h).elim) (fun _ a _ h => (isStSt_nil h).elim)
+      intro a ha h haS
+      cases a <;> simp only [isStLd, Bool.false_eq_true, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq] at h
+      rename_i d p off
+      have hv := hS ⟨off, h.2⟩
+      rw [Nat.zero_add, ← hpv h.1] at hv
+      exact load_holds_of haS (hg _ ha) hv
+    have hd := chain_final hck rfl hat hpre
+      (initCell_of_loads rfl hst hat (by rw [e0]; exact hS))
+    have hv : ((cclSpec k atoms).vals σ).take ((cclSpec k atoms).len / 16) = cells := by
+      have : (cclSpec k atoms).vals σ = cells := ccMsg_vals hl vc
+      rw [this, List.take_of_length_le (by simp only [cclSpec]; omega)]
+    rw [hv] at hd
+    simp only [retOk, Bool.and_eq_true] at hret
+    refine ⟨[r0, r1], σ, hbody, ?_, hat, ?_, fun q hq => ?_, hg⟩
+    · rw [hpar]
+      simp only [List.map_cons, List.map_nil, e0, e1, e2, e3, e4]
+    · rw [List.map_cons, List.map_cons, List.map_nil, copy_sound hret.1 hat, copy_sound hret.2 hat,
+        digestCells, ← hd]
+    · obtain ⟨a, ha, haq⟩ := List.mem_filterMap.mp hq
+      cases a with
+      | load d p off =>
+        simp only [Memory.atomLoad?, Option.some.injEq] at haq
+        subst haq
+        rcases mem_parts (p0 := 0) (K := k) ha with h | ⟨i, hi, h⟩ | h
+        · simp at h
+        · have hFi : ∀ b ∈ (ccOwn atoms 0 i).filter pureB, b.Holds rd σ :=
+            fun b hb => hat b (mem_ccOwn (List.mem_filter.mp hb).1)
+          rcases sideW_addr hFi (hwit i hi) (show σ (.n (valf% «child_claim_list_last» "region")) = _ by rw [e2, hrg])
+              (show σ (.n (valf% «child_claim_list_last» "entries_ptr")) = _ by rw [e1, hen])
+              ((recW_parts (hrecs i hi)).2.2.2 _ h rfl) with h' | ⟨c, hc4, h'⟩
+          · exact Or.inr (Or.inl ⟨i, hi, h'⟩)
+          · exact Or.inr (Or.inr ⟨i, hi, c, hc4, h'⟩)
+        · rcases htl _ h with h' | h' | h'
+          · exact absurd h' (by simp [needsSide])
+          · simp only [isStLd, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h'
+            refine Or.inl ⟨off, h'.2, ?_⟩
+            show (σ p).limb 0 * addressOfIndex off = _
+            rw [hpv h'.1, hsp, limb0_gen_pow_mul]
+          · exact (isStSt_nil h').elim
+      | _ => simp [Memory.atomLoad?] at haq
+  · exact absurd hok (by simp)
+
+
+/-! ## Records -/
+
+/-- The records of the claims `s, …, s + k - 1`. -/
+theorem recMem_group {region limit entries base : E} {n : ℕ} {o : ℕ → ℕ} {cells : List E}
+    (h : RecMem rd region limit entries base n o cells) {s k : ℕ} (hsk : s + k ≤ n) :
+    RecMem rd region limit entries (base * gen ^ s) k (fun j => o (s + j))
+      ((cells.drop (4 * s)).take (4 * k)) := by
+  intro j hj
+  obtain ⟨h1, h2, h3⟩ := h (s + j) (by omega)
+  refine ⟨h1, by rwa [mul_assoc, ← pow_add], fun c hc => ?_⟩
+  have e : ((cells.drop (4 * s)).take (4 * k)).getD (4 * j + c) 0 =
+      cells.getD (4 * (s + j) + c) 0 := by
+    simp only [List.getD_eq_getElem?_getD, List.getElem?_take, List.getElem?_drop]
+    rw [ite_pos' (by omega), show 4 * s + (4 * j + c) = 4 * (s + j) + c by ring]
+  rw [e]
+  exact h3 c hc
+
+end
+end LeanVM.Guest.B1.Digest

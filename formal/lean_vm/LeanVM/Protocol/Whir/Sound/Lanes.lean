@@ -13,8 +13,6 @@ public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import ArkLib.Data.CodingTheory.ReedSolomon
 public import Mathlib.Tactic
-import LeanVM.ToMathlib.Finset
-import LeanVM.ToMathlib.List
 
 /-!
 # Lanes and folds
@@ -60,6 +58,15 @@ def eqB : List E → ℕ → E
   | [], _ => 1
   | c :: s, j => (if j % 2 = 1 then c else 1 - c) * eqB s (j / 2)
 
+/-- A sum over `2N` indices pairs even and odd ones. -/
+theorem sum_range_two_mul {M : Type*} [AddCommMonoid M] (f : ℕ → M) (N : ℕ) :
+    ∑ j ∈ range (2 * N), f j = ∑ j ∈ range N, (f (2 * j) + f (2 * j + 1)) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ,
+      ih, Finset.sum_range_succ, add_assoc]
+
 /-- **The fold is an eq-weighted sum**: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`. -/
 theorem foldsN_eq_sum {ι : Type*} (s : List E) (O : ℕ → ι → E) (i : ℕ) (x : ι) :
     foldsN s O i x = ∑ j ∈ range (2 ^ s.length), eqB s j * O (i * 2 ^ s.length + j) x := by
@@ -67,7 +74,7 @@ theorem foldsN_eq_sum {ι : Type*} (s : List E) (O : ℕ → ι → E) (i : ℕ)
   | nil => simp [foldsN, eqB]
   | cons c s ih =>
     simp only [foldsN, List.foldl_cons] at ih ⊢
-    rw [ih, List.length_cons, pow_succ, mul_comm (2 ^ s.length) 2, Finset.sum_range_two_mul]
+    rw [ih, List.length_cons, pow_succ, mul_comm (2 ^ s.length) 2, sum_range_two_mul]
     refine Finset.sum_congr rfl fun j _ ↦ ?_
     simp only [foldN, eqB, Nat.mul_add_mod, Nat.mul_mod_right,
       Nat.mul_add_div (by norm_num : 0 < 2),
@@ -154,7 +161,7 @@ theorem getD_eqKernel (s : List E) {j : ℕ} (hj : j < 2 ^ s.length) :
 /-- `dot` of two lists of equal length is the indexed sum. -/
 theorem dot_eq_sum (a b : List E) (h : a.length = b.length) :
     dot a b = ∑ j ∈ range a.length, a.getD j 0 * b.getD j 0 := by
-  rw [dot, List.foldl_add_eq_add_sum, zero_add]
+  rw [dot, foldl_add_eq, zero_add]
   induction a generalizing b with
   | nil => simp
   | cons x a ih =>

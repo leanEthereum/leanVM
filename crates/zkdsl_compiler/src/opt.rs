@@ -15,8 +15,11 @@
 //! written, on a `DEREF` row instead of a `MUL` one. A frame is then renumbered past its kept cells
 //! (`Lowered::keep`) to the cells still referenced, in order, so a run stays consecutive; a cell of the next frame (a
 //! loop's argument) moves with the frame's end.
+//!
+//! Last, every frame holding a `KECCAK` block is relaid so each block lies in one window ([`align_keccak_blocks`]).
 
 use super::*;
+use isa::KECCAK_WINDOW;
 use std::collections::HashSet;
 
 /// How an instruction names a cell.
@@ -256,8 +259,8 @@ impl Refs {
     }
 }
 
-/// Every function but the ones whose frame layout an `addr()` fixes, then the jump tables' `KVal::At` targets
-/// moved with the instructions dropped.
+/// Every function but the ones whose frame layout an `addr()` fixes, then every frame's `KECCAK` blocks put in
+/// windows, then the jump tables' `KVal::At` targets moved with the instructions dropped and added.
 pub(crate) fn optimize(lowered: &mut [Lowered], tables: &mut JumpTables) {
     let mut at_targets: HashMap<String, Vec<u32>> = HashMap::new();
     for k in &tables.slots {
@@ -266,9 +269,17 @@ pub(crate) fn optimize(lowered: &mut [Lowered], tables: &mut JumpTables) {
         }
     }
     let mut remaps: HashMap<String, Vec<u32>> = HashMap::new();
-    for l in lowered.iter_mut().filter(|l| !l.fixed) {
-        let targets = at_targets.get(&l.name).map_or(&[][..], Vec::as_slice);
-        if let Some(remap) = optimize_fn(l, targets) {
+    for l in lowered.iter_mut() {
+        if !l.fixed {
+            let targets = at_targets.get(&l.name).map_or(&[][..], Vec::as_slice);
+            if let Some(remap) = optimize_fn(l, targets) {
+                remaps.insert(l.name.clone(), remap);
+            }
+        }
+        let (aligned, added) = align_keccak_blocks(l);
+        l.aligned = aligned;
+        if let Some(added) = added {
+            let remap = compose(remaps.remove(&l.name), added);
             remaps.insert(l.name.clone(), remap);
         }
     }
@@ -428,4 +439,325 @@ fn compact(l: &mut Lowered) {
         visit(&mut ins.op, &mut |x, _| rename(x));
     }
     l.frame_size = next;
+}
+
+/// The old-to-new instruction index of `first`, if any, then `then`.
+fn compose(first: Option<Vec<u32>>, then: Vec<u32>) -> Vec<u32> {
+    match first {
+        Some(r) => r.iter().map(|&i| then[i as usize]).collect(),
+        None => then,
+    }
+}
+
+/// A `KECCAK` operand that is a block of consecutive cells.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Operand {
+    Tail,
+    Cap,
+    Out,
+}
+
+/// A `KECCAK` block of more than one cell: its instruction, operand, first cell and length.
+#[derive(Clone, Copy)]
+struct Block {
+    at: usize,
+    operand: Operand,
+    x: Off,
+    n: u32,
+}
+
+fn keccak_blocks(code: &[LInstr]) -> Vec<Block> {
+    let mut blocks = Vec::new();
+    for (at, ins) in code.iter().enumerate() {
+        if let LOp::Keccak {
+            tail,
+            cap,
+            c,
+            out_cells,
+            ..
+        } = ins.op
+        {
+            let all = [
+                (Operand::Tail, tail, 4),
+                (Operand::Cap, cap, 4),
+                (Operand::Out, c, out_cells.cells() as u32),
+            ];
+            blocks.extend((all.into_iter().filter(|&(.., n)| n > 1)).map(|(operand, x, n)| Block {
+                at,
+                operand,
+                x,
+                n,
+            }));
+        }
+    }
+    blocks
+}
+
+fn fits(x: Off, n: u32) -> bool {
+    x % KECCAK_WINDOW + n <= KECCAK_WINDOW
+}
+
+/// Where a frame's cells may move: below `pinned` they keep their offsets (the kept cells and a cluster reaching into
+/// them, or the whole frame where an `addr()` names its cells); above, each cluster (runs merged where they overlap)
+/// moves whole.
+struct Clusters {
+    pinned: Off,
+    clusters: Vec<(Off, Off)>,
+}
+
+impl Clusters {
+    fn new(l: &mut Lowered) -> Self {
+        let fs = l.frame_size;
+        let mut runs: Vec<(Off, u32)> = Vec::new();
+        for ins in &mut l.code {
+            visit(&mut ins.op, &mut |x, role| {
+                if let Role::Run(n) | Role::OutRun(n) = role {
+                    runs.push((*x, n));
+                }
+            });
+            for h in &mut ins.hints {
+                visit_hint(h, &mut |x, n| runs.push((*x, n)));
+            }
+        }
+        runs.retain(|&(x, n)| n > 1 && x < fs);
+        runs.sort_unstable();
+        let mut clusters: Vec<(Off, Off)> = Vec::new();
+        for (x, n) in runs {
+            match clusters.last_mut() {
+                Some((_, end)) if x < *end => *end = (*end).max(x + n),
+                _ => clusters.push((x, x + n)),
+            }
+        }
+        let pinned = if l.fixed {
+            fs
+        } else {
+            (clusters.iter())
+                .filter(|&&(s, _)| s < l.keep)
+                .map(|&(_, e)| e)
+                .fold(l.keep, u32::max)
+        };
+        Self { pinned, clusters }
+    }
+
+    /// The movable clusters, each with the blocks in it.
+    fn movable<'b>(&self, blocks: &'b [Block]) -> impl Iterator<Item = ((Off, Off), Vec<&'b Block>)> {
+        (self.clusters.iter().filter(|&&(s, _)| s >= self.pinned))
+            .map(|&(s, e)| ((s, e), blocks.iter().filter(|b| (s..e).contains(&b.x)).collect()))
+    }
+
+    /// The blocks no layout puts in windows: those pinned across one, and in a cluster that no offset suits, those
+    /// crossing at the offset that suits the most cells.
+    fn crossing(&self, blocks: &[Block]) -> Vec<Block> {
+        let mut out: Vec<Block> = (blocks.iter())
+            .filter(|b| b.x < self.pinned && !fits(b.x, b.n))
+            .copied()
+            .collect();
+        for ((s, _), inner) in self.movable(blocks) {
+            let fitting = |r: u32| inner.iter().filter(move |b| fits(r + b.x - s, b.n));
+            let best = (0..KECCAK_WINDOW)
+                .max_by_key(|&r| (fitting(r).map(|b| b.n).sum::<u32>(), std::cmp::Reverse(r)))
+                .expect("a window");
+            out.extend(inner.iter().filter(|b| !fits(best + b.x - s, b.n)).map(|b| **b));
+        }
+        out
+    }
+}
+
+/// Each of `blocks` replaced by a fresh run past the frame, laid out in one window: an input copied there before its
+/// `KECCAK`, an output copied from there after it, by a `MUL` by a cell set to 1 just before. The old-to-new
+/// instruction index (an instruction to the first one inserted before it).
+fn copy_out(l: &mut Lowered, blocks: &[Block]) -> Vec<u32> {
+    let fs = l.frame_size;
+    let mut sites: Vec<usize> = blocks.iter().map(|b| b.at).collect();
+    sites.sort_unstable();
+    sites.dedup();
+    // Per site, in order, its cell of 1 and its blocks' runs, a run that would cross a window starting the next one.
+    let mut fresh = fs;
+    let mut alloc = |n: u32| {
+        if !fits(fresh, n) {
+            fresh = fresh.next_multiple_of(KECCAK_WINDOW);
+        }
+        fresh += n;
+        fresh - n
+    };
+    let cells: Vec<(Off, Vec<Off>)> = (sites.iter())
+        .map(|&at| {
+            (
+                alloc(1),
+                blocks.iter().filter(|b| b.at == at).map(|b| alloc(b.n)).collect(),
+            )
+        })
+        .collect();
+    let extra = fresh - fs;
+    // The next frame's cells move with the frame's end.
+    let shift = |x: &mut Off| {
+        if *x >= fs {
+            *x += extra;
+        }
+    };
+    for ins in &mut l.code {
+        for h in &mut ins.hints {
+            visit_hint(h, &mut |x, _| shift(x));
+        }
+        visit(&mut ins.op, &mut |x, _| shift(x));
+    }
+    l.frame_size += extra;
+    let mut cells = cells.into_iter();
+    let code = std::mem::take(&mut l.code);
+    let mut remap = Vec::with_capacity(code.len() + 1);
+    for (i, mut ins) in code.into_iter().enumerate() {
+        remap.push(l.code.len() as u32);
+        let here: Vec<&Block> = blocks.iter().filter(|b| b.at == i).collect();
+        if here.is_empty() {
+            l.code.push(ins);
+            continue;
+        }
+        let line = ins.line;
+        let emit = |code: &mut Vec<LInstr>, op: LOp, hints: Vec<Hint>| code.push(LInstr { op, line, hints });
+        let (one, runs) = cells.next().expect("a site's cells");
+        emit(
+            &mut l.code,
+            LOp::Set {
+                o: one,
+                k: KVal::Const(F128::ONE),
+            },
+            std::mem::take(&mut ins.hints),
+        );
+        let mut after = Vec::new();
+        for (b, t) in here.into_iter().zip(runs) {
+            let LOp::Keccak { tail, cap, c, .. } = &mut ins.op else {
+                unreachable!("a block of a KECCAK")
+            };
+            *match b.operand {
+                Operand::Tail => tail,
+                Operand::Cap => cap,
+                Operand::Out => c,
+            } = t;
+            for k in 0..b.n {
+                if b.operand == Operand::Out {
+                    after.push(LOp::Copy {
+                        src: t + k,
+                        one,
+                        dst: b.x + k,
+                    });
+                } else {
+                    emit(
+                        &mut l.code,
+                        LOp::Copy {
+                            src: b.x + k,
+                            one,
+                            dst: t + k,
+                        },
+                        Vec::new(),
+                    );
+                }
+            }
+        }
+        l.code.push(ins);
+        for op in after {
+            emit(&mut l.code, op, Vec::new());
+        }
+    }
+    remap.push(l.code.len() as u32);
+    for ins in &mut l.code {
+        if let LOp::Set { k: KVal::Local(t), .. } = &mut ins.op {
+            *t = remap[*t as usize];
+        }
+    }
+    remap
+}
+
+/// The frame relaid so that, from a base that is a multiple of [`KECCAK_WINDOW`], every `KECCAK` block lies in one
+/// window; whether the frame holds a block and so needs that base, and the old-to-new instruction index when
+/// instructions were added. A block no layout puts in a window (pinned across one by the kept cells or an `addr()`,
+/// or overlapping blocks no offset suits together) is copied to a fresh run first ([`copy_out`]). The cells below
+/// `pinned` stay, each cluster moves whole to an offset that keeps its blocks in windows, and single cells fill the
+/// gaps. A loop frame's size is a multiple of the window, so that each of a run of loop frames starts aligned.
+fn align_keccak_blocks(l: &mut Lowered) -> (bool, Option<Vec<u32>>) {
+    let w = KECCAK_WINDOW;
+    let mut remap: Option<Vec<u32>> = None;
+    // One copy suffices: it leaves the pinned cells only blocks in windows, each movable cluster only blocks in windows
+    // at the offset `crossing` chose for it (removing runs only splits a cluster), and each fresh run in a window.
+    let (blocks, layout) = loop {
+        let blocks = keccak_blocks(&l.code);
+        if blocks.is_empty() {
+            return (false, remap);
+        }
+        assert!(
+            blocks.iter().all(|b| b.x + b.n <= l.frame_size),
+            "{}: a KECCAK block outside its frame",
+            l.name
+        );
+        let layout = Clusters::new(l);
+        let crossing = layout.crossing(&blocks);
+        if crossing.is_empty() {
+            break (blocks, layout);
+        }
+        assert!(
+            remap.is_none(),
+            "{}: a KECCAK block across a window after its copy",
+            l.name
+        );
+        remap = Some(compose(remap, copy_out(l, &crossing)));
+    };
+    let fs = l.frame_size;
+    let Clusters { pinned, clusters } = &layout;
+    let pinned = *pinned;
+    let in_cluster = |x: Off| {
+        let i = clusters.partition_point(|&(s, _)| s <= x);
+        i > 0 && x < clusters[i - 1].1
+    };
+    // Each movable cluster with the offsets, modulo the window, it may start at.
+    let mut moving: Vec<(Off, u32, u32)> = (layout.movable(&blocks))
+        .map(|((s, e), inner)| {
+            let mask = (0..w)
+                .filter(|&r| inner.iter().all(|b| fits(r + b.x - s, b.n)))
+                .fold(0u32, |m, r| m | 1 << r);
+            assert!(
+                mask != 0,
+                "{}: no offset suits the KECCAK blocks of cells {s}..{e}",
+                l.name
+            );
+            (s, e - s, mask)
+        })
+        .collect();
+    // The constrained first, fewest offsets then longest; then the rest, longest first. Each at the first offset
+    // that suits it, then the single cells in the gaps, in order.
+    moving.sort_by_key(|&(s, n, mask)| (mask.count_ones(), std::cmp::Reverse(n), s));
+    let mut used: Vec<bool> = vec![true; pinned as usize];
+    let free = |used: &Vec<bool>, p: u32, n: u32| (p..p + n).all(|q| !used.get(q as usize).copied().unwrap_or(false));
+    let mut map: Vec<Off> = (0..fs).collect();
+    for &(s, n, mask) in &moving {
+        let p = (pinned..)
+            .find(|&p| mask >> (p % w) & 1 == 1 && free(&used, p, n))
+            .expect("a frame offset");
+        if used.len() < (p + n) as usize {
+            used.resize((p + n) as usize, false);
+        }
+        used[p as usize..(p + n) as usize].fill(true);
+        for k in 0..n {
+            map[(s + k) as usize] = p + k;
+        }
+    }
+    let mut hole = pinned;
+    for x in (pinned..fs).filter(|&x| !in_cluster(x)) {
+        while used.get(hole as usize).copied().unwrap_or(false) {
+            hole += 1;
+        }
+        map[x as usize] = hole;
+        hole += 1;
+    }
+    let mut size = (map.iter().map(|&x| x + 1).max().unwrap_or(0)).max(pinned);
+    if l.loop_frame {
+        size = size.next_multiple_of(w);
+    }
+    let rename = |x: &mut Off| *x = if *x < fs { map[*x as usize] } else { size + (*x - fs) };
+    for ins in &mut l.code {
+        for h in &mut ins.hints {
+            visit_hint(h, &mut |x, _| rename(x));
+        }
+        visit(&mut ins.op, &mut |x, _| rename(x));
+    }
+    l.frame_size = size;
+    (true, remap)
 }

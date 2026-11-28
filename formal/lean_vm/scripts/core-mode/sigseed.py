@@ -28,9 +28,21 @@ def lst(xs):
     return '[%s]' % ', '.join(xs)
 
 
-def sig(entry, self_, ret, pre=(), preR=(), term=(), post=(), postR=(), postL=()):
+def sig(entry, self_, ret, pre=(), preR=(), term=(), post=(), postR=(), postL=(), preP=(), postP=(), postLP=(),
+        retV=()):
     return ', '.join([lst(map(str, entry)), 'none' if self_ is None else '(some %d)' % self_, lst(pre), lst(preR),
-                      lst(term), lst(map(str, ret)), lst(post), lst(postR), lst(postL)] + ['[]'] * 6)
+                      lst(term), lst(map(str, ret)), lst(post), lst(postR), lst(postL), lst(preP), lst(postP),
+                      lst(postLP), lst(retV)] + ['[]'] * 2)
+
+
+def ptrs(r, cells):
+    """A `preP`/`postP` entry: each word of the run `r` a pointer whose cells `cells` past it are written."""
+    return '(%s, [%s])' % (r, ', '.join(map(str, cells)))
+
+
+def lt_fact(lo, hi):
+    """A termination fact `e(lo) < e(hi)`."""
+    return '(%s, %s)' % (lo, hi)
 
 
 # the proof stream, a parameter's run `[0, 8192)`

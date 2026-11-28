@@ -585,6 +585,173 @@ theorem sum_powOk_div_eq {b : ℕ} (hb : b ≤ 64) :
   rwa [ENNReal.div_self (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _),
     mul_one, sum_powOk_lane_div_eq hb] at h
 
+/-! ## Packed messages -/
+
+/-- The eight challenges a packed draw reads off a state: cell `i` is lanes `2i, 2i + 1`
+(`Sponge::samples_packed`, `transcript.rs`). -/
+def cells8 (u : KeccakState) : List E := (List.range 8).map (packedChallengeOf u)
+
+/-- The challenges a packed draw takes from a grind's permutation: its challenge (cell `0`), then
+cells `2..8` (cell `1` holds the proof of work). -/
+def groundCells (u : KeccakState) : List E :=
+  challengeOf u :: (List.range 6).map fun i ↦ packedChallengeOf u (i + 2)
+
+@[simp] theorem length_cells8 (u : KeccakState) : (cells8 u).length = 8 := by simp [cells8]
+
+@[simp] theorem length_groundCells (u : KeccakState) : (groundCells u).length = 7 := by
+  simp [groundCells]
+
+theorem headD_cells8 (u : KeccakState) : (cells8 u).headD 0 = challengeOf u := rfl
+
+theorem headD_groundCells (u : KeccakState) : (groundCells u).headD 0 = challengeOf u := rfl
+
+/-- The first `m` cells of a state. -/
+theorem take_cells8 (u : KeccakState) (m : ℕ) :
+    (cells8 u).take m = (List.range (min m 8)).map (packedChallengeOf u) := by
+  rw [cells8, ← List.map_take, List.take_range]
+
+/-- The cells a grind's permutation gives a packed draw, from its cells. -/
+theorem groundCells_eq (u : KeccakState) :
+    groundCells u = (cells8 u).headD 0 :: (cells8 u).drop 2 := rfl
+
+/-- The input of a packed permutation from the capacity `c` with the chunk `ys`: its scalars two
+lanes each, zeros up to lane `16`, then the capacity. -/
+def packedOf (c : Fin 9 → UInt64) (ys : List E) : KeccakState :=
+  Vector.ofFn fun i ↦ if h : i.val < 16 then
+    (ys.flatMap fun x ↦ [(x.limb 0).lane, (x.limb 1).lane]).getD i 0
+  else c ⟨i.val - 16, by omega⟩
+
+@[simp] theorem capOf_packedOf (c : Fin 9 → UInt64) (ys : List E) : capOf (packedOf c ys) = c := by
+  funext i
+  rw [capOf, packedOf, lane_ofFn _ _ (by omega)]
+  simp
+
+/-- A packed permutation's input keeps the state's capacity. -/
+theorem packedInput_eq (state : KeccakState) (ys : List E) :
+    packedInput state ys = packedOf (capOf state) ys := by
+  ext i hi
+  simp only [packedInput, packedOf, Vector.getElem_ofFn]
+  split
+  · rfl
+  · simp only [capOf]
+    congr 1
+    omega
+
+/-- The lanes of a list of blocks of two, read at `2i + r`. -/
+theorem getD_flatMap_two {α : Type} (g : α → List UInt64) (hg : ∀ a, (g a).length = 2) :
+    ∀ (ps : List α) (i r : ℕ), r < 2 →
+      (ps.flatMap g).getD (2 * i + r) 0 = if h : i < ps.length then (g ps[i]).getD r 0 else 0
+  | [], i, r, _ => by simp
+  | a :: ps, 0, r, hr => by
+    simp only [List.flatMap_cons, Nat.mul_zero, Nat.zero_add, List.length_cons,
+      Nat.zero_lt_succ, ↓reduceDIte, List.getElem_cons_zero]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by rw [hg]; exact hr),
+      ← List.getD_eq_getElem?_getD]
+  | a :: ps, i + 1, r, hr => by
+    simp only [List.flatMap_cons, List.length_cons, Nat.add_lt_add_iff_right,
+      List.getElem_cons_succ]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by rw [hg]; omega), hg,
+      show 2 * (i + 1) + r - 2 = 2 * i + r by omega, ← List.getD_eq_getElem?_getD,
+      getD_flatMap_two g hg ps i r hr]
+
+theorem lane_packedOf (c : Fin 9 → UInt64) (ys : List E) {i r : ℕ} (hi : i < 8) (hr : r < 2) :
+    Keccak.lane (packedOf c ys) (2 * i + r) =
+      if h : i < ys.length then ([(ys[i].limb 0).lane, (ys[i].limb 1).lane] : List UInt64).getD r 0
+      else 0 := by
+  rw [packedOf, lane_ofFn _ _ (by omega)]
+  simp only [show 2 * i + r < 16 by omega, ↓reduceDIte]
+  exact getD_flatMap_two (fun x : E ↦ [(x.limb 0).lane, (x.limb 1).lane]) (fun _ ↦ rfl) ys i r hr
+
+/-- **A packed permutation's chunk is read back** from its input. -/
+theorem packedChallengeOf_packedOf (c : Fin 9 → UInt64) (ys : List E) {i : ℕ}
+    (hi : i < ys.length) (h8 : i < 8) : packedChallengeOf (packedOf c ys) i = ys[i] := by
+  have h0 := lane_packedOf c ys h8 (r := 0) (by norm_num)
+  have h1 := lane_packedOf c ys h8 (r := 1) (by norm_num)
+  simp only [Nat.add_zero, hi, ↓reduceDIte] at h0 h1
+  rw [packedChallengeOf, h0, h1]
+  simpa using ofLimbs_limb ys[i]
+
+/-- The cells of a packed permutation's input are its chunk. -/
+theorem take_cells8_packedOf (c : Fin 9 → UInt64) {ys : List E} (h : ys.length ≤ 8) :
+    (cells8 (packedOf c ys)).take ys.length = ys := by
+  rw [take_cells8, min_eq_left h]
+  refine List.ext_getElem (by simp) fun i h1 h2 ↦ ?_
+  simp only [List.getElem_map, List.getElem_range]
+  exact packedChallengeOf_packedOf c ys h2 (by omega)
+
+/-- The rate as eight cells of `E`. -/
+def rateEquiv : (Fin 16 → UInt64) ≃ (Fin 8 → E) where
+  toFun v i := E.ofLimbs (K.ofLane (v ⟨2 * i.val, by omega⟩)) (K.ofLane (v ⟨2 * i.val + 1, by omega⟩))
+  invFun f j := ((f ⟨j.val / 2, by omega⟩).limb ⟨j.val % 2, Nat.mod_lt _ (by norm_num)⟩).lane
+  left_inv v := by
+    funext j
+    fin_cases j <;> simp
+  right_inv f := by
+    funext i
+    fin_cases i <;> simpa using ofLimbs_limb _
+
+/-- A state is its eight cells and its capacity. -/
+def cellsEquiv : KeccakState ≃ (Fin 8 → E) × (Fin 9 → UInt64) :=
+  (splitEquiv 16 (by norm_num)).trans (Equiv.prodCongr rateEquiv (Equiv.refl _))
+
+theorem cellsEquiv_fst (u : KeccakState) (i : Fin 8) :
+    (cellsEquiv u).1 i = packedChallengeOf u i := by
+  show rateEquiv ((splitEquiv 16 (by norm_num)) u).1 i = _
+  simp only [rateEquiv, Equiv.coe_fn_mk, splitEquiv_fst]
+  rfl
+
+theorem cells8_eq_ofFn (u : KeccakState) :
+    cells8 u = List.ofFn fun i : Fin 8 ↦ (cellsEquiv u).1 i := by
+  refine List.ext_getElem (by simp) fun i h1 h2 ↦ ?_
+  simp only [cells8, List.getElem_map, List.getElem_range, List.getElem_ofFn, cellsEquiv_fst]
+
+/-- **The cells of a uniform state are uniform and independent.** -/
+theorem sum_cells8_div (f : List E → ℝ≥0∞) :
+    (∑ u : KeccakState, f (cells8 u)) / Fintype.card KeccakState = avgPk 8 f := by
+  have h := sum_fst_div cellsEquiv fun v ↦ f (List.ofFn v)
+  simp only [← cells8_eq_ofFn] at h
+  rw [h, avgPk_eq_sum, Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
+
+/-- The proof of work on a uniform challenge's first limb succeeds with probability at most
+`2^-min(b, 64)`. -/
+theorem avg_powOk_limb_le (b : ℕ) :
+    (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ c : E, ind (powOk b (c.limb 0).lane = true) ≤
+      2⁻¹ ^ min b 64 := by
+  let e : E ≃ UInt64 × UInt64 := lanesEquiv.symm.trans (piFinTwoEquiv fun _ ↦ UInt64)
+  have h := sum_fst_div e fun w ↦ ind (powOk b w = true)
+  have he : ∀ c : E, (e c).1 = (c.limb 0).lane := fun _ ↦ rfl
+  simp only [he] at h
+  rw [← ENNReal.div_eq_inv_mul, h]
+  exact sum_powOk_lane_div_le b
+
+/-- **The proof of work and a grind's packed draw are independent**: the proof of work on lane `2`
+times a function of the cells the draw takes (`groundCells`) averages to at most `2^-min(b, 64)`
+times the function's average over seven uniform challenges. -/
+theorem sum_powOk_mul_groundCells_div_le (b : ℕ) (f : List E → ℝ≥0∞) :
+    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true) * f (groundCells u)) /
+        Fintype.card KeccakState ≤ 2⁻¹ ^ min b 64 * avgPk 7 f := by
+  let F : List E → ℝ≥0∞ := fun L ↦
+    ind (powOk b ((L.getD 1 0).limb 0).lane = true) * f (L.headD 0 :: L.drop 2)
+  have hF : ∀ u, ind (powOk b (Keccak.lane u 2) = true) * f (groundCells u) = F (cells8 u) := by
+    intro u
+    have h1 : ((cells8 u).getD 1 0).limb 0 = K.ofLane (Keccak.lane u 2) := by
+      show (packedChallengeOf u 1).limb 0 = _
+      simp [packedChallengeOf]
+    simp only [F, h1, groundCells_eq]
+    rfl
+  simp only [hF]
+  rw [sum_cells8_div]
+  have h8 : avgPk 8 F = ((Fintype.card E : ℝ≥0∞)⁻¹ * ∑ c : E, ind (powOk b (c.limb 0).lane = true)) *
+      avgPk 7 f := by
+    rw [avgPk_succ, avgPk_succ (n := 6)]
+    simp only [avgPk_succ, F, List.getD_cons_succ, List.getD_cons_zero, List.headD_cons,
+      List.drop_succ_cons, List.drop_zero, avgPk_mul_left]
+    simp only [← Finset.mul_sum, ← Finset.sum_mul]
+    ring
+  rw [h8]
+  gcongr
+  exact avg_powOk_limb_le b
+
 end
 
 end LeanVM.Protocol.Compile.Rom

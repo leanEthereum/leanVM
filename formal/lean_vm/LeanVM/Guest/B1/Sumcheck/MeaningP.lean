@@ -21,7 +21,7 @@ return words, the Fiat-Shamir sponge as the guest carries it (`Fs`, `B1/Common/S
 | function | meaning |
 | --- | --- |
 | `sumcheck_round4` (inlined) | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample), the sponge in a round record |
-| `batch_sumcheck__L23` | `Node.batchRounds`, 23 rounds |
+| `batch_sumcheck__L25` | `Node.batchRounds`, 25 rounds |
 
 Each round's `fs_grind_squeeze` grinds `ROUND3_GRIND_BITS`, `ROUND5_GRIND_BITS`,
 `ROUND2_GRIND_BITS` bits, all zero as deployed (`grindingBits` of a degree at most `8`): its
@@ -121,10 +121,10 @@ def MeaningBatchSumcheck (n : ℕ) (rd : Reader) : List E → List E → Prop
         ReadsAt rd point res.1.1 ∧ rets = res.2.cap ++ [res.1.2]
   | _, _ => False
 
-/-- `batch_sumcheck__L23`'s function in `P` is its meaning. -/
+/-- `batch_sumcheck__L25`'s function in `P` is its meaning. -/
 def batch_sumcheck_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (args rets : List E),
-    P.Rel rd "batch_sumcheck__L23" args rets ↔ MeaningBatchSumcheck 23 rd args rets
+    P.Rel rd "batch_sumcheck__L25" args rets ↔ MeaningBatchSumcheck 25 rd args rets
 
 end
 end LeanVM.Guest.B1

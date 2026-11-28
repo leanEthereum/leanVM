@@ -30,7 +30,10 @@
 # unpruned. The guests (`fixed`) are the program of
 # crates/stable_prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/zkdsl_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
-# at each of the four rates, read from the source tree. Every proof is verified by the Rust
+# at each of the four rates, read from the source tree; in `fixtures` mode also the chain at 260000
+# loop steps at rate 1, of pointer width 24, the widest the guest's children reach (`traces` mode
+# leaves it out: the Lean prover would take hours on it), and the chain at 10 and 150 loop steps, at rates 2 and 3,
+# of pointer widths 9 and 13, the two whose chunks include a five-bit one. Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
 # In `fixtures` mode `scripts/rust-verifier-cli` must also accept it from the written files before
 # the script returns; the fixtures are consumed by scripts/fuzz-verifier.py, which runs the Lean
@@ -176,8 +179,15 @@ fn main() {
     let out = Path::new(&args[3]);
     let fixtures = if args.get(4).is_some_and(|flag| flag == "--corpus") {
         corpus(checkout)
-    } else {
+    } else if traces {
         fixed(checkout)
+    } else {
+        let mut fixtures = fixed(checkout);
+        fixtures.push(("chain260000-rate1".to_string(), chain_case(260000), 1));
+        // The pointer widths whose chunks include a five-bit one (9: `[4, 5]`, 13: `[4, 5, 4]`).
+        fixtures.push(("chain10-rate2".to_string(), chain_case(10), 2));
+        fixtures.push(("chain150-rate3".to_string(), chain_case(150), 3));
+        fixtures
     };
     for (name, (program, witness, public_input), log_inv_rate) in fixtures {
         let directory = out.join(&name);

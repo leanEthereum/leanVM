@@ -119,7 +119,7 @@ theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E)
 /-- The statement's price at `n0`, `n3` declared claims. -/
 @[expose] def decStmtAtPrice (R n0 n3 : ℕ) : ℕ :=
   2 * 224 + ((4 * R + 12367) * n0 + 5) + ((4 * R + 12367) * n3 + 5) + (2 * R + 5979) +
-    ((R + 3003) * 24 + 17) + 820 + 36
+    ((R + 3003) * 26 + 17) + 888 + 36
 
 /-- **The statement, its counts given** (`decStmtAtC`): linear in the declared claims,
 `decStmtAtPrice R n0 n3`, the DA digest's slot `pick < 2^39`. -/
@@ -133,8 +133,8 @@ theorem decStmtAt_cost (hP : Includes P Decoder.decStmtAtC.costDeps) (p53 p56 p3
   have := xmssRun_cost P hrd hR (by includes) (LeanVM.Parameters.g ^ 4) n0 (p53.limb 0) h0
   have := sphincsRun_cost P hrd hR (by includes) (LeanVM.Parameters.g ^ 4) n3 (p56.limb 0) h3
   have := daDigestAtP_cost P hrd hR (by includes) p334 pick (by omega)
-  have := readCells_cost P hrd hR (by includes) p402 24 (by norm_num)
-  have := deferOfCells_cost P (by includes) (readCells rd p402 24)
+  have := readCells_cost P hrd hR (by includes) p402 26 (by norm_num)
+  have := deferOfCells_cost P (by includes) (readCells rd p402 26)
   unfold decStmtAtPrice
   omega
 
@@ -190,14 +190,14 @@ theorem decStmt_cost (D : LeanVM.Extraction.Fast.DiscreteLogTables)
   unfold decStmtPrice
   omega
 
-/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `46·S + 46·R + 138500`. -/
+/-- The sumcheck's rounds the batching hints (`aggRoundsC`): at most `50·S + 50·R + 151000`. -/
 theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
-    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 46 * S + 46 * R + 138500 := by
-  rw [Decoder.aggRoundsC.costEq P hP rd rdV hrd σ σV hσ]
+    machineCost P Decoder.aggRoundsC.costIdx [rdV, σV] ≤ 50 * S + 50 * R + 151000 := by
+  rw [Decoder.aggRoundsC.costEq P hP rd rdV hrd σ σV hσ, show bytecodeVars = 25 from rfl]
   have m := rangeMap_le P (by includes) (by includes) _
     (.closure Decoder.aggRoundsC.lam0.costIdx [rdV, σV])
     (fun k ↦ RunsApp.of_spec (Decoder.aggRoundsC.lam0.costSpec P (by includes) rd rdV hrd σ σV hσ k))
-    (2 * S + 2 * R + 5993) 23 23 le_rfl (by norm_num) (fun k hk ↦ by
+    (2 * S + 2 * R + 5993) 25 25 le_rfl (by norm_num) (fun k hk ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.nil_append,
         Decoder.aggRoundsC.lam0.costEq P (by includes) rd rdV hrd σ σV hσ, List.length_cons,
         List.length_cons, List.length_nil]
@@ -209,9 +209,9 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
   omega
 
 /-- **The batching's hints** (`aggHintsC`): the nonce, the rounds, the bytecode's value: at most
-`48·S + 47·R + 141600`. -/
+`52·S + 51·R + 154200`. -/
 theorem aggHints_cost (hP : Includes P Decoder.aggHintsC.costDeps) :
-    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 48 * S + 47 * R + 141600 := by
+    machineCost P Decoder.aggHintsC.costIdx [rdV, σV] ≤ 52 * S + 51 * R + 154200 := by
   rw [Decoder.aggHintsC.costEq P hP rd rdV hrd σ σV hσ]
   have := aggRounds_cost P hσ hS hrd hR (by includes)
   have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) 0 (by norm_num)

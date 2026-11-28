@@ -20,16 +20,16 @@ public section
 /-! ## Codes -/
 
 /-- `OP_XOR = 1, OP_MUL = 2, OP_SET = 4, OP_DEREF = 8, OP_JUMP = 16, OP_KECCAK = 32`. -/
-example : Opcode.xor.busCode = 0x01 ∧ Opcode.mulNative.busCode = K.ofBits 0x02 ∧ Opcode.setConstant.busCode = K.ofBits 0x04 ∧
-    Opcode.deref.busCode = K.ofBits 0x08 ∧ Opcode.jump.busCode = K.ofBits 0x10 ∧ Opcode.keccak.busCode = K.ofBits 0x20 := by
+example : Opcode.xor.code = 0x01 ∧ Opcode.mulNative.code = K.ofBits 0x02 ∧ Opcode.setConstant.code = K.ofBits 0x04 ∧
+    Opcode.deref.code = K.ofBits 0x08 ∧ Opcode.jump.code = K.ofBits 0x10 ∧ Opcode.keccak.code = K.ofBits 0x20 := by
   decide +kernel
 
 /-- The codes are the six lowest addresses, in order. -/
-example : ∀ o : Opcode, o.busCode = addressOfIndex (Opcode.ctorIdx o) := by
+example : ∀ o : Opcode, o.code = addressOfIndex (Opcode.ctorIdx o) := by
   intro o; cases o <;> rfl
 
 /-- Mutation: two codes never coincide; `code_injective` on the pair closest in the table. -/
-example : Opcode.deref.busCode ≠ Opcode.jump.busCode :=
+example : Opcode.deref.code ≠ Opcode.jump.code :=
   fun h ↦ Opcode.noConfusion (Opcode.code_injective h)
 
 /-! ## Caps -/

@@ -40,7 +40,7 @@ pub enum Expr {
     /// Field division `a / b` (single slash): a **runtime** field operation,
     /// `a · b⁻¹`. Lowered to one `MUL` whose quotient operand is unset, so the
     /// write-once back-solve fills it with `a · b⁻¹` and the `MUL` constraint
-    /// pins `quotient · b == a` (§range-check trick). No hint: the inverse is
+    /// pins `quotient · b == a`. No hint: the inverse is
     /// nondeterministic but the constraint binds it. `b == 0` is rejected
     /// unless `a == 0` too: `0 / 0` leaves the quotient unconstrained. `1 / b`
     /// therefore enforces `b != 0`. Distinct from the compile-time `//` ([`Expr::Div`]).

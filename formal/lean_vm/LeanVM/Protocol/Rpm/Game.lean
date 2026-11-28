@@ -9,9 +9,7 @@
 
 module
 
-import LeanVM.Protocol.Rpm.Paths
 import LeanVM.Facts.Verifier
-import LeanVM.Protocol.Verifier.Load
 import Statement.Fast.Keccak
 import FastFields.QuadExt
 import FastFields.FieldWords

@@ -11,7 +11,6 @@ public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Logic
 public import LeanVM.Guest.Memory
-public import LeanVM.Guest.Memory.TableCells
 public import LeanVM.Guest.JumpTable.Keys
 public import LeanVM.Guest.JumpTable.Code
 import all Statement.Data.Bytecode

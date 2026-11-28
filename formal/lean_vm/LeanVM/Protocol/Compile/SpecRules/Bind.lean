@@ -87,9 +87,11 @@ def mono (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
   start_D h hp := S.start_D h (hPre h hp)
   start_V h hp := (S.start_V h (hPre h hp)).trans hL
   read := S.read
+  readPacked := S.readPacked
   grind := S.grind
   commit := S.commit
   sample := S.sample
+  samplePacked := S.samplePacked
   query := S.query
   moveEnd := S.moveEnd
   retEnd := S.retEnd
@@ -106,9 +108,11 @@ def dead : Spec p (fun _ ↦ False) Post εmax L T where
   start_D _ h := h
   start_V _ h := h.elim
   read := by intros; contradiction
+  readPacked := by intros; contradiction
   grind := by intros; contradiction
   commit := by intros; contradiction
   sample := by intros; exact avg_le_one _ fun _ ↦ le_rfl
+  samplePacked := by intros; exact (avgPk_const _ _).le
   query := by intros; exact le_rfl
   moveEnd := by intros; exact le_rfl
   retEnd := by intros; exact le_rfl
@@ -130,6 +134,9 @@ noncomputable def exPre {ι : Type} {Pre : ι → List Ev → Prop}
   read x hl ha hD := by
     split_ifs at hD ⊢ with h
     exact (S _).read x hl ha hD
+  readPacked xs hl ha hn hD := by
+    split_ifs at hD ⊢ with h
+    exact (S _).readPacked xs hl ha hn hD
   grind hl ha hD := by
     split_ifs at hD ⊢ with h
     exact (S _).grind hl ha hD
@@ -140,6 +147,10 @@ noncomputable def exPre {ι : Type} {Pre : ι → List Ev → Prop}
     split_ifs with h
     · exact (S _).sample hl ha
     · exact avg_le_one _ fun _ ↦ le_rfl
+  samplePacked hl ha := by
+    split_ifs with h
+    · exact (S _).samplePacked hl ha
+    · exact (avgPk_const _ _).le
   query hl ha hq := by
     split_ifs with h
     · exact (S _).query hl ha hq
@@ -333,6 +344,18 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
     | ret a => exact absurd rfl (hnr a)
     | read k' => exact ⟨.read x hr hq, S.read x hr hq hD⟩
     | _ => simp [VerifierProgram.bind] at hb
+  readPacked := by
+    intro h₀ l n k xs hl ha hn hD
+    refine bindD_keep _ hl hD (fun q hr hq hnr hb hD ↦ ?_)
+      (fun a _ _ hr he hD ↦ (F a).readPacked xs hr (he.trans ha) hn hD)
+    rw [ha] at hb
+    cases q with
+    | ret a => exact absurd rfl (hnr a)
+    | readPacked n' k' =>
+      simp only [VerifierProgram.bind, Option.some.injEq, VerifierProgram.readPacked.injEq] at hb
+      obtain ⟨rfl, -⟩ := hb
+      exact ⟨.readPacked xs hr hq hn, S.readPacked xs hr hq hn hD⟩
+    | _ => simp [VerifierProgram.bind] at hb
   grind := by
     intro h₀ l b k hl ha hD
     refine bindD_keep _ hl hD (fun q hr hq hnr hb hD ↦ ?_)
@@ -379,6 +402,31 @@ noncomputable def bind : Spec (p.bind f) Pre Q εmax Lp T where
       split_ifs
       · exact avg_le_one _ fun c ↦ (F a).le_one _ _
       · exact (F a).sample h2 hfa
+  samplePacked := by
+    intro h₀ l n k hl ha
+    rcases reach_bind_pos hl with ⟨hs, hr, q, hq, hnr, hb⟩ | ⟨a, l₁, l₂, hs, -, -, -, h2, hb⟩
+    · rw [ha] at hb
+      cases q with
+      | ret a => exact absurd rfl (hnr a)
+      | samplePacked n' k' =>
+        simp only [VerifierProgram.bind, Option.some.injEq, VerifierProgram.samplePacked.injEq]
+          at hb
+        obtain ⟨rfl, -⟩ := hb
+        rw [bindV_none hs]
+        calc avgPk n (fun cs ↦ bindV S F h₀ (l ++ [Ev.samplePacked cs]))
+            ≤ avgPk n (fun cs ↦ S.V h₀ (l ++ [Ev.samplePacked cs])) :=
+              avgPk_mono fun cs hcs ↦ bindV_le_child hs (.samplePacked cs hr hq hcs)
+          _ ≤ S.V h₀ l := S.samplePacked hr hq
+      | _ => simp [VerifierProgram.bind] at hb
+    · have hfa : (f a).after l₂ = some (.samplePacked n k) := hb.symm.trans ha
+      have hc : ∀ cs, bindV S F h₀ (l ++ [Ev.samplePacked cs]) =
+          (F a).V (h₀ ++ l₁) (l₂ ++ [Ev.samplePacked cs]) :=
+        fun cs ↦ bindV_after (retSplit_append [Ev.samplePacked cs] hs) (by simp)
+      simp only [hc]
+      rw [bindV_some hs]
+      split_ifs
+      · exact avgPk_le_of_le fun cs _ ↦ (F a).le_one _ _
+      · exact (F a).samplePacked h2 hfa
   query := by
     intro h₀ l i ps k rows hl ha hans
     rcases reach_bind_pos hl with ⟨hs, hr, q, hq, hnr, hb⟩ | ⟨a, l₁, l₂, hs, he, -, -, h2, hb⟩

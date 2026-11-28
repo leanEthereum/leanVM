@@ -1,45 +1,45 @@
 /-
   LeanVM.Guest.EndExecAKeep
 
-  The bump pointer's track along the run: each step keeps `YAlloc`, from the words each hint
-  reserves on the honest tree and the cursor following each step of the tree track.
+  The bump pointer's track along the run, aligned: each step keeps `YAlloc`, and the allocation
+  track's obligations follow from the steps each hint takes on the honest tree, the cursor following
+  each step of the tree track, and each allocation hint ready at the bump pointer.
 -/
 
 module
 
 public import LeanVM.Guest.EndExecA
-public import LeanVM.Guest.EndExecYKeep
-public import LeanVM.Guest.EndExecYAl
-public import LeanVM.Guest.Memory.Bump
-public import LeanVM.Guest.Bridge.StepOff
-public import LeanVM.Guest.EndExecCUsed
-import all Statement.Data.Bytecode
+public import LeanVM.Guest.EndExecH
 import all Statement.Data.AdviceHints
 
 /-!
-# The bump pointer's track along the run
+# The bump pointer's track along the run, aligned
 
-`treeSizes A e off`: the words each hint at offset `off` of frame `e` reserves on the honest tree,
-in order: a buffer hint its function's buffer of its index (`Bridge.nbAt` before it), a callee
-frame's hint the block of the frame's next callee, any other hint nothing.
+The bus era's `EndExecAKeep.lean` on Hotwire's aligned allocator: a hint moves the bump pointer by
+a step `(a, n)` (`Memory.bump`: `c ↦ allocBase a c + n`), not by a size.
 
-`keepY_alloc`: each step keeps `YAlloc`, from two facts:
+`treeSteps L A e off`: the steps the hints at offset `off` of frame `e` take on the honest tree, in
+order: a buffer hint its function's buffer of its index (`Bridge.nbAt` before it), never aligned; a
+callee frame's hint the block of the frame's next callee, aligned as the layout allocates that
+callee (`L.al`); any other hint none.
 
-* `SizesAt`: each hint at a frame's pc, run from the state the hints before it reach, reserves its
-  `treeSizes` entry (`Memory.rsz`: its size read off the reference memory);
-* `CurArith`: the reference step from a state of the tree track, its frames chained, lands at a
-  state of the track whose top frame's cursor is the old one moved by the offset's `treeSizes`, its
-  frames chained (`Bridge.stepRule_at` with the allocation check's static facts).
+What is left, three named facts on the references of the honest tree (`RefH`), the bus era's:
 
-In the prologue there are no hints and `nextFree` is past `main`'s frame; at its last step the run
-enters `main`, whose frame's cursor is past its frame (`refTrack_mainA`).
+* `SizesAt L D A`: each hint at a frame's pc, run from the state the hints before it reach, takes its
+  `treeSteps` entry (`Memory.rszA`: its alignment and its size read off the reference memory);
+* `CurArith L D A`: the reference step from a state of the tree track, its frames chained, lands at
+  a state of the track whose top frame's cursor is the old one bumped by the offset's `treeSteps`,
+  its frames chained;
+* `AllocReady L D A`: each allocation hint, run from the state the hints before it reach, whose bump
+  pointer is the frame's cursor bumped by the steps those hints take, has what it needs (`HintOk`)
+  and its reservation within the reference's `2^κ` (`AllocB`).
 
-`hintAlloc_of`: `ExecGaps.hintAlloc` from `YAlloc`, `SizesAt` and `AllocReady` (each allocation hint has
-what it needs once the bump pointer is the frame's cursor moved by the words the hints before it
-reserve): the hints before it move the bump pointer by their `treeSizes` (`Memory.hints_nextFree`).
-`keepY_allocA`, `hintAlloc_alignA`: both on the deployed alignment. `CurArith alignA` is proved in
-`EndExecACur.lean` (`curArith_alignA`); `SizesAt alignA` and `AllocReady alignA` in `EndExecAReady.lean`
-from the facts it names (`AllocGaps`).
+Proved here: `keepY_alloc` (each step keeps `YAlloc`, from `SizesAt` and `CurArith`: the hints move
+the bump pointer by their steps, `Memory.hints_nextFreeA`, the instruction keeps it,
+`runOp_nextFree`; in the prologue there are no hints and `nextFree` is `main`'s frame, at its last
+step the run enters `main`, whose cursor is past its frame, `refTrack_mainA`), `hintAllocW_of`
+(`AllocReady` at the bump pointer the hints before it reach), and `allocTrack_of`: `AllocTrack R
+(YAlloc L D A)` from the bridge's premises, `MainA L`, `SizesAt`, `CurArith` and `AllocReady`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -48,65 +48,60 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Memory
 open LeanVM.Guest.Core hiding Hint
 open LeanVM.Guest.Bridge hiding St
 open LeanVM.Prover.Exec
-open LeanVM.Guest.End (mainEntry)
+open LeanVM.Guest.Mode (HintIn)
 
 @[expose] public section
 
 /-- The hints at offset `off` of function `F`. -/
 def hintsAtOff (F : FnAl) (off : ℕ) : List Hint := (F.d.2.2.lookup (F.X.entry + off)).getD []
 
-/-- **The words the hints at offset `off` of frame `e` reserve on the honest tree**, in order. -/
-noncomputable def treeSizes (A : String → FnAl) (e : Ent) (off : ℕ) : List ℕ :=
-  let F := A e.I.t.name
-  let hs := hintsAtOff F off
-  (List.range hs.length).map fun i ↦ match hs[i]? with
-    | some h =>
-      if isBuf F.X h then e.I.t.bufs.getD (nbAt F.X F.d off + ((hs.take i).filter (isBuf F.X)).length) 0
-      else if isFrame F.X h then
-        (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0
-      else 0
-    | none => 0
+/-- **The steps the hints at offset `off` of frame `e` take on the honest tree**, in order. -/
+noncomputable def treeSteps (L : Lay) (A : String → FnAl) (e : Ent) (off : ℕ) : List (Bool × ℕ) :=
+  stepsOf (isBuf (A e.I.t.name).X) (isFrame (A e.I.t.name).X) (fun k ↦ e.I.t.bufs.getD k 0)
+    ((((e.I.t.kidsC coreProgram.loop)[e.nc]?).map fun k ↦ (L.al k.name, k.block L.fs coreProgram.loop)).getD
+      (false, 0))
+    (hintsAtOff (A e.I.t.name) off) (nbAt (A e.I.t.name).X (A e.I.t.name).d off)
 
-/-- **Each hint reserves its `treeSizes` entry**: at a state of the tree track on the reference run, its
-frames chained, no call before its buffers, the `i`-th hint at its pc, run from the state the hints before it reach,
-whose written cells hold the reference's words. -/
-def SizesAt (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
-    RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
+/-- **Each hint takes its `treeSteps` entry**: at a state of the tree track on a reference of the
+honest tree, its frames chained, no call before its buffers, the `i`-th hint at its pc, run from
+the state the hints before it reach, whose written cells hold the reference's words. -/
+def SizesAt (L : Lay) (D : Ref → RefD) (A : String → FnAl) : Prop :=
+  ∀ r : Ref, RefH L (D r) r → r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
+    RefTrack L D A r s.pc s.fp (done, e :: st) → ChainA L A (memOf r.img) (e :: st) →
     NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx →
       (∀ c v, sx.mem.get c = some v → refMem r.img c = v) →
-      rsz (refMem r.img) sx h = (treeSizes A e (s.pc - entOf A e.I.t.name)).getD i 0
+      rszA (refMem r.img) sx h = (treeSteps L A e (s.pc - entOf A e.I.t.name)).getD i (false, 0)
 
 /-- **Each allocation hint is ready where the tree puts the bump pointer**: at a state of the tree
-track on the reference run, its frames chained, no call before its buffers, the `i`-th hint at its pc, an allocation whose cells it reads are written,
-run from the state the hints before it reach, whose bump pointer is the frame's cursor moved by the
-words those hints reserve, has what it needs. -/
-def AllocReady (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
-    RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
+track on a reference of the honest tree, its frames chained, no call before its buffers, the `i`-th
+hint at its pc, an allocation whose cells it reads are written, run from the state the hints before
+it reach, whose bump pointer is the frame's cursor bumped by the steps those hints take, has what
+it needs, its reservation within the reference's `2^κ`. -/
+def AllocReady (L : Lay) (D : Ref → RefD) (A : String → FnAl) : Prop :=
+  ∀ r : Ref, RefH L (D r) r → r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ done e st (s : St),
+    RefTrack L D A r s.pc s.fp (done, e :: st) → ChainA L A (memOf r.img) (e :: st) →
     NcTop A e (s.pc - entOf A e.I.t.name) → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
       (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx → MovesW (refMem r.img) s sx →
-      isAllocHint h = true → Mode.HintIn sx h →
-      sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) + ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
+      isAllocHint h = true → HintIn sx h →
+      sx.nextFree = bumpL (cursorAt L A e (s.pc - entOf A e.I.t.name))
+        ((treeSteps L A e (s.pc - entOf A e.I.t.name)).take i) →
       HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) sx h
 
-/-- **The cursor follows each step of the tree track**: from a state of the track at `(pc, fp)`, its
-frames chained, no call before its buffers, the reference step to registers short of the final ones
-lands at a state of the track whose top frame's cursor is the old one moved by the words the hints at
-`pc` reserve, its frames chained, no call before its buffers. -/
-def CurArith (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st r', RefTrack A r pc fp (done, e :: st) →
-    ChainA A (memOf r.img) (e :: st) → NcTop A e (pc - entOf A e.I.t.name) →
+/-- **The cursor follows each step of the tree track**: from a state of the track at `(pc, fp)` on a
+reference of the honest tree, its frames chained, no call before its buffers, the reference step to
+registers short of the final ones lands at a state of the track whose top frame's cursor is the old
+one bumped by the steps the hints at `pc` take, its frames chained, no call before its buffers. -/
+def CurArith (L : Lay) (D : Ref → RefD) (A : String → FnAl) : Prop :=
+  ∀ r : Ref, RefH L (D r) r → r.Ok → ∀ pc fp done e st r', RefTrack L D A r pc fp (done, e :: st) →
+    ChainA L A (memOf r.img) (e :: st) → NcTop A e (pc - entOf A e.I.t.name) →
     step guestProgram r.img (regs pc fp) = some r' → r' ≠ Registers.final guestProgram →
-    ∃ pc' fp' done' e' st', r' = regs pc' fp' ∧ RefTrack A r pc' fp' (done', e' :: st') ∧
-      cursorAt A e' (pc' - entOf A e'.I.t.name) =
-        cursorAt A e (pc - entOf A e.I.t.name) + (treeSizes A e (pc - entOf A e.I.t.name)).sum ∧
-      ChainA A (memOf r.img) (e' :: st') ∧ NcTop A e' (pc' - entOf A e'.I.t.name) ∧
-      ∃ off, pc = entOf A e.I.t.name + off ∧
-        StepOff coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.img A e off st pc' fp' (e' :: st')
+    ∃ pc' fp' done' e' st', r' = regs pc' fp' ∧ RefTrack L D A r pc' fp' (done', e' :: st') ∧
+      cursorAt L A e' (pc' - entOf A e'.I.t.name) =
+        bumpL (cursorAt L A e (pc - entOf A e.I.t.name)) (treeSteps L A e (pc - entOf A e.I.t.name)) ∧
+      ChainA L A (memOf r.img) (e' :: st') ∧ NcTop A e' (pc' - entOf A e'.I.t.name)
 
 end
 
@@ -166,85 +161,46 @@ theorem runOp_nextFree {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s
       exact (nf_logOr h3).trans ((nf_logOr h2).trans (withMem_nextFree h1).1)
   | keccak ins out inOdd outOdd count =>
     simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, _, -, s1, h1, rfl⟩ := e
+    obtain ⟨_, -, _, -, _, -, _, -, s1, h1, rfl⟩ := e
     exact (withMem_nextFree h1).1
 
-/-! ## `main`'s entry -/
+/-! ## The hints' steps -/
 
-/-- **The root's block is `main`'s frame.** -/
-theorem block_main {r : Ref} (hr : r.Ok) : r.T.block B2C.fs coreProgram.loop = r.adv.mainFrame := by
-  obtain ⟨rd, hH, -⟩ := hr.honest
-  have hv := hH.valid
-  have hn := hr.name
-  rcases hT : r.T with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
-  · rw [hT] at hn
-    simp only [Tree.name] at hn
-    subst hn
-    rw [Tree.block, ite_eq_right (by rw [B2C.main_not_loop]; decide), Nat.add_zero, B2C.fs_main]
-    show B2C.mainFrame = Data.adviceMainFrame
-    decide
-  · rw [hT] at hv; exact hv.elim
+variable {L : Lay} {D : Ref → RefD} {A : String → FnAl}
 
-/-- **The track at `main`'s entry, its cursor past `main`'s frame**: `main`'s frame at its body, at
-frame `0`, nothing done. -/
-theorem refTrack_mainA {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
-    (hmain : entOf A "main" = mainEntry) {r : Ref} (hr : r.Ok) :
-    ∃ e, RefTrack A r mainEntry 0 ([], [e]) ∧ cursorAt A e (mainEntry - entOf A e.I.t.name) = r.adv.mainFrame ∧
-      ChainA A (memOf r.img) [e] ∧ NcTop A e (mainEntry - entOf A e.I.t.name) ∧ e.I.t = r.T ∧ e.nc = 0 ∧
-      mainEntry - entOf A e.I.t.name = 0 := by
-  obtain ⟨rd, hH, -⟩ := hr.honest
-  obtain ⟨I, rest, he, hIt, hfp, hcur, -⟩ := head_insts (fs := B2C.fs) (lp := coreProgram.loop) (H := B2C.H)
-    r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr
-  have hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T := by
-    rw [honestInsts, he]; exact List.mem_cons_self
-  have hv := hH.valid
-  rw [← hIt] at hv
-  obtain ⟨fn, hf⟩ : ∃ fn, coreProgram.find? I.t.name = some fn := by
-    rcases hIt' : I.t with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
-    · rw [hIt'] at hv
-      obtain ⟨fn, hf, -⟩ := hv
-      exact ⟨fn, hf⟩
-    · rw [hIt'] at hv; exact hv.elim
-  have htr := trackOk_init (rd := r.rd0) hI hf hv
-  rw [hIt] at htr
-  have hname : I.t.name = "main" := by rw [hIt]; exact hr.name
-  have hal0 : alOf A "main" 0 = some fn.body := by
-    rw [hname] at hf
-    change alignAt (A "main").X (A "main").body (A "main").code (A "main").d 0 = some fn.body
-    rw [alignAt_zero (hP.ok _ _ hf), hP.body _ _ hf]
-  have h0 := refOk_init (M := memOf r.img) (ent := entOf A) (al := alOf A) htr hfp (by rw [hname]; exact hal0)
-  rw [hname, hmain] at h0
-  have hen : entOf A (Ent.enter coreProgram I fn).I.t.name = mainEntry := by
-    show entOf A I.t.name = mainEntry
-    rw [hname, hmain]
-  refine ⟨_, h0, ?_, fun _ hl hk ↦ absurd (List.eq_nil_of_length_eq_zero (Nat.le_zero.mp hl)) hk, fun _ ↦ rfl, hIt, rfl,
-    by rw [hen, Nat.sub_self]⟩
-  rw [hen, Nat.sub_self, cursorAt]
-  have hnb : nbAt (A I.t.name).X (A I.t.name).d 0 = 0 := by
-    unfold nbAt
-    simp
-  have hpe : pendAt (A I.t.name).X (A I.t.name).code (A I.t.name).d 0 = false := by
-    unfold pendAt pendIn
-    simp
-  show I.curAt B2C.fs coreProgram.loop (nbAt (A I.t.name).X (A I.t.name).d 0) (calls ([] : List Ev)).length +
-    (bif pendAt (A I.t.name).X (A I.t.name).code (A I.t.name).d 0 then _ else 0) = _
-  rw [hnb, hpe, Inst.curAt, hcur, ← block_main hr]
-  simp [calls]
+/-- **The hints' list at a frame of the track has its `treeSteps`' length**, and is the advice's at
+the frame's offset. -/
+theorem hints_len (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A) {r : Ref}
+    {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St} {done : List Pop} {e : Ent} {st : List Ent}
+    (htr : RefTrack L D A r s.pc s.fp (done, e :: st)) (hpcS : s.pc < C.ops.size) :
+    ((C.hints[s.pc]?).getD []).length = (treeSteps L A e (s.pc - entOf A e.I.t.name)).length := by
+  have hE := htr.track.ents e List.mem_cons_self
+  obtain ⟨-, hat⟩ := htr.linked.top
+  obtain ⟨off, hpc, p, hal', -, -, -⟩ := hat
+  obtain ⟨ins, -, -, -, -, hins, -⟩ := alignAt_step (hP.ok _ _ hE.find) hal'
+  have hsize := (ctx_of_spec hC).1
+  have hpcE : s.pc = (A e.I.t.name).X.entry + off := hpc
+  have hh : (C.hints[s.pc]?).getD [] = Mode.hintsAt Data.adviceHints s.pc :=
+    Mode.ctx_hints hC Mode.adviceHints_incr (by rw [← hsize]; exact hpcS)
+  have hoff : s.pc - entOf A e.I.t.name = off := by
+    show s.pc - (A e.I.t.name).X.entry = off
+    omega
+  rw [hoff, treeSteps, length_stepsOf, hh, hintsAtOff, hAd _ _ hE.find off ins hins, ← hpcE]
 
 /-! ## The step -/
 
 /-- **Each step keeps the bump pointer's track**, from `SizesAt` and `CurArith`. -/
-theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
-    (hmain : entOf A "main" = mainEntry) (hJ : JumpCellsAt A) (hL : AlLayout A) (hAd : AdvAl A)
-    (hS : SizesAt A) (hCA : CurArith A) {Y : Ref → St → Prop} (hD : DerefPow Y) (hY : ∀ r s, Y r s → YAlloc A r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s op s1 s', OnRun (XOf Y) r s →
-      C.ops[s.pc]? = some op → ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → runOp C s1 op = .ok s' → YAlloc A r { s' with steps := s'.steps + 1 } := by
-  intro r hr C hC s op s1 s' hon hop e1 hm e
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  have hYs := hY r s hon.1.2.2
-  have hmo : OpModed (refMem r.img) s1 op :=
-    Mode.opModed_of hm.fine.agree (reads_of_runOp e) ((refOk_X hP hmain hJ hD hr hC hon hop).congr hm.fp)
+theorem keepY_alloc {Km : Mode.Cert} {E0 : Mode.Env} (hMain : MainOk Km E0)
+    (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = proLen) (hL : AlLayout A)
+    (hAd : AdvAl A) (hM : MainA L) (hS : SizesAt L D A) (hCA : CurArith L D A)
+    {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc L D A r s) {r : Ref} (hR : RefH L (D r) r)
+    (hr : r.Ok) {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St} {op : Op} {s1 s' : St}
+    (hon : OnRun (XOf Y) r s) (hop : C.ops[s.pc]? = some op)
+    (e1 : ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1) (hm : Moves (refMem r.img) s s1)
+    (hmo : OpModed (refMem r.img) s1 op) (e : runOp C s1 op = .ok s') :
+    YAlloc L D A r { s' with steps := s'.steps + 1 } := by
+  have hκ : r.κ ≤ 28 := hr.log
+  have hYs := hY r s hon.1.2
   obtain ⟨r1, k, hk, hstep, hrun1, hd⟩ :=
     step_done hκ hC hm.fine (Mode.onRef_moves hm hon.2.2) (by rw [hm.pc]; exact hop) hmo e
   have hst : s'.steps = s.steps := hd.steps.trans hm.steps
@@ -252,13 +208,12 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
   rw [hm.pc, hm.fp] at hstep
   have hpcS : s.pc < C.ops.size := (Array.getElem?_eq_some_iff.mp hop).1
   have hsize := (ctx_of_spec hC).1
+  have hpc62 : s.pc < 2 ^ 62 := by rw [hsize, guest_logSize] at hpcS; omega
+  have hpos := posAt hR hon.1.1 hpc62 hon.2.1.fp
   have hnf' : s'.nextFree = s1.nextFree := runOp_nextFree e
   refine ⟨fun hlt ↦ ?_, fun hge hn ↦ ?_⟩
   · have hs : s.steps < proLen := by dsimp only at hlt; omega
-    have hpc : s.pc < proLen := by
-      rcases hon.1.1 with ⟨-, hpc, -⟩ | ⟨h, -⟩
-      · omega
-      · omega
+    have hpc : s.pc < proLen := by rw [(hpos.1 hs).1]; exact hs
     show s'.nextFree = _
     rw [hnf', ← hYs.1 hs]
     rw [hints_pro hC rfl hpc] at e1
@@ -273,17 +228,15 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
       rw [run_succ_of_eq rfl] at hrun1
       cases hrun1
   by_cases hpro : s.steps < proLen
-  · obtain ⟨hpc, hfp⟩ : s.pc = s.steps ∧ s.fp = 0 := by
-      rcases hon.1.1 with ⟨-, hpc, hfp⟩ | ⟨h, -⟩
-      · exact ⟨hpc, hfp⟩
-      · omega
-    obtain ⟨k0, t, hset, -⟩ := op_pro hC (show s.pc < proLen by omega)
+  · obtain ⟨hpc, hfp⟩ := hpos.1 hpro
+    obtain ⟨o0, k0, k1, hins0⟩ := pro_set hMain (show s.pc < proLen by omega)
+    have hset := op_pro hC (show s.pc < proLen by omega) hins0
     rw [hop] at hset
     cases hset
     obtain ⟨hpc', hfp', -⟩ := Mode.runOp_next (⟨hm.fine.agree.wf, hm.fine.dl⟩ : s1.Good) hm.fine.fp
       (by rw [hm.pc]; exact hpcS) e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
-    obtain ⟨e0, htr, hcur, hch, hnc0, -, -, -⟩ := refTrack_mainA hP hmain hr
-    have h2 : s'.pc = mainEntry := by show s'.pc = proLen; rw [hpc', hm.pc]; omega
+    obtain ⟨e0, htr, hcur, hch, hnc0⟩ := refTrack_mainA hP hmain hM hR
+    have h2 : s'.pc = proLen := by rw [hpc', hm.pc]; omega
     have hnf1 : s1.nextFree = s.nextFree := by
       rw [hints_pro hC rfl (show s.pc < proLen by omega)] at e1
       simp only [List.foldlM_nil, pure_ok] at e1
@@ -292,108 +245,68 @@ theorem keepY_alloc {A : String → FnAl} (hP : ProgAl guestProgram coreProgram 
     · rw [h2, hfp', hm.fp, hfp]; exact htr
     · rw [hnf', hnf1, hYs.1 hpro, h2, hcur]
   obtain ⟨done, e0, st0, htr, hcur, hch, hnc⟩ := hYs.2 (by omega) hon.2.2.1
-  have hE := htr.track.ents e0 List.mem_cons_self
-  obtain ⟨-, hat⟩ := htr.linked.top
-  obtain ⟨off, hpc, p, hal', -, -, -⟩ := hat
-  obtain ⟨ins, -, -, -, -, hins, -⟩ := alignAt_step (hP.ok _ _ hE.find) hal'
-  obtain ⟨pc', fp', done', e', st', hr', hts', hcur', hch', hnc', off', hpc0, hk'⟩ :=
-    hCA r hr _ _ _ _ _ _ htr hch hnc hstep hne1
+  obtain ⟨pc', fp', done', e', st', hr', hts', hcur', hch', hnc'⟩ :=
+    hCA r hR hr _ _ _ _ _ _ htr hch hnc (by rw [regs_eq]; exact hstep) hne1
   rw [← hd.regs] at hr'
   have hE3 := hts'.track.ents e' List.mem_cons_self
   obtain ⟨hfp3, hat3⟩ := hts'.linked.top
   have hpc2 := (entry_of_atPc hP hL hE3 hat3).1
-  have hfpl := inst_fp_lt hr hE3.mem
+  have hfpl := inst_fp_lt hR hr hE3.mem
   have hspc := hd.pc
   have hsfp := hd.fine.fp
   rw [hsize, guest_logSize] at hspc
   rw [guest_logSize] at hpc2
   rw [hfp3] at hfpl
   unfold maxCells at hfpl hsfp
+  rw [regs_eq] at hr'
   have e_pc : s'.pc = pc' := gpow_inj (by omega) (by omega) (congrArg Registers.pc hr')
   have e_fp : s'.fp = fp' := gpow_inj (by omega) (by omega) (congrArg Registers.fp hr')
-  -- the hints' words
-  have hpcE : s.pc = (A e0.I.t.name).X.entry + off := hpc
-  have hh : (C.hints[s.pc]?).getD [] = Mode.hintsAt Data.adviceHints s.pc :=
-    Mode.ctx_hints hC Mode.adviceHints_incr (by rw [← hsize]; exact hpcS)
-  have hhs : (C.hints[s.pc]?).getD [] = hintsAtOff (A e0.I.t.name) off := by
-    rw [hh, hintsAtOff, hAd _ _ hE.find off ins hins, ← hpcE]
-  have hoff : s.pc - entOf A e0.I.t.name = off := by
-    show s.pc - (A e0.I.t.name).X.entry = off
-    omega
-  have hoff' : off' = off := by
-    have : s.pc = entOf A e0.I.t.name + off' := hpc0
-    show off' = off
-    have h2 : entOf A e0.I.t.name = (A e0.I.t.name).X.entry := rfl
-    omega
-  subst hoff'
   refine ⟨done', e', st', by rw [e_pc, e_fp]; exact hts', ?_, hch', by rw [e_pc]; exact hnc'⟩
-  · have hlen : ((C.hints[s.pc]?).getD []).length = (treeSizes A e0 (s.pc - entOf A e0.I.t.name)).length := by
-      rw [hoff, treeSizes, List.length_map, List.length_range, hhs]
-    have hs1 := hints_nextFree _ _ s s1 ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get hlen
-      fun i h sx hi hx ↦ hS r hr C hC done e0 st0 s htr hch hnc hon.2.1 hon.2.2 i h sx hi hx fun c v hv ↦
-        hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
-          (by
-            have := e1
-            rw [← List.take_append_drop i ((C.hints[s.pc]?).getD []), List.foldlM_append, hx, ok_bind] at this
-            exact this)).le.get _ _ hv)
-    rw [e_pc, hcur', hnf', hs1, hcur]
+  have hlen := hints_len hP hAd hC htr hpcS
+  have hs1 := hints_nextFreeA _ _ s s1 ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get hlen
+    fun i h sx hi hx ↦ hS r hR hr C hC done e0 st0 s htr hch hnc hon.2.1 hon.2.2 i h sx hi hx fun c v hv ↦
+      hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
+        (by
+          have := e1
+          rw [← List.take_append_drop i ((C.hints[s.pc]?).getD []), List.foldlM_append, hx, ok_bind] at this
+          exact this)).le.get _ _ hv)
+  show s'.nextFree = _
+  rw [e_pc, hcur', hnf', hs1, hcur]
 
 /-! ## The allocation hints -/
 
-/-- **The hints' list at a frame of the track has its `treeSizes`' length.** -/
-theorem hints_len {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A) {r : Ref}
-    {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St} {done : List Pop} {e : Ent} {st : List Ent}
-    (htr : RefTrack A r s.pc s.fp (done, e :: st)) (hpcS : s.pc < C.ops.size) :
-    ((C.hints[s.pc]?).getD []).length = (treeSizes A e (s.pc - entOf A e.I.t.name)).length := by
-  have hE := htr.track.ents e List.mem_cons_self
-  obtain ⟨-, hat⟩ := htr.linked.top
-  obtain ⟨off, hpc, p, hal', -, -, -⟩ := hat
-  obtain ⟨ins, -, -, -, -, hins, -⟩ := alignAt_step (hP.ok _ _ hE.find) hal'
-  have hsize := (ctx_of_spec hC).1
-  have hpcE : s.pc = (A e.I.t.name).X.entry + off := hpc
-  have hh : (C.hints[s.pc]?).getD [] = Mode.hintsAt Data.adviceHints s.pc :=
-    Mode.ctx_hints hC Mode.adviceHints_incr (by rw [← hsize]; exact hpcS)
-  have hoff : s.pc - entOf A e.I.t.name = off := by
-    show s.pc - (A e.I.t.name).X.entry = off
-    omega
-  rw [hoff, treeSizes, List.length_map, List.length_range, hh, hintsAtOff, hAd _ _ hE.find off ins hins, ← hpcE]
-
-/-- **`hintAlloc` from `YAlloc`**, `SizesAt` and `AllocReady`: the hints before an allocation hint
-move the bump pointer by the words they reserve on the tree. -/
-theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
-    (hS : SizesAt A) (hR : AllocReady A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc A r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      MovesW (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h →
-        HintOk C (refMem r.img) s1 h ∧ AllocB (2 ^ r.κ) s1 h := by
-  intro r hr C hC s hon pre h post hl s1 e1 hm ha hin
-  have hYs := hY r s hon.1.2.2
+/-- **An allocation hint's needs from `YAlloc`**, `SizesAt` and `AllocReady`: the hints before it
+move the bump pointer by the steps they take on the tree. -/
+theorem hintAllocW_of (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
+    (hS : SizesAt L D A) (hR : AllocReady L D A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc L D A r s)
+    {r : Ref} (hRH : RefH L (D r) r) (hr : r.Ok) {C : Ctx} (hC : Ctx.of guestProgram r.adv = .ok C) {s : St}
+    (hon : OnRun (XOf Y) r s) {pre : List Hint} {h : Hint} {post : List Hint}
+    (hl : (C.hints[s.pc]?).getD [] = pre ++ h :: post) {s1 : St} (e1 : pre.foldlM (runHint C) s = .ok s1)
+    (hm : MovesW (refMem r.img) s s1) (ha : isAllocHint h = true) (hin : HintIn s1 h) :
+    HintOk C (refMem r.img) s1 h ∧ AllocB (2 ^ r.κ) s1 h := by
+  have hYs := hY r s hon.1.2
+  have hne : (C.hints[s.pc]?).getD [] ≠ [] := by rw [hl]; simp
+  have hpc2 : s.pc < 2 ^ guestProgram.logSize := pc_lt_of_hints hC hne
+  have hpcS : s.pc < C.ops.size := by rw [(ctx_of_spec hC).1]; exact hpc2
   by_cases hpro : s.steps < proLen
   · have hpc : s.pc < proLen := by
-      rcases hon.1.1 with ⟨-, hpc, -⟩ | ⟨hge, -⟩
-      · omega
-      · omega
-    rw [hints_pro hC rfl hpc] at hl
-    simp at hl
+      rw [((posAt hRH hon.1.1 (by rw [guest_logSize] at hpc2; omega) hon.2.1.fp).1 hpro).1]; exact hpro
+    exact absurd (hints_pro hC rfl hpc) hne
   obtain ⟨done, e, st, htr, hcur, hch, hnc⟩ := hYs.2 (by omega) hon.2.2.1
-  have hpcS : s.pc < C.ops.size := by
-    by_contra hge
-    have hsz := (ctx_hints_size hC).trans (ctx_of_spec hC).1.symm
-    rw [Array.getElem?_eq_none (by omega)] at hl
-    simp at hl
   have hlen := hints_len hP hAd hC htr hpcS
   have hi : ((C.hints[s.pc]?).getD [])[pre.length]? = some h := by rw [hl]; simp
   have htake : ((C.hints[s.pc]?).getD []).take pre.length = pre := by rw [hl]; simp
-  refine hR r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha
+  refine hR r hRH hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha
     hin ?_
-  have hs1 := hints_nextFree pre ((treeSizes A e (s.pc - entOf A e.I.t.name)).take pre.length) s s1
+  have hs1 := hints_nextFreeA pre ((treeSteps L A e (s.pc - entOf A e.I.t.name)).take pre.length) s s1
     ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.2 (by
       rw [List.length_take]
       have : pre.length ≤ ((C.hints[s.pc]?).getD []).length := by rw [hl]; simp
       omega)
     fun j h' sx hj hx ↦ by
       have hjl : j < pre.length := (List.getElem?_eq_some_iff.mp hj).1
-      have h1 := hS r hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
+      have h1 := hS r hRH hr C hC done e st s htr hch hnc hon.2.1 hon.2.2 j h' sx
+        (by rw [hl, List.getElem?_append_left hjl]; exact hj)
         (by rw [hl, List.take_append_of_le_length hjl.le]; exact hx) fun c v hv ↦
         hm.2 c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
           (by
@@ -403,29 +316,33 @@ theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgra
       rw [h1, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hjl]
   rw [hs1, hcur]
 
-/-- **`hintAlloc` from `YAlloc`**, `SizesAt` and `AllocReady`. -/
-theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
-    (hS : SizesAt A) (hR : AllocReady A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc A r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
-  fun r hr C hC s hon pre h post hl s1 e1 hm ha hin ↦
-    (hintAllocW_of hP hAd hS hR hY r hr C hC s hon pre h post hl s1 e1 hm.w ha hin).1
+/-- **The allocation track's obligations**, for the bump pointer's track `YAlloc L D A`, on the
+references of the honest tree, from the bridge's premises, `main`'s frame in the layout, `SizesAt`,
+`CurArith` and `AllocReady`. -/
+theorem allocTrack_of {R : Ref → Prop} {Km : Mode.Cert} {E0 : Mode.Env} (hH : HintHyps L D A)
+    (hRH : ∀ r, R r → RefH L (D r) r) (hMain : MainOk Km E0) (hM : MainA L) (hS : SizesAt L D A)
+    (hCA : CurArith L D A) (hR : AllocReady L D A) : AllocTrack R (YAlloc L D A) where
+  init := fun _ _ _ _ _ _ _ ↦ initY_alloc
+  keep := fun _ hY r hR0 hr _ hC _ _ _ _ hon hop e1 hm hmo e ↦
+    keepY_alloc hMain hH.progAl hH.mainAt hH.layout hH.advAl hM hS hCA hY (hRH r hR0) hr hC hon hop e1 hm hmo e
+  hint := fun _ hY r hR0 hr _ hC _ hon _ _ _ hl _ e1 hm ha hin ↦
+    (hintAllocW_of hH.progAl hH.advAl hS hR hY (hRH r hR0) hr hC hon hl e1 hm.w ha hin).1
+  used := fun _ hY r hR0 hr _ hC _ hon _ _ _ hl _ e1 hm ha hin ↦
+    (hintAllocW_of hH.progAl hH.advAl hS hR hY (hRH r hR0) hr hC hon hl e1 hm ha hin).2
 
-/-! ## On the deployed alignment -/
-
-/-- **Each step keeps `YAlloc alignA`**, from `SizesAt` and `CurArith` on the deployed alignment. -/
-theorem keepY_allocA (hS : SizesAt alignA) (hCA : CurArith alignA) : KeepY (YAlloc alignA) :=
-  keepY_alloc progAl alignA_main jumpCells_at alLayout_alignA advAl_alignA hS hCA (derefPow_all _)
-    fun _ _ h ↦ h
-
-/-- **`hintAlloc` on the deployed alignment**, from `SizesAt` and `AllocReady`. -/
-theorem hintAlloc_alignA (hS : SizesAt alignA) (hR : AllocReady alignA) {Y : Ref → St → Prop}
-    (hY : ∀ r s, Y r s → YAlloc alignA r s) :
-    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
-      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
-  hintAlloc_of progAl advAl_alignA hS hR hY
+/-- **`ExecGaps` from the hint bridge, the allocation track the bump pointer's**: `ExecGaps.ofHints`
+at `YAlloc L D A`, its obligations from `MainA L`, `SizesAt`, `CurArith` and `AllocReady`. -/
+theorem ExecGaps.ofHintsA {R : Ref → Prop} {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env}
+    {Ct : Ref → Mode.Cts} {Q : Ref → Mode.Cert → ℕ → St → Prop} (hH : HintHyps L D A)
+    (hRH : ∀ r, R r → RefH L (D r) r) (hM : MainA L) (hS : SizesAt L D A) (hCA : CurArith L D A)
+    (hR : AllocReady L D A) (certs : ModeCerts Ks Km E0) (main : MainOk Km E0)
+    (frame : ∀ r, R r → r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ K ∈ Ks,
+      Mode.FrameSpec C (refMem r.img) (OnRun (XOf (YH L D A (YAlloc L D A))) r) (Ct r) K (Q r K))
+    (ctMain : ∀ r, Ct r Km.F.entry = none)
+    (res : ∀ r, R r → r.Ok → Mode.ResRef guestProgram r.img r.n Ks (fun s ↦ XOf (YH L D A (YAlloc L D A)) r s))
+    (term : TermRef R Ks (XOf (YH L D A (YAlloc L D A)))) :
+    ExecGaps R Ks Km E0 Ct Q (YH L D A (YAlloc L D A)) :=
+  ExecGaps.ofHints hH (allocTrack_of hH hRH main hM hS hCA hR) hRH certs main frame ctMain res term
 
 end
 

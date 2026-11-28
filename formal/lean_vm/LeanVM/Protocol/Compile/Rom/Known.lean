@@ -168,6 +168,62 @@ theorem consume_done_half {W : Digest → ℕ → ℕ → Word} :
         · simp at hl
         · simpa using hl
     · cases hc
+  | (_, _) :: _, _, .rpk _ _ _, _, _, _, _, _, hc => by simp [consume] at hc
+  | (_, _) :: _, _, .spk _ _ _, _, _, _, _, _, hc => by simp [consume] at hc
+
+theorem drawInfo_not_half {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool}
+    {cs ys : List E} {h' : List Ev} {ht w : ℕ} {k' : VerifierProgram Bool} {x₀ : E} :
+    drawInfo h n k cs ys ≠ (h', .half ht w k' x₀) := by
+  unfold drawInfo; split <;> simp
+
+theorem readChunk_not_half {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool}
+    {xs ys : List E} {u : KeccakState} {h' : List Ev} {ht w : ℕ} {k' : VerifierProgram Bool}
+    {x₀ : E} : (readChunk h n k xs ys).2 u ≠ some (h', .half ht w k' x₀) := by
+  unfold readChunk; split <;> simp
+
+/-- A decoding in the middle of a commitment, from consumed scalars, ended with the root's first
+half in the input's last slot. -/
+theorem halfOk_decodeAt {W : Digest → ℕ → ℕ → Word} {h₀ : List Ev} {pos₀ : Pos}
+    {t u : KeccakState} {hh : List Ev} {ht w : ℕ} {k : VerifierProgram Bool} {x₀ : E}
+    (h : (decodeAt (consume W h₀ pos₀ (parsePending t)) (parsePending t)).2 u =
+      some (hh, .half ht w k x₀)) : slotE t 3 = x₀ ∧ slotTag t 3 = 1 := by
+  generalize hc : consume W h₀ pos₀ (parsePending t) = c at h
+  rcases c with ⟨h1, ⟨p1⟩ | ⟨ht1, w1, k1, x1⟩ | _ | _⟩ | ⟨h1, b, k1, n⟩ | _
+  · simp only [decodeAt] at h
+    split at h
+    · simp at h
+    · exact absurd (Option.some.inj h) drawInfo_not_half
+    · split at h <;> simp at h
+    · simp only [forced] at h; split at h <;> simp at h
+    · simp only [forced] at h; split at h <;> simp at h
+    · simp only [forced] at h; split at h <;> simp at h
+    · simp at h
+  · simp only [decodeAt] at h
+    split at h
+    · rename_i hlen
+      simp only [Option.some.injEq, Prod.mk.injEq, Pos.half.injEq] at h
+      obtain ⟨-, -, -, -, rfl⟩ := h
+      rcases consume_done_half _ _ _ hc with h0 | hl
+      · rw [h0] at hlen; simp at hlen
+      · have h3 : 3 < (parsePending t).length := by omega
+        obtain ⟨he, htg⟩ := slot_of_parsePending h3
+        have hlast : (parsePending t)[3] = (x1, 1) := by
+          rw [List.getLast?_eq_getElem?, hlen] at hl
+          have hl' : (parsePending t)[3]? = some (x1, 1) := by simpa using hl
+          exact Option.some.inj ((List.getElem?_eq_getElem h3).symm.trans hl')
+        rw [hlast] at he htg
+        refine ⟨he, ?_⟩
+        apply UInt64.toNat_inj.mp
+        simpa using htg
+    · simp at h
+  · simp [decodeAt] at h
+  · simp [decodeAt] at h
+  · simp only [decodeAt] at h
+    split at h
+    · simp at h
+    · exact absurd (Option.some.inj h) drawInfo_not_half
+    · simp at h
+  · simp [decodeAt] at h
 
 /-- Every decoding in the middle of a commitment comes from an input whose last slot is the
 root's first half. -/
@@ -182,45 +238,20 @@ theorem halfOk_stepF (ℓ : Log) (δ : Dec) (t u : KeccakState) {inf : Info}
   · unfold rootStep at h
     split at h <;> simp at h
   · split at h
-    · rename_i h0 pos0 _
-      generalize hc : consume (extract (lookH ℓ)) h0 pos0 (parsePending t) = c at h
-      rcases c with ⟨h1, ⟨p1⟩ | ⟨ht1, w1, k1, x1⟩⟩ | ⟨h1, b, k1, n⟩ | _
-      · simp only [decodeAt] at h
-        split at h
-        · simp at h
-        · simp only [forced] at h; split at h <;> simp at h
-        · simp only [forced] at h; split at h <;> simp at h
-        · simp only [forced] at h; split at h <;> simp at h
-        · simp at h
-      · simp only [decodeAt] at h
-        split at h
-        · rename_i hlen
-          simp only [Option.some.injEq, Prod.mk.injEq, Pos.half.injEq] at h
-          obtain ⟨-, -, -, -, rfl⟩ := h
-          rcases consume_done_half _ _ _ hc with h0 | hl
-          · rw [h0] at hlen; simp at hlen
-          · have h3 : 3 < (parsePending t).length := by omega
-            obtain ⟨he, htg⟩ := slot_of_parsePending h3
-            have hlast : (parsePending t)[3] = (x1, 1) := by
-              rw [List.getLast?_eq_getElem?, hlen] at hl
-              have hl' : (parsePending t)[3]? = some (x1, 1) := by simpa using hl
-              exact Option.some.inj ((List.getElem?_eq_getElem h3).symm.trans hl')
-            rw [hlast] at he htg
-            refine ⟨he, ?_⟩
-            apply UInt64.toNat_inj.mp
-            simpa using htg
-        · simp at h
-      · simp only [decodeAt] at h
-        split at h <;> simp at h
-      · simp [decodeAt] at h
+    · exact absurd h readChunk_not_half
+    · exact absurd (Option.some.inj h) drawInfo_not_half
+    · split at h
+      · exact absurd h readChunk_not_half
+      · exact halfOk_decodeAt h
+    · exact halfOk_decodeAt h
     · simp at h
 
 /-! ## Commitments read stable words -/
 
 /-- The scalar before the waiting ones, at a position in the middle of a commitment. -/
 def prePos : Pos → List (E × ℕ)
-  | .node _ => []
   | .half _ _ _ x₀ => [(x₀, 1)]
+  | _ => []
 
 /-- The roots adjacent scalars of tag `1` encode. -/
 def rootsList (l : List (E × ℕ)) : List Digest :=
@@ -278,6 +309,8 @@ theorem consume_congr {W W' : Digest → ℕ → ℕ → Word} :
       simp only [prePos, List.nil_append, List.singleton_append] at hr' ⊢
       exact rootsList_subset_cons _ _ r' (rootsList_subset_cons _ _ r' hr')
     · rfl
+  | (_, _) :: _, _, .rpk _ _ _, _ => rfl
+  | (_, _) :: _, _, .spk _ _ _, _ => rfl
 
 theorem mem_rootsList {l : List (E × ℕ)} {r : Digest} (hr : r ∈ rootsList l) :
     ∃ (i : ℕ) (hi : i + 1 < l.length), l[i].2 = 1 ∧ l[i + 1].2 = 1 ∧
@@ -318,7 +351,7 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
     simp only [pairRoot, htag i (by omega) h1, htag (i + 1) hi h2, and_self, ↓reduceIte,
       hslot i (by omega), hslot (i + 1) hi]
     exact congrArg some h3
-  rcases pos with p | ⟨ht, w, k, x₀⟩
+  rcases pos with p | ⟨ht, w, k, x₀⟩ | ⟨n, k, xs⟩ | ⟨n, k, cs⟩
   · obtain ⟨i, hi, h1, h2, h3⟩ := mem_rootsList (by simpa [prePos] using hr)
     exact hpair i hi h1 h2 h3
   · obtain ⟨i, hi, h1, h2, h3⟩ := mem_rootsList hr
@@ -335,8 +368,19 @@ theorem rootOf_of_mem_rootsList {ℓ' : Log} {c : Fin 9 → UInt64} {ps : List (
     | succ i =>
       simp only [List.getElem_cons_succ] at h1 h2 h3
       exact hpair i (by omega) h1 h2 h3
+  · obtain ⟨i, hi, h1, h2, h3⟩ := mem_rootsList (by simpa [prePos] using hr)
+    exact hpair i hi h1 h2 h3
+  · obtain ⟨i, hi, h1, h2, h3⟩ := mem_rootsList (by simpa [prePos] using hr)
+    exact hpair i hi h1 h2 h3
 
 /-! ## Reading a permutation -/
+
+/-- A position from which the next permutation absorbs waiting scalars: a node whose next
+operation, past its openings, is not a packed message, or the middle of a commitment. -/
+def PlainPos (h : List Ev) : Pos → Prop
+  | .node p => ∀ h1 n k, settle h p ≠ some (h1, .readPacked n k)
+  | .half _ _ _ _ => True
+  | _ => False
 
 /-- The predecessor of a permutation input is the input of the entry that produced its state. -/
 theorem predIn_take {ℓ : Log} (hf : ¬ Fail σ ℓ) {m j : ℕ} (hm : m < ℓ.length) (hmj : m < j)
@@ -369,7 +413,8 @@ known at `(h₀, pos₀)` and the log answers the permutation input of the valid
 `ps`, the entry is read by consuming `ps` from `(h₀, pos₀)`, with the words of the whole log:
 its record is among the log's records, and the output's decoding is known. -/
 theorem duplex_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h₀ : List Ev} {pos₀ : Pos}
-    (hk : Known σ P ℓ c (h₀, pos₀)) {ps : List (E × ℕ)} (hv : ValidPending ps) {v : KeccakState}
+    (hk : Known σ P ℓ c (h₀, pos₀)) (hpos : PlainPos h₀ pos₀) {ps : List (E × ℕ)}
+    (hv : ValidPending ps) {v : KeccakState}
     (hl : lookF ℓ (duplexOf c ps) = some v) :
     ((decodeAt (consume (extract (lookH ℓ)) h₀ pos₀ ps) ps).1, v) ∈ (decode σ P ℓ).kinds ∧
       ∀ inf, (decodeAt (consume (extract (lookH ℓ)) h₀ pos₀ ps) ps).2 v = some inf →
@@ -402,8 +447,16 @@ theorem duplex_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h�
       decodeAt (consume (extract (lookH ℓ)) h₀ pos₀ ps) ps := by
     unfold stepF
     rw [hroot, capOf_duplexOf, hinfo, parsePending_duplexOf c hv]
-    simp only
-    rw [consume_congr ps h₀ pos₀ hW]
+    rcases pos₀ with p₀ | ⟨ht, w, k, x₀⟩ | _ | _
+    · simp only
+      split
+      · rename_i h1 n k hs
+        exact absurd hs (hpos h1 n k)
+      · rw [consume_congr ps h₀ _ hW]
+    · simp only
+      rw [consume_congr ps h₀ _ hW]
+    · exact hpos.elim
+    · exact hpos.elim
   have hdec := decode_take_succ σ P ℓ hj
   rw [hej] at hdec
   refine ⟨?_, fun inf hi ↦ ?_⟩
@@ -419,6 +472,84 @@ theorem duplex_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h�
     rw [hdec]
     show setInfo _ (capOf v) ((stepF σ P _ _ (duplexOf c ps)).2 v) (capOf v) = some inf
     rw [hi', setInfo_self]
+
+/-! ## Reading a packed message's permutations -/
+
+/-- **A permutation from a known state is read at its entry**, by whatever the decoder makes of
+the input `t` from the state's decoding. -/
+theorem stepF_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {inf₀ : Info}
+    (hk : Known σ P ℓ c inf₀) {t v : KeccakState} (htc : capOf t = c)
+    (hl : lookF ℓ t = some v) {r : Shape × (KeccakState → Option Info)}
+    (hr : ∀ j, (decode σ P (ℓ.take j)).info c = some inf₀ → rootAt σ (ℓ.take j) t = none →
+      stepF σ P (ℓ.take j) (decode σ P (ℓ.take j)) t = r) :
+    (r.1, v) ∈ (decode σ P ℓ).kinds ∧ ∀ inf, r.2 v = some inf → Known σ P ℓ (capOf v) inf := by
+  obtain ⟨m, hm, s, u, hem, hcu, -, hall⟩ := hk
+  obtain ⟨j, hj, hej, -⟩ := (lookF_eq_some_iff ℓ _ v).mp hl
+  have hmj : m < j := lt_of_cap hf hm hj hem hej (by rw [htc, hcu])
+  have hinfo : (decode σ P (ℓ.take j)).info c = some inf₀ := hall j hmj hj.le
+  have hroot : rootAt σ (ℓ.take j) t = none := by
+    unfold rootAt
+    split
+    · rename_i hex
+      exfalso
+      obtain ⟨x, ds, -, hfin⟩ := hex
+      have h0 := σ.cap0 x ds
+      rw [hfin, htc] at h0
+      exact fCap_ne_zero hf hm hem (hcu.trans h0)
+    · rfl
+  have hstep := hr j hinfo hroot
+  have hdec := decode_take_succ σ P ℓ hj
+  rw [hej] at hdec
+  refine ⟨?_, fun inf hi ↦ ?_⟩
+  · refine kinds_mem_of_take σ P ℓ (j + 1) ?_
+    rw [hdec]
+    show _ ∈ (decode σ P (ℓ.take j)).kinds ++
+      [((stepF σ P (ℓ.take j) (decode σ P (ℓ.take j)) t).1, v)]
+    rw [hstep]
+    exact List.mem_append_right _ (List.mem_singleton_self _)
+  · have hi' : (stepF σ P (ℓ.take j) (decode σ P (ℓ.take j)) t).2 v = some inf := by
+      rw [hstep]; exact hi
+    refine known_of_set hf hj hej (halfOk_stepF _ _ _ _ hi') ?_
+    rw [hdec]
+    show setInfo _ (capOf v) ((stepF σ P _ _ t).2 v) (capOf v) = some inf
+    rw [hi', setInfo_self]
+
+/-- **A chunk of a packed message is read at its entry**, from the middle of the message. -/
+theorem chunk_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h : List Ev} {n : ℕ}
+    {k : List E → VerifierProgram Bool} {xs : List E} (hk : Known σ P ℓ c (h, .rpk n k xs))
+    {ys : List E} (hys : (cells8 (packedOf c ys)).take (n - xs.length) = ys) {v : KeccakState}
+    (hl : lookF ℓ (packedOf c ys) = some v) :
+    ((readChunk h n k xs ys).1, v) ∈ (decode σ P ℓ).kinds ∧
+      ∀ inf, (readChunk h n k xs ys).2 v = some inf → Known σ P ℓ (capOf v) inf :=
+  stepF_read hf hk (capOf_packedOf _ _) hl fun j hinfo hroot ↦ by
+    unfold stepF
+    rw [hroot, capOf_packedOf, hinfo]
+    simp only
+    rw [hys]
+
+/-- **The first chunk of a packed message is read at its entry**, from the node before it. -/
+theorem chunk_read_node {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h₀ h : List Ev}
+    {p₀ : VerifierProgram Bool} {n : ℕ} {k : List E → VerifierProgram Bool}
+    (hk : Known σ P ℓ c (h₀, .node p₀)) (hs : settle h₀ p₀ = some (h, .readPacked n k))
+    {ys : List E} (hys : (cells8 (packedOf c ys)).take n = ys) {v : KeccakState}
+    (hl : lookF ℓ (packedOf c ys) = some v) :
+    ((readChunk h n k [] ys).1, v) ∈ (decode σ P ℓ).kinds ∧
+      ∀ inf, (readChunk h n k [] ys).2 v = some inf → Known σ P ℓ (capOf v) inf :=
+  stepF_read hf hk (capOf_packedOf _ _) hl fun j hinfo hroot ↦ by
+    unfold stepF
+    rw [hroot, capOf_packedOf, hinfo]
+    simp only [hs]
+    rw [hys]
+
+/-- **A chunk of a packed draw is read at its entry**, from the middle of the draw. -/
+theorem spk_read {ℓ : Log} (hf : ¬ Fail σ ℓ) {c : Fin 9 → UInt64} {h : List Ev} {n : ℕ}
+    {k : List E → VerifierProgram Bool} {cs : List E} (hk : Known σ P ℓ c (h, .spk n k cs))
+    {v : KeccakState} (hl : lookF ℓ (duplexOf c []) = some v) :
+    Known σ P ℓ (capOf v) (drawInfo h n k cs ((cells8 v).take (n - cs.length))) :=
+  (stepF_read (r := (.none, fun u ↦ some (drawInfo h n k cs ((cells8 u).take (n - cs.length)))))
+    hf hk (capOf_duplexOf _ _) hl fun j hinfo hroot ↦ by
+      unfold stepF
+      rw [hroot, capOf_duplexOf, hinfo]).2 _ rfl
 
 /-! ## The seed -/
 

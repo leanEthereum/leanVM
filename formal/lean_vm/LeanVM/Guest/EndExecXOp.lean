@@ -77,6 +77,18 @@ theorem foldl_ensure_used {B : ℕ} : ∀ (l : List ℕ) (m : Mem), m.used ≤ B
       have := hl c List.mem_cons_self
       simp only [Mem.ensure_used]; omega) fun x hx ↦ hl x (List.mem_cons_of_mem _ hx)
 
+theorem foldlM_put_used {B : ℕ} (f : ℕ × ℕ → E) :
+    ∀ (l : List (ℕ × ℕ)) (m m' : Mem), l.foldlM (fun m x ↦ m.put x.1 (f x)) m = .ok m' → m.used ≤ B →
+      (∀ x ∈ l, x.1 < B) → m'.used ≤ B
+  | [], m, m', e, h, _ => by simp only [List.foldlM_nil, pure_ok] at e; subst e; exact h
+  | x :: l, m, m', e, h, hl => by
+    rw [List.foldlM_cons, bind_ok] at e
+    obtain ⟨m1, e1, e⟩ := e
+    refine foldlM_put_used f l m1 m' e ?_ fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
+    rw [put_used e1]
+    have := hl x List.mem_cons_self
+    omega
+
 /-! ## What an instruction reads -/
 
 /-- **An instruction the executor completes found its reads written.** -/
@@ -135,7 +147,7 @@ theorem reads_of_runOp {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s
       written_of_get (Mem.read_ok hvf')⟩
   | keccak ins out inOdd outOdd count =>
     simp only [runOp, bind_ok] at e
-    obtain ⟨cells, hcells, input, hinput, -⟩ := e
+    obtain ⟨-, -, cells, hcells, input, hinput, -⟩ := e
     have hc := exMapM_ok _ _ _ hcells
     have hi := exMapM_ok _ _ _ hinput
     intro i hi'
@@ -334,7 +346,7 @@ theorem runOp_used {C : Ctx} {s s' : St} {op : Op} {ins : LeanIsaInstruction} {�
       simp only [executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at hex
       obtain ⟨input', hin, output', hout', -⟩ := hex
       simp only [runOp, bind_ok] at e
-      obtain ⟨cells, hcells, input, hinput, outs, houts, s1, hs1, e⟩ := e
+      obtain ⟨-, -, cells, hcells, input, hinput, outs, houts, s1, hs1, e⟩ := e
       simp only [pure_ok] at e; subst e
       obtain ⟨m, hm, rfl⟩ := St.withMem_ok hs1
       rw [bind_ok] at hm

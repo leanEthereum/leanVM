@@ -22,7 +22,7 @@ and one stack, at every verifier prefix (`IsLocallyBounded`). The front phases' 
 quantifies over the candidates of the level-0 commitment, a finite set of stacks, so a challenge
 escapes it when it escapes for one candidate:
 
-* `avgE_indE_eq_prEvent`: the average is the probability;
+* `avgE_indE_le_of_prEvent`: the probability bounds the average;
 * `avgE_indE_exists_le`: the union bound, `L₀` times the per-candidate bound for at most `L₀`
   candidates;
 * `avgE_le_one`, `avgE_indE_le_one`: an average of probabilities is one.
@@ -71,6 +71,9 @@ theorem indE_mono {p q : Prop} (h : p → q) : indE p ≤ indE q := by
   · rw [indE_of_not hp]
     exact zero_le
 
+private theorem card_E_ne_zero : (Fintype.card E : ℝ≥0∞) ≠ 0 :=
+  Nat.cast_ne_zero.mpr Fintype.card_ne_zero
+
 /-- An average of values at most `c` is at most `c`. -/
 theorem avgE_le_of_le {f : E → ℝ≥0∞} {c : ℝ≥0∞} (h : ∀ x, f x ≤ c) : avgE f ≤ c := by
   unfold avgE
@@ -78,7 +81,7 @@ theorem avgE_le_of_le {f : E → ℝ≥0∞} {c : ℝ≥0∞} (h : ∀ x, f x �
       ≤ (Fintype.card E : ℝ≥0∞)⁻¹ * ∑ _x : E, c := by gcongr with x; exact h x
     _ = c := by
       rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← mul_assoc,
-        ENNReal.inv_mul_cancel (by simp) (ENNReal.natCast_ne_top _), one_mul]
+        ENNReal.inv_mul_cancel card_E_ne_zero (ENNReal.natCast_ne_top _), one_mul]
 
 /-- An average of values at most one is at most one. -/
 theorem avgE_le_one {f : E → ℝ≥0∞} (h : ∀ x, f x ≤ 1) : avgE f ≤ 1 := avgE_le_of_le h

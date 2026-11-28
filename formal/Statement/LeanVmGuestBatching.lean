@@ -5,9 +5,10 @@ public import Statement.LeanVm
 /-!
 # The leanISA guest program: the batching of the children's claims
 
-The batching program `LeanVmGuest.lean`'s `DeferredClaimBatched` runs, transcribed: the claim a
-node defers on the guest program's bytecode (`DeferredBytecodeClaim`), what a node knows of each child
-(`ChildClaims`), and the batching of the children's deferred claims as a program of the verifier's
+The batching program `LeanVmGuest.lean`'s `DeferredClaimBatched` runs, transcribed: the program split
+by opcode as one table (`splitTable`), the claim a node defers on it (`DeferredBytecodeClaim`), what a
+node knows of each child (`ChildClaims`: its fresh claim, the split columns at its link point, and
+its carried claim), and the batching of the children's claims as a program of the verifier's
 language (`Batch.nodeBatchingProgram`). Reference material: a first reading takes the program as
 the batching of `crates/aggregation/src/deferred.rs` and looks things up here.
 
@@ -23,45 +24,116 @@ namespace LeanVM.Node
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
+/-! ## The split program (`crates/aggregation/src/split.rs`)
+
+The program split by opcode, as the link reads it: the columns `splitColumns tables` (`split_terms`),
+each a function of the instruction `k` (`Column`): `[op_k = op]`, `[op_k = op]·BC_slot(k)` or
+`[op_k = op]·g^k·BC_slot(k)`. A child's verification evaluates them at its link point
+(`FreshClaim`); a node defers one claim on all of them as one table (`splitTable`). -/
+
+/-- `SPLIT_LOG` (`split.rs`): the split columns pad to `2^splitLog`. -/
+def splitLog : ℕ := 6
+
+/-- The variables of a point over the program's instructions, `log₂ n` for the `n = len / 2^BYTECODE_SLOT_BITS`
+instructions of the stacked program `bytecode` (`kbc`, `crates/aggregation/src/node.rs`). -/
+def instructionVariableCount (bytecode : List K) : ℕ := Nat.log2 (bytecode.length >>> bytecodeSlotBits)
+
+/-- The variables of a deferred claim's point, the instructions' then the split columns'
+(`bytecode_vars`, `crates/aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`):
+`log₂` of `splitTable`'s length. -/
+def deferredVariableCount (bytecode : List K) : ℕ := instructionVariableCount bytecode + splitLog
+
+/-- Entry `k` of split column `j` of the stacked program `bytecode` (`split_table`, `split.rs`): with
+`n = len / 2^BYTECODE_SLOT_BITS` instructions, instruction `k`'s slot `s` the word `s·n + k` and its opcode from
+slot `3` (`opcodeOf`), `[op_k = op]` (`count`), `[op_k = op]·BC_slot(k)` (`slot`),
+`[op_k = op]·g^k·BC_slot(k)` (`pc`, `g^k` in `K`), and `0` for `j` past the split columns. -/
+def splitEntry (bytecode : List K) (j k : ℕ) : K :=
+  let n := bytecode.length >>> bytecodeSlotBits
+  let word := fun s ↦ bytecode.getD (s * n + k) 0
+  let op := opcodeOf (word 3)
+  match (splitColumns tables)[j]? with
+  | some (.count o) => if op = o then 1 else 0
+  | some (.slot o slot) => if op = o then word slot else 0
+  | some (.pc o slot) => if op = o then g ^ k * word slot else 0
+  | none => 0
+
+/-- **The split program as one table** (`split_table`, `split.rs`): column `j` at rows `j·n` to
+`(j + 1)·n` for `n` instructions, `2^splitLog` columns, those past the split columns zero. Every
+entry is in `K`. A point on it is the instructions' coordinates, then the columns'. -/
+def splitTable (bytecode : List K) : List K :=
+  (List.range (2 ^ splitLog)).flatMap fun j ↦
+    (List.range (bytecode.length >>> bytecodeSlotBits)).map (splitEntry bytecode j)
+
+/-- **The split columns at a point over the instructions** (`split_values`, `split.rs`): the
+program's split there (`Bytecode::split`, `splitAt`, at the pairs read times `pc`, `pcSlots`), read
+column by column. -/
+def splitValues (bytecode : List K) (point : List E) : List E :=
+  let split := splitAt bytecode point (pcSlots tables)
+  (splitColumns tables).map fun
+    | .count op => split.count.getD op 0
+    | .slot op slot => (split.slots.getD op []).getD slot 0
+    | .pc op slot => (split.pc.getD op []).getD slot 0
+
+/-- **A claim on the split program holds** of the stacked program `bytecode`: its value is the
+multilinear extension of `splitTable bytecode` at its point (the value only;
+`DeferredBytecodeClaim.HoldsWithShape`, `LeanVmGuest.lean`, adds the power-of-two
+length). -/
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.Holds (bytecode : List K) (claim : BytecodeClaim) :
+    Prop :=
+  multilinearEval ((splitTable bytecode).map ofK) claim.bytecodePoint = claim.bytecodeValue
+
+/-- **A fresh claim holds** of the stacked program `bytecode`: its values are the split columns at
+its point (`FreshClaim::at`, `crates/aggregation/src/deferred.rs`). -/
+def _root_.LeanVM.Protocol.Verifier.FreshClaim.Holds (bytecode : List K) (fresh : FreshClaim) : Prop :=
+  fresh.values = splitValues bytecode fresh.point
+
+/-- The cells the batching absorbs of a fresh claim: the point, then the values
+(`FreshClaim::cells`, `deferred.rs`; `verify_sub`'s `defer_out`, `lean_ethereum.py`). -/
+def _root_.LeanVM.Protocol.Verifier.FreshClaim.cells (fresh : FreshClaim) : List E :=
+  fresh.point ++ fresh.values
+
 /-! ## The deferred claim -/
 
-/-- The claim a statement defers on the stacked bytecode: its value at a point (`DeferredBytecodeClaim`,
-`crates/aggregation/src/deferred.rs`), the shape of a proof's claim (`BytecodeClaim`). -/
+/-- The claim a statement defers on the split program: its value at a point
+(`DeferredBytecodeClaim`, `crates/aggregation/src/deferred.rs`), the instructions' coordinates then
+the split columns'. -/
 abbrev DeferredBytecodeClaim : Type := BytecodeClaim
 
-/-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
-exported as: the point, then the value (`DeferredBytecodeClaim::cells`,
-`crates/aggregation/src/deferred.rs`; the guest program's `defer_stmt`, and `verify_sub`'s
-`defer_out`, `lean_ethereum.py`). -/
+/-- The cells a deferred claim is hashed and absorbed as: the point, then the value
+(`DeferredBytecodeClaim::cells`, `crates/aggregation/src/deferred.rs`; the guest program's
+`defer_stmt`, `lean_ethereum.py`). -/
 def DeferredBytecodeClaim.cells (claim : DeferredBytecodeClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-! ## The batching program
 
-The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py`;
+The batching of the children's claims (`aggregate_claims`, `lean_ethereum.py`;
 `aggregate_deferred_claims`, `crates/aggregation/src/deferred.rs`), as a program of the verifier's
 language (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the
 count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then a proof of
-work of `batchLambdaGrindBits` bits and one challenge, whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds
+work of `batchLambdaGrindBits` bits, one challenge `λ`, whose powers are the lambdas, and the
+`splitLog` column challenges, which fold each fresh claim's values into one claim on the split table
+at its point and the column challenges, the sumcheck's `deferredVariableCount` rounds
 (`sumcheckRoundsProgram`) and the final value, accepted if the final claim is the value times the
 batched weight and the deferred claim meets a check (`batchingAfterChildren`); run from the batching
 transcript's seed (`runBatching`). -/
 
-/-- What a node knows of one child: the child's public input, the claim its proof makes
+/-- What a node knows of one child: the child's public input, the claim its verification raises
 (`freshClaim`), and the claim its statement defers (`carriedClaim`). -/
 structure ChildClaims where
   /-- The child's public input. -/
   publicInput : Digest
-  /-- The claim the child's proof makes. -/
-  freshClaim : BytecodeClaim
+  /-- The claim the child's verification raises: the split columns at its link point. -/
+  freshClaim : FreshClaim
   /-- The claim the child's statement defers. -/
   carriedClaim : DeferredBytecodeClaim
 
-/-- The words the batching absorbs of a child: its public input's two cells, its proof's claim,
-the claim its statement defers (`AGG_CHILD_WORDS`, `lean_ethereum.py`). -/
+/-- The words the batching absorbs of a child: its public input's two cells, its fresh claim's
+point and values, the claim its statement defers (`aggregate_deferred_claims`'s `words`;
+`AGG_CHILD_WORDS`, `lean_ethereum.py`). -/
 def ChildClaims.words (child : ChildClaims) : List E :=
   [(digestHalves child.publicInput).1, (digestHalves child.publicInput).2] ++
-    DeferredBytecodeClaim.cells child.freshClaim ++ child.carriedClaim.cells
+    child.freshClaim.cells ++ child.carriedClaim.cells
 
 /-- The prover's part of a batching: the nonce of the proof of work before the challenge, the
 sumcheck's rounds and the bytecode's value at its end (`bc_sumcheck_msgs`, `bc_star_hint`). -/
@@ -90,12 +162,13 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 set to). -/
 def maxRecursions : ℕ := 16
 
-/-- The bits of the proof of work before the batching challenge, whose powers weigh at most
-`2 · maxRecursions` claims: `grinding_bits(2 · MAX_RECURSIONS - 1)` (`BATCH_LAM_GRIND_BITS`,
-`crates/aggregation/src/deferred.rs`), `2` at `maxRecursions = 16`; at zero bits the batching
+/-- The bits of the proof of work before the batching challenges: `λ`'s powers weigh at most
+`2 · maxRecursions` claims, and each fresh claim's values are folded at the `splitLog` column
+challenges: `grinding_bits(2 · MAX_RECURSIONS - 1 + SPLIT_LOG)` (`BATCH_LAM_GRIND_BITS`,
+`crates/aggregation/src/deferred.rs`), `3` at `maxRecursions = 16`; at zero bits the batching
 neither reads nor absorbs a nonce (`grindProofOfWork`; the guest program's
 `const(BATCH_LAM_GRIND_BITS == 0)`). -/
-def batchLambdaGrindBits : ℕ := grindingBits (2 * maxRecursions - 1)
+def batchLambdaGrindBits : ℕ := grindingBits (2 * maxRecursions - 1 + splitLog)
 
 /-- The proof of work's nonce in the batching's messages: the nonce, unless the proof of work is of
 zero bits (`aggregate_deferred_claims`'s `messages`; `BC_LAM_WORDS`, `lean_ethereum.py`). -/
@@ -123,16 +196,25 @@ claim and its carried one (`lean_ethereum.py`, `crates/aggregation/src/deferred.
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 
-/-- The bytecode's batched claim at the lambdas. -/
-def batchedClaim (children : List ChildClaims) (lambdas : List (E × E)) : E :=
-  sumE (List.zipWith (fun child l ↦
-    l.1 * child.freshClaim.bytecodeValue + l.2 * child.carriedClaim.bytecodeValue) children lambdas)
+/-- `Σ_j eq(column, j)·values[j]`: split columns' values folded at the column challenges `column`
+(`fold_columns`, `deferred.rs`), a fresh claim's value on the split table at its point and
+`column`. -/
+def foldColumns (column values : List E) : E :=
+  sumE (List.zipWith (· * ·) (eqKernel column) values)
 
-/-- The bytecode's batched weight at `point`. -/
-def batchedBytecodeWeight (children : List ChildClaims) (lambdas : List (E × E))
-    (point : List E) : E :=
+/-- The split table's batched claim at the lambdas and the column challenges `column`: each
+child's fresh claim folded at `column`, and its carried claim. -/
+def batchedClaim (children : List ChildClaims) (lambdas : List (E × E)) (column : List E) : E :=
   sumE (List.zipWith (fun child l ↦
-    l.1 * eqEval child.freshClaim.bytecodePoint point +
+    l.1 * foldColumns column child.freshClaim.values + l.2 * child.carriedClaim.bytecodeValue)
+    children lambdas)
+
+/-- The split table's batched weight at `point`: a fresh claim's point is its point over the
+instructions, then the column challenges `column`. -/
+def batchedBytecodeWeight (children : List ChildClaims) (lambdas : List (E × E))
+    (column point : List E) : E :=
+  sumE (List.zipWith (fun child l ↦
+    l.1 * eqEval (child.freshClaim.point ++ column) point +
       l.2 * eqEval child.carriedClaim.bytecodePoint point) children lambdas)
 
 /-- **The round polynomial** from the claim before the round and its message `(g(1), g(∞))`:
@@ -156,19 +238,22 @@ def sumcheckRoundsProgram : (claim : E) → (roundCount : ℕ) → VerifierProgr
     return (challenge :: rest.1, rest.2)
 
 open Classical in
-/-- **The batching after its children**: a proof of work, one challenge and the lambdas of its powers, the
-sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read after the last
-challenge: no challenge follows), the final check, and `deferredClaimCheck` of the deferred
-claim. -/
+/-- **The batching after its children**: a proof of work, one challenge and the lambdas of its
+powers, the `splitLog` column challenges, the sumcheck's `deferredVariableCount` rounds, the final
+value (`bc_star_hint`, read after the last challenge: no challenge follows), the final check, and
+`deferredClaimCheck` of the deferred claim. -/
 noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredBytecodeClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
   VerifierProgram.grindProofOfWork batchLambdaGrindBits
   let challenge ← VerifierProgram.sampleChallenge
+  let column ← VerifierProgram.sampleChallenges splitLog
   let lambdas := lambdaPowers challenge children.length
-  let rounds ← sumcheckRoundsProgram (batchedClaim children lambdas) (Nat.log2 bytecode.length)
+  let rounds ← sumcheckRoundsProgram (batchedClaim children lambdas column)
+    (deferredVariableCount bytecode)
   let finalValue ← VerifierProgram.readScalar
-  VerifierProgram.require (rounds.2 = finalValue * batchedBytecodeWeight children lambdas rounds.1 ∧
-    deferredClaimCheck ⟨rounds.1, finalValue⟩)
+  VerifierProgram.require
+    (rounds.2 = finalValue * batchedBytecodeWeight children lambdas column rounds.1 ∧
+      deferredClaimCheck ⟨rounds.1, finalValue⟩)
   return true
 
 /-- The count's cells: the generator's power, padded to a whole rate. -/

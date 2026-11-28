@@ -1,30 +1,23 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.PackChain
 
-  The pack rounds of a layer as the guest runs them: the eight-round loop's iterations, then the
-  remainder loop's, one round each, are `packRunF` on the carried sponge.
+  A layer's pack and segment rounds: `keccak_layer`'s two dispatches to `layer_rounds` chain into
+  `packRunF` of the claim's point.
 -/
 
 module
 
-public import LeanVM.Guest.B1.KeccakGkr.PackLoop
-public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
+public import LeanVM.Guest.B1.KeccakGkr.LayerRounds
+public import LeanVM.Guest.B1.KeccakGkr.LayerT
 
 /-!
 # The pack rounds (`keccak_layer`)
 
-`keccak_layer` writes the record `rounds` (the capacity after the squeeze, the cursor past the
-product and the product's value at `s`), runs
-`keccak_layer__L1_loop0`/`keccak_layer__L0_loop0` for `xs = g^j`, `j < ⌊y/8⌋` (`Pack8Step`: eight
-rounds on the coordinates `8j ..`), then `keccak_layer__L1_loop1`/`keccak_layer__L0_loop1` for `x1 =
-g^k`, `k < y % 8`, on `rounds·g^⌊y/8⌋` (`PackRemStep`: one round on the coordinate `8⌊y/8⌋ + k`),
-and reads the record `rounds·g^⌊y/8⌋·g^(y % 8)`.
-
-* `PackInv j n`: after `j` records and `n` coordinates, the messages and challenges so far, the
-  record `j`, and `packRunF` of the first `n` coordinates; `packInv_extend`: a chain of rounds
-  (`EqChain`) from record `j` to record `j + 1` extends it;
-* `pack_chain`: the records chain into `packRunF` of the claim's point, the messages read from the
-  cursor and the challenges stored at `point`.
+`keccak_layer` runs the claim's `y = 16·⌊y/16⌋ + y % 16` pack and segment rounds as a dispatch on
+`step_g = g^⌊y/16⌋` to `layer_rounds__L0` or `__L16` (`stepNames`), then one on `rem_g = g^(y % 16)`
+to `layer_rounds__L{y % 16}` (`remNames`) on the coordinates and challenges `16·⌊y/16⌋` on.
+`pack_rounds`: the two runs chain (`packRunF_append`) into `packRunF` of the claim's point, the
+messages read from the cursor and the challenges stored at `point`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -36,21 +29,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {rd : Reader}
 
-/-- A round of `packRunF` is `eqRound`. -/
-theorem packRunF_eqRound (r g1 g2 v : E) (rs : List E) (ms : List (E × E)) (s : Fs) :
-    packRunF (r :: rs) ((g1, g2) :: ms) v s =
-      (((packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).1.1,
-        (eqRound s g1 g2 r v).1 ::
-          (packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).1.2),
-        (packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).2) :=
-  packRunF_cons r g1 g2 v rs ms s
+/-! ## `packRunF` -/
 
 /-- `packRunF` past its last round. -/
 theorem packRunF_nil (v : E) (s : Fs) : packRunF [] [] v s = ((v, []), s) := rfl
-
-theorem loadHolds_rec_succ {rec : E} {j off : ℕ} {w : E} :
-    LoadHolds rd (rec * gen ^ j) (1 + off) w ↔ LoadHolds rd (rec * gen ^ (j + 1)) off w := by
-  rw [loadHolds_mul_gen_pow, loadHolds_mul_gen_pow, show j + (1 + off) = j + 1 + off by omega]
 
 /-- `packRunF` over a prefix of rounds, then the rest. -/
 theorem packRunF_append :
@@ -63,33 +45,34 @@ theorem packRunF_append :
   | [], rest, [], restM, v, s, _ => by simp [packRunF_nil]
   | r :: A, rest, (g1, g2) :: MA, restM, v, s, h => by
     have h' : MA.length = A.length := by simpa using h
-    rw [List.cons_append, List.cons_append, packRunF_eqRound, packRunF_eqRound,
+    rw [List.cons_append, List.cons_append, packRunF_cons, packRunF_cons,
       packRunF_append A rest MA restM _ _ h']
     simp only [List.cons_append]
   | [], _, _ :: _, _, _, _, h | _ :: _, _, [], _, _, _, h => by simp at h
 
-theorem capAt_unique {rec : E} {k : ℕ} {cap cap' : List E} (h : CapAt rd rec k krCap cap)
-    (h' : CapAt rd rec k krCap cap') : cap = cap' := by
-  apply List.ext_getElem (by rw [h.1, h'.1])
-  intro j hj hj'
-  exact loadHolds_unique (h.2 j hj) (h'.2 j hj')
+/-- The challenges are as many as the rounds. -/
+theorem packRunF_chs_length : ∀ (rs : List E) (ms : List (E × E)) (v : E) (s : Fs),
+    ms.length = rs.length → (packRunF rs ms v s).1.2.length = rs.length
+  | [], [], _, _, _ => rfl
+  | r :: rs, (g1, g2) :: ms, v, s, h => by
+    rw [packRunF_cons]
+    simp only [List.length_cons]
+    rw [packRunF_chs_length rs ms _ _ (by simpa using h)]
+  | [], _ :: _, _, _, h | _ :: _, [], _, _, h => by simp at h
 
-theorem roundRec_unique {rec : E} {k : ℕ} {cap cap' : List E} {cur cur' cl cl' : E}
-    (h : RoundRec rd rec k cap cur cl) (h' : RoundRec rd rec k cap' cur' cl') :
-    cap = cap' ∧ cur = cur' ∧ cl = cl' :=
-  ⟨capAt_unique h.1 h'.1, loadHolds_unique h.2.1 h'.2.1, loadHolds_unique h.2.2 h'.2.2⟩
+/-- The capacity stays five cells. -/
+theorem packRunF_cap_length : ∀ (rs : List E) (ms : List (E × E)) (v : E) (s : Fs),
+    s.cap.length = 5 → (packRunF rs ms v s).2.cap.length = 5
+  | [], _, _, _, h => h
+  | _ :: _, [], _, _, h => h
+  | r :: rs, (g1, g2) :: ms, v, s, _ => by
+    simp only [packRunF]
+    exact packRunF_cap_length rs ms _ _ rfl
 
-/-- A record written at offset `1` from `rec·g^j` is the record at `rec·g^(j+1)`. -/
-theorem roundRec_succ {rec : E} {j : ℕ} {cap : List E} {cur cl : E}
-    (h : RoundRec rd (rec * gen ^ j) 1 cap cur cl) :
-    RoundRec rd (rec * gen ^ (j + 1)) 0 cap cur cl := by
-  obtain ⟨⟨hl, hc⟩, h1, h2⟩ := h
-  refine ⟨⟨hl, fun i hi => ?_⟩, ?_, ?_⟩
-  · have := hc i hi
-    rw [show 1 + i * krCap = 1 + (0 + i * krCap) by omega, loadHolds_rec_succ] at this
-    exact this
-  · rw [show 0 + 5 * krCap = 5 * krCap by omega, ← loadHolds_rec_succ]; exact h1
-  · rw [show 0 + 6 * krCap = 6 * krCap by omega, ← loadHolds_rec_succ]; exact h2
+/-! ## Words -/
+
+theorem word_16 : word 16 0 = gen ^ 4 := by
+  rw [show (16 : ℕ) = 2 ^ 4 from rfl]; exact word_two_pow (by decide)
 
 theorem gen_pow_ne_one {h : ℕ} (h0 : 0 < h) (hlt : h < ordG) : 1 + gen ^ h ≠ 0 := by
   intro e
@@ -97,178 +80,106 @@ theorem gen_pow_ne_one {h : ℕ} (h0 : 0 < h) (hlt : h < ordG) : 1 + gen ^ h ≠
   have := gen_pow_inj (by unfold ordG at hlt; omega) (by decide) this
   omega
 
-theorem flatMap_pairs_length (msgs : List (E × E)) :
-    (msgs.flatMap fun m ↦ [m.1, m.2]).length = 2 * msgs.length := by
-  induction msgs with
-  | nil => rfl
-  | cons m ms ih => simp [List.flatMap_cons, ih]; ring
+/-! ## Memory runs -/
 
-/-- The invariant after `j` records and `n` coordinates: the messages and challenges so far, the
-record `j`, and `packRunF` of the first `n` coordinates. -/
-def PackInv (rd : Reader) (rec pt cur hv : E) (capS pts : List E) (j n : ℕ) : Prop :=
-  ∃ (msgs : List (E × E)) (chs cap : List E) (cl : E), msgs.length = n ∧
-    chs.length = n ∧ ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧ ReadsAt rd pt chs ∧
-    RoundRec rd (rec * gen ^ j) 0 cap (cur * gen ^ (2 * n)) cl ∧
-    packRunF (pts.take n) msgs hv ⟨capS, []⟩ = ((cl, chs), ⟨cap, []⟩)
+theorem readsAt_unique' {p : E} {l1 l2 : List E} (h1 : ReadsAt rd p l1) (h2 : ReadsAt rd p l2)
+    (hl : l1.length = l2.length) : l1 = l2 :=
+  List.ext_getElem hl fun k hk1 hk2 ↦ loadHolds_unique (h1 k hk1) (h2 k hk2)
 
-theorem packInv_zero {rec pt cur hv : E} {capS pts : List E} (h0 : RoundRec rd rec 0 capS cur hv) :
-    PackInv rd rec pt cur hv capS pts 0 0 :=
-  ⟨[], [], capS, hv, rfl, rfl, readsAt_nil _ _, readsAt_nil _ _, by simpa using h0, rfl⟩
+theorem readsAt_take {p : E} {l : List E} (h : ReadsAt rd p l) (n : ℕ) : ReadsAt rd p (l.take n) :=
+  fun k hk ↦ by
+    simp only [List.length_take] at hk
+    rw [List.getElem_take]
+    exact h k (by omega)
 
-/-- **A chain of rounds extends the invariant**: from record `j`, the coordinates `n ..` of the
-point, the messages at the cursor and the challenges at `point·g^n`, to record `j + 1`. -/
-theorem packInv_extend {rec pt cur hv : E} {capS pts : List E} {j n : ℕ}
-    (hI : PackInv rd rec pt cur hv capS pts j n) {rs : List E} {ms : List (E × E)}
-    {chs' cap0 cap' : List E} {cur0 cl0 cl' : E}
-    (hrec0 : RoundRec rd (rec * gen ^ j) 0 cap0 cur0 cl0)
-    (hrs : ∀ k (hk : k < rs.length), pts[n + k]? = some rs[k]) (hlen : n + rs.length ≤ pts.length)
-    (hms : ReadsAt rd cur0 (ms.flatMap fun m ↦ [m.1, m.2]))
-    (hch : EqChain rs ms cl0 cap0 chs' cl' cap') (hchs : ReadsAt rd (pt * gen ^ n) chs')
-    (hnext : RoundRec rd (rec * gen ^ j) 1 cap' (cur0 * gen ^ (2 * rs.length)) cl') :
-    PackInv rd rec pt cur hv capS pts (j + 1) (n + rs.length) := by
-  obtain ⟨msgs, chs, cap, cl, hml, hcl, hrm, hrc, hrec, hrun⟩ := hI
-  obtain ⟨rfl, hcur, rfl⟩ := roundRec_unique hrec0 hrec
-  obtain ⟨hmsl, hchl⟩ := packEqChain_length hch
-  have htake : pts.take (n + rs.length) = pts.take n ++ rs := by
-    apply List.ext_getElem?
-    intro k
-    rw [List.getElem?_take]
-    rcases Nat.lt_or_ge k n with hk | hk
-    · rw [List.getElem?_append_left (by simp; omega), List.getElem?_take]
-      simp [hk, show k < n + rs.length by omega]
-    · rw [List.getElem?_append_right (by simp; omega)]
-      simp only [List.length_take, show min n pts.length = n by omega]
-      rcases Nat.lt_or_ge k (n + rs.length) with hk' | hk'
-      · simp only [hk', ↓reduceIte]
-        have := hrs (k - n) (by omega)
-        rw [show n + (k - n) = k by omega] at this
-        rw [this, List.getElem?_eq_getElem (by omega)]
-      · simp only [show ¬ k < n + rs.length by omega, ↓reduceIte]
-        rw [List.getElem?_eq_none (by omega)]
-  refine ⟨msgs ++ ms, chs ++ chs', cap', cl', by simp [hml, hmsl], by simp [hcl, hchl], ?_, ?_,
-    ?_, ?_⟩
-  · rw [List.flatMap_append, readsAt_append, flatMap_pairs_length, hml]
-    exact ⟨hrm, hcur ▸ hms⟩
-  · rw [readsAt_append, hcl]
-    exact ⟨hrc, hchs⟩
-  · have := roundRec_succ hnext
-    rw [hcur, mul_assoc, ← pow_add, show 2 * n + 2 * rs.length = 2 * (n + rs.length) by ring]
-      at this
-    exact this
-  · rw [htake, packRunF_append _ _ _ _ _ _ (by simp [hml]; omega), hrun,
-      packRunF_of_chain _ _ _ _ _ _ _ hch]
-
-/-- The coordinates read at `pp·g^n` are the point's from `n`. -/
-theorem coords_of_reads {pp : E} {pts rs : List E} {n : ℕ} (hpp : ReadsAt rd pp pts)
-    (hr : ReadsAt rd (pp * gen ^ n) rs) (hlen : n + rs.length ≤ pts.length) :
-    ∀ k (hk : k < rs.length), pts[n + k]? = some rs[k] := by
+theorem readsAt_drop {p : E} {l : List E} (h : ReadsAt rd p l) (n : ℕ) :
+    ReadsAt rd (p * gen ^ n) (l.drop n) := by
+  rw [readsAt_gen_pow_mul]
   intro k hk
-  have h1 := hr k hk
-  rw [loadHolds_mul_gen_pow] at h1
-  rw [List.getElem?_eq_getElem (by omega), loadHolds_unique (hpp _ (by omega)) h1]
+  simp only [List.length_drop] at hk
+  rw [List.getElem_drop]
+  exact h (n + k) (by omega)
 
-theorem gen_pow_pow (j m : ℕ) : (gen ^ j) ^ m = gen ^ (m * j) := by rw [← pow_mul, mul_comm]
+/-! ## The dispatches' names -/
 
-/-- **An iteration of the eight-round loop extends the invariant.** -/
-theorem packInv_succ8 {rec pp pt cur hv : E} {capS pts : List E} {j : ℕ}
-    (hI : PackInv rd rec pt cur hv capS pts j (8 * j)) (hS : Pack8Step rd rec pp pt (gen ^ j))
-    (hpp : ReadsAt rd pp pts) (hj : 8 * j + 8 ≤ pts.length) :
-    PackInv rd rec pt cur hv capS pts (j + 1) (8 * (j + 1)) := by
-  obtain ⟨cap, cur0, cl0, rs, ms, chs, cl', cap', hrec0, hrl, hrr, hms, hch, hchs, hnext⟩ :=
-    hS
-  rw [gen_pow_pow] at hrr hchs
-  have := packInv_extend hI hrec0 (coords_of_reads hpp hrr (by omega)) (by omega) hms hch hchs
-    (by rw [hrl]; exact hnext)
-  rwa [hrl, show 8 * j + 8 = 8 * (j + 1) by ring] at this
+theorem stepNames_getD {j : ℕ} (hj : j < 2) : stepNames.getD j "" = lrNames.getD (krStep * j) "" := by
+  interval_cases j <;> rfl
 
-/-- **An iteration of the remainder loop extends the invariant.** -/
-theorem packInv_succR {rec pp pt cur hv : E} {capS pts : List E} {s k : ℕ}
-    (hI : PackInv rd rec pt cur hv capS pts (s + k) (8 * s + k))
-    (hS : PackRemStep rd (rec * gen ^ s) (pp * gen ^ (8 * s)) (pt * gen ^ (8 * s)) (gen ^ k))
-    (hpp : ReadsAt rd pp pts) (hk : 8 * s + k + 1 ≤ pts.length) :
-    PackInv rd rec pt cur hv capS pts (s + k + 1) (8 * s + k + 1) := by
-  obtain ⟨cap, cur0, cl0, r, g1, g2, hrec0, hr, hms, hS'⟩ := hS
-  obtain ⟨hst, hnext⟩ := hS'
-  rw [mul_assoc, ← pow_add] at hrec0 hr hst hnext
-  have hrr : ReadsAt rd (pp * gen ^ (8 * s + k)) [r] := by
-    intro i hi
-    simp only [List.length_cons, List.length_nil] at hi
-    interval_cases i
-    exact hr
-  have hch : EqChain [r] [(g1, g2)] cl0 cap
-      [(eqRound ⟨cap, []⟩ g1 g2 r cl0).1] (eqRound ⟨cap, []⟩ g1 g2 r cl0).2.1
-      (eqRound ⟨cap, []⟩ g1 g2 r cl0).2.2.cap :=
-    ⟨_, _, _, [], rfl, rfl, rfl, rfl, rfl⟩
-  have hchs : ReadsAt rd (pt * gen ^ (8 * s + k)) [(eqRound ⟨cap, []⟩ g1 g2 r cl0).1] := by
-    intro i hi
-    simp only [List.length_cons, List.length_nil] at hi
-    interval_cases i
-    exact hst
-  have := packInv_extend hI (by rwa [show s + k = s + k from rfl]) (coords_of_reads hpp hrr (by simp; omega))
-    (by simp; omega) (by simpa using hms) hch hchs (by simpa using hnext)
-  simpa using this
+theorem remNames_getD {j : ℕ} (hj : j < 16) : remNames.getD j "" = lrNames.getD j "" := by
+  interval_cases j <;> rfl
 
-/-- **The pack rounds**: the loops' records chain into `packRunF` of the claim's point `pts`, the
-messages read from the cursor and the challenges stored at `point`; the last record
-(`rounds·step_g·rem_g`) holds its result. -/
-theorem pack_chain {first : ℕ} (hfirst : first < 2)
-    {rec pp pt sg rg cur hv curL vL : E} {capS pts capL : List E} {y : ℕ}
+/-! ## The pack rounds -/
+
+/-- **The pack rounds**: the two dispatches' runs, on the coordinates `pts` at `prev_point`, chain
+into `packRunF` of `pts`, the messages read from the cursor `cur` and the challenges stored at
+`point`; the second dispatch returns its result, the cursor `2y` words on. -/
+theorem pack_rounds {pp pt sg rg cur hv tb : E} {capS pts r1 r2 : List E} {y j1 j2 : ℕ}
     (hsg : sg = gen ^ (y / krStep)) (hrg : rg = gen ^ (y % krStep)) (hy32 : y < 32)
-    (hpts : pts.length = y) (hpp : ReadsAt rd pp pts)
-    (h0 : RoundRec rd rec 0 capS cur hv) {tb : E}
-    (hloop : IsInK (1 + sg) ∧
-      (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rec, pp, pt, tb] []))
-    (hrem : IsInK (1 + rg) ∧
-      (1 + rg ≠ 0 → coreProgram.Rel rd (remLoopName first) [1, rg, rec * sg, pp * sg ^ 8, tb,
-        pt * sg ^ 8] []))
-    (hlast : RoundRec rd (rec * sg * rg) 0 capL curL vL) :
-    ∃ (msgs : List (E × E)) (chs : List E), msgs.length = y ∧
-      ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧ ReadsAt rd pt chs ∧ chs.length = y ∧
-      curL = cur * gen ^ (2 * y) ∧ (packRunF pts msgs hv ⟨capS, []⟩).1 = (vL, chs) ∧
+    (hcapS : capS.length = 5) (hpts : pts.length = y) (hpp : ReadsAt rd pp pts)
+    (hj1 : j1 < 2) (hsgj : sg = gen ^ j1)
+    (hr1 : coreProgram.Rel rd (stepNames.getD j1 "") (capS ++ [cur, hv, pp, pt, tb]) r1)
+    (hj2 : j2 < 16) (hrgj : rg = gen ^ j2)
+    (hr2 : coreProgram.Rel rd (remNames.getD j2 "") (r1 ++ [pp * sg ^ krStep, pt * sg ^ krStep, tb])
+      r2) :
+    ∃ (msgs : List (E × E)) (chs capL : List E) (curL vL : E), r2 = capL ++ [curL, vL] ∧
+      capL.length = 5 ∧ msgs.length = y ∧ ReadsAt rd cur (msgs.flatMap fun m ↦ [m.1, m.2]) ∧
+      ReadsAt rd pt chs ∧ chs.length = y ∧ curL = cur * gen ^ (2 * y) ∧
+      (packRunF pts msgs hv ⟨capS, []⟩).1 = (vL, chs) ∧
       (packRunF pts msgs hv ⟨capS, []⟩).2 = ⟨capL, []⟩ := by
-  have hlt : ∀ m, m < 32 → m < ordG := fun m hm ↦ by unfold ordG; omega
-  have hsteps : ∀ j < y / krStep, Pack8Step rd rec pp pt (gen ^ j) := by
-    intro j hj
-    have hne := gen_pow_ne_one (h := y / krStep) (by omega) (hlt _ (by simp [krStep]; omega))
-    obtain ⟨fn, hf, hb, hp⟩ := find_pack8 hfirst
-    have hrel := hloop.2 (by rw [hsg]; exact hne)
-    exact loop_sound (P := coreProgram) (f := packLoopName first) (ps := [sg, rec, pp, pt, tb])
-      (N := sg) (m := y / krStep) (B := Pack8Step rd rec pp pt)
-      (fun d x h' => pack8_step hf hb hp d x sg rec pp pt tb h') hsg (hlt _ (by simp [krStep]; omega))
-      0 (by rw [pow_zero]; exact hrel) j (Nat.zero_le _) hj
-  have hrems : ∀ k < y % krStep, PackRemStep rd (rec * sg) (pp * sg ^ 8) (pt * sg ^ 8) (gen ^ k) := by
-    intro k hk
-    have hne := gen_pow_ne_one (h := y % krStep) (by omega) (hlt _ (by simp [krStep]; omega))
-    obtain ⟨fn, hf, hb, hp⟩ := find_packRem hfirst
-    have hrel := hrem.2 (by rw [hrg]; exact hne)
-    exact loop_sound (P := coreProgram) (f := remLoopName first)
-      (ps := [rg, rec * sg, pp * sg ^ 8, tb, pt * sg ^ 8]) (N := rg) (m := y % krStep)
-      (B := PackRemStep rd (rec * sg) (pp * sg ^ 8) (pt * sg ^ 8))
-      (fun d x h' => packRem_step hf hb hp d x rg _ _ tb _ h') hrg (hlt _ (by simp [krStep]; omega))
-      0 (by rw [pow_zero]; exact hrel) k (Nat.zero_le _) hk
-  have hinv8 : ∀ j ≤ y / krStep, PackInv rd rec pt cur hv capS pts j (8 * j) := by
-    intro j hj
-    induction j with
-    | zero => exact packInv_zero h0
-    | succ j ih =>
-      exact packInv_succ8 (ih (by omega)) (hsteps j (by omega)) hpp (by simp [krStep] at hj; omega)
-  have hinvR : ∀ k ≤ y % krStep, PackInv rd rec pt cur hv capS pts (y / krStep + k)
-      (8 * (y / krStep) + k) := by
-    intro k hk
-    induction k with
-    | zero => exact hinv8 _ le_rfl
-    | succ k ih =>
-      have := packInv_succR (s := y / krStep) (k := k) (ih (by omega))
-        (by rw [← gen_pow_pow, ← hsg]; exact hrems k (by omega)) hpp
-        (by simp [krStep] at hk ⊢; omega)
-      simpa [Nat.add_assoc] using this
-  obtain ⟨msgs, chs, cap, cl, hml, hcl, hrm, hrc, hrec, hrun⟩ := hinvR _ le_rfl
-  have hy : 8 * (y / krStep) + y % krStep = y := by simp only [krStep]; omega
-  rw [hy] at hml hcl hrec hrun
-  rw [hsg, hrg, mul_assoc, ← pow_add] at hlast
-  obtain ⟨rfl, hcur, rfl⟩ := roundRec_unique hlast hrec
-  rw [List.take_of_length_le (by omega)] at hrun
-  exact ⟨msgs, chs, hml, hrm, hrc, hcl, hcur, by rw [hrun], by rw [hrun]⟩
+  have hlt : ∀ m, m < 32 → m < 2 ^ 64 - 1 := fun m hm ↦ by omega
+  have e1 : j1 = y / krStep := gen_pow_inj (hlt _ (by omega)) (hlt _ (by simp [krStep]; omega))
+    (hsgj.symm.trans hsg)
+  have e2 : j2 = y % krStep := gen_pow_inj (hlt _ (by omega)) (hlt _ (by simp [krStep]; omega))
+    (hrgj.symm.trans hrg)
+  subst e1 e2
+  rw [stepNames_getD hj1] at hr1
+  rw [remNames_getD hj2] at hr2
+  have M1 := layer_rounds_sound _ (by simp [krStep] at hj1 ⊢; omega) rd _ _ hr1
+  obtain ⟨c0, c1, c2, c3, c4, rfl⟩ : ∃ c0 c1 c2 c3 c4, capS = [c0, c1, c2, c3, c4] := by
+    match capS, hcapS with
+    | [c0, c1, c2, c3, c4], _ => exact ⟨c0, c1, c2, c3, c4, rfl⟩
+  simp only [List.cons_append, List.nil_append, MeaningLayerRounds] at M1
+  obtain ⟨rs1, ms1, hrs1, hms1, hpp1, hcur1, hpt1, hpend1, hret1⟩ := M1
+  set P1 := packRunF rs1 ms1 hv ⟨[c0, c1, c2, c3, c4], []⟩ with hP1
+  have hcap1 : P1.2.cap.length = 5 := packRunF_cap_length _ _ _ _ rfl
+  obtain ⟨d0, d1, d2, d3, d4, hd⟩ : ∃ d0 d1 d2 d3 d4, P1.2.cap = [d0, d1, d2, d3, d4] := by
+    match P1.2.cap, hcap1 with
+    | [d0, d1, d2, d3, d4], _ => exact ⟨d0, d1, d2, d3, d4, rfl⟩
+  have M2 := layer_rounds_sound _ (by simp [krStep] at hj2 ⊢; omega) rd _ _ hr2
+  rw [hret1, hd] at M2
+  simp only [List.cons_append, List.nil_append, MeaningLayerRounds] at M2
+  obtain ⟨rs2, ms2, hrs2, hms2, hpp2, hcur2, hpt2, hpend2, hret2⟩ := M2
+  have hs1 : P1.2 = ⟨[d0, d1, d2, d3, d4], []⟩ := by
+    rw [← hd, ← hpend1]
+  set P2 := packRunF rs2 ms2 P1.1.1 ⟨[d0, d1, d2, d3, d4], []⟩ with hP2
+  have hsgk : sg ^ krStep = gen ^ (krStep * (y / krStep)) := by rw [hsgj, ← pow_mul, mul_comm]
+  -- The coordinates.
+  have hpts' : pts = rs1 ++ rs2 := by
+    have hy : krStep * (y / krStep) + y % krStep = y := Nat.div_add_mod y krStep
+    have ht := readsAt_unique' (readsAt_take hpp (krStep * (y / krStep))) hpp1
+      (by simp [hrs1, hpts]; omega)
+    have hd' := readsAt_unique' (readsAt_drop hpp (krStep * (y / krStep))) (by rw [← hsgk]; exact hpp2)
+      (by simp [hrs2, hpts]; omega)
+    rw [← List.take_append_drop (krStep * (y / krStep)) pts, ht, hd']
+  have hchs1 : P1.1.2.length = krStep * (y / krStep) := by
+    rw [packRunF_chs_length _ _ _ _ (by rw [hms1, hrs1])]; exact hrs1
+  have hrun : packRunF pts (ms1 ++ ms2) hv ⟨[c0, c1, c2, c3, c4], []⟩ =
+      ((P2.1.1, P1.1.2 ++ P2.1.2), P2.2) := by
+    rw [hpts', packRunF_append _ _ _ _ _ _ (by rw [hms1, hrs1]), ← hP1, hs1]
+  refine ⟨ms1 ++ ms2, P1.1.2 ++ P2.1.2, P2.2.cap,
+    cur * gen ^ (2 * (krStep * (y / krStep))) * gen ^ (2 * (y % krStep)), P2.1.1, hret2,
+    packRunF_cap_length _ _ _ _ rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [List.length_append, hms1, hms2]
+    exact Nat.div_add_mod y krStep
+  · rw [List.flatMap_append, readsAt_append, length_flatMap_pairs, hms1]
+    exact ⟨hcur1, hcur2⟩
+  · rw [readsAt_append, hchs1, ← hsgk]
+    exact ⟨hpt1, hpt2⟩
+  · rw [List.length_append, hchs1, packRunF_chs_length _ _ _ _ (by rw [hms2, hrs2]), hrs2]
+    exact Nat.div_add_mod y krStep
+  · rw [mul_assoc, ← pow_add, ← mul_add, Nat.div_add_mod]
+  · rw [hrun]
+  · rw [hrun, ← hpend2]
 
 end
 end LeanVM.Guest.B1.VerifySub

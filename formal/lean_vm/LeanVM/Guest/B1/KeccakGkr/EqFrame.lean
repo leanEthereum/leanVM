@@ -19,7 +19,7 @@ times `r_t` (the last level cut at `count`). In the core IR, from the value `b`:
 `r₀` (`b`), `1` (`b + 1`), `1 + r₀` (`b + 2`, entry `0`) and a copy of `r₀` (`b + 3`, entry `1`);
 level `t ≥ 1` from its base `B` is `r_t`, `1`, `1 + r_t`, then per parent `i` the product with
 `1 + r_t` and, while `i < k` (`k = 2^t` but at a cut last level), the product with `r_t`
-(`eqfLevelT`). Entry `j` of level `t` is `eqAt (r₀ .. r_t) j` (`eqfLevelT_holds`).
+(`eqfLevelT`). Entry `j` of level `t` is `eqAt (r₀ .. r_t) j` (`eqf_level`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

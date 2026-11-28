@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Protocol.Whir.Sound.Spec
-import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import CompPoly.Univariate.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
@@ -34,7 +33,7 @@ only up to the final polynomial.
 namespace LeanVM.Protocol.Whir.Sound
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.Whir
-  LeanVM.Protocol.EndToEnd.Sound VerifierProgram
+  VerifierProgram
 
 @[expose] public section
 
@@ -124,10 +123,10 @@ def verifyWhirCut (logN logInvRate : ℕ) (target : E) : VerifierProgram WhirTra
     whirLevelsGF logN (finCut logN) 0 config ⟨target, [], []⟩
 
 /-- `verifyStackedOpeningG` cut at the final polynomial. -/
-def verifyStackedOpeningCut (stackLog logInvRate : ℕ) (claims : List StackClaim) :
+def verifyStackedOpeningCut (stackLog logInvRate : ℕ) (claims : List StackClaim) (batching : E) :
     VerifierProgram WhirTrace :=
-  (VerifierProgram.require (StackedOk claims)).bind fun _ ↦ VerifierProgram.sampleChallenge.bind fun c ↦
-    verifyWhirCut stackLog logInvRate (dot (powers c claims.length) (claims.map (·.2)))
+  (VerifierProgram.require (StackedOk claims)).bind fun _ ↦
+    verifyWhirCut stackLog logInvRate (batchedClaim claims batching).2
 
 end
 end LeanVM.Protocol.Whir.Sound

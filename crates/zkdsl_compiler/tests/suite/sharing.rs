@@ -236,7 +236,6 @@ def main():
 
 #[test]
 fn cached_loads_see_linked_equalities_before_use() {
-    parallel::init();
     let source = r#"
 def fill(h):
     value = hint_witness("value")
@@ -278,7 +277,6 @@ def main():
 /// says, even where the loaded name is used directly rather than loaded again.
 #[test]
 fn a_load_before_its_store_sees_the_store() {
-    parallel::init();
     let source = "\
 def main():
     h = HeapBuf(1)
@@ -312,7 +310,6 @@ def main():
 
 #[test]
 fn cached_copies_see_later_stores() {
-    parallel::init();
     let source = r#"
 def square(h):
     return h[GEN] * h[GEN]

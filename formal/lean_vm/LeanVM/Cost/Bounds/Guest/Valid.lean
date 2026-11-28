@@ -4,7 +4,7 @@ public import LeanVM.Guest.EndFinal
 public import LeanVM.Guest.B1.Main.Facts
 public import LeanVM.Cost.Decoder.Equations
 public import LeanVM.Cost.Decoder.TopEq
-public import LeanVM.Guest.Child.Reads
+public import LeanVM.Guest.Child.Stream
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
 import LeanVM.Guest.Data.ValNames.«verify_sub»
@@ -20,12 +20,13 @@ scheme and the slots of both regions together below the memory's size `2^κ` (`a
 is the exponent of an address of the memory).
 
 * `mainVal_valid`: the decoder's valuation is `main`'s at its frame (`valG t.memory 1 (certOf 1)`);
-* `mainFacts_valid`: `main`'s facts (`MainFacts`) at that valuation;
+* `mainFacts_valid`: `main`'s facts (`MainFacts`) at that valuation, given B2 (`B2SoundL`);
 * **`valid_counts`**: `ValidCounts discreteLogTables σ`, the counts read by `gLogD` in the tables
   built;
 * **`valid_cursor`**: each child's cursor length, the words of its proof's stream before the
   opening (`cursorLength`, at `verify_sub`'s frame of the child's arguments, `subArgsK`), is at
-  most `8192`: the decoded witness explains the input (`guest_knowledge`, `decTop_eq`), so the
+  most `8192`, given B2 and `verify_sub`'s statement: the decoded witness explains the input
+  (`guest_knowledge_of`, `decTop_eq`), so the
   deferring verifier accepts the child's proof, whose stream has at most `childStreamCap = 8192`
   scalars (`Child.stream_le_of_verifyDeferred`) and begins with those words.
 -/
@@ -67,16 +68,16 @@ theorem mainVal_valid {input : PublicInput} {t : Execution guestProgram}
   rfl
 
 /-- **`main`'s facts on a valid execution**, at the decoder's valuation. -/
-theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
+theorem mainFacts_valid (hb2 : End.B2SoundL) {input : PublicInput} {t : Execution guestProgram}
     (hv : ValidExecution guestProgram input t) :
     MainFacts (Located.RLg t.memory) t.memory.read
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory))) := by
   rw [mainVal_valid hv]
   have hm : Digest.MemOk t.memory.read := ⟨t.logMemorySize, hv.1.1,
     (by have := hv.1.2.1; unfold maxLogMem at this; omega), t.memory, rfl⟩
-  have hU := unfolds_of_V (Located.unfoldsV_replay (End.b2SoundL End.endPending_proved) hv)
+  have hU := unfolds_of_V (Located.unfoldsV_replay hb2 hv)
   refine main_facts hU (Located.rlg_le_rel t.memory) hm exponent_tables_holds (fun args h ↦ ?_)
-    (End.mainBodyL_of (End.b2SoundL End.endPending_proved) hv).1
+    (End.mainBodyL_of hb2 hv).1
   obtain ⟨fn, σ, hf, hp, hb⟩ := hU _ _ _ h
   rw [find_loop2] at hf
   cases hf
@@ -127,12 +128,12 @@ theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 30) {L : MemoryIma
 /-- **On a valid execution of the guest, the counts the decoder reads are small**: at its
 valuation `mainVal rd` of `main`'s frame, `rd` the reader of the memory vector (`decTop`'s), in
 the logarithm's tables built. -/
-theorem valid_counts {input : PublicInput} {t : Execution guestProgram}
+theorem valid_counts (hb2 : End.B2SoundL) {input : PublicInput} {t : Execution guestProgram}
     (hv : ValidExecution guestProgram input t) :
     ValidCounts discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))
       (2 ^ t.logMemorySize) :=
-  validCounts_of hv.1.2.1 (mainFacts_valid hv)
+  validCounts_of hv.1.2.1 (mainFacts_valid hb2 hv)
 
 
 /-- A child proof's stream begins with its cursor's words. -/
@@ -150,8 +151,9 @@ theorem cursor_le_stream (T : Fast.WhirTabs) (rd : Reader) (σ : Val) (Vn : Fast
 /-- **On a valid execution of the guest, each child's cursor length is at most `8192`**: at the
 decoder's reader, valuation and table of entries (`decTop`'s), for every child `c` below the
 count it reads. -/
-theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
-    (hv : ValidExecution guestProgram input t) (c : ℕ)
+theorem valid_cursor (hb2 : End.B2SoundL)
+    (hsub : B1.Main.SubSoundW End.bytecode VerifySub.vsPiOf) {input : PublicInput}
+    {t : Execution guestProgram} (hv : ValidExecution guestProgram input t) (c : ℕ)
     (hc : c < nKidsD discreteLogTables
       (mainVal (memReader (powTable t.logMemorySize) (memoryVector t.memory)))) :
     let rd := memReader (powTable t.logMemorySize) (memoryVector t.memory)
@@ -161,7 +163,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
         (memoryVector t.memory)) rd) rd (fn_idx% verify_sub) (subArgsK rd σ c) []
     cursorLength discreteLogTables (fr (.n (val% «verify_sub» "stream"))) (fr (.n (val% «verify_sub» "sumcheck_target~2"))) ≤ 8192 := by
   intro rd σ fr
-  have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge input t hv
+  have hk : Node.ExplainsPublicInput guestProgram input (End.decode t.memory) := End.guest_knowledge_of hb2 hsub input t hv
   rw [← decTop_eq] at hk
   have hrel := hk.2.2.2.1
   let w := decWitNStaged discreteLogTables Fast.readerTabs σ rd
@@ -182,7 +184,8 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)
         (replayStatesOf (powTable t.logMemorySize) (powTable guestProgram.logSize) guestProgram
           (memoryVector t.memory)) rd) rd) (cursorLength discreteLogTables))
-      (σ (.n 398)) (σ (.n 47)) (σ (.n 48)) (lxTable discreteLogTables rd σ)
+      (σ (.n (val% «main» "written"))) (σ (.n (val% «main» "lx_table")))
+      (σ (.n (val% «main» "lean_sphincs_table"))) (lxTable discreteLogTables rd σ)
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩

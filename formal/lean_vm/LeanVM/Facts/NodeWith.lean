@@ -66,10 +66,13 @@ where
       for x in padToRate c.words do observeWith F x
     if ← grindWith F Guest.Batch.batchLambdaGrindBits h.lambdaGrindNonce then
       let lam ← sampleWith F
+      let mut column : List E := []
+      for _ in List.range splitLog do
+        column := column ++ [← sampleWith F]
       let lambdas := Guest.Batch.lambdaPowers lam children.length
-      let (r, final) ← batchRoundsWith F (Guest.Batch.batchedClaim children lambdas)
+      let (r, final) ← batchRoundsWith F (Guest.Batch.batchedClaim children lambdas column)
         h.sumcheckMessages
-      if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas r then
+      if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas column r then
         return some ⟨r, h.finalBytecodeValue⟩
       else return none
     else return none

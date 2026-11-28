@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory.HintsCheck
 A computed hint (`compHint`: neither a witness nor an allocation) reads and writes frame values (`hintFrame`: its input, its start cell, its frame destination, a `log2Ceil`'s frame bits) and at most one buffer (`hintBuf`: its heap destination, or the bits a `log2Ceil` reads). `pairChk extra locs n body`, for a function's hint-only cells `extra` (its alignment's), certificate cells `locs` and frame size `n`, checks every computed hint atom of the body at any depth (`blockAll`, by the recursor, for the kernel):
 
 - each frame value at its certificate cell, in `[2, n)`, no hint-only cell, its number below `2^30`, where the alignment's cell map is the certificate's (`cellOk`);
-- each buffer read from offset `0`, of length in `(0, 2^30)`, its pointer at its certificate cell or a hint-only cell, allocated and written whole by a hint among the body's spine (`spine`: its top-level atoms before the first return or branch or `match` that may return, on every path that returns).
+- each buffer read from offset `0`, of length in `(0, 2^30)`, its pointer at its certificate cell or a hint-only cell, allocated or loaded through (an argument buffer, its caller's: `table_size`'s bits) and written whole by a hint among the body's spine (`spine`: its top-level atoms before the first return or branch or `match` that may return, on every path that returns).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -79,6 +79,11 @@ def allocOf : Atom → Option V
   | .hint (.allocDyn d _) => some d
   | _ => none
 
+/-- A load's pointer. -/
+def loadPtr : Atom → Option V
+  | .load _ p _ => some p
+  | _ => none
+
 /-- A frame value at its certificate cell, in `[2, n)`, no hint-only cell (of `extra`), its number below
 `2^30`. -/
 def cellOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (v : V) : Bool :=
@@ -91,11 +96,12 @@ def hintOnlyOk (extra : List (ℕ × ℕ)) (n : ℕ) (v : V) : Bool :=
   | none => false
 
 /-- A buffer from offset `0`, of length in `(0, 2^30)`, its pointer at its certificate cell or a
-hint-only one, allocated and written whole on the spine `sp`. -/
+hint-only one, allocated or loaded through on the spine `sp` (so in `K`), and written whole on it. -/
 def bufOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) (b : V × ℕ × ℕ) : Bool :=
   Nat.beq b.2.1 0 && Nat.blt 0 b.2.2 && Nat.blt b.2.2 (2 ^ 30) &&
     (cellOk extra locs n b.1 || (extra.lookup b.1.idx).isSome) &&
-    sp.any (fun a ↦ allocOf a == some b.1) && sp.any (fun a ↦ atomHeapDest? a == some b)
+    (sp.any (fun a ↦ allocOf a == some b.1) || sp.any (fun a ↦ loadPtr a == some b.1)) &&
+    sp.any (fun a ↦ atomHeapDest? a == some b)
 
 /-- **A computed hint atom's cells and buffer.** -/
 def pairAtomOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) : Atom → Bool

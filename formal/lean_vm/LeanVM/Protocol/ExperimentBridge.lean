@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Protocol.Compile.Rom.Bridge
-import LeanVM.Prover.Refine
 import Common.PiOnly
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
 public import Mathlib.Algebra.Algebra.ZMod
@@ -22,14 +21,14 @@ model (`keccakCallsOverRandomPermutation`), after the adversary's run with its p
 recorded (`Rpm.runAdversaryThen`).
 
 * `keccakCallsOverQueryPermutation`: the two calls answered over `π` in the model's oracles; the
-  verifier and the prover over `π` are the two-call ones so answered (`verifier_queryPermutation`,
-  `prover_queryPermutation`), and the lazy permutation after it answers the two calls as the model
-  does (`lazy_comp_keccakCallsOverQueryPermutation`).
+  verifier over `π` is the two-call one so answered (`verifier_queryPermutation`), and the lazy
+  permutation after it answers the two calls as the model does
+  (`lazy_comp_keccakCallsOverQueryPermutation`).
 * `logged_run`: the adversary run with its queries recorded (`Common.loggedOracles`), then against
   the lazy permutation, is its run with its permutation queries recorded, the coins left out.
 * `map_soundnessExperiment`: so the statement's soundness experiment, its transcript's coins left
-  out, is the two-call experiment; `completeness_of_withHash` gives the end statement from the
-  two-call one.
+  out, is the two-call experiment. The bus era's bridge of the completeness experiment, through the
+  honest prover, is archived at tag `formal-bus-archive`.
 -/
 
 open OracleComp OracleSpec
@@ -78,24 +77,19 @@ section Commute
 
 variable {r : Type → Type} [Monad r] [LawfulMonad r] (impl : QueryImpl KeccakCalls r)
 
+/-- The seed's hash and permutation commute with simulation. -/
+theorem simulateQ_seedWith (bytecode : List K) (publicInput : Digest) :
+    simulateQ impl (seedWithHash callKeccak256 callKeccakF1600 bytecode publicInput) =
+      seedWithHash (implH impl) (implF impl) bytecode publicInput := by
+  simp only [seedWithHash, fiatShamirIvWithHash, simulateQ_bind, simulateQ_queryH,
+    simulateQ_queryF]
+
 /-- The two-call verifier commutes with simulation. -/
 theorem simulateQ_verifierWithHash (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
     simulateQ impl (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) =
       verifierWithHash (implH impl) (implF impl) prog input proof := by
-  simp only [verifierWithHash, verifyWithHash, simulateQ_bind, Prover.simulateQ_seedWith,
+  simp only [verifierWithHash, verifyWithHash, simulateQ_bind, simulateQ_seedWith,
     simulateQ_runProof]
-
-/-- The two-call prover commutes with simulation. -/
-theorem simulateQ_proveWithHash (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) :
-    simulateQ impl (Prover.proveWithHash callKeccak256 callKeccakF1600 prog input t ρ fuel) =
-      Prover.proveWithHash (implH impl) (implF impl) prog input t ρ fuel := by
-  simp only [Prover.proveWithHash]
-  split
-  · simp
-  · split
-    · exact Prover.simulateQ_seedRunScript impl _ _ _ _ _
-    · simp
 
 end Commute
 
@@ -104,12 +98,6 @@ theorem verifier_queryPermutation (prog : LeanIsaProgram) (input : PublicInput) 
       simulateQ keccakCallsOverQueryPermutation
         (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) := by
   rw [verifier_eq_withHash, simulateQ_verifierWithHash]; rfl
-
-theorem prover_queryPermutation (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
-    (ρ fuel : ℕ) :
-    LeanVM.Prover.prove queryPermutation prog input t ρ fuel =
-      simulateQ keccakCallsOverQueryPermutation (proverWithHash prog input t ρ fuel) := by
-  rw [Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]; rfl
 
 /-! ## The adversary's transcript -/
 
@@ -168,26 +156,6 @@ theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
   simp only [knowledgeSoundnessExperiment, soundnessExperimentWithHash, Rpm.runAdversaryThen,
     runWithRandomPermutation, simulateQ_bind, simulateQ_pure, StateT.run'_eq, StateT.run_bind,
     StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hV]
-
-/-! ## Completeness -/
-
-theorem verifierCompletenessExperiment_eq_withHash (prog : LeanIsaProgram) (input : PublicInput)
-    (t : Execution prog) (ρ fuel : ℕ) :
-    completenessExperiment prog input t ρ fuel =
-      verifierCompletenessExperimentWithHash proverWithHash prog input t ρ fuel := by
-  simp only [completenessExperiment, verifierCompletenessExperimentWithHash,
-    runWithRandomPermutation, prover_queryPermutation, verifier_queryPermutation]
-  rw [← simulateQ_lazy_keccakCallsOverQueryPermutation, simulateQ_bind, simulateQ_bind]
-  simp only [simulateQ_bind]
-  congr 2
-  funext x
-  cases x <;> simp only [simulateQ_pure]
-
-/-- **Completeness, from the two-call experiment.** -/
-theorem completeness_of_withHash (h : CompletenessWithHash) : Completeness := by
-  intro prog input t ρ hv hs hρ
-  rw [verifierCompletenessExperiment_eq_withHash]
-  exact h prog input t ρ hv hs hρ
 
 end LeanVM
 

@@ -46,7 +46,10 @@ mod tests {
             offset,
             low_point,
             value,
-        } = ood_sample(&mut ps, &stack, log_n);
+        } = ood_sample(&mut ps, &stack, log_n)
+        else {
+            panic!("the OOD sample is one point");
+        };
         assert_eq!((offset, low_point.len()), (0, log_n));
         let naive: F128 = stack
             .iter()

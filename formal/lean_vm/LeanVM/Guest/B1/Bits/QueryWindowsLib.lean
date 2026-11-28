@@ -161,7 +161,7 @@ theorem qwPr_atoms (j base cut d k : ℕ) (lo hi : V) (recon : Option V) :
   · simp [isAtomB]
   · split <;> simp [isAtomB]
 
-theorem qwPtr_atoms (j n k : ℕ) : (qwPtr j n k).1.all isAtomB = true := by
+theorem qwPtr_atoms (W j n k : ℕ) : (qwPtr W j n k).1.all isAtomB = true := by
   unfold qwPtr; split <;> simp [isAtomB]
 
 theorem qwPos_atoms (d cd j k : ℕ) (recon : Option V) :

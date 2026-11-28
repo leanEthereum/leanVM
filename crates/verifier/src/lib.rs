@@ -8,13 +8,13 @@
 
 #![forbid(unsafe_code)]
 
-mod bus;
 mod bytecode;
 pub mod da;
 mod field;
 mod hash;
 pub mod keccak;
 pub mod layout;
+mod link;
 mod merkle;
 mod multilinear;
 mod ring_switch;
@@ -29,7 +29,7 @@ pub use layout::{
     min_execution_stacked_log,
 };
 pub use merkle::MerklePath;
-pub use transcript::{Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
+pub use transcript::{DS_OBSERVE, DS_POW_NONCE, Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
 pub use whir::{
     BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
     OOD_GRINDING_BITS, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
@@ -38,18 +38,23 @@ pub use whir::{
 pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 
 // What the provers and the aggregation's guest constants and witness read of the protocol.
-pub use bus::{N_TREES as N_BUS_TREES, bus_grinding_bits};
 pub use hash::Digest;
-pub use multilinear::stack_offsets;
+pub use link::{
+    Chunks, MAX_WIDTH as MAX_POINTER_WIDTH, WINDOW_BITS, link_grind_bits, packed_challenges, pc_slots, pointer_width,
+};
+pub use multilinear::{Placement, stack_offsets};
 pub use whir::{Subspace, WhirConfig, derive_config, subspace_roots};
+// For `fiat_shamir_prover`'s test that the prover's transcript and this one agree.
+#[doc(hidden)]
+pub use transcript::Transcript as __Transcript;
 
-use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
-use field::{ZERO, powers};
+use field::{ONE, ZERO, powers};
 use hash::{ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, verify_keccak};
-use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, build_layout};
+use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, Layout, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, build_layout};
+use link::verify_link;
 use multilinear::{dot, eq_eval, multilinear_eval};
-use ring_switch::ring_switch;
+use ring_switch::{RingClaim, RingPiece, ring_switch};
 use std::ops::Range;
 use transcript::Transcript;
 use whir::verify_whir;
@@ -67,12 +72,8 @@ pub enum VerifierError {
     MerkleRootMismatch,
     StreamNotConsumed,
     MerkleNotConsumed,
-    /// The GKR layer whose children do not match its sumcheck.
-    GkrLayer(usize),
-    BusCountZero,
-    BytecodeShare,
-    BytecodeValue,
-    TableSumcheckTerminal,
+    /// The link sum-check's last round does not match the summand at its point.
+    LinkTerminal,
     AnnouncedTableSizes,
     WhirShape,
     QueryCountLadder,
@@ -104,11 +105,7 @@ impl std::fmt::Display for VerifierError {
             Self::MerkleRootMismatch => "Merkle root mismatch",
             Self::StreamNotConsumed => "proof stream not fully consumed",
             Self::MerkleNotConsumed => "Merkle openings not fully consumed",
-            Self::GkrLayer(layer) => return write!(f, "GKR layer {layer}: children do not match the sumcheck"),
-            Self::BusCountZero => "a bus count is zero",
-            Self::BytecodeShare => "bytecode sumcheck terminal mismatch",
-            Self::BytecodeValue => "bytecode evaluation mismatch",
-            Self::TableSumcheckTerminal => "table sumcheck terminal mismatch",
+            Self::LinkTerminal => "link sum-check terminal mismatch",
             Self::AnnouncedTableSizes => "invalid announced table sizes",
             Self::WhirShape => "invalid WHIR shape",
             Self::QueryCountLadder => "tabulated query count does not match the ladder",
@@ -136,7 +133,7 @@ fn require(condition: bool, error: VerifierError) -> Result<(), VerifierError> {
     if condition { Ok(()) } else { Err(error) }
 }
 
-/// The stacked opening's batching is accounted for up to this many claims, the ring-switched one included. The count
+/// The stacked opening's batching is accounted for up to this many claims, the ring-switched ones included. The count
 /// follows from the announced shape, so a replay checks it too, like the committed size.
 pub const MAX_STACKED_CLAIMS: usize = 512;
 
@@ -146,18 +143,19 @@ type StackClaim<'a> = (Box<dyn Fn(&[E]) -> E + 'a>, E);
 /// Discharge every claim on the committed stack in one opening: the same powers of one challenge
 /// batch the values into the target, and the weights into the basis WHIR evaluates at its terminal point.
 ///
-/// The challenge is drawn right after the ring switch's map challenges, one verifier message under their one grind
-/// (`BATCH_GRINDING_BITS`), so it takes no grind of its own.
+/// The challenge is the ring switch's last, one verifier message with its map challenges under their one grind
+/// (`BATCH_GRINDING_BITS`).
 fn verify_stacked_opening(
     transcript: &mut Transcript,
     root: Digest,
     stack_log: usize,
     log_inv_rate: usize,
     claims: &[StackClaim],
+    batching: E,
 ) -> Result<(), VerifierError> {
     let values: Vec<E> = claims.iter().map(|(_, value)| *value).collect();
     require(claims.len() <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
-    let scales = powers(transcript.sample(), claims.len());
+    let scales = powers(batching, claims.len());
     let evaluate_basis = |point: &[E]| {
         let weights: Vec<E> = claims.iter().map(|(weight, _)| weight(point)).collect();
         dot(&scales, &weights)
@@ -175,6 +173,21 @@ fn read_ood(transcript: &mut Transcript, vars: usize, bits: u32) -> Result<Stack
     Ok((Box::new(move |x| eq_eval(&z, x)), value))
 }
 
+/// A claim that a column's multilinear takes `value` at `point`.
+struct ColumnClaim {
+    column: usize,
+    point: Vec<E>,
+    value: E,
+}
+
+impl ColumnClaim {
+    /// `None` for a column nothing commits, whose claim never reaches the stack.
+    fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
+        let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
+        Some((Box::new(move |x| eq_eval(&point, x)), self.value))
+    }
+}
+
 /// What a walk of the proof leaves behind, for a prover that proves this verification in turn.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
@@ -182,10 +195,17 @@ pub struct Summary {
     pub log_memory: usize,
     pub table_rows: Vec<u64>,
     pub log_inv_rate: usize,
-    /// Where the bus's bytecode sumcheck leaves the stacked bytecode, `(zeta_low, r)`. Its value there is the claim an aggregate defers.
+    /// The stack's log size, the stacked opening's variables.
+    pub stack_log: usize,
+    /// Where the link splits the program, the index point's program coordinates `r[..log_bytecode]`: the split
+    /// program there is the claim a child raises, which an aggregate's batching defers.
     pub bytecode_point: Vec<E>,
     /// The stream positions the Keccak reduction reads.
     pub keccak_scalars: Range<usize>,
+    /// The stream positions of the link's index-side value at `r` (the memory term) and of the pointer columns'
+    /// bit-slices.
+    pub values_at_r: Range<usize>,
+    pub bit_slices: Range<usize>,
 }
 
 /// Verify that `proof` shows an execution of `bytecode` (the stacked bytecode multilinear) on the 256-bit `public_input`.
@@ -195,7 +215,7 @@ pub fn verify_execution(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 
 /// NOT a verification: the [`Summary`] of `proof`, read out without checking it. An invalid proof is accepted.
 ///
-/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, Keccak and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape, a Merkle path at a position the protocol did not open.
+/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, link, Keccak and WHIR terminal identities, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape, a Merkle path at a position the protocol did not open.
 pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
     walk(bytecode, public_input, proof, false)
 }
@@ -244,17 +264,29 @@ pub fn verify_keccak_batch(
     let output = transcript.next_scalars(STATE_LANES)?;
     let openings = verify_keccak(&mut transcript, shape, &instance, &output)?;
     let (point, slices) = openings.inputs;
-    let (target, weight) = ring_switch(point, &slices, &mut transcript)?;
-    let mut claims: Vec<StackClaim> = vec![(Box::new(weight), target)];
+    let piece = RingPiece {
+        placement: None,
+        point,
+        scale: ONE,
+    };
+    let (ring, batching) = ring_switch(
+        vec![RingClaim {
+            pieces: vec![piece],
+            slices,
+        }],
+        &mut transcript,
+    )?;
+    let mut claims: Vec<StackClaim> = vec![ring];
     if let Some((point, word)) = openings.outputs {
         claims.push((Box::new(move |x| eq_eval(&point, x)), word));
     }
     claims.push(ood);
-    verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
+    verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims, batching)?;
     transcript.finish()?;
     Ok(())
 }
 
+/// The protocol, in the order of `doc/leanvm` §sec:e2e-unrolled.
 fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bool) -> Result<Summary, VerifierError> {
     let public_input = Digest(*public_input);
     let mut transcript = Transcript::new(proof, bytecode.fiat_shamir_iv, public_input, checked);
@@ -283,40 +315,19 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let root = Digest::from_halves(halves[0], halves[1]);
     let ood = read_ood(&mut transcript, layout.stack_log, OOD_GRINDING_BITS)?;
 
-    // 3] Bus: one batched GKR over the push, pull and count trees, then the leaf decomposition, which leaves each table
-    // a degree-2 claim per tree.
-    let bus = verify_bus_balance(&layout, &mut transcript)?;
-
-    // 4] One batched (back-loaded) "table sumcheck" over all six tables, at the bus point, proving the target the
-    // trees' leaf claims derive and that constraints vanish. Every table takes a disjoint range of xi powers for its
-    // constraints, then one power per bus tree, shared by every table. The batch is degree n_powers - 1 in xi.
-    let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
-    let n_powers = n_constraints + N_TREES;
-    transcript.grind_check(grinding_bits(n_powers as u128 - 1))?;
-    let xi = transcript.sample();
-    let xi_powers = powers(xi, n_powers);
-    let (constraint_powers, form_powers) = xi_powers.split_at(n_constraints);
-    let target = dot(form_powers, &bus.totals);
-    let evaluations = table_sumcheck(
-        &layout.tables,
-        &layout.table_log_heights,
-        &bus.forms,
-        constraint_powers,
-        form_powers,
-        &bus.point,
-        target,
-        &mut transcript,
-    )?;
-    let mut claims = bus.claims;
-    for (base, (point, values)) in GLOBAL_COLUMN_BASES.into_iter().zip(&evaluations) {
-        claims.extend(values.iter().enumerate().map(|(local, &value)| ColumnClaim {
+    // 3] The links: two chained sum-checks, over the index, then over the rows and the pointer columns. They leave each
+    // table's other columns at its row point, a claim on the memory and the pointer columns' bit-slices.
+    let link = verify_link(&layout, &mut transcript)?;
+    let mut claims: Vec<ColumnClaim> = Vec::new();
+    for (base, (point, values)) in GLOBAL_COLUMN_BASES.into_iter().zip(&link.columns) {
+        claims.extend(values.iter().map(|&(local, value)| ColumnClaim {
             column: base + local,
             point: point.clone(),
             value,
         }));
     }
 
-    // 5] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
+    // 4] binding the public input: each memory limb's claim is that limb's public line at the challenge, which the verifier
     // evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
     let public_challenge = transcript.sample();
     let (first, second) = public_input.halves();
@@ -331,16 +342,20 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         });
     }
 
-    // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes are the reduction's claim on
+    // 5] KECCAK validity, by GKR over the rounds. The table's values on its output lanes are the reduction's claim on
     // the permutation's output: they leave the batch, their columns having no placement.
-    let (point, values) = &evaluations[OP_KECCAK];
+    let (point, values) = &link.columns[OP_KECCAK];
+    let lanes: Vec<E> = (KECCAK_OUT..KECCAK_OUT + STATE_LANES)
+        .map(|lane| {
+            values
+                .iter()
+                .find(|&&(local, _)| local == lane)
+                .map(|&(_, value)| value)
+        })
+        .collect::<Option<_>>()
+        .expect("the output lanes are no pointers");
     let keccak_start = transcript.stream_offset();
-    let openings = verify_keccak(
-        &mut transcript,
-        layout.keccak,
-        point,
-        &values[KECCAK_OUT..KECCAK_OUT + STATE_LANES],
-    )?;
+    let openings = verify_keccak(&mut transcript, layout.keccak, point, &lanes)?;
     let keccak_scalars = keccak_start..transcript.stream_offset();
     if let Some((point, value)) = openings.outputs {
         claims.push(ColumnClaim {
@@ -350,17 +365,32 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         });
     }
 
-    // 7] Ring-switching
+    // 6] Ring switching: the Keccak reduction's input slices on q_keccak, then the pointer columns' slices, as one
+    // claim that leads the batch, then the memory term and the point claims.
     let (point, slices) = openings.inputs;
-    let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript)?;
-    // That claim is supported on q_keccak's region of the stack, so its weight carries the
-    // placement's selector, and it leads the batch, taking the first power.
-    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
-    let ringswitch: StackClaim = (
-        Box::new(move |x| qkeccak.eq_above(x) * ringswitch_weight(&x[..qkeccak.variables])),
-        ringswitch_target,
-    );
-    let mut stack_claims = vec![ringswitch];
+    let keccak_ring = RingClaim {
+        pieces: vec![RingPiece {
+            placement: Some(layout.placements[QKECCAK].expect("q_keccak is committed")),
+            point,
+            scale: ONE,
+        }],
+        slices,
+    };
+    let (ring, batching) = ring_switch(vec![keccak_ring, link.ring], &mut transcript)?;
+    let mut stack_claims: Vec<StackClaim<'static>> = vec![ring];
+    let (memory_point, memory_scales, memory_value) = link.memory;
+    let memory_points: Vec<(Vec<E>, E)> = [MEMORY_0, MEMORY_1]
+        .into_iter()
+        .zip(memory_scales)
+        .map(|(column, scale)| {
+            let placement = layout.placements[column].expect("memory is committed");
+            (placement.stack_point(&memory_point, layout.stack_log), scale)
+        })
+        .collect();
+    stack_claims.push((
+        Box::new(move |x| E::sum(memory_points.iter().map(|(point, scale)| *scale * eq_eval(point, x)))),
+        memory_value,
+    ));
     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
     stack_claims.push(ood);
     verify_stacked_opening(
@@ -369,20 +399,43 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         layout.stack_log,
         log_inverse_rate as usize,
         &stack_claims,
+        batching,
     )?;
     transcript.finish()?;
     Ok(Summary {
         log_memory: layout.log_memory,
         table_rows,
         log_inv_rate: log_inverse_rate as usize,
-        bytecode_point: bus.bytecode_point,
+        stack_log: layout.stack_log,
+        bytecode_point: link.bytecode_point,
         keccak_scalars,
+        values_at_r: link.values_at_r,
+        bit_slices: link.bit_slices,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn grinding_bits_is_the_ceiling_log() {
+        assert_eq!(
+            [0, 1, 2, 8, 9, 31, 46, 64, 65, 1 << 20].map(grinding_bits),
+            [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
+        );
+    }
+
+    /// What lets all three verifiers check a plain range instead of re-deriving the ladder: every size in the window
+    /// is configurable at every rate.
+    #[test]
+    fn supported_window_is_configurable() {
+        for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+            for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
+                assert!(derive_config(mu, rate).is_ok(), "mu={mu} rate={rate}");
+            }
+        }
+    }
 
     #[test]
     fn verify_keccak_batch_rejects_overflowing_log_steps() {

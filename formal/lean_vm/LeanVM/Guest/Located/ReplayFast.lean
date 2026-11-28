@@ -46,108 +46,12 @@ open LeanVM.Guest.Exec LeanVM.Guest.B1 LeanVM.Extraction LeanVM.Extraction.Fast
 
 @[expose] public section
 
-/-! ## The memory and the run, through the address tables -/
 
-section Tables
-
-/-- The word at address `a`, its index found by binary search in the address table `t`
-(`Extraction.Fast.gLogTable`, the extractor's). -/
-def readTable (t : Array (ℕ × ℕ)) {κ : ℕ} (L : MemoryImage κ) (a : K) : Option E :=
-  (gLogTable t κ a).map L
-
-/-- Through the table of the `2^κ` addresses, `κ < 64`, the read is the memory's. -/
-theorem readTable_powTable {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
-    readTable (powTable κ) L = L.read := by
-  funext a
-  rw [readTable, gLogTable_eq hκ]
-  exact congrFun (readIn_powIndex hκ L) a
-
-/-- **The states of the run from `r`, through the address tables** (`statesIn`): each step the
-extractor's `stepTable` (its compiled `stepVec` on the memory's vector). -/
-def statesTable (memT codeT : Array (ℕ × ℕ)) (prog : Semantics.LeanIsaProgram) {κ : ℕ}
-    (L : MemoryImage κ) : ℕ → Registers K → List (Registers K)
-  | 0, r => [r]
-  | n + 1, r => r :: if r = Registers.final prog then [] else
-      match stepTable memT codeT prog L r with
-      | some r' => statesTable memT codeT prog L n r'
-      | none => []
-
-/-- Through the tables, on at most `2^63` words, the replay is `statesIn`'s. -/
-theorem statesTable_eq {prog : Semantics.LeanIsaProgram} {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
-    ∀ fuel r, statesTable (powTable κ) (powTable prog.logSize) prog L fuel r =
-      statesIn (powIndex κ) (powIndex prog.logSize) prog L fuel r
-  | 0, r => rfl
-  | fuel + 1, r => by
-    rw [statesTable, statesIn, stepTable_eq hκ]
-    congr 1
-    split
-    · rfl
-    · cases stepIn (powIndex κ) (powIndex prog.logSize) prog L r with
-      | none => rfl
-      | some r' => exact statesTable_eq hκ L fuel r'
-
-end Tables
-
-/-! ## Discrete logarithms -/
-
-/-- **A discrete logarithm of `K*`**: `dl x = some n` exactly when `x = g^n` with `n` below the
-order `2^64 − 1` of `g`. -/
-def DiscreteLogSpec (dl : K → Option ℕ) : Prop :=
-  ∀ x n, dl x = some n ↔ addressOfIndex n = x ∧ n < 2 ^ 64 - 1
-
-theorem gpow_mod_order (e : ℕ) : addressOfIndex (e % (2 ^ 64 - 1)) = addressOfIndex e := by
-  show Parameters.g ^ _ = Parameters.g ^ _
-  rw [← orderOf_g, pow_mod_orderOf]
+/-! ## The precondition, by a discrete logarithm -/
 
 section Log
 
 variable {dl : K → Option ℕ}
-
-/-- With a discrete logarithm, `x` is a power `g^e` with `e < n` exactly when its logarithm is
-below `n`. -/
-theorem exists_lt_gpow_iff (hdl : DiscreteLogSpec dl) (x : K) (n : ℕ) :
-    (∃ e < n, addressOfIndex e = x) ↔ ∃ m, dl x = some m ∧ m < n := by
-  constructor
-  · rintro ⟨e, he, rfl⟩
-    exact ⟨e % (2 ^ 64 - 1), (hdl _ _).mpr ⟨gpow_mod_order e, Nat.mod_lt _ (by norm_num)⟩,
-      lt_of_le_of_lt (Nat.mod_le _ _) he⟩
-  · rintro ⟨m, hm, hmn⟩
-    exact ⟨m, hmn, ((hdl _ _).mp hm).1⟩
-
-/-- `w` is the word `g^e` of some `e < n`, by the logarithm. -/
-def isPowBelow (dl : K → Option ℕ) (w : E) (n : ℕ) : Bool :=
-  decide (IsInK w) && match dl (w.limb 0) with
-    | some m => decide (m < n)
-    | none => false
-
-theorem isPowBelow_iff (hdl : DiscreteLogSpec dl) (w : E) (n : ℕ) :
-    isPowBelow dl w n = true ↔ ∃ e < n, w = ofK (addressOfIndex e) := by
-  unfold isPowBelow
-  rw [Bool.and_eq_true, decide_eq_true_iff]
-  constructor
-  · rintro ⟨hK, h⟩
-    rcases hm : dl (w.limb 0) with _ | m
-    · rw [hm] at h; cases h
-    · rw [hm, decide_eq_true_iff] at h
-      refine ⟨m, h, ?_⟩
-      rw [eq_ofK_limb hK, ((hdl _ _).mp hm).1]
-  · rintro ⟨e, he, rfl⟩
-    refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-    obtain ⟨m, hm, hmn⟩ := (exists_lt_gpow_iff hdl (addressOfIndex e) n).mp ⟨e, he, rfl⟩
-    have h0 : (ofK (addressOfIndex e)).limb 0 = addressOfIndex e := by simp [limb_ofK]
-    rw [h0, hm]
-    exact decide_eq_true hmn
-
-theorem any_range_pow_iff (hdl : DiscreteLogSpec dl) (o : Option E) (n : ℕ) :
-    ((List.range n).any fun e ↦ decide (o = some (ofK (addressOfIndex e)))) =
-      match o with
-      | some w => isPowBelow dl w n
-      | none => false := by
-  rcases o with _ | w
-  · simp
-  · apply Bool.eq_iff_iff.mpr
-    rw [isPowBelow_iff hdl, List.any_eq_true]
-    simp only [List.mem_range, decide_eq_true_eq, Option.some.injEq]
 
 /-- The bounds hold (`bndTest`), by the logarithm. -/
 def bndTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) : Bool :=
@@ -174,6 +78,7 @@ theorem bndTestWith_eq (hdl : DiscreteLogSpec dl) : bndTestWith dl = bndTest := 
   congr 1
   funext p
   rw [any_range_pow_iff hdl]
+  cases rd (fp * addressOfIndex p.1) <;> rfl
 
 theorem memTestWith_eq (hdl : DiscreteLogSpec dl) : memTestWith dl = memTest := by
   funext rd fp mem
@@ -185,45 +90,12 @@ theorem memTestWith_eq (hdl : DiscreteLogSpec dl) : memTestWith dl = memTest := 
   | some p =>
     show (decide (IsInK p) && _) = (decide (IsInK p) && _)
     rw [any_range_pow_iff hdl]
+    cases rd (p.limb 0 * addressOfIndex m.2.1) <;> rfl
 
 /-- **By the logarithm, the precondition's test is `preTest`.** -/
 theorem preTestWith_eq (hdl : DiscreteLogSpec dl) : preTestWith dl = preTest := by
   funext rd j fp
   rw [preTestWith, preTest, bndTestWith_eq hdl, memTestWith_eq hdl]
-
-/-- B1's exponent of a power of `g` below `2^34` (`B1.Main.gLog`), by the logarithm. -/
-def gLogWith (dl : K → Option ℕ) (x : E) : ℕ :=
-  match dl (x.limb 0) with
-  | some n => if n < 2 ^ 34 then n else 0
-  | none => 0
-
-/-- **By the logarithm, the exponent is `B1.Main.gLog`.** -/
-theorem gLogWith_eq (hdl : DiscreteLogSpec dl) : gLogWith dl = B1.Main.gLog := by
-  funext x
-  unfold B1.Main.gLog gLogWith
-  rw [B1.Main.indexSearch_eq (by norm_num)]
-  rcases hm : dl (x.limb 0) with _ | n
-  · have : addressIndex? 34 (x.limb 0) = none := by
-      refine gLog?_eq_none_iff.mpr fun i hi ↦ ?_
-      have := (hdl _ i).mpr ⟨hi.symm, by have := i.isLt; omega⟩
-      rw [hm] at this
-      cases this
-    rw [this]
-    rfl
-  · obtain ⟨hn, hlt⟩ := (hdl _ _).mp hm
-    show (if n < 2 ^ 34 then n else 0) = _
-    by_cases h34 : n < 2 ^ 34
-    · rw [ite_eq_left h34, (gLog?_spec (κ := 34) (by norm_num) (i := ⟨n, h34⟩)).mpr hn.symm]
-      rfl
-    · rw [ite_eq_right h34]
-      have : addressIndex? 34 (x.limb 0) = none := by
-        refine gLog?_eq_none_iff.mpr fun i hi ↦ h34 ?_
-        have hi' : (i : ℕ) < 2 ^ 64 - 1 := by have := i.isLt; omega
-        have := gpow_injOn hlt hi' (hn.trans hi)
-        rw [this]
-        exact i.isLt
-      rw [this]
-      rfl
 
 end Log
 

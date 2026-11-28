@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Exact.Defs
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.Memory.Callees
 
 /-!
 # Every atom

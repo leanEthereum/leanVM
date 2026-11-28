@@ -17,10 +17,10 @@ import LeanVM.ToMathlib.List
 /-!
 # `rs_eq_run` (lean_ethereum.py)
 
-`rs_eq_run(z_vals, point1, count_g)` hints the six bits of `count` (`count_g = g^count`),
+`rs_eq_run(z_vals, point1, count_g, seed)` hints the six bits of `count` (`count_g = g^count`),
 pins them by booleanity and `q_g^8 · r_g = count_g` (`r_g` from bits `0 .. 2`, `q_g` from bits
 `3 .. 5`, so `count = 8q + r`), allocates its chain (`HeapBuf` of `64 (q + 2)` words, `rsAlloc`),
-writes row `0`'s ones (`rsInits`), runs `rs_eq_run_loop0` over the `q` full chunks
+writes row `0` from the seed (`rsInits`), runs `rs_eq_run_loop0` over the `q` full chunks
 (`rs_eq_rows__L8` each), and dispatches the remainder's `rs_eq_rows__L{r}` on the row
 `chain·g^(64q)`; it returns that call's return, the last row (`rs_eq_run_sound`).
 
@@ -57,9 +57,9 @@ def rsA : List Stmt :=
     .atom (.mul (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "bits[5]"))), .atom (.const (.n (val% «rs_eq_run» "q_g@3~0")) (word 1 0)),
     .atom (.const (.n (val% «rs_eq_run» "q_g@3~1")) (word 17 0)), .atom (.mul (.n (val% «rs_eq_run» "q_g@3~2")) (.n (val% «rs_eq_run» "bits[5]")) (.n (val% «rs_eq_run» "q_g@3~1"))),
     .atom (.add (.n (val% «rs_eq_run» "q_g@3~3")) (.n (val% «rs_eq_run» "q_g@3~0")) (.n (val% «rs_eq_run» "q_g@3~2"))), .atom (.mul (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@2")) (.n (val% «rs_eq_run» "q_g@3~3"))),
-    .atom (.mul (.n (val% «rs_eq_run» "s5#0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.mul (.n (val% «rs_eq_run» "s5#1")) (.n (val% «rs_eq_run» "s5#0")) (.n (val% «rs_eq_run» "s5#0"))),
-    .atom (.mul (.n (val% «rs_eq_run» "s5#2")) (.n (val% «rs_eq_run» "s5#1")) (.n (val% «rs_eq_run» "s5#1"))), .atom (.mul (.n (val% «rs_eq_run» "s5#3")) (.n (val% «rs_eq_run» "s5#2")) (.n (val% «rs_eq_run» "r_g@3"))),
-    .atom (.assertEq (.n (val% «rs_eq_run» "s5#3")) (.n (val% «rs_eq_run» "count_g")))]
+    .atom (.mul (.n (val% «rs_eq_run» "s0.i0:split_count.s5#0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.mul (.n (val% «rs_eq_run» "s0.i0:split_count.s5#1")) (.n (val% «rs_eq_run» "s0.i0:split_count.s5#0")) (.n (val% «rs_eq_run» "s0.i0:split_count.s5#0"))),
+    .atom (.mul (.n (val% «rs_eq_run» "s0.i0:split_count.s5#2")) (.n (val% «rs_eq_run» "s0.i0:split_count.s5#1")) (.n (val% «rs_eq_run» "s0.i0:split_count.s5#1"))), .atom (.mul (.n (val% «rs_eq_run» "s0.i0:split_count.s5#3")) (.n (val% «rs_eq_run» "s0.i0:split_count.s5#2")) (.n (val% «rs_eq_run» "r_g@3"))),
+    .atom (.assertEq (.n (val% «rs_eq_run» "s0.i0:split_count.s5#3")) (.n (val% «rs_eq_run» "count_g")))]
 
 /-- Its chain, a `HeapBuf` of `64 (q + 2)` words, `(q_g·g^2)^64`. -/
 def rsAlloc : List Stmt :=
@@ -72,21 +72,21 @@ def rsAlloc : List Stmt :=
     .atom (.mul (.n (val% «rs_eq_run» "chain~7")) (.n (val% «rs_eq_run» "chain~6")) (.n (val% «rs_eq_run» "chain~6"))),
     .atom (.hint (.allocDyn (.n (val% «rs_eq_run» "chain")) (.n (val% «rs_eq_run» "chain~7"))))]
 
-/-- Row `0`'s entry `k`: `1` (`chain[k] = 1`). -/
+/-- Row `0`'s entry `k`: the seed's (`chain[k] = seed[k]`). -/
 def rsInit (k : ℕ) : List Stmt :=
-  [.atom (.const (.n ((val% «rs_eq_run» "s7.u0.s0#0") + k)) (word 1 0)),
-    .atom (.load (.n ((val% «rs_eq_run» "s7.u0.s0#0") + k)) (.n (val% «rs_eq_run» "chain")) k)]
+  [.atom (.load (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k)) (.n (val% «rs_eq_run» "seed")) k),
+    .atom (.load (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k)) (.n (val% «rs_eq_run» "chain")) k)]
 
-/-- Row `0`, ones. -/
+/-- Row `0`, the seed. -/
 def rsInits : List Stmt := ((List.range 64).map rsInit).flatten
 
 /-- The loop's guard. -/
 def rsG : List Stmt :=
-  [.atom (.const (.n (val% «rs_eq_run» "s8#0")) (word 1 0)), .atom (.add (.n (val% «rs_eq_run» "s8#1")) (.n (val% «rs_eq_run» "s8#0")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.const (.n (val% «rs_eq_run» "s8#2")) (word 1 0))]
+  [.atom (.const (.n (val% «rs_eq_run» "s3#0")) (word 1 0)), .atom (.add (.n (val% «rs_eq_run» "s3#1")) (.n (val% «rs_eq_run» "s3#0")) (.n (val% «rs_eq_run» "q_g@3"))), .atom (.const (.n (val% «rs_eq_run» "s3#2")) (word 1 0))]
 
 /-- `rs_eq_run_loop0`'s call and the remainder's pointers. -/
 def rsT0 : List Stmt :=
-  [.callIf (.n (val% «rs_eq_run» "s8#1")) name% «rs_eq_run_loop0» [.n (val% «rs_eq_run» "s8#2"), .n (val% «rs_eq_run» "q_g@3"), .n (val% «rs_eq_run» "chain"), .n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1")],
+  [.callIf (.n (val% «rs_eq_run» "s3#1")) name% «rs_eq_run_loop0» [.n (val% «rs_eq_run» "s3#2"), .n (val% «rs_eq_run» "q_g@3"), .n (val% «rs_eq_run» "chain"), .n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1")],
     .atom (.mul (.n (val% «rs_eq_run» "base~0")) (.n (val% «rs_eq_run» "q_g@3")) (.n (val% «rs_eq_run» "q_g@3"))),
     .atom (.mul (.n (val% «rs_eq_run» "base~1")) (.n (val% «rs_eq_run» "base~0")) (.n (val% «rs_eq_run» "base~0"))),
     .atom (.mul (.n (val% «rs_eq_run» "base")) (.n (val% «rs_eq_run» "base~1")) (.n (val% «rs_eq_run» "base~1"))),
@@ -97,19 +97,19 @@ def rsT0 : List Stmt :=
     .atom (.mul (.n (val% «rs_eq_run» "row~4")) (.n (val% «rs_eq_run» "row~3")) (.n (val% «rs_eq_run» "row~3"))),
     .atom (.mul (.n (val% «rs_eq_run» "row~5")) (.n (val% «rs_eq_run» "row~4")) (.n (val% «rs_eq_run» "row~4"))),
     .atom (.mul (.n (val% «rs_eq_run» "row")) (.n (val% «rs_eq_run» "chain")) (.n (val% «rs_eq_run» "row~5"))),
-    .atom (.mul (.n (val% «rs_eq_run» "last~1")) (.n (val% «rs_eq_run» "z_vals")) (.n (val% «rs_eq_run» "base"))),
-    .atom (.mul (.n (val% «rs_eq_run» "last~2")) (.n (val% «rs_eq_run» "point1")) (.n (val% «rs_eq_run» "base")))]
+    .atom (.mul (.n (val% «rs_eq_run» "s6#1")) (.n (val% «rs_eq_run» "z_vals")) (.n (val% «rs_eq_run» "base"))),
+    .atom (.mul (.n (val% «rs_eq_run» "s6#2")) (.n (val% «rs_eq_run» "point1")) (.n (val% «rs_eq_run» "base")))]
 
 /-- The remainder's dispatch. -/
 def rsD : Stmt :=
   .dispatch (.n (val% «rs_eq_run» "r_g@3")) ["rs_eq_rows__L0", "rs_eq_rows__L1", "rs_eq_rows__L2", "rs_eq_rows__L3",
-    "rs_eq_rows__L4", "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"] [.n (val% «rs_eq_run» "row"), .n (val% «rs_eq_run» "last~1"), .n (val% «rs_eq_run» "last~2")] [.n (val% «rs_eq_run» "last")]
+    "rs_eq_rows__L4", "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"] [.n (val% «rs_eq_run» "row"), .n (val% «rs_eq_run» "s6#1"), .n (val% «rs_eq_run» "s6#2")] [.n (val% «rs_eq_run» "last")]
 
 /-- `rs_eq_run`'s statements after its chain's row `0`, before its `ret`. -/
-def rsT : List Stmt := rsG ++ rsT0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))]
+def rsT : List Stmt := rsG ++ rsT0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s7#0")) (.n (val% «rs_eq_run» "last")))]
 
 /-- The expansion of `rs_eq_run`. -/
-def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ++ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
+def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ++ [.ret [.n (val% «rs_eq_run» "s7#0")]])))
 
 theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
 
@@ -328,17 +328,20 @@ theorem chunk_of_meaning {rd : Reader} {chain z p ret : E} {n t : ℕ} (hn : 0 <
 
 theorem rsInit_noRet (k : ℕ) : Stmt.noRetList (rsInit k) = true := rfl
 
-/-- What row `0`'s entry `k` asks of a valuation: the chain holds `1` there. -/
+/-- What row `0`'s entry `k` asks of a valuation: the chain holds the seed's word there. -/
 theorem holds_rsInit {C : CallRel} {rd : Reader} {σ : Val} {k : ℕ} {kret : List E → Prop}
-    (h : Stmt.HoldsList C rd σ (rsInit k) True kret) : LoadHolds rd (σ (.n (val% «rs_eq_run» "chain"))) k 1 := by
+    (h : Stmt.HoldsList C rd σ (rsInit k) True kret) :
+    LoadHolds rd (σ (.n (val% «rs_eq_run» "seed"))) k (σ (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k))) ∧
+      LoadHolds rd (σ (.n (val% «rs_eq_run» "chain"))) k (σ (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k))) := by
   simp only [rsInit, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
-  rw [← word_one, ← h.1]; exact h.2
+  exact h
 
 /-- **`rs_eq_run`'s core IR computes its meaning.** -/
 theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (h : coreProgram.Rel rd "rs_eq_run" args rets) : MeaningRsEqRun rd args rets := by
   obtain ⟨w3, w5, w17⟩ := rs_consts
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"), .n (val% «rs_eq_run» "count_g")] from rfl,
+  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"), .n (val% «rs_eq_run» "count_g"),
+      .n (val% «rs_eq_run» "seed")] from rfl,
     rs_eq_run_body, rsBody] at h
   obtain ⟨σ, hp, h⟩ := h
   subst hp
@@ -429,191 +432,22 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
     (by simp only [P, ite_neg' (lt_irrefl q)]; exact hPl)
     (fun t ht ↦ by simp only [Z, P, C, ite_pos' ht]; exact hCc t ht)
     (fun h ↦ by simp only [Z, P, C, ite_neg' (lt_irrefl q)]; exact hl h)
-  have hone : ∀ k < 64, LoadHolds rd (σ (.n (val% «rs_eq_run» "chain"))) k 1 := fun k hk ↦ holds_rsInit (hinit k hk)
-  refine ⟨8 * q + r, by omega, hcg, σ (.n (val% «rs_eq_run» "chain")), _, _, lz, lp, rz, rp, hone, fun h h1 h2 k hk ↦ ?_, ?_⟩
+  set c : List E := (List.range 64).map fun k ↦ σ (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k)) with hcdef
+  have hcget : ∀ k < 64, c.getD k 0 = σ (.n ((val% «rs_eq_run» "s2.u0.s0#0") + k)) := fun k hk ↦ by
+    simp [hcdef, List.getD_eq_getElem?_getD, hk]
+  refine ⟨8 * q + r, by omega, hcg, σ (.n (val% «rs_eq_run» "chain")), _, _, c, lz, lp, by simp [hcdef], rz, rp,
+    fun k hk ↦ ?_, fun k hk ↦ ?_, fun h h1 h2 k hk ↦ ?_, ?_⟩
+  · simp only [hcdef, List.length_map, List.length_range] at hk
+    simpa [hcdef] using (holds_rsInit (hinit k hk)).1
+  · simp only [hcdef, List.length_map, List.length_range] at hk
+    simpa [hcdef] using (holds_rsInit (hinit k hk)).2
   · have hrow := rows h h1 h2 k hk
-    have hc1 : ((List.range 64).map fun k ↦ (C 0).getD k 0).getD k 0 = 1 := by
+    have hc1 : ((List.range 64).map fun k ↦ (C 0).getD k 0).getD k 0 = c.getD k 0 := by
       have := readsAt_getD (rc (by omega)) (i := k) (by rw [lc]; exact hk)
-      exact loadHolds_unique this (hone k hk)
+      rw [hcget k hk]
+      exact loadHolds_unique this (holds_rsInit (hinit k hk)).2
     rwa [hc1] at hrow
   · rw [← hret, h58, h57]
-
-/-- `g^(Σ bits)` from the three hinted bits, as the template multiplies them. -/
-theorem prod_three_bits (r : ℕ) (hr : r < 8) :
-    (1 + bitE (r.testBit 0) * (gen ^ 2 ^ 0 + 1)) * (1 + bitE (r.testBit 1) * (gen ^ 2 ^ 1 + 1)) *
-      (1 + bitE (r.testBit 2) * (gen ^ 2 ^ 2 + 1)) = gen ^ r := by
-  have := prod_bitE_gen_pow r.testBit 3
-  rw [bitsVal_testBit (show r < 2 ^ 3 by omega), Finset.prod_range_succ, Finset.prod_range_succ,
-    Finset.prod_range_succ, Finset.prod_range_zero, one_mul] at this
-  exact this
-
-/-- **`rs_eq_run`'s callees from its rows**: the loop over the `count / 8` full chunks and the
-remainder's `rs_eq_rows__L{count % 8}` (`chunks_of_rows`). -/
-theorem rs_kids_rel {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (hcount : count < 64)
-    (lz : zs.length = count) (lp : ps.length = count) (hz : ReadsAt rd z zs) (hpp : ReadsAt rd p ps)
-    (hone : ∀ k < 64, LoadHolds rd chain k 1)
-    (hr : ∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64,
-      LoadHolds rd chain (64 * h + k)
-        (ringRow 1 (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)) :
-    (IsInK (1 + gen ^ (count / 8)) ∧ (1 + gen ^ (count / 8) ≠ 0 →
-      coreProgram.Rel rd name% «rs_eq_run_loop0» [1, gen ^ (count / 8), chain, z, p] [])) ∧
-    coreProgram.Rel rd (rsEqRowsNames.getD (count % 8) "")
-      [chain * gen ^ (64 * (count / 8)), z * gen ^ (8 * (count / 8)), p * gen ^ (8 * (count / 8))]
-      [chain * gen ^ (64 * ((count + 7) / 8))] := by
-  have hc1 : ∀ k < 64, (List.replicate 64 (1 : E)).getD k 0 = 1 := fun k hk ↦ by
-    rw [List.getD_eq_getElem _ _ (by simpa using hk), List.getElem_replicate]
-  have hch := chunks_of_rows (chain := chain) (c := List.replicate 64 1) lz lp (by simp) hz hpp
-    (fun _ i hi ↦ by
-      simp only [List.length_replicate] at hi
-      rw [List.getElem_replicate]
-      exact hone i hi)
-    (fun h h1 h2 k hk ↦ by rw [hc1 k hk]; exact hr h h1 h2 k hk)
-  obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
-  obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
-  have hbody : ∀ j < q, L5Body rd chain z p (gen ^ j) := by
-    intro j hj
-    have hok := hch j (by omega)
-    show ∃ x, coreProgram.Rel rd "rs_eq_rows__L8"
-      [chain * (gen ^ j) ^ 64, z * (gen ^ j) ^ 8, p * (gen ^ j) ^ 8] [x]
-    rw [← pow_mul, ← pow_mul, Nat.mul_comm j 64, Nat.mul_comm j 8]
-    exact ⟨_, (rs_eq_rows_holds 8 le_rfl rd _ _).2 (Or.inr ⟨by norm_num, _, _, _,
-      by simp only [List.length_take, List.length_drop, lz]; omega,
-      by simp only [List.length_take, List.length_drop, lp]; omega,
-      hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, rfl⟩)⟩
-  have hloop := (guarded_loop_rel_iff (B := L5Body rd chain z p)
-    (fun d x ↦ loop5_sound rd (gen ^ q) chain z p d x)
-    (fun x hb hk hn ↦ loop5_complete rd _ _ _ _ x hb hk hn)).mpr
-    ⟨q, by show q < 2 ^ 64 - 1; omega, rfl, hbody⟩
-  have hdisp : coreProgram.Rel rd (rsEqRowsNames.getD r "")
-      [chain * gen ^ (64 * q), z * gen ^ (8 * q), p * gen ^ (8 * q)]
-      [chain * gen ^ (64 * ((count + 7) / 8))] := by
-    refine (rs_eq_rows_holds r (by omega) rd _ _).2 ?_
-    rcases Nat.eq_zero_or_pos r with h0 | h0
-    · exact Or.inl ⟨h0, by rw [show (count + 7) / 8 = q by omega]⟩
-    · have hok := hch q (by omega)
-      refine Or.inr ⟨h0, _, _, _, ?_, ?_, hok.2.2.1, hok.1, hok.2.1, hok.2.2.2.1, hok.2.2.2.2, ?_⟩
-      · simp only [List.length_take, List.length_drop, lz]; omega
-      · simp only [List.length_take, List.length_drop, lp]; omega
-      · rw [show (count + 7) / 8 = q + 1 by omega, mul_assoc, ← pow_add]
-        ring_nf
-  subst hq hr8
-  exact ⟨hloop, hdisp⟩
-
-/-- `word 4 0`, the base of the chain's size, is `g^2`. -/
-theorem rs_word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
-
-/-- **`rs_eq_run`'s honest valuation**: on the rows, a valuation of its parameters satisfying its
-body, with the values its chain, its frames and its dispatch read. -/
-theorem rs_honest {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (hcount : count < 64)
-    (lz : zs.length = count) (lp : ps.length = count) (hz : ReadsAt rd z zs) (hpp : ReadsAt rd p ps)
-    (hone : ∀ k < 64, LoadHolds rd chain k 1)
-    (hr : ∀ h, 1 ≤ h → h ≤ (count + 7) / 8 → ∀ k < 64,
-      LoadHolds rd chain (64 * h + k)
-        (ringRow 1 (zs.take (min (8 * h) count)) (ps.take (min (8 * h) count)) k)) :
-    ∃ σ : Val, [σ (.n (val% «rs_eq_run» "z_vals")), σ (.n (val% «rs_eq_run» "point1")), σ (.n (val% «rs_eq_run» "count_g"))] = [z, p, gen ^ count] ∧
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ rsBody False
-        (fun r => r = [chain * gen ^ (64 * ((count + 7) / 8))]) ∧
-      σ (.n (val% «rs_eq_run» "chain")) = chain ∧ σ (.n (val% «rs_eq_run» "chain~7")) = gen ^ (64 * (count / 8 + 2)) ∧
-      σ (.n (val% «rs_eq_run» "r_g@3")) = gen ^ (count % 8) ∧ σ (.n (val% «rs_eq_run» "q_g@3")) = gen ^ (count / 8) ∧
-      σ (.n (val% «rs_eq_run» "s8#1")) = 1 + gen ^ (count / 8) ∧ σ (.n (val% «rs_eq_run» "s8#2")) = 1 ∧
-      σ (.n (val% «rs_eq_run» "row")) = chain * gen ^ (64 * (count / 8)) ∧
-      σ (.n (val% «rs_eq_run» "last~1")) = z * gen ^ (8 * (count / 8)) ∧
-      σ (.n (val% «rs_eq_run» "last~2")) = p * gen ^ (8 * (count / 8)) ∧
-      σ (.n (val% «rs_eq_run» "last")) = chain * gen ^ (64 * ((count + 7) / 8)) := by
-  obtain ⟨w3, w5, w17⟩ := rs_consts
-  obtain ⟨hloop, hdisp⟩ := rs_kids_rel hcount lz lp hz hpp hone hr
-  obtain ⟨q, hq⟩ : ∃ q, q = count / 8 := ⟨_, rfl⟩
-  obtain ⟨r, hr8⟩ : ∃ r, r = count % 8 := ⟨_, rfl⟩
-  rw [← hq] at hloop hdisp ⊢
-  rw [← hr8] at hdisp ⊢
-  let b : ℕ → E := fun j ↦ bitE (r.testBit j)
-  let b' : ℕ → E := fun j ↦ bitE (q.testBit j)
-  let u13 := word 1 0 + b 0 * word 3 0
-  let u17 := word 1 0 + b 1 * word 5 0
-  let u22 := word 1 0 + b 2 * word 17 0
-  let u23 := u13 * u17 * u22
-  let u27 := word 1 0 + b' 0 * word 3 0
-  let u31 := word 1 0 + b' 1 * word 5 0
-  let u36 := word 1 0 + b' 2 * word 17 0
-  let u37 := u27 * u31 * u36
-  let s40 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let c1 := u37 * word 4 0
-  let c4 := c1 * c1 * (c1 * c1)
-  let c6 := c4 * c4 * (c4 * c4) * (c4 * c4 * (c4 * c4))
-  let t47 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let t50 := u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37))
-  let t53 := t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50))
-  let res := chain * gen ^ (64 * ((count + 7) / 8))
-  let pre : List E := [z, p, gen ^ count, b 0, b 1, b 2, b' 0, b' 1, b' 2,
-    word 1 0, word 3 0, b 0 * word 3 0, u13, word 1 0, word 5 0, b 1 * word 5 0, u17,
-    u13 * u17, word 1 0, word 17 0, b 2 * word 17 0, u22, u23,
-    word 1 0, word 3 0, b' 0 * word 3 0, u27, word 1 0, word 5 0, b' 1 * word 5 0, u31,
-    u27 * u31, word 1 0, word 17 0, b' 2 * word 17 0, u36, u37,
-    u37 * u37, u37 * u37 * (u37 * u37), s40, s40 * u23,
-    word 4 0, c1, c1 * c1, c4, c4 * c4, c4 * c4 * (c4 * c4), c6, c6 * c6, chain]
-  let post : List E := [word 1 0, word 1 0 + u37, word 1 0,
-    u37 * u37, u37 * u37 * (u37 * u37), t47, u37 * u37, u37 * u37 * (u37 * u37), t50, t50 * t50,
-    t50 * t50 * (t50 * t50), t53, chain * t53, z * t47, p * t47, res, res]
-  let w : List E := pre ++ (List.replicate 64 (word 1 0) ++ post)
-  have hw1 : ∀ k < 64, w.getD ((val% «rs_eq_run» "s7.u0.s0#0") + k) 0 = word 1 0 := by
-    intro k hk
-    have hpre : pre.length = val% «rs_eq_run» "s7.u0.s0#0" := rfl
-    rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by rw [hpre]; omega), hpre,
-      Nat.add_sub_cancel_left, List.getElem?_append_left (by simpa using hk),
-      List.getElem?_replicate]
-    simp only [hk, ↓reduceIte, Option.getD_some]
-  have e23 : u23 = gen ^ r := by
-    rw [← prod_three_bits r (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e37 : u37 = gen ^ q := by
-    rw [← prod_three_bits q (by omega), ← w3, ← w5, ← w17, ← word_one]
-  have e47 : t47 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e50 : t50 = gen ^ (8 * q) := by
-    show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) = _
-    rw [e37]; ring
-  have e53 : t53 = gen ^ (64 * q) := by
-    show t50 * t50 * (t50 * t50) * (t50 * t50 * (t50 * t50)) = _
-    rw [e50]; ring
-  have e48 : c6 * c6 = gen ^ (64 * (q + 2)) := by
-    simp only [c6, c4, c1]
-    rw [e37, rs_word_four]; ring
-  refine ⟨Val.ofArgs w, rfl, ?_, rfl, e48, by show u23 = _; rw [e23], e37,
-    by show word 1 0 + u37 = _; rw [word_one, e37], word_one,
-    by show chain * t53 = _; rw [e53], by show z * t47 = _; rw [e47], by show p * t47 = _; rw [e47],
-    rfl⟩
-  simp only [rsBody, rsA, rsAlloc, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
-    Atom.Holds, true_and]
-  refine ⟨(bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm,
-    rfl, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
-    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl,
-    (bitE_mul_self _).symm, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl, rfl, rfl, rfl,
-    rfl, rfl, rfl, ?_⟩
-  · show u37 * u37 * (u37 * u37) * (u37 * u37 * (u37 * u37)) * u23 + gen ^ count = 0
-    rw [e_add_eq_zero_iff, e23, e37, show count = 8 * q + r by omega]
-    ring
-  rw [holdsList_append, rsInits, holdsList_range_flatten 64 rsInit rsInit_noRet]
-  refine ⟨fun k hk ↦ ?_, ?_⟩
-  · simp only [rsInit, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-    refine ⟨hw1 k hk, ?_⟩
-    show LoadHolds rd (w.getD (val% «rs_eq_run» "chain") 0) k (w.getD ((val% «rs_eq_run» "s7.u0.s0#0") + k) 0)
-    rw [hw1 k hk, word_one]
-    exact hone k hk
-  simp only [rsT, rsG, rsT0, rsD, List.cons_append, List.nil_append, Stmt.HoldsList,
-    Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  refine ⟨rfl, rfl, rfl, ?_, ?_, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-    ⟨r, by simp only [List.length_cons, List.length_nil]; omega, ?_, ?_⟩, rfl, rfl⟩
-  · show IsInK (word 1 0 + u37)
-    rw [word_one, e37]; exact hloop.1
-  · show word 1 0 + u37 ≠ 0 → coreProgram.Rel rd name% «rs_eq_run_loop0» [word 1 0, u37, chain, z,
-      p] []
-    rw [word_one, e37]; exact hloop.2
-  · show u23 = _
-    rw [e23, gen_pow_eq_ofK]
-  · rw [rsNames_get r (by omega)]
-    show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
-    rw [e53, e47]
-    exact hdisp
 
 end
 end LeanVM.Guest.B1

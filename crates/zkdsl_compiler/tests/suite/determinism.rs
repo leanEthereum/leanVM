@@ -33,10 +33,10 @@ use zkdsl_compiler::parse;
 #[rustfmt::skip]
 const GOLDEN: &[(&str, &str)] = &[
     ("conditionals", "d4f4126abc9ea51be42e477278b4ba53d17b161104cabff7deec50de43994292"),
-    ("const_params", "9ed29b06cd46c24112514b7b5333d16aab7abb62e2f925f50c01a901b4a613a9"),
+    ("const_params", "41b530d7b78ba7a067b0bdef2c127fe744caa2177529b9e08101d2cf0e3185fe"),
     ("fibonacci", "8a97e3a616df5671a158e8e87d90133c3815d52f31ff8073fa567b8836425691"),
-    ("hash_heap_chain", "95b378f997c069969c03cdc0976578d55dd03e8794779db9ec6ecf04b282c37e"),
-    ("hash_slices", "237e03d5e2a594fa019a49f704fa32fa5233afb1ac9ceeabd9df5de9e4616c11"),
+    ("hash_heap_chain", "72532f26b3c02652d7c319d04c4e85ec9e583f03a848eb3b3f0e73121731070d"),
+    ("hash_slices", "52750db894c2b2c20b3ae14951f6be277380558d53fdd2b56f6de500dd3576c2"),
     ("heapbuf_dyn", "8e84360adbc674b70c24786ff14f5639291aed55279e27a1fa7a32982baca423"),
     ("hint", "432788b9aca1b21d99e745770e5790d28ea3b35d6819db4f808fa149bdb61824"),
     ("identities", "6e03baffeb9abbcc827722fa3c0c90a317b39eb3dcc016e063e4cbc180f3a8b7"),
@@ -47,8 +47,8 @@ const GOLDEN: &[(&str, &str)] = &[
     ("nested", "c68d71ca2e3ba7404eab8f32e692b8125907699f6081060e4867f6dca897080b"),
     ("runtime_loop", "c08ab5953048e84eaaa7c19f8e4851c4f6ec710cd64d57e84831257ffec35aef"),
     ("scoping", "c401b4dac92f26296e315f08e1229eb18609cb81005d1da1859f3b65d80571a0"),
-    ("unroll", "fbac995ae8c8682fe1e07675d4972a33968d65d8f9b704c28e7e5469b0495c42"),
-    ("wots_walk", "f92002ff174f7c57c51f40afdd88e6229a5b2490fd7f9687884ccdc7e6a53123"),
+    ("unroll", "7d6efe88bf41d582052810f063a550b97092d566257f89cbadf26459f99b107f"),
+    ("wots_walk", "cc8c33b5ff40921cbd48dc184f7d38938b23f9d345f9333f3a6dd8f11e145d49"),
 ];
 
 fn digest(p: &Program) -> String {

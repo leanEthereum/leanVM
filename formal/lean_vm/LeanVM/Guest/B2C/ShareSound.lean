@@ -410,7 +410,7 @@ theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st :
     ∃ Ψ', Inv cg rd σ (nameAll loc sh kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc sh kc st vs) Ψ'
   | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll] using hI, by simpa [nameAll] using Step.refl st Ψ⟩
   | v :: vs, st, pre, Ψ, hI, hf, hk => by
-    rw [nameAll_cons]
+    simp only [nameAll, SSt.seq_eq]
     obtain ⟨hv, hc⟩ := hf v List.mem_cons_self
     obtain ⟨Ψ1, hI1, hs1⟩ := nameV_inv (sh := sh) hI hv hc (hk v List.mem_cons_self)
     obtain ⟨Ψ2, hI2, hs2⟩ := nameAll_inv vs hI1 (hf.mono fun u hu ↦ List.mem_cons_of_mem _ hu)
@@ -418,11 +418,13 @@ theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st :
     exact ⟨Ψ2, by simpa using hI2, hs1.trans hs2⟩
 
 
+theorem ofBits_one : K.ofBits 1 = 1 := by decide
+
 theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1) = x :=
   (eq_imm_of_limbs rfl rfl).symm
 
 theorem tw_one : tw (1, 0) = 1 := by
-  rw [tw, imm_of_ofBits K.ofBits_one, ofK_one]
+  rw [tw, imm_of_ofBits ofBits_one, ofK_one]
 
 /-- The values of an atom are named by their numbers. -/
 def VnA (a : Core.Atom) : Prop := ∀ u ∈ Memory.atomUses a, u = V.n u.idx
@@ -556,7 +558,7 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
     σ (V.n p.v) = Ψ p.c := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hI.pend p hp
   simp only [pfOk, Bool.or_eq_true, List.any_eq_true] at h
-  rcases h with (h | ⟨x, hx, hok⟩) | ⟨k, hk, hok⟩
+  rcases h with (h | ⟨k, hk, hok⟩) | ⟨x, hx, hok⟩
   · cases hkc : p.kc with
     | none => rw [hkc] at h; simp at h
     | some x =>
@@ -568,13 +570,8 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
         simp only [beq_iff_eq] at h
         subst h
         rw [h4 x hkc, (hI.kc p.c x ho).2]
-  · simp only [Bool.and_eq_true, nbeq_iff] at hok
-    obtain ⟨hn, hc⟩ := hok
-    have hc' : cellN loc x = cg (V.n x) := hA _ (show 2 ≤ cellN loc x by rw [hc]; exact h2)
-    rw [h6 x hx, ← hc, hc']
-    exact (hI.named x hn (by rw [← hc', hc]; exact h2)).1
   · simp only [keyOk, Bool.and_eq_true, List.all_eq_true, List.any_eq_true] at hok
-    obtain ⟨⟨k', hk', hkk⟩, hin⟩ := hok
+    obtain ⟨hin, k', hk', hkk⟩ := hok
     simp only [nbeq_iff, beq_iff_eq] at hkk
     obtain ⟨hop, hcs⟩ := hkk
     have hK := (hI.keys p.c k' hk').1
@@ -588,6 +585,11 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
       exact ((hI.named u this.1 (hc ▸ this.2)).1).symm
     rw [hmap] at hK
     exact (h5 k hk).unique hK
+  · simp only [Bool.and_eq_true, nbeq_iff] at hok
+    obtain ⟨hn, hc⟩ := hok
+    have hc' : cellN loc x = cg (V.n x) := hA _ (show 2 ≤ cellN loc x by rw [hc]; exact h2)
+    rw [h6 x hx, ← hc, hc']
+    exact (hI.named x hn (by rw [← hc', hc]; exact h2)).1
 
 
 theorem splitPend_spec (st : SSt) : ∀ (ps : List PF) {ok rest : List PF},

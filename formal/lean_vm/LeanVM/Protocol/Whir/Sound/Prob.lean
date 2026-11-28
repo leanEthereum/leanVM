@@ -22,8 +22,8 @@ before its first prover move, of `g` at the return. The joint bounds of `Spec.of
 expectations of indicators. This module computes them for the move-free fragments of the WHIR
 verifier (`LeanVM.Protocol.Verifier.verifyWhir`, transcribing `verify_whir`):
 
-* algebra: `retExp_bind` (sequencing is iterated expectation), `retExp_mono`, `retExp_le_add`,
-  `retExp_const_mul`, `retExp_le_one`, and `retExp_commits` (a function of the commitments of the
+* algebra: `retExp_bind` (sequencing is iterated expectation), `retExp_mono`, `retExp_add_le`,
+  `retExp_const_mul`, `retExp_le_const`, and `retExp_commits` (a function of the commitments of the
   history is constant along a group: samples and openings commit nothing);
 * `retExp_sampleN`: `sampleN n` draws a uniform vector of `E^n`;
 * `retExp_sampleQueries_le`: the positions of `sampleQueries depth t` all land in a set `S` with
@@ -48,6 +48,10 @@ theorem retExp_shift (g : α → List Ev → ENNReal) :
   | .ret a, h₀, l, m => by simp [retExp]
   | .fail, h₀, l, m => by simp [retExp]
   | .read k, h₀, l, m => by simp [retExp]
+  | .readPacked n k, h₀, l, m => by simp [retExp]
+  | .samplePacked n k, h₀, l, m => by
+    simp only [retExp, List.append_assoc]
+    exact congrArg (avgPk n) (funext fun cs ↦ retExp_shift g (k cs) h₀ l _)
   | .grind b k, h₀, l, m => by simp [retExp]
   | .commit ht w k, h₀, l, m => by simp [retExp]
   | .sample k, h₀, l, m => by
@@ -69,6 +73,10 @@ theorem retExp_bind (g : β → List Ev → ENNReal) (f : α → VerifierProgram
     rw [← retExp_shift, List.append_nil]
   | .fail, h₀, l => by simp [VerifierProgram.bind, retExp]
   | .read k, h₀, l => by simp [VerifierProgram.bind, retExp]
+  | .readPacked n k, h₀, l => by simp [VerifierProgram.bind, retExp]
+  | .samplePacked n k, h₀, l => by
+    simp only [VerifierProgram.bind, retExp]
+    exact congrArg (avgPk n) (funext fun cs ↦ retExp_bind g f (k cs) h₀ _)
   | .grind b k, h₀, l => by simp [VerifierProgram.bind, retExp]
   | .commit ht w k, h₀, l => by simp [VerifierProgram.bind, retExp]
   | .sample k, h₀, l => by
@@ -87,6 +95,10 @@ theorem retExp_mono {g g' : α → List Ev → ENNReal} (hg : ∀ a h, g a h ≤
   | .ret a, h₀, l => by simpa [retExp] using hg a _
   | .fail, h₀, l => by simp [retExp]
   | .read k, h₀, l => by simp [retExp]
+  | .readPacked n k, h₀, l => by simp [retExp]
+  | .samplePacked n k, h₀, l => by
+    simp only [retExp]
+    exact avgPk_mono fun cs _ ↦ retExp_mono hg (k cs) h₀ _
   | .grind b k, h₀, l => by simp [retExp]
   | .commit ht w k, h₀, l => by simp [retExp]
   | .sample k, h₀, l => by
@@ -106,6 +118,11 @@ theorem retExp_const_mul (c : ENNReal) (g : α → List Ev → ENNReal) :
   | .ret a, h₀, l => by simp [retExp]
   | .fail, h₀, l => by simp [retExp]
   | .read k, h₀, l => by simp [retExp]
+  | .readPacked n k, h₀, l => by simp [retExp]
+  | .samplePacked n k, h₀, l => by
+    simp only [retExp]
+    simp_rw [retExp_const_mul c g (k _) h₀]
+    exact avgPk_mul_left n c _
   | .grind b k, h₀, l => by simp [retExp]
   | .commit ht w k, h₀, l => by simp [retExp]
   | .sample k, h₀, l => by
@@ -130,6 +147,16 @@ theorem commits_append_query (h : List Ev) (rows : List (List K)) :
   | nil => rfl
   | cons e h ih => cases e <;> simp [commits, ih]
 
+theorem commits_append_samplePacked (h : List Ev) (cs : List E) :
+    commits (h ++ [Ev.samplePacked cs]) = commits h := by
+  induction h with
+  | nil => rfl
+  | cons e h ih => cases e <;> simp [commits, ih]
+
+theorem answer_append_sample (h : List Ev) (c : E) (i : ℕ) (ps : List ℕ) :
+    answer (h ++ [Ev.sample c]) i ps = answer h i ps := by
+  simp [answer, commits_append_sample]
+
 /-- **A function of the commitments is constant along a group.** -/
 theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :
     ∀ (q : VerifierProgram α) (h₀ l : List Ev),
@@ -138,6 +165,11 @@ theorem retExp_commits (G : α → List (ℕ × ℕ × Word) → ENNReal) :
   | .ret a, h₀, l => by simp [retExp]
   | .fail, h₀, l => by simp [retExp]
   | .read k, h₀, l => by simp [retExp]
+  | .readPacked n k, h₀, l => by simp [retExp]
+  | .samplePacked n k, h₀, l => by
+    simp only [retExp]
+    exact congrArg (avgPk n) (funext fun cs ↦ by
+      rw [retExp_commits G (k cs) h₀, ← List.append_assoc, commits_append_samplePacked])
   | .grind b k, h₀, l => by simp [retExp]
   | .commit ht w k, h₀, l => by simp [retExp]
   | .sample k, h₀, l => by

@@ -9,13 +9,13 @@ module
 
 public import LeanVM.Guest.CoreMode.Core
 public import LeanVM.Guest.CoreMode.Fam.FamDefs
-public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreMode.Gen.AnyLink
 public import LeanVM.Guest.B1.Digest.MonoDefs
 public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.CoreMode.LoopLink
 public import LeanVM.Guest.CoreMode.Fam.SelDefs
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
+public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
 
@@ -267,6 +267,7 @@ def CRes.vals : CRes → List ℕ
   | .subR q r => q.vals ++ r.vals
   | .under g r => g.flatMap CCond.vals ++ r.vals
   | .subP c cs => c.vals ++ cs.flatMap CCell.vals
+  | .eq a b => a.vals ++ b.vals
 
 theorem valW_vals {w w' : ℕ → E} {c : CCell} (h : ∀ k ∈ c.vals, w' k = w k) : c.valW w' = c.valW w :=
   valW_congr fun b hb ↦ h b.1 (List.mem_map.mpr ⟨b, hb, rfl⟩)
@@ -320,6 +321,11 @@ theorem CRes.holds_congr {σ σ' : Val} : ∀ {r : CRes}, (∀ k ∈ r.vals, σ'
       exact ⟨c', hc', by rwa [valW_vals (w := vw σ) (w' := vw σ') fun k hk ↦ h k (Or.inr ⟨c', hc', hk⟩)] at he⟩
     · rintro ⟨c', hc', he⟩
       exact ⟨c', hc', by rwa [valW_vals (w := vw σ) (w' := vw σ') fun k hk ↦ h k (Or.inr ⟨c', hc', hk⟩)]⟩
+  | .eq a b, h => by
+    simp only [CRes.vals, List.mem_append] at h
+    show a.valW (vw σ') = b.valW (vw σ') ↔ a.valW (vw σ) = b.valW (vw σ)
+    rw [valW_vals (w := vw σ) (w' := vw σ') fun k hk ↦ h k (Or.inl hk),
+      valW_vals (w := vw σ) (w' := vw σ') fun k hk ↦ h k (Or.inr hk)]
 
 /-! ## The ghost family -/
 
@@ -335,27 +341,28 @@ def mlSub (fn : Fn) : CRes → Bool
       decide (c.bases = (p.2.1, 1) :: (List.range (c.off / 4 + 1)).map fun i ↦ (p.2.2.1 + p.2.2.2.1 * i, 4))
   | _ => false
 
-/-! ## The proof stream's cursor loops -/
+/-! ## The cursor-run loops -/
 
-/-- **The loops reading the proof stream past a cursor** (`st`): `(name, D, v, S)`, a loop whose caller's cell `D`
-holds the stream, whose body loads the cursor `v`, reading at most `S` words past it an iteration; each its function's
-own (`FnReg.stLoops`). -/
-def stLoops : List (String × ℕ × ℕ × ℕ) := FnReg.stLoops
+/-- **The loops reading a run past a cursor** (`st`): `(name, Db, Dn, W, v, S)`, a loop whose caller's cell `Db` holds
+the run's base `M` and its cell `Dn` a word `g^n`, the run `[M]·[0, W·n)` taken as its `W` residues of stride `W`, whose
+body loads the cursor `v`, reading at most `S` words past it an iteration; each its function's own (`FnReg.stLoops`). -/
+def stLoops : List (String × ℕ × ℕ × ℕ × ℕ × ℕ) := FnReg.stLoops
 
-/-- A stream-cursor loop's `(D, v, S)`. -/
-def stK (fn : Fn) : Option (ℕ × ℕ × ℕ) := stLoops.lookup fn.name
+/-- A cursor-run loop's `(Db, Dn, W, v, S)`. -/
+def stK (fn : Fn) : Option (ℕ × ℕ × ℕ × ℕ × ℕ) := stLoops.lookup fn.name
 
-/-- **A read past a stream cursor** (`st`): the cell `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)` (its
-ghost the caller's stream). -/
+/-- **A read past a cursor** (`st`): the cell `[v]·g^c`, `c < S`, a cell of the residue run `[ghost₀]·g^(c % W)`
+of stride `W` below the exponent of `ghost₁` (its caller's run); and that exponent's existence. -/
 def stSub (fn : Fn) : CRes → Bool
-  | .sub c q => (stK fn).any fun p ↦ decide (c.bases = [(p.2.1, 1)]) && Nat.blt c.off p.2.2 &&
-      decide (q = ⟨⟨[(GB, 1)], 0⟩, 1, .num 0, .num 8192⟩)
+  | .sub c q => (stK fn).any fun p ↦ decide (c.bases = [(p.2.2.2.1, 1)]) && Nat.blt c.off p.2.2.2.2 &&
+      decide (q = ⟨⟨[(GB, 1)], c.off % p.2.2.1⟩, p.2.2.1, .num 0, .val (GB + 1)⟩)
+  | .lt a b => (stK fn).isSome && decide (a = .num 0) && decide (b = .val (GB + 1))
   | _ => false
 
-/-- **A stream-cursor loop's links**: its caller's cell `D` to its first ghost slot, the caller's frame address to its
-second (`loopGl`); it names no ghost value. -/
+/-- **A cursor-run loop's links**: its caller's cells `Db`, `Dn` to its first two ghost slots, the caller's frame
+address to its third (`loopGl`); it names no ghost value. -/
 def stGl (Cf : CFun) : Bool :=
-  (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1])) && Nat.beq Cf.H.sig.ghosts 2 &&
+  (stK Cf.fn).any (fun p ↦ decide (Cf.gl = loopGl Cf.fn.params.length [p.1, p.2.1])) && Nat.beq Cf.H.sig.ghosts 3 &&
     ngB Cf.fn
 
 /-! ## The gap walk's frame loops -/
@@ -431,19 +438,20 @@ noncomputable def expQB (fn : Fn) (x : V) : Option ℕ :=
     | .copy d a => if d = x then expQ0 fn a else none
     | _ => none
 
-/-- **A dimension fact's pair** (`Res.dimFacts`): `x` the word a top-level `load` reads at the base parameter's
-`[kb]·g^j`, `p` the bound parameter, `(j, c)` one of the pairs, `t < c + u`, `u < 2^33`. -/
-noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u : ℕ) : Bool :=
-  decide (u < 2 ^ 33) && Res.dimFacts.any fun c ↦ c.1 == fn.name &&
+/-- **A dimension fact's pair** (`Res.dimFacts`), both sides to the power `w`: `x` the word a top-level `load` reads at
+the base parameter's `[kb]·g^j`, `p` the bound parameter, `(j, c)` one of the pairs, `t < w·c + u`, `u < 2^33`,
+`0 < w < 2^28`. -/
+noncomputable def dimLt (fn : Fn) (x : V) (t : ℕ) (p : V) (u w : ℕ) : Bool :=
+  decide (u < 2 ^ 33) && decide (0 < w) && decide (w < 2 ^ 28) && Res.dimFacts.any fun c ↦ c.1 == fn.name &&
     match fn.params[c.2.1]?, fn.params[c.2.2.1]? with
     | some kb, some gb => decide (gb = p) &&
-        c.2.2.2.any fun q ↦ loadAt (Res.topAtoms fn.body) x kb q.1 && decide (t < q.2 + u)
+        c.2.2.2.any fun q ↦ loadAt (Res.topAtoms fn.body) x kb q.1 && decide (t < w * q.2 + u)
     | _, _ => false
 
 /-- **The residuals of the instance's exponent and dimension facts** (`expQ`, `dim`; `Res.expFacts`,
 `Res.dimFacts`): a value of an exponent fact (`expQB`), times `g^c`, below
-a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact times `g^t` below its
-bound parameter times `g^u` (`dimLt`); either under branch conditions. -/
+a constant, or a constant `g^k`, `k < c`, below it times `g^c`; a word of a dimension fact to a power `w` times `g^t` below
+its bound parameter to the power `w` times `g^u` (`dimLt`); either under branch conditions. -/
 noncomputable def resQ (fn : Fn) : CRes → Bool
   | .lt (.val x) (.num n) => decide (n < capE) && (expQB fn (V.n x)).any (· ≤ n)
   | .lt (.mono c) (.num n) => match c.bases with
@@ -453,10 +461,10 @@ noncomputable def resQ (fn : Fn) : CRes → Bool
     | [(x, 1)] => decide (k < c.off) && (expQB fn (V.n x)).any (· + c.off < capE)
     | _ => false
   | .lt (.val x) (.mono c) => match c.bases with
-    | [(p, 1)] => dimLt fn (V.n x) 0 (V.n p) c.off
+    | [(p, 1)] => dimLt fn (V.n x) 0 (V.n p) c.off 1
     | _ => false
   | .lt (.mono a) (.mono c) => match a.bases, c.bases with
-    | [(x, 1)], [(p, 1)] => dimLt fn (V.n x) a.off (V.n p) c.off
+    | [(x, w)], [(p, w')] => decide (w = w') && dimLt fn (V.n x) a.off (V.n p) c.off w
     | _, _ => false
   | .under _ r => resQ fn r
   | _ => false
@@ -477,9 +485,10 @@ structure SplitC where
 def powB (k : ℕ) (bs : List (ℕ × ℕ)) : List (ℕ × ℕ) := bs.map fun p ↦ (p.1, k * p.2)
 
 /-- **The residuals a split gives**, under the branch conditions `cs`: the exponent of `q·g^c`, `q^S·g^c` or `r·g^c`
-below a constant past its largest; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run
-`[b]·g^i·g^(S·[0, e(q)))`, `i < S`, inside `[b]·[0, e(n))`. -/
+below a constant past its largest; `n`'s below one at least `S·A`; `q^S·g^c` below `n` under the arm `j > c` of `rv`;
+the stride-`S` run `[b]·g^i·g^(S·[0, e(q)))`, `i < S`, inside `[b]·[0, e(n))`. -/
 def splitRes (sp : SplitC) (cs : List CCond) : CRes → Bool
+  | .lt (.val v) (.num N) => decide (v = sp.n) && decide (N < capE) && decide (sp.S * sp.A ≤ N)
   | .lt (.mono c) (.num N) => decide (N < capE) &&
       ((decide (c.bases = sp.q) && decide (sp.A - 1 + c.off < N)) ||
         (decide (c.bases = powB sp.S sp.q) && decide (sp.S * (sp.A - 1) + c.off < N)) ||

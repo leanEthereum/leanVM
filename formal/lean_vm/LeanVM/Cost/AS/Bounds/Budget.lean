@@ -1,19 +1,13 @@
 module
 
-public import LeanVM.Cost.AS.Bounds.Finish
+public import LeanVM.Cost.AS.Bounds.Trace
+public import LeanVM.Cost.AS.Bounds.Roots
+public import LeanVM.Cost.AS.Bounds.TraceShape
 import all LeanVM.Protocol.Whir.Sound.DescentC
 import all LeanVM.Protocol.Whir.Params.Check
 import all LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployedTable
-import all LeanVM.Protocol.Extraction.AS.TraceShape
+import all LeanVM.Cost.AS.Bounds.TraceShape
 import all Statement.LeanVmVerifier
-import all Statement.Verifier.Transcript
-import all Statement.Verifier.Multilinear
-import all Statement.Verifier.Layout
-import all Statement.Verifier.Bus
-import all Statement.Verifier.Whir
-import all Statement.Verifier.Keccak
-import all Statement.Verifier.RingSwitch
-import all Statement.Verifier.Lib
 
 /-!
 # Bounds: the descent's worst price at every shape
@@ -30,6 +24,9 @@ open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.AS LeanVM.Parameters
 open LeanVM.Protocol.Whir.Sound LeanVM.Extraction.AS
 
 public section
+
+/-- The price bound of level 0's stack (`stackA_cost`). -/
+@[expose] def stackPrice (μ : ℕ) : ℕ := μ * (174 * 2 ^ μ + 186944) + 90 * 2 ^ μ + 4000
 
 theorem descPrice_mono (n d W : ℕ) {r r' : ℕ} (h : r ≤ r') : descPrice n d W r ≤ descPrice n d W r' := by
   unfold descPrice stepG

@@ -100,6 +100,9 @@ theorem StOk.cnt {st : CSt} (h : StOk rd W σ st) (s : CSt) : StOk rd W σ (st.c
 theorem StOk.nextC {st : CSt} (h : StOk rd W σ st) : StOk rd W σ st.nextC :=
   ⟨h.env, h.sc, h.rs, h.ad, h.sv, h.src, h.pf, h.pr, h.cd, h.eqs, h.dq⟩
 
+theorem StOk.nextT {st : CSt} (h : StOk rd W σ st) : StOk rd W σ st.nextT :=
+  ⟨h.env, h.sc, h.rs, h.ad, h.sv, h.src, h.pf, h.pr, h.cd, h.eqs, h.dq⟩
+
 theorem push_stOk {st : CSt} (hs : StOk rd W σ st) (hw : ∀ x, W x → W' x) {c : CCell} (hc : W' (c.addr σ)) :
     StOk rd W' σ (st.push c) := by
   have hs' := hs.mono hw
@@ -254,7 +257,8 @@ theorem unU_ok {path : List CCond} (hp : ∀ c ∈ path, c.Holds σ) : ∀ {r0 r
     cases hb : onPath path g with
     | false => rw [hb] at h; cases h
     | true => rw [hb, Bool.cond_true] at h; exact unU_ok hp h (h0 (onPath_ok hb hp))
-  | .lt .., _, h, h0 | .nz _, _, h, h0 | .sub .., _, h, h0 | .subR .., _, h, h0 | .subP .., _, h, h0 => by
+  | .lt .., _, h, h0 | .nz _, _, h, h0 | .sub .., _, h, h0 | .subR .., _, h, h0 | .subP .., _, h, h0
+  | .eq .., _, h, h0 => by
     simp only [unU, Option.some.injEq] at h
     subst h
     exact h0
@@ -385,6 +389,7 @@ theorem facts_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : X
       | subR => cases hi
       | under => cases hi
       | subP => cases hi
+      | eq => cases hi
   · exact pathF_ok he hX.path p hp
 
 theorem PRun.beq_eq {a b : PRun} (h : a.beq b = true) : a = b := by
@@ -707,6 +712,7 @@ theorem ptOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | wnil => simp [ptOk] at h
   | wcons => simp [ptOk] at h
   | drv => simp [ptOk] at h
+  | ptsU => simp [ptOk] at h
 
 /-- **A run's witness**: the run written. -/
 theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -754,6 +760,332 @@ theorem rnOk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | wnil => simp [rnOk] at h
   | wcons => simp [rnOk] at h
   | drv => simp [rnOk] at h
+  | ptsU => simp [rnOk] at h
+
+variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX}
+
+/-- Points witnessed at a run's cells: written. -/
+theorem ptsRunP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {b : CCell} {S : ℕ} :
+    ∀ {j n : ℕ} {wl wl' : List Wit},
+      ptsRunP pt b S j n wl = some wl' → ∀ i, j ≤ i → i < j + n → W ((b.shift (S * i)).addr σ)
+  | _, 0, _, _, _, i, h1, h2 => by omega
+  | j, n + 1, [], _, h, _, _, _ => by simp [ptsRunP] at h
+  | j, n + 1, w :: wl, wl', h, i, h1, h2 => by
+    simp only [ptsRunP] at h
+    cases hp : pt (b.shift (S * j)) w with
+    | false => rw [hp] at h; cases h
+    | true =>
+      rw [hp, Bool.cond_true] at h
+      rcases Nat.eq_or_lt_of_le h1 with rfl | h1
+      · exact hpt hp
+      · exact ptsRunP_ok hX hpre hs hpt h i (by omega) (by omega)
+
+/-- A run's part's witnesses: written. -/
+theorem runOk1P_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {Q : PRun} {wl wl' : List Wit}
+    (h : runOk1P pt X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  cases wl with
+  | nil => simp [runOk1P] at h
+  | cons w wl =>
+    by_cases hw : w = .pts
+    · subst hw
+      simp only [runOk1P] at h
+      cases hb : constR Q with
+      | false => rw [hb] at h; simp at h
+      | true =>
+        rw [hb, Bool.cond_true] at h
+        unfold constR at hb
+        simp only [Bool.and_eq_true] at hb
+        obtain ⟨⟨⟨hl, hh⟩, hlc⟩, hhc⟩ := hb
+        rintro a ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
+        rw [rep_nil hl (Nat.blt_eq.mp hlc), Option.some.injEq] at h1
+        rw [rep_nil hh (Nat.blt_eq.mp hhc), Option.some.injEq] at h2
+        subst h1 h2
+        have := ptsRunP_ok hX hpre hs hpt h j h3 (by omega)
+        rwa [addr_eq, CCell.addrW, valW_shift] at this
+    by_cases hu : ∃ n res, w = .ptsU n res
+    · obtain ⟨n, res, rfl⟩ := hu
+      simp only [runOk1P] at h
+      cases hb : (Q.lo.bases.isEmpty && Nat.blt Q.lo.off capE && hasFU (facts X st.env res) Q.hi (n + 1)) with
+      | false => rw [hb] at h; simp at h
+      | true =>
+        rw [hb, Bool.cond_true] at h
+        simp only [Bool.and_eq_true] at hb
+        obtain ⟨⟨hl, hlc⟩, hfu⟩ := hb
+        obtain ⟨p, hp, hq⟩ := List.any_eq_true.mp hfu
+        simp only [Bool.and_eq_true] at hq
+        obtain ⟨⟨⟨hq1, hq2⟩, hq3⟩, hq4⟩ := hq
+        obtain ⟨ya, yb, ha, hb', hlt⟩ := facts_ok hX hs.env res p hp
+        rw [CCell.beq_eq hq1] at ha
+        rw [rep_nil hq2 (Nat.blt_eq.mp hq4), Option.some.injEq] at hb'
+        have hle := Nat.le_of_ble_eq_true hq3
+        rintro a ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
+        rw [rep_nil hl (Nat.blt_eq.mp hlc), Option.some.injEq] at h1
+        rw [ha, Option.some.injEq] at h2
+        subst h1 h2
+        have := ptsRunP_ok hX hpre hs hpt h j h3 (by omega)
+        rwa [addr_eq, CCell.addrW, valW_shift] at this
+    · have h' : (bif rnOk X st Q w then some wl else none) = some wl' := by
+        cases w <;> first | exact absurd rfl hw | exact absurd ⟨_, _, rfl⟩ hu | exact h
+      cases hp : rnOk X st Q w with
+      | false => rw [hp] at h'; cases h'
+      | true => exact rnOk_ok hX hs hp
+
+theorem mrgWP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {Q : PRun} {S : ℕ} {lo hi : CCell} :
+    ∀ {r n : ℕ} {wl wl' : List Wit},
+      mrgWP pt X st Q S lo hi r n wl = some wl' → ∀ r', r ≤ r' → r' < r + n →
+        RunF W (vw σ) (mrgPart Q S r' lo hi).base (mrgPart Q S r' lo hi).stride lo hi
+  | _, 0, _, _, _, r', h1, h2 => by omega
+  | r, n + 1, wl, wl', h, r', h1, h2 => by
+    simp only [mrgWP] at h
+    cases hp : runOk1P pt X st (mrgPart Q S r lo hi) wl with
+    | none => rw [hp] at h; cases h
+    | some ws' =>
+      rw [hp] at h
+      by_cases hr : r' = r
+      · subst hr
+        exact runOk1P_ok hX hpre hs hpt hp
+      · exact mrgWP_ok hX hpre hs hpt h r' (by omega) (by omega)
+
+/-- **A merge**: a run of stride `S'` whose cells are those of its `S` residue runs of stride `S'·S`, its
+lower bound a constant multiple of `S`, its upper bound the `S`-th power of a root with an exponent (the
+upper bound's exponent is at most `S` times the root's). -/
+theorem mrg_le {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
+    {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr) (hle : ∀ y, rep (Q.hi.valW (vw σ)) = some y → y ≤ yr * S)
+    (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
+      (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).stride ⟨[], Q.lo.off / S⟩ R) :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  rintro x ⟨ylo, yhi, i, h1, h2, h3, h4, rfl⟩
+  rw [rep_nil hlb hlc, Option.some.injEq] at h1
+  subst h1
+  have hle := hle yhi h2
+  have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
+  have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
+  have hj0 : Q.lo.off / S ≤ i / S := Nat.div_le_div_right h3
+  refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
+    have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
+  simp only [mrgPart]
+  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+    Nat.mul_assoc, ← Nat.mul_add, hi]
+
+theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
+    (hroot : Q.hi.valW (vw σ) = R.valW (vw σ) ^ S) {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr)
+    (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
+      (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).stride ⟨[], Q.lo.off / S⟩ R) :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  rintro x ⟨ylo, yhi, i, h1, h2, h3, h4, rfl⟩
+  rw [rep_nil hlb hlc, Option.some.injEq] at h1
+  subst h1
+  have hhi : Q.hi.valW (vw σ) = ofK (addressOfIndex (yr * S)) := by
+    rw [hroot, (rep_spec hyr).2, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul]
+  have hle := rep_le h2 hhi
+  have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
+  have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
+  have hj0 : Q.lo.off / S ≤ i / S := Nat.div_le_div_right h3
+  refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
+    have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
+  simp only [mrgPart]
+  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+    Nat.mul_assoc, ← Nat.mul_add, hi]
+
+/-- **A run's witnesses, one level**: the run written. -/
+theorem runOk0P_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {Q : PRun} {wl wl' : List Wit}
+    (h : runOk0P pt X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  cases wl with
+  | nil => simp [runOk0P, runOk1P] at h
+  | cons w wl =>
+    by_cases hw : ∃ k, w = .cat k
+    · obtain ⟨k, rfl⟩ := hw
+      simp only [runOk0P] at h
+      cases hk : Nat.blt k capE with
+      | false => rw [hk] at h; simp at h
+      | true =>
+        rw [hk, Bool.cond_true] at h
+        split at h
+        · rename_i ws1 h1
+          have R1 := runOk1P_ok hX hpre hs hpt h1
+          have R2 := runOk1P_ok hX hpre hs hpt h
+          have hkc := Nat.blt_eq.mp hk
+          rintro x ⟨ylo, yhi, j, h1', h2', h3, h4, rfl⟩
+          by_cases hj : j < k
+          · exact R1 _ ⟨ylo, k, j, h1', rep_const hkc, h3, hj, rfl⟩
+          · exact R2 _ ⟨k, yhi, j, rep_const hkc, h2', by omega, h4, rfl⟩
+        · cases h
+    · by_cases hm : ∃ S res, w = .mrg S res
+      · obtain ⟨S, res, rfl⟩ := hm
+        simp only [runOk0P] at h
+        cases hb : (Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
+            ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S)) with
+        | false => rw [hb] at h; simp at h
+        | true =>
+          rw [hb, Bool.cond_true] at h
+          simp only [Bool.and_eq_true] at hb
+          obtain ⟨⟨⟨⟨⟨hS, hlb⟩, -⟩, hlc⟩, hroot⟩, hex⟩ := hb
+          obtain ⟨yr, hyr⟩ : ∃ yr, rep ((rootC Q.hi S).valW (vw σ)) = some yr := by
+            unfold hasExp at hex
+            simp only [Bool.or_eq_true, Bool.and_eq_true] at hex
+            rcases hex with ⟨h1, h2⟩ | hf
+            · exact ⟨_, rep_nil h1 (Nat.blt_eq.mp h2)⟩
+            · obtain ⟨p, hp, hpe⟩ := List.any_eq_true.mp hf
+              obtain ⟨ya, yb, ha, hb, -⟩ := facts_ok hX hs.env res p hp
+              simp only [Bool.or_eq_true] at hpe
+              rcases hpe with he | he
+              · rw [CCell.beq_eq he] at ha
+                exact ⟨_, ha⟩
+              · rw [CCell.beq_eq he] at hb
+                exact ⟨_, hb⟩
+          exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
+            (((valW_pow _ _).symm.trans (congrArg _ (CCell.beq_eq hroot))).symm) hyr
+            fun r hr ↦ mrgWP_ok hX hpre hs hpt h r (Nat.zero_le _) (by omega)
+      · by_cases he : ∃ S r res, w = .mrgE S r res
+        · obtain ⟨S, R, res, rfl⟩ := he
+          simp only [runOk0P] at h
+          cases hb : (Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
+              (eqV st.eqs (R.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((R.pow S).shift 1)) &&
+              hasExp (facts X st.env res) R) with
+          | false => rw [hb] at h; simp at h
+          | true =>
+            rw [hb, Bool.cond_true] at h
+            simp only [Bool.and_eq_true] at hb
+            obtain ⟨⟨⟨⟨⟨hS, hlb⟩, -⟩, hlc⟩, hroot⟩, hex⟩ := hb
+            obtain ⟨yr, hyr⟩ := hasExp_ok (facts_ok hX hs.env res) hex
+            have hparts := fun r (hr : r < S) ↦ mrgWP_ok hX hpre hs hpt h r (Nat.zero_le _) (by omega)
+            rcases Bool.or_eq_true_iff.mp hroot with hroot | hroot
+            · exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
+                (by rw [← eqV_ok hs.eqs hroot, valW_pow]) hyr hparts
+            · refine mrg_le (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc) hyr (fun y hy ↦ ?_) hparts
+              obtain ⟨ya, yb, ha, hb2, hab⟩ := hasF_ok (facts_ok hX hs.env res) hroot
+              rw [hy, Option.some.injEq] at ha
+              subst ha
+              obtain ⟨-, hrv⟩ := rep_spec hyr
+              have h2 : ((R.pow S).shift 1).valW (vw σ) = ofK (addressOfIndex (yr * S + 1)) := by
+                rw [valW_shift, valW_pow, hrv, ← ofK_pow', ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex,
+                  ← pow_mul, ← pow_add]
+              have := rep_le hb2 h2
+              omega
+        · have h' : runOk1P pt X st Q (w :: wl) = some wl' := by
+            cases w <;> first | exact absurd ⟨_, rfl⟩ hw | exact absurd ⟨_, _, rfl⟩ hm | exact absurd ⟨_, _, _, rfl⟩ he | exact h
+          exact runOk1P_ok hX hpre hs hpt h'
+
+/-- **A split at a symbolic index**: the upper bound's word `k·h`, `k`'s and `h`'s exponents existing, the part
+below `k` and the part from `k` (base `base·k^S`, from `g^0` to `h`) written: the run written. -/
+theorem catM_ok {w : ℕ → E} {Q : PRun} {k h : CCell} (hkh : (k.mul h).valW w = Q.hi.valW w) {yk yh : ℕ}
+    (hyk : rep (k.valW w) = some yk) (hyh : rep (h.valW w) = some yh)
+    (R1 : RunF W w Q.base Q.stride Q.lo k) (R2 : RunF W w (Q.base.mul (k.pow Q.stride)) Q.stride ⟨[], 0⟩ h) :
+    RunF W w Q.base Q.stride Q.lo Q.hi := by
+  rintro x ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
+  have hk := (rep_spec hyk)
+  have hh := (rep_spec hyh)
+  have hhi : Q.hi.valW w = ofK (addressOfIndex (yk + yh)) := by
+    rw [← hkh, valW_mul, hk.2, hh.2, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
+  have hle : yhi = yk + yh := by
+    have h2' := h2
+    rw [hhi] at h2'
+    have := rep_spec h2'
+    rw [capE_eq] at hk hh
+    rw [capE_eq] at this
+    exact (gpow_inj_lt (by omega) (by omega) this.2).symm
+  by_cases hj : j < yk
+  · exact R1 _ ⟨ylo, yk, j, h1, hyk, h3, hj, rfl⟩
+  · refine R2 _ ⟨0, yh, j - yk, rep_const (by rw [capE_eq]; norm_num), hyh, Nat.zero_le _, by omega, ?_⟩
+    have e : (Q.base.mul (k.pow Q.stride)).valW w * ofK (addressOfIndex (Q.stride * (j - yk))) =
+        Q.base.valW w * ofK (addressOfIndex (Q.stride * j)) := by
+      rw [valW_mul, valW_pow, hk.2, ← ofK_pow', mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+        addressOfIndex, ← pow_mul, ← pow_add, show yk * Q.stride + Q.stride * (j - yk) = Q.stride * j by
+          rw [Nat.mul_comm yk, ← Nat.mul_add, Nat.add_sub_cancel' (by omega)]]
+    rw [e]
+
+/-- **A run's witnesses**: the run written. -/
+theorem runOkLP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {Q : PRun} {wl wl' : List Wit}
+    (h : runOkLP pt X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  by_cases hc : ∃ k h res wl1, wl = .catM k h res :: wl1
+  · obtain ⟨k, hh, res, wl1, rfl⟩ := hc
+    simp only [runOkLP] at h
+    cases hb : (eqV st.eqs (k.mul hh) Q.hi && hasExp (facts X st.env res) k && hasExp (facts X st.env res) hh) with
+    | false => rw [hb] at h; simp at h
+    | true =>
+      rw [hb, Bool.cond_true] at h
+      simp only [Bool.and_eq_true] at hb
+      obtain ⟨⟨he, hk⟩, hh'⟩ := hb
+      obtain ⟨yk, hyk⟩ := hasExp_ok (facts_ok hX hs.env res) hk
+      obtain ⟨yh, hyh⟩ := hasExp_ok (facts_ok hX hs.env res) hh'
+      cases h1 : runOk0P pt X st ⟨Q.base, Q.stride, Q.lo, k⟩ wl1 with
+      | none => rw [h1] at h; cases h
+      | some ws' =>
+        rw [h1] at h
+        have R1 := runOk0P_ok hX hpre hs hpt h1
+        have R2 := runOk0P_ok hX hpre hs hpt h
+        exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
+  · have h' : runOk0P pt X st Q wl = some wl' := by
+      cases wl with
+      | nil => exact h
+      | cons w wl1 =>
+        cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
+    exact runOk0P_ok hX hpre hs hpt h'
+
+theorem runOkP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {pt : CCell → Wit → Bool} (hpt : ∀ {c : CCell} {w : Wit}, pt c w = true → W (c.addr σ))
+    {Q : PRun} {wl wl' : List Wit}
+    (h : runOkP pt X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
+  by_cases hc : ∃ k h res wl1, wl = .catM k h res :: wl1
+  · obtain ⟨k, hh, res, wl1, rfl⟩ := hc
+    simp only [runOkP] at h
+    cases hb : (eqV st.eqs (k.mul hh) Q.hi && hasExp (facts X st.env res) k && hasExp (facts X st.env res) hh) with
+    | false => rw [hb] at h; simp at h
+    | true =>
+      rw [hb, Bool.cond_true] at h
+      simp only [Bool.and_eq_true] at hb
+      obtain ⟨⟨he, hk⟩, hh'⟩ := hb
+      obtain ⟨yk, hyk⟩ := hasExp_ok (facts_ok hX hs.env res) hk
+      obtain ⟨yh, hyh⟩ := hasExp_ok (facts_ok hX hs.env res) hh'
+      cases h1 : runOk0P pt X st ⟨Q.base, Q.stride, Q.lo, k⟩ wl1 with
+      | none => rw [h1] at h; cases h
+      | some ws' =>
+        rw [h1] at h
+        have R1 := runOk0P_ok hX hpre hs hpt h1
+        have R2 := runOkLP_ok hX hpre hs hpt h
+        exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
+  · have h' : runOk0P pt X st Q wl = some wl' := by
+      cases wl with
+      | nil => exact h
+      | cons w wl1 =>
+        cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
+    exact runOk0P_ok hX hpre hs hpt h'
+
+/-- **A read's witness** (`ptOkD`): the cell written. -/
+theorem ptOkD_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {c : CCell} {w : Wit} (h : ptOkD X st c w = true) : W (c.addr σ) := by
+  cases w with
+  | der b S lo hi res ws =>
+    simp only [ptOkD, Bool.and_eq_true] at h
+    obtain ⟨h1, h2⟩ := h
+    split at h2
+    · rename_i hr
+      rcases Bool.or_eq_true_iff.mp h1 with h1 | h1
+      · rw [addr_eq]
+        exact ptRun_ok (facts_ok hX hs.env res) (runOkP_ok hX hpre hs (ptOk_ok hX hpre hs) hr) h1
+      · exact subPt_ok hX hs.env (facts_ok hX hs.env res) (runOkP_ok hX hpre hs (ptOk_ok hX hpre hs) hr) h1
+    · cases h2
+  | _ => exact ptOk_ok hX hpre hs h
+
+/-- **A run's witnesses** (`runOk`): the run written. -/
+theorem runOk_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOk X st Q wl = some wl') :
+    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi :=
+  runOkP_ok hX hpre hs (ptOkD_ok hX hpre hs) h
 
 /-- The cells past a word, each witnessed: written. -/
 theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XOk sigOf H rd f σ X)
@@ -763,12 +1095,12 @@ theorem ptsW_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : XO
   | o :: os, [], _, h, _, _ => by simp [ptsW] at h
   | o :: os, w :: wl, wl', h, o0, ho0 => by
     simp only [ptsW] at h
-    cases hp : ptOk X st (m.shift o) w with
+    cases hp : ptOkD X st (m.shift o) w with
     | false => rw [hp] at h; cases h
     | true =>
       rw [hp, Bool.cond_true] at h
       rcases List.mem_cons.mp ho0 with rfl | ho0
-      · exact ptOk_ok hX hpre hs hp
+      · exact ptOkD_ok hX hpre hs hp
       · exact ptsW_ok hX hpre hs h o0 ho0
 
 theorem lt_offHi {offs : List ℕ} : ∀ {o : ℕ}, o ∈ offs → o < offHi offs := by
@@ -921,8 +1253,6 @@ theorem ptrROk_ok {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} (hX : 
         exact this hx
     all_goals simp [ptrROk] at h
 
-variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX}
-
 theorem reqP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt} (hs : StOk rd W σ st)
     {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws)) :
     ∀ {cs : List CCell} {wl wl' : List Wit}, reqP X st ms cs wl = some wl' → ∀ c ∈ cs, W (c.addrW (slotW ws))
@@ -934,295 +1264,14 @@ theorem reqP_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.a
     | none => rw [hi] at h; cases h
     | some c' =>
       simp only [hi] at h
-      cases hp : ptOk X st c' w with
+      cases hp : ptOkD X st c' w with
       | false => rw [hp] at h; cases h
       | true =>
         rw [hp, Bool.cond_true] at h
         rcases List.mem_cons.mp hc0 with rfl | hc0
-        · have := ptOk_ok hX hpre hs hp
+        · have := ptOkD_ok hX hpre hs hp
           rwa [addr_eq, CCell.addrW, instC_ok hms hi] at this
         · exact reqP_ok hX hpre hs hms h c0 hc0
-
-/-- Points witnessed at a run's cells: written. -/
-theorem ptsRun_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {b : CCell} {S : ℕ} : ∀ {j n : ℕ} {wl wl' : List Wit},
-      ptsRun X st b S j n wl = some wl' → ∀ i, j ≤ i → i < j + n → W ((b.shift (S * i)).addr σ)
-  | _, 0, _, _, _, i, h1, h2 => by omega
-  | j, n + 1, [], _, h, _, _, _ => by simp [ptsRun] at h
-  | j, n + 1, w :: wl, wl', h, i, h1, h2 => by
-    simp only [ptsRun] at h
-    cases hp : ptOk X st (b.shift (S * j)) w with
-    | false => rw [hp] at h; cases h
-    | true =>
-      rw [hp, Bool.cond_true] at h
-      rcases Nat.eq_or_lt_of_le h1 with rfl | h1
-      · exact ptOk_ok hX hpre hs hp
-      · exact ptsRun_ok hX hpre hs h i (by omega) (by omega)
-
-/-- A run's part's witnesses: written. -/
-theorem runOk1_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOk1 X st Q wl = some wl') :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  cases wl with
-  | nil => simp [runOk1] at h
-  | cons w wl =>
-    by_cases hw : w = .pts
-    · subst hw
-      simp only [runOk1] at h
-      cases hb : constR Q with
-      | false => rw [hb] at h; simp at h
-      | true =>
-        rw [hb, Bool.cond_true] at h
-        unfold constR at hb
-        simp only [Bool.and_eq_true] at hb
-        obtain ⟨⟨⟨hl, hh⟩, hlc⟩, hhc⟩ := hb
-        rintro a ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
-        rw [rep_nil hl (Nat.blt_eq.mp hlc), Option.some.injEq] at h1
-        rw [rep_nil hh (Nat.blt_eq.mp hhc), Option.some.injEq] at h2
-        subst h1 h2
-        have := ptsRun_ok hX hpre hs h j h3 (by omega)
-        rwa [addr_eq, CCell.addrW, valW_shift] at this
-    · have h' : (bif rnOk X st Q w then some wl else none) = some wl' := by
-        cases w <;> first | exact absurd rfl hw | exact h
-      cases hp : rnOk X st Q w with
-      | false => rw [hp] at h'; cases h'
-      | true => exact rnOk_ok hX hs hp
-
-theorem mrgW_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {Q : PRun} {S : ℕ} {lo hi : CCell} : ∀ {r n : ℕ} {wl wl' : List Wit},
-      mrgW X st Q S lo hi r n wl = some wl' → ∀ r', r ≤ r' → r' < r + n →
-        RunF W (vw σ) (mrgPart Q S r' lo hi).base (mrgPart Q S r' lo hi).stride lo hi
-  | _, 0, _, _, _, r', h1, h2 => by omega
-  | r, n + 1, wl, wl', h, r', h1, h2 => by
-    simp only [mrgW] at h
-    cases hp : runOk1 X st (mrgPart Q S r lo hi) wl with
-    | none => rw [hp] at h; cases h
-    | some ws' =>
-      rw [hp] at h
-      by_cases hr : r' = r
-      · subst hr
-        exact runOk1_ok hX hpre hs hp
-      · exact mrgW_ok hX hpre hs h r' (by omega) (by omega)
-
-/-- **A merge**: a run of stride `S'` whose cells are those of its `S` residue runs of stride `S'·S`, its
-lower bound a constant multiple of `S`, its upper bound the `S`-th power of a root with an exponent (the
-upper bound's exponent is at most `S` times the root's). -/
-theorem mrg_le {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
-    {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr) (hle : ∀ y, rep (Q.hi.valW (vw σ)) = some y → y ≤ yr * S)
-    (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
-      (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).stride ⟨[], Q.lo.off / S⟩ R) :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  rintro x ⟨ylo, yhi, i, h1, h2, h3, h4, rfl⟩
-  rw [rep_nil hlb hlc, Option.some.injEq] at h1
-  subst h1
-  have hle := hle yhi h2
-  have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
-  have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
-  have hj0 : Q.lo.off / S ≤ i / S := Nat.div_le_div_right h3
-  refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
-    have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
-  simp only [mrgPart]
-  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
-    Nat.mul_assoc, ← Nat.mul_add, hi]
-
-theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
-    (hroot : Q.hi.valW (vw σ) = R.valW (vw σ) ^ S) {yr : ℕ} (hyr : rep (R.valW (vw σ)) = some yr)
-    (hparts : ∀ r < S, RunF W (vw σ) (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).base
-      (mrgPart Q S r ⟨[], Q.lo.off / S⟩ R).stride ⟨[], Q.lo.off / S⟩ R) :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  rintro x ⟨ylo, yhi, i, h1, h2, h3, h4, rfl⟩
-  rw [rep_nil hlb hlc, Option.some.injEq] at h1
-  subst h1
-  have hhi : Q.hi.valW (vw σ) = ofK (addressOfIndex (yr * S)) := by
-    rw [hroot, (rep_spec hyr).2, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul]
-  have hle := rep_le h2 hhi
-  have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
-  have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
-  have hj0 : Q.lo.off / S ≤ i / S := Nat.div_le_div_right h3
-  refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
-    have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
-  simp only [mrgPart]
-  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
-    Nat.mul_assoc, ← Nat.mul_add, hi]
-
-/-- **A run's witnesses, one level**: the run written. -/
-theorem runOk0_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOk0 X st Q wl = some wl') :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  cases wl with
-  | nil => simp [runOk0, runOk1] at h
-  | cons w wl =>
-    by_cases hw : ∃ k, w = .cat k
-    · obtain ⟨k, rfl⟩ := hw
-      simp only [runOk0] at h
-      cases hk : Nat.blt k capE with
-      | false => rw [hk] at h; simp at h
-      | true =>
-        rw [hk, Bool.cond_true] at h
-        split at h
-        · rename_i ws1 h1
-          have R1 := runOk1_ok hX hpre hs h1
-          have R2 := runOk1_ok hX hpre hs h
-          have hkc := Nat.blt_eq.mp hk
-          rintro x ⟨ylo, yhi, j, h1', h2', h3, h4, rfl⟩
-          by_cases hj : j < k
-          · exact R1 _ ⟨ylo, k, j, h1', rep_const hkc, h3, hj, rfl⟩
-          · exact R2 _ ⟨k, yhi, j, rep_const hkc, h2', by omega, h4, rfl⟩
-        · cases h
-    · by_cases hm : ∃ S res, w = .mrg S res
-      · obtain ⟨S, res, rfl⟩ := hm
-        simp only [runOk0] at h
-        cases hb : (Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
-            ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S)) with
-        | false => rw [hb] at h; simp at h
-        | true =>
-          rw [hb, Bool.cond_true] at h
-          simp only [Bool.and_eq_true] at hb
-          obtain ⟨⟨⟨⟨⟨hS, hlb⟩, -⟩, hlc⟩, hroot⟩, hex⟩ := hb
-          obtain ⟨yr, hyr⟩ : ∃ yr, rep ((rootC Q.hi S).valW (vw σ)) = some yr := by
-            unfold hasExp at hex
-            simp only [Bool.or_eq_true, Bool.and_eq_true] at hex
-            rcases hex with ⟨h1, h2⟩ | hf
-            · exact ⟨_, rep_nil h1 (Nat.blt_eq.mp h2)⟩
-            · obtain ⟨p, hp, hpe⟩ := List.any_eq_true.mp hf
-              obtain ⟨ya, yb, ha, hb, -⟩ := facts_ok hX hs.env res p hp
-              simp only [Bool.or_eq_true] at hpe
-              rcases hpe with he | he
-              · rw [CCell.beq_eq he] at ha
-                exact ⟨_, ha⟩
-              · rw [CCell.beq_eq he] at hb
-                exact ⟨_, hb⟩
-          exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
-            (((valW_pow _ _).symm.trans (congrArg _ (CCell.beq_eq hroot))).symm) hyr
-            fun r hr ↦ mrgW_ok hX hpre hs h r (Nat.zero_le _) (by omega)
-      · by_cases he : ∃ S r res, w = .mrgE S r res
-        · obtain ⟨S, R, res, rfl⟩ := he
-          simp only [runOk0] at h
-          cases hb : (Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
-              (eqV st.eqs (R.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((R.pow S).shift 1)) &&
-              hasExp (facts X st.env res) R) with
-          | false => rw [hb] at h; simp at h
-          | true =>
-            rw [hb, Bool.cond_true] at h
-            simp only [Bool.and_eq_true] at hb
-            obtain ⟨⟨⟨⟨⟨hS, hlb⟩, -⟩, hlc⟩, hroot⟩, hex⟩ := hb
-            obtain ⟨yr, hyr⟩ := hasExp_ok (facts_ok hX hs.env res) hex
-            have hparts := fun r (hr : r < S) ↦ mrgW_ok hX hpre hs h r (Nat.zero_le _) (by omega)
-            rcases Bool.or_eq_true_iff.mp hroot with hroot | hroot
-            · exact mrg_ok (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc)
-                (by rw [← eqV_ok hs.eqs hroot, valW_pow]) hyr hparts
-            · refine mrg_le (Nat.blt_eq.mp hS) hlb (Nat.blt_eq.mp hlc) hyr (fun y hy ↦ ?_) hparts
-              obtain ⟨ya, yb, ha, hb2, hab⟩ := hasF_ok (facts_ok hX hs.env res) hroot
-              rw [hy, Option.some.injEq] at ha
-              subst ha
-              obtain ⟨-, hrv⟩ := rep_spec hyr
-              have h2 : ((R.pow S).shift 1).valW (vw σ) = ofK (addressOfIndex (yr * S + 1)) := by
-                rw [valW_shift, valW_pow, hrv, ← ofK_pow', ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex,
-                  ← pow_mul, ← pow_add]
-              have := rep_le hb2 h2
-              omega
-        · have h' : runOk1 X st Q (w :: wl) = some wl' := by
-            cases w <;> first | exact absurd ⟨_, rfl⟩ hw | exact absurd ⟨_, _, rfl⟩ hm | exact absurd ⟨_, _, _, rfl⟩ he | exact h
-          exact runOk1_ok hX hpre hs h'
-
-/-- **A split at a symbolic index**: the upper bound's word `k·h`, `k`'s and `h`'s exponents existing, the part
-below `k` and the part from `k` (base `base·k^S`, from `g^0` to `h`) written: the run written. -/
-theorem catM_ok {w : ℕ → E} {Q : PRun} {k h : CCell} (hkh : (k.mul h).valW w = Q.hi.valW w) {yk yh : ℕ}
-    (hyk : rep (k.valW w) = some yk) (hyh : rep (h.valW w) = some yh)
-    (R1 : RunF W w Q.base Q.stride Q.lo k) (R2 : RunF W w (Q.base.mul (k.pow Q.stride)) Q.stride ⟨[], 0⟩ h) :
-    RunF W w Q.base Q.stride Q.lo Q.hi := by
-  rintro x ⟨ylo, yhi, j, h1, h2, h3, h4, rfl⟩
-  have hk := (rep_spec hyk)
-  have hh := (rep_spec hyh)
-  have hhi : Q.hi.valW w = ofK (addressOfIndex (yk + yh)) := by
-    rw [← hkh, valW_mul, hk.2, hh.2, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
-  have hle : yhi = yk + yh := by
-    have h2' := h2
-    rw [hhi] at h2'
-    have := rep_spec h2'
-    rw [capE_eq] at hk hh
-    rw [capE_eq] at this
-    exact (gpow_inj_lt (by omega) (by omega) this.2).symm
-  by_cases hj : j < yk
-  · exact R1 _ ⟨ylo, yk, j, h1, hyk, h3, hj, rfl⟩
-  · refine R2 _ ⟨0, yh, j - yk, rep_const (by rw [capE_eq]; norm_num), hyh, Nat.zero_le _, by omega, ?_⟩
-    have e : (Q.base.mul (k.pow Q.stride)).valW w * ofK (addressOfIndex (Q.stride * (j - yk))) =
-        Q.base.valW w * ofK (addressOfIndex (Q.stride * j)) := by
-      rw [valW_mul, valW_pow, hk.2, ← ofK_pow', mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
-        addressOfIndex, ← pow_mul, ← pow_add, show yk * Q.stride + Q.stride * (j - yk) = Q.stride * j by
-          rw [Nat.mul_comm yk, ← Nat.mul_add, Nat.add_sub_cancel' (by omega)]]
-    rw [e]
-
-/-- **A run's witnesses**: the run written. -/
-theorem runOkL_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOkL X st Q wl = some wl') :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  by_cases hc : ∃ k h res wl1, wl = .catM k h res :: wl1
-  · obtain ⟨k, hh, res, wl1, rfl⟩ := hc
-    simp only [runOkL] at h
-    cases hb : (eqV st.eqs (k.mul hh) Q.hi && hasExp (facts X st.env res) k && hasExp (facts X st.env res) hh) with
-    | false => rw [hb] at h; simp at h
-    | true =>
-      rw [hb, Bool.cond_true] at h
-      simp only [Bool.and_eq_true] at hb
-      obtain ⟨⟨he, hk⟩, hh'⟩ := hb
-      obtain ⟨yk, hyk⟩ := hasExp_ok (facts_ok hX hs.env res) hk
-      obtain ⟨yh, hyh⟩ := hasExp_ok (facts_ok hX hs.env res) hh'
-      cases h1 : runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ wl1 with
-      | none => rw [h1] at h; cases h
-      | some ws' =>
-        rw [h1] at h
-        have R1 := runOk0_ok hX hpre hs h1
-        have R2 := runOk0_ok hX hpre hs h
-        exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
-  · have h' : runOk0 X st Q wl = some wl' := by
-      cases wl with
-      | nil => exact h
-      | cons w wl1 =>
-        cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
-    exact runOk0_ok hX hpre hs h'
-
-theorem runOk_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {Q : PRun} {wl wl' : List Wit} (h : runOk X st Q wl = some wl') :
-    RunF W (vw σ) Q.base Q.stride Q.lo Q.hi := by
-  by_cases hc : ∃ k h res wl1, wl = .catM k h res :: wl1
-  · obtain ⟨k, hh, res, wl1, rfl⟩ := hc
-    simp only [runOk] at h
-    cases hb : (eqV st.eqs (k.mul hh) Q.hi && hasExp (facts X st.env res) k && hasExp (facts X st.env res) hh) with
-    | false => rw [hb] at h; simp at h
-    | true =>
-      rw [hb, Bool.cond_true] at h
-      simp only [Bool.and_eq_true] at hb
-      obtain ⟨⟨he, hk⟩, hh'⟩ := hb
-      obtain ⟨yk, hyk⟩ := hasExp_ok (facts_ok hX hs.env res) hk
-      obtain ⟨yh, hyh⟩ := hasExp_ok (facts_ok hX hs.env res) hh'
-      cases h1 : runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ wl1 with
-      | none => rw [h1] at h; cases h
-      | some ws' =>
-        rw [h1] at h
-        have R1 := runOk0_ok hX hpre hs h1
-        have R2 := runOkL_ok hX hpre hs h
-        exact catM_ok (eqV_ok hs.eqs he) hyk hyh R1 R2
-  · have h' : runOk0 X st Q wl = some wl' := by
-      cases wl with
-      | nil => exact h
-      | cons w wl1 =>
-        cases w <;> first | exact absurd ⟨_, _, _, _, rfl⟩ hc | exact h
-    exact runOk0_ok hX hpre hs h'
-
-/-- **A read's witness** (`ptOkD`): the cell written. -/
-theorem ptOkD_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
-    (hs : StOk rd W σ st) {c : CCell} {w : Wit} (h : ptOkD X st c w = true) : W (c.addr σ) := by
-  cases w with
-  | der b S lo hi res ws =>
-    simp only [ptOkD, Bool.and_eq_true] at h
-    obtain ⟨h1, h2⟩ := h
-    split at h2
-    · rename_i hr
-      rw [addr_eq]
-      exact ptRun_ok (facts_ok hX hs.env res) (runOk_ok hX hpre hs hr) h1
-    · cases h2
-  | _ => exact ptOk_ok hX hpre hs h
 
 /-- **A run needed's witnesses** (`runOkD`): the run written. -/
 theorem runOkD_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}

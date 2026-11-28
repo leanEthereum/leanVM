@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Compile.Prog
 
 A `Cert` (`LeanVM.Protocol.Compile.VerifierProgram`) is stated on whole histories of a whole
 program. The
-leanVM verifier is a long `do`-block of sub-programs (sumcheck rounds, the bus, the WHIR levels),
+leanVM verifier is a long `do`-block of sub-programs (sumcheck rounds, the link, the WHIR levels),
 and its groups of challenges straddle sub-programs (the ring-switching challenges and the
 opening's batching challenge; the query positions and the level's `λ`). `Spec` is a
 specification of a sub-program, run after any history `h₀`, that composes through `bind` and
@@ -28,7 +28,8 @@ A specification `Spec p Pre Post εmax L T` carries
 * `V h₀ l ≤ 1`, an *escape potential*: an upper bound on the probability, over the challenges
   still to come in the current group, that the group ends outside doom, *including* the lead of
   whatever runs after `p` when `p` returns within the group. It is a supermartingale over
-  challenges (`sample`), does not grow at openings (`query`), is `1` wherever doom fails at the
+  challenges (`sample`, and over the `n` challenges of a packed draw, `samplePacked`), does not
+  grow at openings (`query`), is `1` wherever doom fails at the
   end of a group or at a return (`moveEnd`, `retEnd`), is at least the follower's lead `T`
   (capped at `1`) at a return in doom (`retDoom`), and at every boundary in doom, discounted by
   the proof of work just passed, is at most `εmax` (`bound`);
@@ -61,9 +62,10 @@ variable {α β : Type}
 
 namespace VerifierProgram
 
-/-- The node is a prover move: a read, a proof of work or a commitment. -/
+/-- The node is a prover move: a read, a packed message, a proof of work or a commitment. -/
 def IsMove : VerifierProgram α → Prop
   | read _ => True
+  | readPacked _ _ => True
   | grind _ _ => True
   | commit _ _ _ => True
   | _ => False
@@ -82,6 +84,10 @@ inductive Reach (p : VerifierProgram α) (h₀ : List Ev) : List Ev → Prop whe
       WellShaped w word → Reach p h₀ (l ++ [Ev.commit ht w word])
   | query {l i ps k rows} : Reach p h₀ l → p.after l = some (query i ps k) →
       answer (h₀ ++ l) i ps = some rows → Reach p h₀ (l ++ [Ev.query rows])
+  | readPacked {l n k} (xs : List E) : Reach p h₀ l → p.after l = some (readPacked n k) →
+      xs.length = n → Reach p h₀ (l ++ [Ev.readPacked xs])
+  | samplePacked {l n k} (cs : List E) : Reach p h₀ l → p.after l = some (samplePacked n k) →
+      cs.length = n → Reach p h₀ (l ++ [Ev.samplePacked cs])
 
 end VerifierProgram
 
@@ -91,6 +97,7 @@ def EndsMove (l : List Ev) : Prop :=
   | some (Ev.read _) => True
   | some (Ev.grind _) => True
   | some (Ev.commit _ _ _) => True
+  | some (Ev.readPacked _) => True
   | _ => False
 
 /-! ## Specifications -/
@@ -111,6 +118,9 @@ structure Spec (p : VerifierProgram α) (Pre : List Ev → Prop) (Post : α → 
   /-- A scalar keeps doom. -/
   read : ∀ {h₀ l k} (x : E), p.Reach h₀ l → p.after l = some (.read k) → D h₀ l →
     D h₀ (l ++ [Ev.read x])
+  /-- A packed message keeps doom. -/
+  readPacked : ∀ {h₀ l n k} (xs : List E), p.Reach h₀ l → p.after l = some (.readPacked n k) →
+    xs.length = n → D h₀ l → D h₀ (l ++ [Ev.readPacked xs])
   /-- A proof of work keeps doom. -/
   grind : ∀ {h₀ l b k}, p.Reach h₀ l → p.after l = some (.grind b k) → D h₀ l →
     D h₀ (l ++ [Ev.grind b])
@@ -120,6 +130,9 @@ structure Spec (p : VerifierProgram α) (Pre : List Ev → Prop) (Post : α → 
   /-- The potential is a supermartingale over a challenge. -/
   sample : ∀ {h₀ l k}, p.Reach h₀ l → p.after l = some (.sample k) →
     (Fintype.card E : ENNReal)⁻¹ * ∑ c : E, V h₀ (l ++ [Ev.sample c]) ≤ V h₀ l
+  /-- The potential is a supermartingale over a packed draw, averaged over `E^n`. -/
+  samplePacked : ∀ {h₀ l n k}, p.Reach h₀ l → p.after l = some (.samplePacked n k) →
+    avgPk n (fun cs ↦ V h₀ (l ++ [Ev.samplePacked cs])) ≤ V h₀ l
   /-- An opening does not raise the potential. -/
   query : ∀ {h₀ l i ps k rows}, p.Reach h₀ l → p.after l = some (.query i ps k) →
     answer (h₀ ++ l) i ps = some rows → V h₀ (l ++ [Ev.query rows]) ≤ V h₀ l

@@ -41,7 +41,7 @@ level's `match` on the rate dispatches into helpers specialized on the rate's sh
   the stream words at the cursor and some openings run `whirOpen μ r target` to `w`; the call
   returns `w`'s claim, two buffers holding `w`'s point (`μ` coordinates, witness order) and its
   coordinates plus one, zero-padded (one-padded) to `pointCap = 40`, `w`'s glued weight and its
-  final lane's low part at the tail challenges.
+  final lane's low part at the tail challenges, then the cursor past what it read.
 * `open_stacked_sound_w_SpecP P osW` (`InterfaceW.lean`): in the program `P`, every specialization's call relation at `rateSel r` gives that, on a memory
   image of `2^κ` words, `11 ≤ κ ≤ 32` (the query windows' range checks, `decode_query_windows`) whose
   window tables are at `tabs` (`WinTabs`: the grinds' and the query windows' lookups).

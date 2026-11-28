@@ -117,7 +117,7 @@ axioms_of() {
 }
 
 # The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, `fast_fields`
-# and itself, and `import all` only of its own generated data (`Statement.Data`).
+# and itself, and `import all` only of its own generated data (`Statement.Data`; `tools/statement-imports.py`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
   once lakefiles || return 0
@@ -132,14 +132,7 @@ statement() {
   no_escapes fast_fields
   lakefiles
   step "Statement: imports only Mathlib, VCVio, CompPoly, fast_fields and itself"
-  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly, fast_fields and itself, or \`import all\` beyond Statement.Data"
-  fi
-  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'; then
-    fail "fast_fields imports more than Mathlib, CompPoly and itself"
-  fi
+  python3 -I tools/statement-imports.py || fail "the statement imports beyond its own"
   cache_get Statement
   export_guest
   if once "build:Statement"; then
@@ -184,8 +177,9 @@ lean_da() {
     LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells
 }
 
-# Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs)
+# Every lean_vm executable, in one build, as the CI's (`regen-guest.sh` has already built its generators).
+EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute
+  guest-run test-runs)
 
 # The projects' targets (`fast_fields`' through the statement's) and lean_vm's executables in one build from
 # lean_vm, whose workspace holds the other six, so that their modules build beside lean_vm's instead of one
@@ -228,9 +222,10 @@ lean_vm() {
     step "lean_vm: build, its modules admitted by memory"
     python3 -I lake-build.py lean_vm LeanVM LeanVMTests
   fi
-  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.corollaries_hold \
+  axioms lean_vm LeanVM LeanVM.theorems_hold LeanVM.aggregateSound_holds LeanVM.corollaries_of_theorems LeanVM.corollaries_hold \
     LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable
   executables
+  # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
   bg "lean_vm: the private-import firewall holds (firewall-canary)" python3 -I tools/firewall-canary.py
   bg "lean_vm: the Rust vectors' costly checks (node-vectors)" in_lean_vm .lake/build/bin/node-vectors
   # The tests' runs too slow for the interpreter (`tests/LeanVMTests/Runs.lean`), compiled; `lake env`
@@ -238,7 +233,6 @@ lean_vm() {
   bg "lean_vm: the tests' runs (test-runs)" in_lean_vm lake env .lake/build/bin/test-runs
 }
 in_lean_vm() { (cd lean_vm && capped "$@"); }
-# A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
 
 # Against this repository's Rust: the Lean and Rust verifiers, and the Lean and Rust wire encodings, agree on the
 # fixtures and their mutations.
@@ -261,6 +255,8 @@ leanvm() {
   # mutations: the same verdicts and decoded proofs, and the round trip through `Proof.toBytes`.
   bg "leanvm: the proof's wire encoding, Lean against Rust (wire-diff)" wire_diff
   bg "leanvm: the statement's honest prover's proofs, Lean-made, against both verifiers (prover-diff)" prover_diff
+  bg "leanvm: the executors' runs and faults, Lean against both Rust trees (executor-faults, leanvm-execute)" \
+    executor_faults
 }
 guest_diff() {
   local gd
@@ -280,6 +276,15 @@ fuzz_verifier() {
 wire_diff() {
   cargo build --release --manifest-path lean_vm/scripts/wire-diff/Cargo.toml
   (cd lean_vm && python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs "$par")
+}
+# The `KECCAK` window cases and the suite's programs, aligned and not: the two Rust executors agree, and the
+# statement's executor halts where they halt and faults where they fault.
+executor_faults() {
+  local fd
+  fd=$(mktemp -d)
+  cargo run --release --manifest-path lean_vm/scripts/executor-faults/Cargo.toml -- "$fd" | tail -1
+  in_lean_vm .lake/build/bin/leanvm-execute "$fd"/*/
+  rm -rf "$fd"
 }
 prover_diff() {
   local pd

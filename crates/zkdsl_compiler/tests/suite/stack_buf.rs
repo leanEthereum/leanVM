@@ -791,10 +791,8 @@ def main():
     }
 }
 
-/// `g` is `x`, so the literal `2^k` IS `g^k`. `try_gpow_index` always knew that
-/// and `gaddr_of` did not, so one field element had three answers: `hb[GEN * 2]`
-/// was rejected as "not a g-power" while `hb[GEN * GEN]` compiled, and
-/// `hb[r * 2]` compiled again as soon as `r` was runtime. All three name cell 2.
+/// `g` is `x`, so the literal `2^k` IS `g^k`: `hb[GEN * 2]`, `hb[GEN * GEN]` and `hb[r * 2]` with `r` runtime all
+/// name cell 2.
 /// A BARE literal index stays rejected: see `integer_heap_index_is_rejected`.
 #[test]
 fn a_literal_power_of_two_is_a_g_power() {

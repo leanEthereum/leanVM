@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Common.Run
-public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
@@ -19,7 +18,7 @@ The specification's layer (`verifyKeccakLayer`) reads the product polynomial, ch
 projection, grinds `grindingBits (productBits - 1) = 3` bits (`sGrindBits`) and samples `s`, runs
 the pack rounds (`keccakPackRounds`) and the eleven rounds over the bit position (`sumcheck _ 4`),
 reads `t`, checks the final claim and samples `β`; every other grind is of `0` bits. On the
-sponge the guest carries (`Fs`, `RunsTo`, `Common/Run`):
+sponge the guest carries (`Fs`, `RunsTo`, B1-a's `Common/Run`):
 
 * `packRunF`: `keccakPackRounds` as a function of the round messages `(g₁, g₂)`;
 * `localRunF`: `sumcheck _ 4 (replicate n none)` as a function of the messages `(c₀, c₂, c₃)`;
@@ -32,7 +31,6 @@ namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.B1.Tables (grindingBits_le_eight)
 
 @[expose] public section
 
@@ -40,6 +38,11 @@ open LeanVM.Guest.B1.Tables (grindingBits_le_eight)
 abbrev sGrindBits : ℕ := grindingBits (productBits - 1)
 
 theorem sGrindBits_eq : sGrindBits = 3 := by decide
+
+/-- A grind for an error of at most `8/|E|` is of `0` bits. -/
+theorem grindingBits_le_eight {n : ℕ} (h : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits securityBits
+  interval_cases n <;> decide
 
 /-! ## Checks -/
 

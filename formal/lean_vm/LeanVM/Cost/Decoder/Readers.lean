@@ -14,7 +14,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 `B1.Main`'s readers of `main`'s frame and the memory, compiled bottom-up, each a function of its
 own, under the statement's encodings of their values (`Statement/LeanVmGuest.lean`):
 
-* the cells' digests and claims: `digestOfCells`, `deferOfCells`, `fixedOfCells`, and a
+* the cells' digests and claims: `digestOfCells`, `deferOfCells`, `freshOfCells`, and a
   signature claim's four cells (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`; a bit vector of cells
   through `cellVal_eq`, `cellPairVal_eq`: its number, a `BitVec.ofFin`);
 * the memory's cells (`cellAt`, `readCells`, `slotCells`), the claims of a table's slots
@@ -38,7 +38,7 @@ open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 cost_compile powSqEC measure fun _ n ↦ n := LeanVM.Cost.Rewrite.powSq (M := E)
 cost_compile digestOfCellsC := Main.digestOfCells
 cost_compile deferOfCellsC := deferOfCells
-cost_compile fixedOfCellsC := fixedOfCells
+cost_compile freshOfCellsC := freshOfCells
 
 /-! ## A signature claim's cells: bit vectors as their numbers -/
 
@@ -191,7 +191,7 @@ noncomputable def decStmtAt (rd : Reader) (p53 p56 p334 p402 : E) (n0 n3 pick : 
     NodeStatement :=
   ⟨⟨xmssRun rd (Parameters.g ^ 4) (p53.limb 0) n0, sphincsRun rd (Parameters.g ^ 4) (p56.limb 0) n3,
     daDigestAtP rd p334 pick⟩,
-   deferOfCells (readCells rd p402 24)⟩
+   deferOfCells (readCells rd p402 26)⟩
 
 open LeanVM.Extraction.Fast in
 /-- **The statement** (`decStmt`), the logarithm's tables `D` given: the counts (logarithms)

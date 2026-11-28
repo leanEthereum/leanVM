@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.ProgAl
 
-  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`, a premise of the tree track's trace on the program.
+  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`.
 -/
 
 module
@@ -58,11 +58,9 @@ theorem alignA_halt : regs alignHalt 0 = Registers.final guestProgram := by
   simp only [regs, Registers.final, LeanIsaProgram.pcFinal, guest_logSize, Exec.gpow_zero', alignHalt, CoreMode.haltPc]
   rfl
 
-private theorem idxOf_main : B2C.idxOf "main" = some 1 := by decide +kernel
-
 /-- **`main` is entered at `mainEntry`.** -/
 theorem alignA_main : entOf alignA "main" = mainEntry := by
-  rw [entOf, alignA_of idxOf_main]
+  rw [entOf, alignA_of B2C.idxOf_main]
   decide +kernel
 
 /-- **The deployed guest's functions align.** -/

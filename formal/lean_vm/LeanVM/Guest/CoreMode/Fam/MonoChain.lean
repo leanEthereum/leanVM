@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Fam.MonoChain
 
-  A valid node's body holding at its own valuation, its callees as trees within its words.
+  A valid node's body holding at its own valuation, its callees as trees within its words; a loop's
+  iterations times its frame within its tree's words.
 -/
 
 module
@@ -11,6 +12,9 @@ public import LeanVM.Guest.CoreMode.Fam.LoopTree
 
 /-!
 # Trees, their words and their bodies
+
+`chainF`: a valid tree of a loop helper at counter `i` makes `m` iterations, `i·g^m` its end, with
+`m` frames of its function within the tree's words (`Res.chain` with the frame size).
 
 `KidRel P rd fs T`: a call relation of trees, a valid tree of the callee within `T` words.
 `holds_of_valid`: a valid node's body holds at the node's valuation, its calls of `KidRel` within
@@ -27,6 +31,64 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 section
 
 variable {rd : Reader} {fs : String → ℕ} {P : Core.Program}
+
+/-- **A loop's run, its frames counted**: a valid tree of a loop helper of its shape at counter `i`
+makes `m` iterations, `1 ≤ m`, `m` frames within its words, `i·g^m` its end. -/
+theorem chainF (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    {args rets : List E} {fn : Fn} {e : Option ℕ}, (Memory.Tree.node f σ bufs kids).total fs ≤ n →
+    (Memory.Tree.node f σ bufs kids).Valid P rd args rets → P.find? f = some fn →
+    loopShape fn e = some (loopBody fn) →
+    ∃ m p0 prest, fn.params = p0 :: prest ∧ 1 ≤ m ∧ m * fs f ≤ (Memory.Tree.node f σ bufs kids).total fs ∧
+      σ p0 * ofK (addressOfIndex m) = endVal σ fn e
+  | 0, f, σ, bufs, kids, _, _, _, _, htot, _, _, _ => by
+    have := le_total (fs := fs) (Memory.Tree.node f σ bufs kids)
+    have := hfs f
+    simp only [Tree.fsz] at *
+    omega
+  | n + 1, f, σ, bufs, kids, args, rets, fn, e, htot, hv, hf, hs => by
+    unfold Tree.Valid at hv
+    obtain ⟨fn', hf', -, es, vs, hw, -, hh, hk⟩ := hv
+    have hfe := Option.some.inj (hf'.symm.trans hf)
+    subst fn'
+    obtain ⟨p0, prest, c, i', es1, hps, -, hes, hi, hc⟩ := loop_path hs hw hh
+    subst hes
+    rw [loop_calls] at hk
+    have hname : fn.name = f := fn_name_of_find hf
+    have htk : fs f + Tree.totalKids fs kids + bufs.sum = (Memory.Tree.node f σ bufs kids).total fs :=
+      (total_node f σ bufs kids).symm
+    have h1 := hfs f
+    by_cases h0 : σ c = 0
+    · refine ⟨1, p0, prest, hps, le_rfl, by omega, ?_⟩
+      rw [h0] at hc
+      exact char2_eq hc.symm
+    · obtain ⟨ks', k, rfl, -, hkn, hkv⟩ := kidsValid_snoc hk
+      simp only [ne_eq, h0, not_false_eq_true, decide_true, ↓reduceIte] at hkv hkn
+      rcases k with ⟨f', σ', bufs', kids'⟩ | ⟨f', σ'⟩
+      · simp only [Tree.name, hname] at hkn
+        subst f'
+        have hkt := totalKids_snoc (fs := fs) ks' (Memory.Tree.node f σ' bufs' kids')
+        have hkv' := hkv
+        unfold Tree.Valid at hkv'
+        obtain ⟨fn'', hf'', hpm, -⟩ := hkv'
+        have hfe' := Option.some.inj (hf''.symm.trans hf)
+        subst fn''
+        obtain ⟨m, p0', prest', hps', hm1, hm2, hm⟩ := chainF hfs n (by omega) hkv hf hs
+        rw [hps] at hps'
+        obtain ⟨rfl, rfl⟩ := List.cons.inj hps'
+        rw [hps] at hpm
+        simp only [List.map_cons, List.cons.injEq] at hpm
+        obtain ⟨h0', hrest⟩ := hpm
+        have hend : endVal σ' fn e = endVal σ fn e := by
+          cases e with
+          | some _ => rfl
+          | none =>
+            simp only [endVal, hps]
+            cases prest with
+            | nil => rfl
+            | cons p1 _ => simp only [List.map_cons, List.cons.injEq] at hrest; exact hrest.1
+        refine ⟨m + 1, p0, prest, hps, by omega, by rw [Nat.succ_mul]; omega, ?_⟩
+        rw [← hend, ← hm, h0', hi, mul_assoc, ofK_gpow_add, Nat.add_comm 1 m]
+      · exact hkv.elim
 
 /-- **Calls as trees**: a valid tree of the callee, of fewer than `T` words. -/
 def KidRel (P : Core.Program) (rd : Reader) (fs : String → ℕ) (T : ℕ) : CallRel :=

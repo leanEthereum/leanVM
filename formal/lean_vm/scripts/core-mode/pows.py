@@ -51,7 +51,7 @@ def main(check=False):
     for pack, fns in sorted(packs.items()):
         out = [genfiles.header('core-mode/pows.py')(f'LeanVM.Guest.CoreMode.Pows.«{pack}»',
                                                     'The powers of `g` each function of the pack names.') +
-               f'public import LeanVM.Guest.Pow\n\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
+               'public import LeanVM.Guest.Pow\n\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
         out.append('\n/-! Each function\'s powers of `g` its constants name (`pows`), checked in the kernel (`pows_ok`). -/\n\n'
                    'namespace LeanVM.Guest\n\n@[expose] public section\n\n')
         for k in sorted(fns):

@@ -72,6 +72,16 @@ pub fn dot(a: &[F128], b: &[F128]) -> F128 {
     a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
 }
 
+/// `sum_i a[i] k[i]` over `E` times `K`, reduced once.
+pub fn dot_base(a: &[F128], k: &[F64]) -> F128 {
+    assert_eq!(a.len(), k.len());
+    let ((a8, a1), (k8, k1)) = (a.as_chunks::<8>(), k.as_chunks::<8>());
+    let acc = a8.iter().zip(k8).fold(Acc8::ZERO, |acc, (a, k)| {
+        acc + F128x8::from_array(a).mul_base_unreduced(F64x8::from_array(k))
+    });
+    a1.iter().zip(k1).fold(acc.sum(), |sum, (&a, &k)| sum + a.mul_base(k))
+}
+
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube, evaluated at an `E`-point:
 /// `∏_k (1 + ζ_k·(1 + g^{2^k}))` (§sec:idxcol), one mixed product per term.
 pub fn index_mle(zeta: &[F128]) -> F128 {

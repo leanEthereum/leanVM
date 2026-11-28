@@ -3,8 +3,10 @@
 Per pack, each function's `Bridge.jcDataD` on its own data, decided by the kernel (`P*.lean`, a long
 function in a module of its own, `H*.lean`); per link module of `Guest/Checked` (whose `code`, `core`,
 `cert`, `plumbEq` and `fsEq` equations it reuses, and `ProgAl`'s table of hint-only cells), each
-function's `Bridge.jcData` (`Link*.lean`); the assembly over every function (`All.lean`). `checks.py` writes them,
-a hash pack's and a link module's checks in one module with the other checks' (`Bridge/Chk/`).
+function's `Bridge.jcData` (`Link*.lean`); the assembly over every function (`All.lean`). Run after
+`progal.py`; `--check` writes nothing and fails when a file is stale.
+
+    python3 -I scripts/bridge-cert/jumpcells.py [--check]
 """
 import os, sys, glob, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -36,8 +38,7 @@ def fs_eqs():
     return out
 
 
-def gen():
-    """The files, and the paths this check owns on disk."""
+def run(check):
     ctxs, lk, pk, fe = progal.contexts(), progal.links(), packs(), fs_eqs()
     n = max(lk) + 1
     files = {}
@@ -50,7 +51,7 @@ def gen():
         imps = {'LeanVM.Guest.Bridge.JumpCellsDefs', 'LeanVM.Guest.Data.Pows', 'LeanVM.Guest.CheckView'}
         thms = []
         for j, k, b, c in fns:
-            imps |= {f'LeanVM.Guest.Pack.«{b}».Bundle', f'LeanVM.Guest.Pack.«{c}».Core', f'LeanVM.Guest.CoreMode.GlueA.«{c}»'}
+            imps |= {f'LeanVM.Guest.Pack.«{b}».B2CData', f'LeanVM.Guest.Pack.«{c}».Core', f'LeanVM.Guest.CoreMode.GlueA.«{c}»'}
             # `main` by its index as the glue names it, not as a number
             thms.append((k, 'jcOk', f'Bridge.jcDataD plumb fs (cert.withPows Data.powTree) {ctxs[k][0]} core code.code '
                          f'(Fn.«{k}».idx == 1) = true', 'decide +kernel'))
@@ -119,5 +120,11 @@ end
 
 end LeanVM.Guest.Bridge.JumpCells
 ''')
+    existing = set(glob.glob(os.path.join(OUT, '*.lean')))
+    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the jump cells of {len(lk)} functions over {len(groups)} data modules')
-    return data.quiet(files), set(glob.glob(os.path.join(OUT, '*.lean')))
+    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
+
+
+if __name__ == '__main__':
+    run('--check' in sys.argv[1:])

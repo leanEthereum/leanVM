@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Write `LeanVM/Guest/B1/VsC/VsWinData.lean`: `verify_sub`'s body cut into windows (`B1/VsC/WinGen.lean`'s `W0`),
+read off the core IR (`scripts/coredata.py`). Each straight part of the body (`vsA`, `vsB`, `vsC`, split at its two
+branches as `B1/VsC/VsEval.lean` does) becomes a list of windows: each maximal run of atoms one `.run`, each call or
+dispatch one `.call`, each named after its part and its place, its kernel checks (the windows' statements are the
+part's, `winsOk` on the range checks' temporaries `vsRcL`). Each call's doc names the placed statement it takes
+(`CALLEES`). Also `LeanVM/Guest/B1/VsC/VsRunData.lean`: for each run window of `vsC` from `RUN_FROM` on that
+allocates nothing, its buffers (`spC{j}`: each pointer value's index and the bound of the offsets its loads and
+heap hints reach), its stores (`stC{j}`, `vsSL` all of `vsC`'s) and its asking atoms (`pureC{j}`), kernel-checked
+(`vsC_w{j}_bufs`, `vsC_w{j}_pure`) for `RunBufs.lean`'s `runHyp_bufs`. Run from `lean_vm` after `guest-core`
+(`scripts/regen-guest.sh` does):
+
+    python3 -I scripts/vs-windows [--check]
+"""
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
+
+OUT = Path("LeanVM/Guest/B1/VsC/VsWinData.lean")
+OUT_RUNS = Path("LeanVM/Guest/B1/VsC/VsRunData.lean")
+# `vsC`'s first window whose run facts are written, and `vsC`'s first value (`storesOf 482 vsC`).
+RUN_FROM, C0 = 9, 482
+D = Path("LeanVM/Guest/Data")
+
+# Where each callee's placed statement comes from (its name's prefix before `__L`).
+CALLEES = {
+    "hint_stream": "`hint_stream_completeA` (`HintStreamA.lean`)",
+    "g_power_of_word": "`g_power_of_word_leafA` (`GPowerA.lean`)",
+    "table_size": "`table_size_leafA` (`LeavesA.lean`)",
+    "assert_small_g_power": "`assert_small_g_power_leafA` (`LeavesA.lean`)",
+    "chunk_d": "`chunk_d_leafA` (`LeavesA.lean`)",
+    "certify_stack": "`VsCalleesCompleteA.certify_stack`",
+    "squeeze_point_from": "`squeeze_point_from_leafA` (`LeavesA.lean`)",
+    "opening_message": "`opening_message_L1_leafA` (`LeavesA.lean`)",
+    "squeeze_packed": "`VsCalleesCompleteA.link.squeeze_packed`",
+    "state_ends": "`state_ends_leafA` (`LeavesA.lean`)",
+    "link_rounds": "`VsCalleesCompleteA.link.rounds_L1_L0`",
+    "index_side": "`index_side_completeA` (`IndexSideA.lean`)",
+    "link_row_side": "`link_row_side_L{j}_completeA` (`RowSideA.lean`), from `VsCalleesCompleteA.link`",
+    "one_plus_suffixes": "`one_plus_suffixes_leafA` (`LeavesA.lean`)",
+    "packed_message": "`packed_message_leafA` (`LeavesA.lean`)",
+    "table_point": "`table_point_leafA` (`LeavesA.lean`)",
+    "link_terminal": "`VsCalleesCompleteA.link.terminal`",
+    "verify_keccak": "`VsCalleesCompleteA.verify_keccak`",
+    "ring_switch_target": "`VsCalleesCompleteA.ring_switch_target`",
+    "open_stacked": "`VsCalleesCompleteA.open_stacked`",
+    "check_stack_terminal": "`VsCalleesCompleteA.check_stack_terminal`",
+}
+
+# The body's branches and its `ret []`, where `VsEval.lean` splits it.
+ITE1, ITE2 = 180, 427
+
+
+def statements():
+    text = coredata.fn_text(D, "verify_sub")
+    if not text:
+        sys.exit("vs-windows: no core function verify_sub")
+    out = []
+    for m in re.finditer(r"^noncomputable def c\d+ : List Core\.Stmt := \(\n(.*?)^  \[\]\)$", text, re.M | re.S):
+        for line in m.group(1).split("\n"):
+            if line.startswith("  ."):
+                out.append(line)
+            elif line.startswith("    ") and out:
+                out[-1] += "\n" + line
+    return out
+
+
+def kind(s):
+    return re.match(r"  \.(\w+)", s).group(1)
+
+
+def windows(ss):
+    """Maximal runs of atoms and single other statements: `(start, length, kind, callee names)`."""
+    ws = []
+    for i, s in enumerate(ss):
+        k = kind(s)
+        if k == "atom":
+            if ws and ws[-1][2] == "run":
+                ws[-1][1] += 1
+            else:
+                ws.append([i, 1, "run", None])
+        elif k in ("call", "dispatch"):
+            ws.append([i, 1, "call", re.findall(r'"([^"]+)"', s)])
+        else:
+            sys.exit(f"vs-windows: statement {kind(s)} inside a straight part of verify_sub")
+    return ws
+
+
+def counts(ss, i, n):
+    c = {}
+    for s in ss[i:i + n]:
+        m = re.match(r"  \.atom \(\.(\w+)(?: \(\.(\w+))?", s)
+        key = m.group(2) if m.group(1) == "hint" else m.group(1)
+        c[key] = c.get(key, 0) + 1
+    return ", ".join(f"{v} {k}" for k, v in sorted(c.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
+def source(names):
+    base = names[0].split("__L")[0]
+    if base not in CALLEES:
+        sys.exit(f"vs-windows: no placed statement listed for callee {names[0]} (CALLEES)")
+    return CALLEES[base]
+
+
+ss = statements()
+if len(ss) != 4223:
+    sys.exit(f"vs-windows: verify_sub has {len(ss)} statements, VsEval.lean's vsBody_eq 4223; adapt it first")
+for j, s in enumerate(ss):
+    if kind(s) == "ite" and j not in (ITE1, ITE2):
+        sys.exit(f"vs-windows: a branch at statement {j} of verify_sub; VsEval.lean splits at {ITE1} and {ITE2}")
+if kind(ss[ITE1]) != "ite" or kind(ss[ITE2]) != "ite" or kind(ss[-1]) != "ret":
+    sys.exit("vs-windows: verify_sub's branches moved; adapt VsEval.lean's vsBody_eq and ITE1, ITE2 here")
+
+rcs = []
+for s in ss:
+    m = re.match(r"  \.atom \(\.rangeCheck \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\)\)", s)
+    if m:
+        x, y, t1, t2, _ = m.groups()
+        rcs += [(t1, x), (t2, y)]
+    elif ".rangeCheck" in s:
+        sys.exit("vs-windows: a range check not in the form read: " + s.strip())
+
+parts = [("A", "vsA", 0, ss[:ITE1]), ("B", "vsB", ITE1 + 1, ss[ITE1 + 1:ITE2]), ("C", "vsC", ITE2 + 1, ss[ITE2 + 1:-1])]
+
+L = []
+L.append("""/-
+  LeanVM.Guest.B1.VsC.VsWinData
+
+  Generated by `scripts/vs-windows`; do not edit.
+  `verify_sub`'s straight parts cut into windows.
+-/
+
+module
+
+public import LeanVM.Guest.B1.VsC.WinGen
+
+/-!
+# `verify_sub`'s windows
+
+Each straight part of `verify_sub`'s body (`vsA`, `vsB`, `vsC`, `VsEval.lean`) as a list of windows
+(`WinGen.lean`'s `W0`): each maximal run of atoms one `.run`, each call or dispatch one `.call`. The kernel checks
+that each list's statements are the part's (`wA_flat`, …) and that each window passes `winsOk` on the range
+checks' temporaries (`vsRcL`, `vsRcs_eq`). Each window's doc gives its statements' indices in the body and, for a
+call, its callee and the placed statement it takes.
+-/
+
+namespace LeanVM.Guest.B1.VsC
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1
+
+@[expose] public section
+
+/-- `verify_sub`'s range checks' temporaries, each with the value whose word it reads (`vsRcs`). -/
+def vsRcL : List (V × V) := [""")
+L.append(",\n".join(f"    (.n {t}, .n {x})" for t, x in rcs) + "]")
+L.append("""
+set_option maxRecDepth 200000 in
+theorem vsRcs_eq : vsRcs = vsRcL := by decide +kernel
+""")
+for p, name, off, part in parts:
+    names = []
+    for j, (i, n, k, callees) in enumerate(windows(part)):
+        wn = f"vs{p}_w{j}"
+        names.append(wn)
+        if k == "run":
+            L.append(f"/-- Statements `{off + i} ..< {off + i + n}` of the body: {n} atoms ({counts(part, i, n)}). -/")
+            L.append(f"noncomputable def {wn} : W0 := .run (atomsOf (({name}.drop {i}).take {n}))\n")
+        else:
+            what = f"`{callees[0]}`" if len(callees) == 1 else \
+                f"a dispatch over `{callees[0]}` … `{callees[-1]}`"
+            L.append(f"/-- Statement `{off + i}` of the body: {what}; {source(callees)}. -/")
+            L.append(f"noncomputable def {wn} : W0 := .call (({name}.drop {i}).headD (.ret []))\n")
+    L.append(f"/-- `{name}`'s windows. -/")
+    L.append(f"noncomputable def w{p} : List W0 := [" + ", ".join(names) + "]\n")
+    L.append("set_option maxRecDepth 200000 in")
+    L.append(f"theorem w{p}_flat : flatW w{p} = {name} := stmtsEqb_sound (by decide +kernel)\n")
+    L.append("set_option maxRecDepth 200000 in")
+    L.append(f"theorem w{p}_ok : winsOk vsRcL w{p} = true := by decide +kernel\n")
+L.append("end\nend LeanVM.Guest.B1.VsC\n")
+text = "\n".join(L)
+
+
+def atom(s):
+    """A statement's atom, on one line."""
+    return " ".join(x.strip() for x in s.split("\n"))[len(".atom "):].removesuffix(" ::")
+
+
+LOAD = re.compile(r"\(\.load \(\.n (\d+)\) \(\.(\w+) (\d+)\) (\d+)\)$")
+MUL = re.compile(r"\(\.mul \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\)\)$")
+
+
+def pure_asks(a):
+    m = MUL.match(a)
+    if m:
+        d, x, y = map(int, m.groups())
+        return not (x < d and y < d)
+    return re.match(r"\(\.(assertEq|assertInK|assertNe|rangeCheck) ", a) is not None
+
+
+vsC = parts[2][3]
+c, stores, isStore = C0, [], {}
+for i, s in enumerate(vsC):
+    if kind(s) == "atom":
+        m = LOAD.match(atom(s))
+        if m and int(m.group(1)) < c:
+            stores.append(atom(s))
+            isStore[i] = True
+    c = max([c] + [int(x) + 1 for x in re.findall(r"\.n (\d+)", s)])
+
+R = ["""/-
+  LeanVM.Guest.B1.VsC.VsRunData
+
+  Generated by `scripts/vs-windows`; do not edit.
+  `vsC`'s long runs: their buffers, stores and asking atoms.
+-/
+
+module
+
+public import LeanVM.Guest.B1.VsC.RunBufs
+
+/-!
+# `vsC`'s runs, read through buffers
+
+For each run window `vsC_w{j}` of `vsC` (from window `""" + str(RUN_FROM) + """`) that allocates nothing: `spC{j}` (each
+pointer value its loads and heap hints go through, with the bound of their offsets), `stC{j}` (its stores),
+`pureC{j}` (its asking atoms), and the kernel's checks `vsC_w{j}_bufs` (`bufsOk`, against `vsSL`, `vsC`'s stores) and
+`vsC_w{j}_pure`, for `runHyp_bufs`.
+-/
+
+namespace LeanVM.Guest.B1.VsC
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Fwd
+
+@[expose] public section
+
+/-- `vsC`'s stores (`storesOf 482 vsC`). -/
+def vsSL : List Atom := ["""]
+R.append(",\n".join("    " + a for a in stores) + "]")
+R.append("""
+set_option maxRecDepth 200000 in
+theorem vsSL_eq : storesOf 482 vsC = vsSL := by decide +kernel
+""")
+for j, (i, n, k, _) in enumerate(windows(vsC)):
+    if j < RUN_FROM or k != "run":
+        continue
+    ats = [atom(s) for s in vsC[i:i + n]]
+    if any(re.match(r"\(\.hint \(\.(alloc|allocDyn) ", a) for a in ats):
+        continue
+    sp = {}
+    for a in ats:
+        m = re.search(r"\(\.heap \(\.n (\d+)\) (\d+) (\d+)\)", a)
+        if m:
+            v = int(m.group(1))
+            sp[v] = max(sp.get(v, 0), int(m.group(2)) + int(m.group(3)))
+        elif "(.heap " in a:
+            sys.exit(f"vs-windows: a heap hint through a non-numbered pointer in vsC_w{j}: {a}")
+        m = LOAD.match(a)
+        if m:
+            if m.group(2) != "n":
+                sys.exit(f"vs-windows: a load through a non-numbered pointer in vsC_w{j}: {a}")
+            v = int(m.group(3))
+            sp[v] = max(sp.get(v, 0), int(m.group(4)) + 1)
+    sts = [atom(s) for t, s in enumerate(vsC[i:i + n]) if isStore.get(i + t)]
+    pure = [a for a in ats if pure_asks(a)]
+    win = f"(atomsOf ((vsC.drop {i}).take {n}))"
+    R.append(f"/-- `vsC_w{j}`'s buffers. -/")
+    R.append(f"def spC{j} : List (ℕ × ℕ) := [" + ", ".join(f"({v}, {b})" for v, b in sp.items()) + "]\n")
+    R.append(f"/-- `vsC_w{j}`'s stores. -/")
+    R.append(f"def stC{j} : List Atom := [" + ",\n    ".join(sts) + "]\n")
+    R.append(f"/-- `vsC_w{j}`'s asking atoms. -/")
+    R.append(f"def pureC{j} : List Atom := [" + ",\n    ".join(pure) + "]\n")
+    R.append("set_option maxRecDepth 200000 in")
+    R.append(f"theorem vsC_w{j}_bufs : bufsOk spC{j} stC{j} vsSL {win} = true := by decide +kernel\n")
+    R.append("set_option maxRecDepth 200000 in")
+    R.append(f"theorem vsC_w{j}_pure : {win}.filter pureAsks = pureC{j} := by decide +kernel\n")
+R.append("end\nend LeanVM.Guest.B1.VsC\n")
+runs = "\n".join(R)
+
+if "--check" in sys.argv[1:]:
+    for out, t in ((OUT, text), (OUT_RUNS, runs)):
+        if not out.exists() or out.read_text(encoding="utf-8") != t:
+            sys.exit(f"{out} is stale; rerun scripts/vs-windows")
+else:
+    OUT.write_text(text, encoding="utf-8")
+    OUT_RUNS.write_text(runs, encoding="utf-8")

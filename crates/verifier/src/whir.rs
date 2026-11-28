@@ -25,8 +25,8 @@ pub const RESIDUAL_MAX_LOG: usize = 5;
 pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each fold round's `(alpha, beta)`.
 pub const FOLD_GRINDING_BITS: u32 = 7;
-/// Before level 0's batching challenges: the stacked opening's map challenges and lambda. Later levels' lambda rides
-/// the query message.
+/// Before level 0's batching challenges: the ring switch's map challenges and `rho`, and the stacked opening's lambda.
+/// Later levels' lambda rides the query message.
 pub const BATCH_GRINDING_BITS: u32 = 13;
 /// Before every commitment's OOD point.
 pub const OOD_GRINDING_BITS: u32 = 15;

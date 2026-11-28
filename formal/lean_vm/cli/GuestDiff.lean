@@ -15,7 +15,7 @@ import LeanVM.Cli.GuestCase
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
 
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
-(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 5`): a real
+(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 6`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
 through the test-only `FORGE` hook, `crates/aggregation/src/hints.rs`) and its public input. For
 each case it checks
@@ -42,7 +42,7 @@ namespace GuestDiff
 /-! ## The checks -/
 
 /-- The bytecode the verifier reads the length of: `2^23` words, those of `logSize = 19`. -/
-def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
+def bytecode : List K := List.replicate (2 ^ (Data.logSize + bytecodeSlotBits)) 0
 
 /-- `MatrixWitness.Opens`, its dot products computed and its commitment computed level by level as
 the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^14` symbols the statement's
@@ -71,7 +71,7 @@ def digestEq (a b : Digest) : Bool := a.toList == b.toList
 def nodeRel (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let shaped := fun (d : DeferredBytecodeClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
+  let shaped := fun (d : DeferredBytecodeClaim) => d.bytecodePoint.length == deferredVariableCount bytecode
   [("the statement's deferred claim is shaped", shaped s.deferredClaim)] ++
   w.children.zipIdx.flatMap (fun (ch, i) =>
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
@@ -92,7 +92,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       [("the DA digest is zero or a child's", digestEq s.claims.daDigest zeroDigest ||
         w.children.any fun ch => digestEq ch.statement.claims.daDigest s.claims.daDigest)]) ++
   [if w.children = [] then
-      ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
+      ("the leaf defers the split program at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
       (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.freshClaim, ch.statement.deferredClaim⟩)
         w.batchingHints).map DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]

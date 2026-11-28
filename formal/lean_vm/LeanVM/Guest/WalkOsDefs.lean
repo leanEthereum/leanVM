@@ -62,7 +62,7 @@ def lpCovers (sq n odd base d cd : ℕ) : Bool :=
 def sqArmOk (arm : List Stmt) (sv : V) (S : ℕ) : Bool :=
   arm.any fun
     | .atom (.copy a c) => vEqb a sv && arm.any fun
-      | .atom (.const c' x) => vEqb c' c && eEqb x (Whir.gw S)
+      | .atom (.const c' x) => vEqb c' c && eEqb x (gpowE S)
       | _ => false
     | _ => false
 

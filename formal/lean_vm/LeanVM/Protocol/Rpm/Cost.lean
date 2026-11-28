@@ -1,59 +1,46 @@
 /-
   LeanVM.Protocol.Rpm.Cost
 
-  The permutation calls of the leanVM verifier and of the honest prover: every Keccak-256 input
-  has at most `2^37 + 9` bytes, so every query costs at most `2^30` permutation calls.
+  The permutation calls of a verifier program's queries: every hash it computes is short, so each
+  query costs a bounded number of calls of the permutation.
 -/
 
 module
 
-import LeanVM.Protocol.Verifier.Claims
-import LeanVM.Protocol.LeanVM
-import Statement.LeanVm
-import Common.Transfer
 import LeanVM.Facts.Verifier
+import LeanVM.Protocol.KeccakHash
+import Common.Prob
+import Common.ByteArray
 import Statement.Fast.Keccak
 import FastFields.QuadExt
 import FastFields.FieldWords
-import Common.Prob
 public import LeanVM.Protocol.WithHash
-import Common.ByteArray
-public import LeanVM.Protocol.EndToEnd.Complete.Rom
-import LeanVM.Protocol.LeanIsa.Complete
-public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
-public import ArkLib.Data.Polynomial.FrobeniusContraction
-public import ArkLib.Data.Polynomial.ResultantDegree
-public import ArkLib.Data.Polynomial.UniversalHenselNumerator
-public import ArkLib.ToMathlib.RingTheory.Nullstellensatz.AgreementIncidence
-public import Mathlib.Algebra.MvPolynomial.NoZeroDivisors
-public import Mathlib.Tactic
-public import VCVio.ProgramLogic.Relational.SimulateQ.UntilBad
+public import LeanVM.Protocol.Compile.Moves
+public import LeanVM.Protocol.Compile.Rom.Bridge
 
 @[expose] public section
 
 /-!
-# The permutation calls of the verifier and the honest prover
+# The permutation calls of a verifier program
 
 In the random-permutation model a Keccak-256 hash of `n` bytes costs `⌊n / 136⌋ + 1` calls of the
 permutation, one per block of the padded message, and a direct permutation call costs one
-(`hashBlocks`). Every hash the verifier and the honest prover compute has at most `2^37 + 9`
-bytes (`Short`): the IV's preimage (the `9`-byte version tag, then the bytecode, `16 · 2^logSize`
-words of `8` bytes, `logSize ≤ 30`), Merkle nodes (`64` bytes) and Merkle leaves (`8 · width`
-bytes, every commitment of the leanVM verifier program having width at most `192`, `WidthsLE`).
-So every query costs at most `⌊(2^37 + 9) / 136⌋ + 1 ≤ 2^30` calls, and a computation of `N`
-queries at most `N · 2^30` (`isWeightBound_of_isTotalQueryBound`):
-
-* `isWeightBound_verifier`: the verifier, `13708` queries, at most `verifierPermCalls`;
-* `isWeightBound_romHonest`: the honest prover then the verifier, `completenessQueries fuel =
-  13710 + 54825 · (2^29 + 2·fuel + 2)` queries, at most `completenessPermCalls fuel`.
+(`hashBlocks`). A query is `Short` when it hashes at most `2^37 + 9` bytes: the IV's preimage
+(the `9`-byte version tag, then a bytecode of at most `2^30` instructions), Merkle nodes (`64`
+bytes) and Merkle leaves (`8 · width` bytes, for commitments of width at most `maxWidth`,
+`WidthsLE`). So every short query costs at most `⌊(2^37 + 9) / 136⌋ + 1 ≤ 2^30` calls, and a
+computation of `N` queries at most `N · 2^30` (`isWeightBound_of_isTotalQueryBound`).
+`allQ_run`: every query of the compiled run of a program whose commitments are at most `maxWidth`
+wide is short. The bus era's instances on leanVM's verifier and honest prover are archived at tag
+`formal-bus-archive`.
 -/
 
 namespace LeanVM.Rpm
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Sound
-open LeanVM.Prover (Tree buildTreeWithHash leafDigestsWithHash parentsWithHash levelsWithHash searchM findNonceM)
+open OracleComp OracleSpec
+
 open OracleComp OracleSpec
 
 /-- The permutation calls of a query: a Keccak-256 hash of `n` bytes costs `⌊n / 136⌋ + 1`
@@ -138,6 +125,8 @@ def WidthsLE (W : ℕ) {α : Type} : VerifierProgram α → Prop
   | .fail => True
   | .read k => ∀ x, WidthsLE W (k x)
   | .sample k => ∀ x, WidthsLE W (k x)
+  | .readPacked _ k => ∀ xs, WidthsLE W (k xs)
+  | .samplePacked _ k => ∀ xs, WidthsLE W (k xs)
   | .grind _ k => WidthsLE W k
   | .commit _ w k => w ≤ W ∧ WidthsLE W k
   | .query _ _ k => ∀ rows, WidthsLE W (k rows)
@@ -154,6 +143,8 @@ theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : Widt
   | fail => trivial
   | read k ih => exact fun x ↦ ih x (hp x)
   | sample k ih => exact fun x ↦ ih x (hp x)
+  | readPacked n k ih => exact fun xs ↦ ih xs (hp xs)
+  | samplePacked n k ih => exact fun xs ↦ ih xs (hp xs)
   | grind b k ih => exact ih hp
   | commit ht w k ih => exact ⟨hp.1, ih hp.2⟩
   | query i ps k ih => exact fun rows ↦ ih rows (hp rows)
@@ -171,6 +162,8 @@ theorem of_moves {g : ℕ → Prop} {Q G : α → Prop} {p : VerifierProgram α}
   | fail => trivial
   | read k ih => exact fun x ↦ ih x (h x)
   | sample k ih => exact fun x ↦ ih x (h x)
+  | readPacked n k ih => exact fun xs ↦ ih xs (h xs)
+  | samplePacked n k ih => exact fun xs ↦ ih xs (h xs)
   | grind b k ih => exact ih h.2.2
   | commit ht w k ih => exact h.1.elim
   | query i ps k ih => exact fun rows ↦ ih rows (h rows)
@@ -190,20 +183,6 @@ theorem liftOption_seq {o : Option α} {f : α → VerifierProgram β} (hf : ∀
 
 end WidthsLE
 
-/-- Every level of an admissible ladder folds at most `6` variables; decided over the 60
-admissible pairs. -/
-theorem ladder_folds (μ logInvRate : ℕ) (levels : List Whir.Level)
-    (h : Whir.ladder μ logInvRate = some levels) : ∀ l ∈ levels, l.fold ≤ 6 := by
-  by_cases hadm : Whir.Admissible μ logInvRate
-  · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
-        ∀ levels, Whir.ladder μ r = some levels →
-          (levels.all fun l ↦ decide (l.fold ≤ 6)) = true := by
-      decide +kernel
-    have hk := key μ (Nat.lt_succ_of_le hadm.2.1) logInvRate (Nat.lt_succ_of_le hadm.2.2.2)
-      hadm levels h
-    simpa using hk
-  · simp [Whir.ladder, hadm] at h
-
 /-- The width bound of the leanVM verifier program's commitments: `2 · 2^6`, the two limbs of a
 level's folded lanes. -/
 def maxWidth : ℕ := 128
@@ -215,102 +194,6 @@ theorem two_pow_le {f : ℕ} (h : f ≤ 6) : 2 * 2 ^ f ≤ maxWidth := by
 theorem pow_le {f : ℕ} (h : f ≤ 6) : 2 ^ f ≤ maxWidth := by
   have : 2 ^ f ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) h
   unfold maxWidth; omega
-
-section Phases
-
-attribute [local irreducible] WidthsLE Moves
-
-theorem widthsLE_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState), (∀ l ∈ levels, l.fold ≤ 6) →
-      WidthsLE maxWidth (whirLevels logN laneFolds evaluateBasis index levels s)
-  | [], _, _, _ => by unfold whirLevels; exact WidthsLE.fail
-  | [level], index, s, _ => by
-    refine WidthsLE.seq (WidthsLE.of_moves (moves_foldRounds level.fold s)) fun r ↦ ?_
-    obtain ⟨s', rounds⟩ := r
-    exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
-      (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
-        (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (moves_sampleQueriesAux _ _ _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
-        (G := fun _ ↦ False) (Moves.queryP _ _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-        (Moves.require _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (moves_sumcheck (by norm_num) _ _)) fun r ↦ by
-        obtain ⟨tail, claim⟩ := r
-        exact WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False) (Moves.require _)
-  | level :: next :: rest, index, s, hf => by
-    have hn : next.fold ≤ 6 := hf next (by simp)
-    refine WidthsLE.seq (WidthsLE.of_moves (moves_foldRounds level.fold s)) fun r ↦ ?_
-    obtain ⟨s', rounds⟩ := r
-    exact WidthsLE.seq (WidthsLE.commitP (two_pow_le hn))
-      fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True)
-        (G := fun _ ↦ False) (Moves.readN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
-        (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-        (Moves.sampleN _)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-        Moves.readE) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (Q := fun _ ↦ True) (G := fun _ ↦ True)
-        (Moves.grindP (g := fun _ ↦ True) fun _ ↦ trivial)) fun _ ↦
-      WidthsLE.seq (WidthsLE.of_moves (moves_sampleQueriesAux _ _ _)) fun queries ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-        Moves.sampleE) fun lam ↦
-      WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True)
-        (G := fun _ ↦ False) (Moves.queryP index queries)) fun words ↦
-        widthsLE_whirLevels logN laneFolds evaluateBasis (next :: rest) (index + 1) _
-          fun l hl ↦ hf l (List.mem_cons_of_mem _ hl)
-
-theorem widthsLE_verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
-    WidthsLE maxWidth (verifyWhir logN logInvRate target evaluateBasis) :=
-  WidthsLE.liftOption_seq fun config hc ↦
-    widthsLE_whirLevels logN _ evaluateBasis config 0 _ (ladder_folds _ _ _ hc)
-
-theorem widthsLE_commitStack (logN logInvRate : ℕ) :
-    WidthsLE maxWidth (commitStack logN logInvRate) :=
-  WidthsLE.liftOption_seq fun config hc ↦ by
-    cases config with
-    | nil => exact WidthsLE.fail
-    | cons level rest =>
-      exact WidthsLE.commitP (pow_le (ladder_folds _ _ _ hc level (by simp)))
-
-/-- The commitment's out-of-domain sample commits nothing. -/
-theorem widthsLE_readOod (n : ℕ) : WidthsLE maxWidth (readOod n) :=
-  WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (Q := fun _ ↦ True) (G := fun _ ↦ True)
-    (Moves.grindP fun _ ↦ trivial)) fun _ ↦
-    WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-      (Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
-        Moves.pure (Q := fun _ ↦ True) trivial)
-
-theorem widthsLE_verifyExecution (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (verifyExecution computedBytecodeValue bytecode publicInput) := by
-  refine WidthsLE.seq (WidthsLE.of_moves (moves_readSizes bytecode)) fun p ↦ ?_
-  obtain ⟨layout, logInverseRate⟩ := p
-  refine WidthsLE.seq (widthsLE_commitStack _ _) fun _ ↦
-    WidthsLE.seq (widthsLE_readOod _) fun _ ↦
-    WidthsLE.seq (WidthsLE.of_moves (moves_verifyBusBalance moves_computedBytecodeValue layout))
-      fun bus ↦
-      WidthsLE.seq (WidthsLE.of_moves (moves_tablePhase layout bus)) fun _ ↦
-        WidthsLE.seq (WidthsLE.of_moves (moves_publicInputPhase layout publicInput)) fun _ ↦
-          WidthsLE.seq (WidthsLE.of_moves (moves_keccakPhase _ _)) fun r ↦ ?_
-  obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
-  refine WidthsLE.seq (WidthsLE.of_moves (moves_ringSwitch keccakPoint keccakSlices)) fun r ↦ ?_
-  obtain ⟨ringTarget, ringWeight⟩ := r
-  dsimp only
-  rw [verifyStackedOpening_nf]
-  exact WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False)
-    (Moves.require _)) fun _ ↦
-    WidthsLE.seq (WidthsLE.of_moves (g := fun _ ↦ True) (G := fun _ ↦ False) Moves.sampleE)
-      fun _ ↦ widthsLE_verifyWhir _ _ _ _
-
-end Phases
-
-/-- **Every commitment of the leanVM verifier program has width at most `128`.** -/
-theorem widthsLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    WidthsLE maxWidth (leanVmVerifierProgram bytecode publicInput) :=
-  WidthsLE.seq (widthsLE_verifyExecution bytecode publicInput) fun _ ↦ trivial
 
 /-! ## The verifier's queries -/
 
@@ -336,6 +219,37 @@ theorem allQ_absorbNonce (sp : Sponge) (n : E) :
     AllQueriesSatisfy (absorbNonce callKeccakF1600 sp n) Short :=
   allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦
     allQueriesSatisfy_bind (allQ_duplex _) fun _ ↦ allQ_pure _
+
+theorem allQ_absorbPackedChunks : ∀ (fuel : ℕ) (state : KeccakState) (values : List E),
+    AllQueriesSatisfy (absorbPackedChunks callKeccakF1600 fuel state values) Short
+  | 0, _, _ => allQ_pure _
+  | _ + 1, _, [] => allQ_pure _
+  | fuel + 1, _, _ :: _ => by
+    simp only [absorbPackedChunks]
+    exact allQueriesSatisfy_bind (allQ_queryF _) fun _ ↦ allQ_absorbPackedChunks fuel _ _
+
+theorem allQ_observePacked (sp : Sponge) (values : List E) :
+    AllQueriesSatisfy (observePacked callKeccakF1600 sp values) Short := by
+  simp only [observePacked]
+  split
+  · simp only [pure_bind]
+    exact allQueriesSatisfy_bind (allQ_absorbPackedChunks _ _ _) fun _ ↦ allQ_pure _
+  · exact allQueriesSatisfy_bind (allQ_duplex _) fun _ ↦
+      allQueriesSatisfy_bind (allQ_absorbPackedChunks _ _ _) fun _ ↦ allQ_pure _
+
+theorem allQ_squeezePackedChunks : ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ),
+    AllQueriesSatisfy (squeezePackedChunks callKeccakF1600 fuel sp missing) Short
+  | 0, _, _ => allQ_pure _
+  | _ + 1, _, 0 => allQ_pure _
+  | fuel + 1, _, _ + 1 => by
+    simp only [squeezePackedChunks]
+    exact allQueriesSatisfy_bind (allQ_duplex _) fun _ ↦
+      allQueriesSatisfy_bind (allQ_squeezePackedChunks fuel _ _) fun _ ↦ allQ_pure _
+
+theorem allQ_samplesPacked (sp : Sponge) (count : ℕ) :
+    AllQueriesSatisfy (samplesPacked callKeccakF1600 sp count) Short := by
+  simp only [samplesPacked]
+  exact allQueriesSatisfy_bind (allQ_squeezePackedChunks _ _ _) fun _ ↦ allQ_pure _
 
 theorem allQ_climb : ∀ (node : Digest) (q : ℕ) (ss : List Digest),
     AllQueriesSatisfy (climbWithHash callKeccak256 node q ss) Short
@@ -393,6 +307,16 @@ theorem allQ_run {α : Type} : ∀ (P : VerifierProgram α) (s : VerifierProgram
     refine allQueriesSatisfy_bind (allQ_squeeze _) fun r ↦ ?_
     obtain ⟨c, sp⟩ := r
     exact allQ_run _ _ (hP _) hr
+  | .readPacked n k, s, hP, hr => by
+    simp only [Compile.runWithHash]
+    split
+    · exact allQueriesSatisfy_bind (allQ_observePacked _ _) fun sp ↦ allQ_run _ _ (hP _) hr
+    · exact allQueriesSatisfy_pure _ _
+  | .samplePacked n k, s, hP, hr => by
+    simp only [Compile.runWithHash]
+    refine allQueriesSatisfy_bind (allQ_samplesPacked _ _) fun r ↦ ?_
+    obtain ⟨cs, sp⟩ := r
+    exact allQ_run _ _ (hP _) hr
   | .grind bits k, s, hP, hr => by
     simp only [Compile.runWithHash]
     split
@@ -441,325 +365,7 @@ theorem allQ_hsRun : ∀ (fs : List (List Digest → Bytes)) (ds : List Digest),
     exact allQueriesSatisfy_bind (allQ_queryH (h f (by simp) ds)) fun d ↦
       allQ_hsRun fs _ fun g hg ↦ h g (List.mem_cons_of_mem _ hg)
 
-/-- `TAG` is nine bytes. -/
-theorem versionTag_length : versionTag.length = 9 := by
-  rw [versionTag, String.length_toList_toUTF8]
-  decide
-
-theorem allQ_seedRun (prog : LeanIsaProgram) (input : PublicInput) :
-    AllQueriesSatisfy ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run callKeccak256 callKeccakF1600)
-      Short := by
-  refine allQueriesSatisfy_bind (allQ_hsRun _ _ fun f hf ds ↦ ?_) fun _ ↦ allQ_queryF _
-  simp only [leanVmSeed, List.mem_cons, List.not_mem_nil, or_false] at hf
-  subst hf
-  rw [List.length_append, versionTag_length]
-  have := bytecode_length prog
-  omega
-
-/-- The verifier of the statement is the seeded verifier at the leanVM seed and program. -/
-theorem verifier_eq (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
-    verifierWithHash callKeccak256 callKeccakF1600 prog input proof =
-      verifierComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) proof :=
-  (verifierComp_leanVm _ _ _).symm
-
-theorem allQ_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
-    AllQueriesSatisfy (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) Short := by
-  rw [verifier_eq]
-  exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
-    allQ_runProof _ seed proof (widthsLE_leanVmProgram _ _)
-
-/-- **The verifier makes at most `verifierPermCalls` permutation calls** on every statement and
-proof. -/
-theorem isWeightBound_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof : Proof) :
-    Common.QueryCostAtMost (verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
-      verifierPermCalls := by
-  have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
-  rw [leanVmQueryBound_eq, ← verifier_eq] at hN
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
-    ((allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
-
 end Verifier
-
-/-! ## The honest prover's queries -/
-
-section Prover
-
-theorem allQ_mapM {β γ : Type} (f : β → OracleComp KeccakCalls γ) :
-    ∀ l : List β, (∀ a ∈ l, AllQueriesSatisfy (f a) Short) →
-      AllQueriesSatisfy (l.mapM f) Short
-  | [], _ => by rw [List.mapM_nil]; exact allQ_pure _
-  | a :: l, h => by
-    rw [List.mapM_cons]
-    exact allQueriesSatisfy_bind (h a (by simp)) fun b ↦
-      allQueriesSatisfy_bind (allQ_mapM f l fun a' ha' ↦ h a' (List.mem_cons_of_mem _ ha'))
-        fun _ ↦ allQ_pure _
-
-theorem allQ_arrayMapM {β γ : Type} (f : β → OracleComp KeccakCalls γ) (xs : Array β)
-    (h : ∀ a ∈ xs.toList, AllQueriesSatisfy (f a) Short) :
-    AllQueriesSatisfy (xs.mapM f) Short := by
-  rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp]
-  exact allQueriesSatisfy_bind (allQ_mapM f _ h) fun _ ↦ allQ_pure _
-
-theorem allQ_parentsM (level : Array Digest) (n : ℕ) :
-    AllQueriesSatisfy (parentsWithHash callKeccak256 level n) Short :=
-  allQ_arrayMapM _ _ fun _ _ ↦ allQ_queryH₀ (pair_length _ _)
-
-theorem allQ_levelsM : ∀ (k : ℕ) (level : Array Digest),
-    AllQueriesSatisfy (levelsWithHash callKeccak256 k level) Short
-  | 0, _ => allQ_pure _
-  | k + 1, level => by
-    simp only [levelsWithHash]
-    exact allQueriesSatisfy_bind (allQ_parentsM _ _) fun _ ↦
-      allQueriesSatisfy_bind (allQ_levelsM k _) fun _ ↦ allQ_pure _
-
-/-- Rows of at most `maxWidth` words. -/
-def RowsLE (word : Word) : Prop := ∀ p, (word p).length ≤ maxWidth
-
-theorem row_length {word : Word} (hw : RowsLE word) (p : ℕ) :
-    ((word p).flatMap K.toBytes).length ≤ 2 ^ 37 := by
-  rw [flatMap_kBytes_length]
-  have := hw p
-  unfold maxWidth at this
-  omega
-
-theorem allQ_leafDigestsM (height : ℕ) {word : Word} (hw : RowsLE word) :
-    AllQueriesSatisfy (leafDigestsWithHash callKeccak256 height word) Short :=
-  allQ_arrayMapM _ _ fun i _ ↦ allQ_queryH₀ (row_length hw i)
-
-theorem allQ_searchM (bits : ℕ) (o : Bool) (sp : Sponge) :
-    ∀ (count n : ℕ), AllQueriesSatisfy (searchM callKeccakF1600 bits o sp n count) Short
-  | 0, _ => allQ_pure _
-  | count + 1, n => by
-    simp only [searchM]
-    refine allQueriesSatisfy_bind (allQ_absorbNonce _ _) fun r ↦ ?_
-    split
-    · exact allQ_pure _
-    · exact allQ_searchM bits o sp count (n + 1)
-
-theorem allQ_findNonceM (bits : ℕ) (o : Bool) (sp : Sponge) (fuel : ℕ) :
-    AllQueriesSatisfy (findNonceM callKeccakF1600 bits o sp fuel) Short := by
-  unfold findNonceM
-  exact allQ_searchM _ _ _ _ _
-
-/-- **Locality**: the words a strategy commits along the run from `h` depend on the challenges
-only at the histories extending `h`. -/
-theorem shapedFrom_congr (S : Strategy) {chal₁ chal₂ : List Ev → E} {α : Type} :
-    ∀ (P : VerifierProgram α) (h : List Ev), (∀ h', h <+: h' → chal₁ h' = chal₂ h') →
-      (S.ShapedFrom chal₁ P h ↔ S.ShapedFrom chal₂ P h)
-  | .ret _, _, _ => Iff.rfl
-  | .fail, _, _ => Iff.rfl
-  | .read k, h, hc => by
-    simp only [Strategy.ShapedFrom]
-    exact shapedFrom_congr S _ _ fun h' hh' ↦ hc h' ((List.prefix_append _ _).trans hh')
-  | .sample k, h, hc => by
-    simp only [Strategy.ShapedFrom]
-    rw [hc h (List.prefix_refl h)]
-    exact shapedFrom_congr S _ _ fun h' hh' ↦ hc h' ((List.prefix_append _ _).trans hh')
-  | .grind _ k, h, hc => by
-    simp only [Strategy.ShapedFrom]
-    exact shapedFrom_congr S _ _ fun h' hh' ↦ hc h' ((List.prefix_append _ _).trans hh')
-  | .commit _ _ k, h, hc => by
-    simp only [Strategy.ShapedFrom]
-    exact and_congr_right fun _ ↦
-      shapedFrom_congr S _ _ fun h' hh' ↦ hc h' ((List.prefix_append _ _).trans hh')
-  | .query i ps k, h, hc => by
-    simp only [Strategy.ShapedFrom]
-    split
-    · exact shapedFrom_congr S _ _ fun h' hh' ↦ hc h' ((List.prefix_append _ _).trans hh')
-    · exact Iff.rfl
-
-/-- After a sample, the run from the extended history is shaped for every challenge. -/
-theorem shaped_sample (S : Strategy) {α : Type} {k : E → VerifierProgram α} {h : List Ev}
-    (hG : ∀ chal, S.ShapedFrom chal (.sample k) h) (c : E) (chal : List Ev → E) :
-    S.ShapedFrom chal (k c) (h ++ [Ev.sample c]) := by
-  classical
-  let chal' : List Ev → E := fun h' ↦ if h' = h then c else chal h'
-  have h1 := hG chal'
-  simp only [Strategy.ShapedFrom] at h1
-  have hc : chal' h = c := by simp [chal']
-  rw [hc] at h1
-  refine (shapedFrom_congr S _ _ fun h' hh' ↦ ?_).mp h1
-  have hne : h' ≠ h := by
-    rintro rfl
-    have := hh'.length_le
-    simp at this
-  simp [chal', hne]
-
-/-- Every word committed in a history has rows of at most `maxWidth` words. -/
-def HistOK (h : List Ev) : Prop := ∀ c ∈ commits h, RowsLE c.2.2
-
-theorem histOK_append_of_nil {h : List Ev} (e : Ev) (he : commits [e] = []) (hh : HistOK h) :
-    HistOK (h ++ [e]) := by
-  intro c hc
-  rw [commits_append, he, List.append_nil] at hc
-  exact hh c hc
-
-/-- The trees the prover carries are those of the history's commitments: the same heights and
-words, in order. -/
-def TreesOK (cs : List Tree) (h : List Ev) : Prop :=
-  cs.map (fun t ↦ (t.height, t.word)) = (commits h).map fun c ↦ (c.1, c.2.2)
-
-theorem treesOK_append_of_nil {cs : List Tree} {h : List Ev} (e : Ev) (he : commits [e] = [])
-    (hT : TreesOK cs h) : TreesOK cs (h ++ [e]) := by
-  unfold TreesOK
-  rw [commits_append, he, List.append_nil]
-  exact hT
-
-theorem treesOK_commit {cs : List Tree} {h : List Ev} (hT : TreesOK cs h) (ht w : ℕ) (W : Word)
-    (lv : Array (Array Digest)) : TreesOK (cs ++ [⟨ht, W, lv⟩]) (h ++ [Ev.commit ht w W]) := by
-  unfold TreesOK at hT ⊢
-  rw [commits_append, List.map_append, List.map_append, hT]
-  rfl
-
-/-- An opening the prover reads off a tree is the history's answer. -/
-theorem answer_of_treesOK {cs : List Tree} {h : List Ev} (hT : TreesOK cs h) {i : ℕ}
-    {tree : Tree} (hc : cs[i]? = some tree) (ps : List ℕ) :
-    answer h i ps = some (ps.map fun q ↦ tree.word (q % 2 ^ tree.height)) := by
-  have e := congrArg (·[i]?) hT
-  simp only [List.getElem?_map, hc, Option.map_some] at e
-  unfold answer
-  rcases hci : (commits h)[i]? with _ | ⟨a, b, c⟩
-  · rw [hci] at e
-    cases e
-  · rw [hci] at e
-    simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at e
-    obtain ⟨rfl, rfl⟩ := e
-    rfl
-
-theorem allQ_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} :
-    ∀ (P : VerifierProgram α) (sp : Sponge) (h : List Ev) (cs : List Tree), WidthsLE maxWidth P →
-      (∀ chal, S.ShapedFrom chal P h) → HistOK h → TreesOK cs h →
-      AllQueriesSatisfy (proveFromM callKeccak256 callKeccakF1600 S fuel P sp h cs) Short
-  | .ret _, _, _, _, _, _, _, _ => allQ_pure _
-  | .fail, _, _, _, _, _, _, _ => allQ_pure _
-  | .read k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM]
-    exact allQueriesSatisfy_bind (allQ_absorb _ _ _) fun sp' ↦
-      allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp' _ cs (hP _) (fun chal ↦ hG chal)
-        (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
-  | .sample k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM]
-    exact allQueriesSatisfy_bind (allQ_squeeze _) fun r ↦
-      allQ_proveFromM S fuel _ r.2 _ cs (hP _) (shaped_sample S hG r.1)
-        (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)
-  | .grind bits k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM]
-    refine allQueriesSatisfy_bind (allQ_findNonceM _ _ _ _) fun o ↦ ?_
-    split
-    · exact allQ_pure _
-    · exact allQueriesSatisfy_bind (allQ_absorbNonce _ _) fun r ↦
-        allQueriesSatisfy_bind (allQ_proveFromM S fuel k r.2 _ cs hP (fun chal ↦ hG chal)
-          (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
-  | .commit ht w k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM, buildTreeWithHash, bind_assoc, pure_bind]
-    have hs : WellShaped w (S.word h) := (hG fun _ ↦ 0).1
-    have hrows : RowsLE (S.word h) := fun p ↦ (hs p).symm ▸ hP.1
-    have hh' : HistOK (h ++ [Ev.commit ht w (S.word h)]) := by
-      intro c hc
-      rw [commits_append] at hc
-      rcases List.mem_append.mp hc with hc | hc
-      · exact hh c hc
-      · simp only [commits, List.mem_singleton] at hc
-        subst hc
-        exact hrows
-    exact allQueriesSatisfy_bind (allQ_leafDigestsM _ hrows) fun _ ↦
-      allQueriesSatisfy_bind (allQ_levelsM _ _) fun lv ↦
-      allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦
-        allQueriesSatisfy_bind (allQ_absorb _ _ _) fun _ ↦
-          allQueriesSatisfy_bind (allQ_proveFromM S fuel k _ _ _ hP.2 (fun chal ↦ (hG chal).2)
-            hh' (treesOK_commit hT ht w (S.word h) lv.toArray)) fun _ ↦ allQ_pure _
-  | .query i ps k, sp, h, cs, hP, hG, hh, hT => by
-    simp only [proveFromM]
-    split
-    · exact allQ_pure _
-    · rename_i tree hi
-      have ha := answer_of_treesOK hT hi ps
-      have hG' : ∀ chal, S.ShapedFrom chal (k (ps.map fun q ↦ tree.word (q % 2 ^ tree.height)))
-          (h ++ [Ev.query (ps.map fun q ↦ tree.word (q % 2 ^ tree.height))]) := fun chal ↦ by
-        have := hG chal
-        simp only [Strategy.ShapedFrom, ha] at this
-        exact this
-      exact allQueriesSatisfy_bind (allQ_proveFromM S fuel _ sp _ cs (hP _) hG'
-          (histOK_append_of_nil _ rfl hh) (treesOK_append_of_nil _ rfl hT)) fun _ ↦ allQ_pure _
-
-theorem allQ_proveM (P : VerifierProgram Bool) (S : Strategy) (seed : KeccakState) (fuel : ℕ)
-    (hP : WidthsLE maxWidth P) (hs : ∀ chal, shapedI P S chal) :
-    AllQueriesSatisfy (proveM callKeccak256 callKeccakF1600 P S seed fuel) Short :=
-  allQueriesSatisfy_bind (allQ_proveFromM S fuel P _ [] [] hP hs
-    (fun _ hc ↦ by simp [commits] at hc) rfl) fun _ ↦ allQ_pure _
-
-theorem allQ_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy) (fuel : ℕ)
-    (hs : ∀ chal, shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S
-        chal) :
-    AllQueriesSatisfy (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel) Short := by
-  unfold Rom.honestComp
-  exact allQueriesSatisfy_bind (allQ_seedRun prog input) fun seed ↦
-    allQueriesSatisfy_bind (allQ_proveM _ _ seed fuel (widthsLE_leanVmProgram _ _) hs)
-      fun _ ↦ allQ_pure _
-
-/-- The honest strategy of a witness commits well-shaped words. -/
-theorem shaped_of {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog} {ρ : ℕ} {s : LeanIsa.Sizes}
-    {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
-    (hw : Complete.HonestFor prog input t ρ w s) (chal : List Ev → E) :
-    shapedI (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-      (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) chal := by
-  -- Destructuring `hw` or elaborating against the goal would unfold the strategy's run.
-  unfold Complete.HonestFor at hw
-  with_reducible exact (Complete.runI_leanVmProgram (input := input) hw.2.2.2.1 hw.1
-    (LeanIsa.m3Honest_stackOf hw.2.1 hw.2.2.1) chal).2
-
-end Prover
-
-/-- **A prover of at most `2 + 54825 · (2^29 + 2·fuel + 2)` short queries and the verifier make
-at most `completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : LeanIsaProgram)
-    (input : PublicInput) {fuel : ℕ}
-    (hX : IsTotalQueryBound X (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)))
-    (hXq : AllQueriesSatisfy X Short) :
-    Common.QueryCostAtMost (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks
-      (completenessPermCalls fuel) := by
-  have hN : IsTotalQueryBound (X >>= fun proof ↦ verifierWithHash callKeccak256 callKeccakF1600 prog input proof)
-      (completenessQueries fuel) := by
-    have h := isTotalQueryBound_bind hX fun proof ↦ by
-        have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
-        rw [leanVmQueryBound_eq, ← verifier_eq] at this
-        exact this
-    refine h.mono ?_
-    unfold completenessQueries
-    omega
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
-    ((allQueriesSatisfy_bind hXq fun proof ↦
-      allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
-
-/-- The specification's honest prover of any strategy makes at most
-`2 + 54825 · (2^29 + 2·fuel + 2)` queries. -/
-theorem isTotalQueryBound_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy)
-    (fuel : ℕ) :
-    IsTotalQueryBound (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel)
-      (2 + 54825 * (2 ^ 29 + 2 * fuel + 2)) := by
-  have h := Rom.isTotalQueryBound_honestComp
-    (costLE_leanVmProgram (bytecodeWords prog) (publicInputDigest input)) S fuel
-    (σ := leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-  have hc : leanVmCost = 54825 := by decide
-  rw [hc] at h
-  exact h
-
-/-- **The specification's honest prover at an honest witness, then the verifier, make at most
-`completenessPermCalls fuel` permutation calls.** -/
-theorem isWeightBound_romHonest {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    {ρ : ℕ}
-    {s : LeanIsa.Sizes} {w : Air.Flat.EnsembleWitness (Arithmetization.leanIsaEnsemble prog t.logMemorySize)}
-    (hw : Complete.HonestFor prog input t ρ w s) (fuel : ℕ) :
-    Common.QueryCostAtMost
-      (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-        (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-        (Complete.leanVmProver prog s ρ (LeanIsa.stackOf prog s w)) fuel >>= fun proof ↦
-          verifierWithHash callKeccak256 callKeccakF1600 prog input proof) hashBlocks (completenessPermCalls fuel) :=
-  isWeightBound_proverVerifier prog input (isTotalQueryBound_romHonestComp prog input _ fuel)
-    (allQ_romHonestComp prog input _ fuel (by with_reducible exact shaped_of hw))
 
 end LeanVM.Rpm
 

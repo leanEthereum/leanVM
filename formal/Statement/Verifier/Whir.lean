@@ -1,6 +1,6 @@
 module
 
-public import Statement.Verifier.Bus
+public import Statement.Verifier.Sumcheck
 
 /-!
 # The WHIR opening (`whir.rs`, `lib.rs`)
@@ -18,7 +18,7 @@ whole folded lane, checks the queries against it, and closes with a sumcheck ove
 language's `commit height width` fixes the matrix shape when the root is read, so the shape is
 computed from the ladder there:
 
-* the stack's root (commitment `0`, read by `verify_execution` before the bus phase, `commitStack`)
+* the stack's root (commitment `0`, read by `verify_execution` before the link, `commitStack`)
   is opened at level `0`: `2^(log_n − folds[0] + rate_0)` leaves of `2^folds[0]` words;
 * the root read at level `ℓ` (commitment `ℓ + 1`) is opened at level `ℓ + 1`:
   `2^(μ_ℓ − folds[ℓ+1] + rate_{ℓ+1})` leaves of `2 · 2^folds[ℓ+1]` words, `μ_ℓ` the variables left
@@ -277,17 +277,6 @@ def readOod (stackLog : ℕ) : VerifierProgram StackClaim := do
   let z ← VerifierProgram.sampleChallenges stackLog
   let value ← VerifierProgram.readScalar
   return (fun x ↦ eqEval z x, value)
-
-/-- `verify_stacked_opening(transcript, root, stack_log, log_inv_rate, claims)`: at most
-`maxStackedClaims` claims (`StackedClaims`), batched with the powers of one challenge into one
-WHIR opening (`lib.rs`). The challenge takes no grind of its own: it is drawn right after
-the ring switch's map, one verifier message under that grind. -/
-def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) : VerifierProgram
-    Unit := do
-  VerifierProgram.require (claims.length ≤ maxStackedClaims)
-  let scales := powers (← VerifierProgram.sampleChallenge) claims.length
-  verifyWhir stackLog logInvRate (dot scales (claims.map (·.2)))
-    fun point ↦ dot scales (claims.map fun c ↦ c.1 point)
 
 end LeanVM.Protocol.Verifier
 

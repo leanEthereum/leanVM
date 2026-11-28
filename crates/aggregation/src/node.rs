@@ -4,7 +4,7 @@
 use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
-use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
+use super::deferred::{DeferredBytecodeClaim, FreshClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
 #[cfg(test)]
@@ -183,15 +183,15 @@ pub fn aggregate<P: Prover>(
         }
     }
 
-    // Each child's fresh claim, the one its verification raises.
-    let fresh_points: Vec<Vec<F128>> = summaries
-        .iter()
-        .map(|summary| summary.bytecode_point.iter().copied().map(from_scalar).collect())
-        .collect();
-    let fresh_sums = bytecode_sums::<P>(&fresh_points);
+    // Each child's fresh claim, the one its verification raises: the split program at its link point.
     let kbc = unified_guest().prog.len().trailing_zeros() as usize;
+    let fresh: Vec<FreshClaim> = P::map_collect(summaries.len(), |i| {
+        FreshClaim::at(summaries[i].bytecode_point.iter().copied().map(from_scalar).collect())
+    });
     // Each child's witness is its own, one child per worker: nothing inside dispatches.
-    let verified = P::map_collect(children.len(), |i| gen_verify(kbc, &children[i].1.proof, &summaries[i]));
+    let verified = P::map_collect(children.len(), |i| {
+        gen_verify(kbc, &children[i].1.proof, &summaries[i], &fresh[i].values)
+    });
     for (i, ((claims, _), verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
@@ -230,18 +230,7 @@ pub fn aggregate<P: Prover>(
         leaf
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
-        // Each child's fresh claim, then its carried one: the batch's order.
-        let fresh = (fresh_points.into_iter().zip(&fresh_sums))
-            .map(|(point, sums)| DeferredBytecodeClaim::from_sums(point, sums));
-        let claims: Vec<_> = fresh
-            .zip(carried)
-            .flat_map(|(fresh, carried)| [fresh, carried])
-            .collect();
-        let sums = fresh_sums
-            .into_iter()
-            .zip(carried_sums)
-            .flat_map(|(fresh, carried)| [fresh, carried]);
-        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums.collect());
+        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &fresh, &carried, carried_sums);
         hints.extend(batch_hints);
         reduced
     };

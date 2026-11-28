@@ -22,7 +22,8 @@ open LeanVM.Guest LeanVM.Guest.Core
 def names : List String :=
   [name% «opening_queries__L1_L6_L32_L12_L0_L0_L0_L0_L0»,
     name% «opening_queries__L1_L6_L32_L18_L0_L0_L0_L0_L0»,
-    name% «opening_queries__L1_L6_L32_L24_L0_L0_L0_L0_L0»]
+    name% «opening_queries__L1_L6_L32_L24_L0_L0_L0_L0_L0»,
+    name% «opening_queries__L1_L6_L32_L6_L0_L0_L0_L0_L0»]
 
 /-- **Its carried exponent bounds**: callee, parameter, lower and upper bound, every call site passing a value its
 caller pins so (`level_queries`, from its constants). -/

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.Flips
+public import LeanVM.Guest.B1.KeccakGkr.LayerW
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 
@@ -66,21 +67,21 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
     (p3 : FsPackOk σ (.n (o + 1168)) (o + 1168 + 1) dsObserve)
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (tailT o W wv) next kret) :
-      σ (.n wv) * (σ (.n (o + 688)) * σ (.n (o + 1162)) +
-        (σ (.n (o + 688)) + σ (.n (o + 1165))) * σ (.n (o + 1168))) = σ (.n (o + 1161)) ∧
+      σ (.n wv) * (σ (.n (o + 687)) * σ (.n (o + 1162)) +
+        (σ (.n (o + 687)) + σ (.n (o + 1165))) * σ (.n (o + 1168))) = σ (.n (o + 1161)) ∧
       ((⟨(cap5 (o + 1149)).map σ, []⟩ : Fs).absorbAll
         [σ (.n (o + 1162)), σ (.n (o + 1165)), σ (.n (o + 1168))] dsObserve).squeeze =
         (σ (.n (W + 8)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 0 (σ (.n (o + 1162)) + σ (.n (W + 8)) *
         (σ (.n (o + 1165)) + σ (.n (W + 8)) * σ (.n (o + 1168)))) ∧
-      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (o + 782))) ∧
+      LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 2 (σ (.n (o + 781))) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 4 (σ (.n (o + 809))) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 3 (σ (.n (W + 25))) ∧
       ReadsAt rd (σ (.n (W + 25))) (lanesOut locPt (σ (.n (W + 8)))) ∧
       LoadHolds rd (σ (.n (valf% «keccak_layer» "out"))) 5 (σ (.n (topV W + 3))) ∧
       ReadsAt rd (σ (.n (topV W + 3)))
         (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 8)))) (eqKernel (locPt.take 6)))) ∧
-      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 807)) * gen ^ 36]) := by
+      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 802)) * gen ^ 36]) := by
   simp only [tailT, holdsList_append, List.append_assoc] at h
   simp only [Stmt.HoldsList, Stmt.Holds, keccakA] at h
   obtain ⟨e0, e2, e3, e4, e5, e6, heq, z0, z1, hk, h⟩ := h

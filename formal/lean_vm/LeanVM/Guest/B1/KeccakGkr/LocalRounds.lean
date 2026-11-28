@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.KeccakGkr.PackLoop
+public import LeanVM.Guest.B1.KeccakGkr.PackRound
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
 
 /-!

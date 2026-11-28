@@ -58,12 +58,21 @@ fn hint_lean(h: &RHint) -> Option<String> {
             end,
             start_inverse,
             tail,
-        } => format!("(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}) {tail})", start_inverse.0),
-        RHint::Alloc { ptr, size } => format!("(.alloc {ptr} {size})"),
+            aligned,
+        } => format!(
+            "(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}) {tail} {aligned})",
+            start_inverse.0
+        ),
+        RHint::Alloc { ptr, size, aligned } => format!("(.alloc {ptr} {size} {aligned})"),
         RHint::AllocDyn { ptr, size } => format!("(.allocDyn {ptr} {size})"),
-        RHint::AllocArm { ptr, sel, sizes } => {
+        RHint::AllocArm {
+            ptr,
+            sel,
+            sizes,
+            aligned,
+        } => {
             let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
-            format!("(.allocArm {ptr} {sel} [{}])", sizes.join(", "))
+            format!("(.allocArm {ptr} {sel} [{}] {aligned})", sizes.join(", "))
         }
         RHint::CellAddress { ptr, cell } => format!("(.cellAddress {ptr} {cell})"),
         RHint::WitnessStack { name, base, len } => format!("(.witnessStack \"{name}\" {base} {len})"),

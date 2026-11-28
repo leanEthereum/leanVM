@@ -3,12 +3,13 @@
 
   The transfer from the random-permutation model to the two-oracle random-oracle model for any
   adversary querying `π` and `π⁻¹`, followed by any computation over the verifier's calls that
-  follows the duplex discipline: the step of `LeanVMRpm.lean`'s proof, for other verifiers.
+  follows the duplex discipline: the step of the bus era's `LeanVMRpm.lean` proof, for any verifier.
 -/
 
 module
 
-public import LeanVM.Protocol.LeanVMRpm
+public import LeanVM.Protocol.Rpm.Embed
+public import LeanVM.Protocol.Errors
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Rpm.RpmRelabel

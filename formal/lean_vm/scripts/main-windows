@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""Write `LeanVM/Guest/Complete/MainWinData.lean`: `main`'s body cut into windows (`Complete/MainWinGen.lean`'s
+`W1`), read off the core IR (`scripts/coredata.py`). Each straight part of the body and each branch's arm (`mPre`,
+`mDa`, `mDaZ`, `mMid`, `mLeaf`, `mAgg`, `mPost`, as `B1/Main/Body.lean`'s `main_shape` splits it) becomes a list of
+windows: each maximal run of atoms one `.run`, each call one `.call` and each guarded call one `.cif`, the calls
+written out. The temporaries `mTL` are the range checks' and touches' (`(t, x)`: `t` reads the word at `x`). The
+kernel checks each list's statements against its part (`wPre_flat`, ...) and `winsOkT mTL` on it. Run from
+`lean_vm` after `guest-core` (`scripts/regen-guest.sh` does):
+
+    python3 -I scripts/main-windows [--check]
+"""
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import coredata
+
+OUT = Path("LeanVM/Guest/Complete/MainWinData.lean")
+D = Path("LeanVM/Guest/Data")
+
+# Where each callee's placed statement comes from.
+CALLEES = {
+    "exponent_tables": "`exponent_tables_callAtA`",
+    "claim_list_digest": "`MainCalleesAt.clx`, `.csp`",
+    "__loop0_main": "`MainCalleesAt.dupx` (`mainDupx`)",
+    "__loop1_main": "`MainCalleesAt.dups` (`mainDups`)",
+    "__loop2_main": "`MainCalleesAt.rawx`",
+    "__loop3_main": "`MainCalleesAt.raws`",
+    "da_verify": "`MainCalleesAt.da`",
+    "__loop4_main": "`kidL_callAtA` from `MainCalleesAt.kidx`, `.kids` and `VsCompleteHypA`",
+    "aggregate_claims": "`MainCalleesAt.agg`",
+    "statement_digest": "`statement_digest_callAtA`",
+}
+
+
+def statements():
+    """`main`'s top-level statements, each with its continuation lines."""
+    text = coredata.fn_text(D, "main")
+    if not text:
+        sys.exit("main-windows: no core function main")
+    out = []
+    for m in re.finditer(r"^noncomputable def c\d+ : List Core\.Stmt := \(\n(.*?)^  \[\]\)$", text, re.M | re.S):
+        for line in m.group(1).split("\n"):
+            if line.startswith("  ."):
+                out.append(line)
+            elif line.startswith("    ") and out:
+                out[-1] += "\n" + line
+    return out
+
+
+def kind(s):
+    return re.match(r"\s*\.(\w+)", s).group(1)
+
+
+def clean(st):
+    """A statement's text alone: no trailing separator or closing bracket of its list."""
+    st = st.strip()
+    for suf in (" ::", ","):
+        if st.endswith(suf):
+            st = st[: -len(suf)]
+    while st.count("[") < st.count("]") and st.endswith("]"):
+        st = st[:-1]
+    while st.count("(") < st.count(")") and st.endswith(")"):
+        st = st[:-1]
+    return st
+
+
+def arm_lists(s):
+    lines = s.split("\n")
+    z, n, cur = [], [], []
+    target = z
+    for line in lines[1:]:
+        body = line.strip()
+        if body in ("[]) [", "] [") or body.endswith("] [") and not body.startswith("."):
+            target = n
+            continue
+        if body.startswith("."):
+            switch = body.endswith("] [")
+            st = clean(body[: -2] if switch else body)
+            target.append(st)
+            if switch:
+                target = n
+        elif body.startswith("[])"):
+            target = n
+    return z, n
+
+
+def windows(ss):
+    """Maximal runs of atoms and single other statements: `[start, length, kind, text]`."""
+    ws = []
+    for i, s in enumerate(ss):
+        k = kind(s)
+        if k == "atom":
+            if ws and ws[-1][2] == "run":
+                ws[-1][1] += 1
+            else:
+                ws.append([i, 1, "run", None])
+        elif k in ("call", "dispatch", "callIf"):
+            ws.append([i, 1, k, clean(" ".join(x.strip() for x in s.split("\n")))])
+        else:
+            sys.exit(f"main-windows: statement {k} inside a straight part of main")
+    return ws
+
+
+def counts(ss, i, n):
+    c = {}
+    for s in ss[i:i + n]:
+        m = re.match(r"\s*\.atom \(\.(\w+)(?: \(\.(\w+))?", s)
+        key = m.group(2) if m.group(1) == "hint" else m.group(1)
+        c[key] = c.get(key, 0) + 1
+    return ", ".join(f"{v} {k}" for k, v in sorted(c.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
+ss = statements()
+ites = [j for j, s in enumerate(ss) if kind(s) == "ite"]
+if len(ites) != 2 or kind(ss[-1]) != "ret":
+    sys.exit("main-windows: main's body is not two branches between straight parts; adapt Body.lean's main_shape")
+I1, I2 = ites
+da, daz = arm_lists(ss[I1])
+leaf, agg = arm_lists(ss[I2])
+if not (da and daz and leaf and agg):
+    sys.exit("main-windows: a branch's arm read empty")
+
+tmps = []
+for s in ss[:I1] + da + daz + ss[I1 + 1:I2] + leaf + agg + ss[I2 + 1:-1]:
+    for line in s.split("\n"):
+        m = re.search(r"\.rangeCheck \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\) \(\.n (\d+)\)\)", line)
+        if m:
+            x, y, t1, t2, _ = m.groups()
+            tmps += [(t1, x), (t2, y)]
+        elif ".rangeCheck" in line:
+            sys.exit("main-windows: a range check not in the form read: " + line.strip())
+        m = re.search(r"\.touch \(\.n (\d+)\) \(\.n (\d+)\)\)", line)
+        if m:
+            tmps.append(m.groups())
+        elif ".touch" in line:
+            sys.exit("main-windows: a touch not in the form read: " + line.strip())
+
+parts = [("Pre", "mPre", 0, ss[:I1]), ("Da", "mDa", None, da), ("DaZ", "mDaZ", None, daz),
+         ("Mid", "mMid", I1 + 1, ss[I1 + 1:I2]), ("Leaf", "mLeaf", None, leaf), ("Agg", "mAgg", None, agg),
+         ("Post", "mPost", I2 + 1, ss[I2 + 1:-1])]
+
+L = []
+L.append("""/-
+  LeanVM.Guest.Complete.MainWinData
+
+  Generated by `scripts/main-windows`; do not edit.
+  `main`'s straight parts and branches' arms cut into windows.
+-/
+
+module
+
+public import LeanVM.Guest.Complete.MainWinGen
+public import LeanVM.Guest.B1.Main.Body
+
+/-!
+# `main`'s windows
+
+Each straight part of `main`'s body and each branch's arm (`mPre`, `mDa`, `mDaZ`, `mMid`, `mLeaf`, `mAgg`,
+`mPost`, `B1/Main/Body.lean`'s `main_shape`) as a list of windows (`MainWinGen.lean`'s `W1`): each maximal run
+of atoms one `.run`, each call one `.call`, each guarded call one `.cif`. The kernel checks that each list's
+statements are the part's (`wPre_flat`, ...) and that each window passes `winsOkT` on the temporaries `mTL`.
+Each window's doc gives its statements' indices in the part and, for a call, the placed statement it takes.
+-/
+
+namespace LeanVM.Guest.Complete
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1
+open LeanVM.Guest.B1.Main LeanVM.Guest.B1.VsC
+
+@[expose] public section
+
+/-- `main`'s temporaries: each range check's and touch's, with the value whose word it reads. -/
+def mTL : List (V × V) := [""")
+L.append(",\n".join(f"    (.n {t}, .n {x})" for t, x in tmps) + "]")
+L.append("")
+for p, name, off, part in parts:
+    names = []
+    where = f"of the body" if off is not None else "of the arm"
+    o = off or 0
+    for j, (i, n, k, text) in enumerate(windows(part)):
+        wn = f"m{p}_w{j}"
+        names.append(wn)
+        if k == "run":
+            L.append(f"/-- Statements `{o + i} ..< {o + i + n}` {where} `{name}`: {n} atoms ({counts(part, i, n)}). -/")
+            L.append(f"noncomputable def {wn} : W1 := .run (atomsOf (({name}.drop {i}).take {n}))\n")
+        else:
+            g = re.findall(r'"([^"]+)"', text)[0]
+            if g not in CALLEES:
+                sys.exit(f"main-windows: no placed statement listed for callee {g} (CALLEES)")
+            L.append(f"/-- Statement `{o + i}` {where} `{name}`: `{g}`; {CALLEES[g]}. -/")
+            if k == "callIf":
+                m = re.match(r'\.callIf (\(\.n \d+\)) ("[^"]+") (.*)$', text, re.S)
+                L.append(f"def {wn} : W1 := .cif {m.group(1)} {m.group(2)} ({m.group(3)})\n")
+            else:
+                L.append(f"def {wn} : W1 := .call ({text})\n")
+    L.append(f"/-- `{name}`'s windows. -/")
+    L.append(f"noncomputable def w{p} : List W1 := [" + ", ".join(names) + "]\n")
+    L.append("set_option maxRecDepth 200000 in")
+    L.append(f"theorem w{p}_flat : flatW1 w{p} = {name} := stmtsEqb_sound (by decide +kernel)\n")
+    L.append("set_option maxRecDepth 200000 in")
+    L.append(f"theorem w{p}_ok : winsOkT mTL w{p} = true := by decide +kernel\n")
+L.append("end\nend LeanVM.Guest.Complete\n")
+text = "\n".join(L)
+
+if "--check" in sys.argv[1:]:
+    if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
+        sys.exit(f"{OUT} is stale; rerun scripts/main-windows")
+else:
+    OUT.write_text(text, encoding="utf-8")

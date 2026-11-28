@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.EndToEnd.Sound.SkelWhir
+public import LeanVM.Protocol.EndToEnd.Sound.SkelPhases
 
 /-!
 # Decoders
@@ -26,6 +26,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
   LeanVM.Protocol.Compile.Rom LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Sound
 
 @[expose] public section
+
+open LeanVM.Protocol.Whir.Params (after_bind_ret)
+open LeanVM.Protocol.Relation
+
+theorem after_ret_eq {α : Type} {a b : α} {l : List Ev}
+    (h : (VerifierProgram.ret a).after l = some (.ret b)) : l = [] ∧ a = b := by
+  rcases l with _ | ⟨e, l⟩
+  · simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.ret.injEq] at h
+    exact ⟨rfl, h⟩
+  · simp [VerifierProgram.after] at h
 
 /-- **`d` reads the projection `g` of `p`'s value** off every history `p` returns on. -/
 def DecP {α γ : Type} (p : VerifierProgram α) (g : α → γ) (d : List Ev → Option γ) : Prop :=
@@ -274,71 +284,102 @@ theorem dec_whirLevelsGF (logN : ℕ) : ∀ (index : ℕ) (levels : List Whir.Le
 
 /-! ## The cut verifier -/
 
-/-- The cut opening's trace, read off the history after its batching challenge. -/
+/-- The cut opening's trace, read off its history. -/
 def decWhirCut (logN ρ : ℕ) (h : List Ev) : Option WhirTrace :=
   (Whir.ladder logN ρ).bind fun config ↦ decLevels logN 0 config h
 
-theorem dec_verifyStackedOpeningCut (stackLog ρ : ℕ) (claims : List StackClaim) :
-    DecP (verifyStackedOpeningCut stackLog ρ claims) id fun h ↦ decWhirCut stackLog ρ (h.drop 1) := by
+theorem dec_verifyStackedOpeningCut (stackLog ρ : ℕ) (claims : List StackClaim) (batching : E) :
+    DecP (verifyStackedOpeningCut stackLog ρ claims batching) id (decWhirCut stackLog ρ) := by
   unfold verifyStackedOpeningCut verifyWhirCut
   simp only [VerifierProgram.bind_eq]
-  refine DecP.congr (DecP.drop (skel_require _) fun _ _ ↦ DecP.drop skel_sampleChallenge
-    fun _ _ ↦ DecP.bind (skel_liftOption _) (dec_liftOption _)
+  refine DecP.congr (DecP.drop (skel_require _) fun _ _ ↦
+    DecP.bind (skel_liftOption _) (dec_liftOption _)
       (d₂ := fun config h ↦ decLevels stackLog 0 config h)
       fun config _ ↦ dec_whirLevelsGF stackLog 0 config _ 0 rfl) fun h ↦ ?_
   simp [decWhirCut]
 
-/-- The skeleton of the cut body before the opening's trace. -/
-def skBodyHead (layout : Verifier.Layout) (ρ : ℕ) : List Op :=
-  skCommitStack layout.stackLog ρ ++ skOod layout.stackLog ++ skFront layout ++ skRing ++ [.sample]
-
 /-- The cut body's trace, read off its history. -/
-def decBody (layout : Verifier.Layout) (ρ : ℕ) (h : List Ev) : Option WhirTrace :=
-  decWhirCut layout.stackLog ρ (h.drop (skBodyHead layout ρ).length)
+def decBody (lay : LayoutLite) (ρ : ℕ) (h : List Ev) : Option WhirTrace :=
+  decWhirCut lay.stackLog ρ (h.drop (skBodyHead lay ρ).length)
 
-theorem dec_veBodyCut (pd : Digest) (layout : Verifier.Layout) (ρ : ℕ) :
-    DecP (veBodyCut computedBytecodeValue pd layout ρ) id (decBody layout ρ) := by
+theorem dec_veBodyCut (layout : Layout) (ρ : ℕ) (input : PublicInput)
+    (ht : layout.tables = tables) :
+    DecP (veBodyCut layout ρ input) id (decBody layout.lite ρ) := by
   unfold veBodyCut
   simp only [VerifierProgram.bind_eq]
   refine DecP.congr (DecP.drop (skel_commitStack _ _) fun _ _ ↦ DecP.drop (skel_readOod _)
-    fun _ _ ↦ DecP.drop (skel_frontProg layout pd) fun _ _ ↦ DecP.drop (skel_ringSwitch _ _)
-    fun _ _ ↦ dec_verifyStackedOpeningCut _ _ _) fun h ↦ ?_
-  simp only [decBody, skBodyHead, List.drop_drop, List.length_append, List.length_singleton]
+    fun _ _ ↦ DecP.drop (skel_frontProg layout input ht) fun _ _ ↦ DecP.drop (skel_liftOption _)
+    fun _ _ ↦ DecP.drop (skel_ringSwitch _ _) fun _ _ ↦ DecP.drop (skel_memoryTermClaim _ _)
+    fun _ _ ↦ dec_verifyStackedOpeningCut _ _ _ _) fun h ↦ ?_
+  simp only [decBody, skBodyHead, Layout.lite, List.drop_drop, List.length_append,
+    List.length_nil, Nat.add_zero, Nat.add_assoc]
+
+/-! ## The announced sizes -/
+
+/-- **What `readAnnouncedSizes` makes of the scalars it read**: its checks, in its order. -/
+def sizesOf (bytecode : List K) (announced : List E) : Option (Layout × ℕ) :=
+  if (announced.all fun value ↦ value.limb 1 = 0) then
+    let logMemory := kToNat ((announced.headD 0).limb 0)
+    let tableRows := ((announced.drop 1).take nTables).map fun value ↦ kToNat (value.limb 0)
+    let logInverseRate := kToNat ((announced.getLastD 0).limb 0)
+    if 1 ≤ logInverseRate ∧ logInverseRate ≤ 4 then
+      (buildLayout bytecode logMemory tableRows).bind fun layout ↦
+        if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
+          some (layout, logInverseRate)
+        else none
+    else none
+  else none
+
+theorem fail_bind' {α β : Type} (f : α → VerifierProgram β) :
+    (VerifierProgram.fail : VerifierProgram α).bind f = .fail := rfl
+
+/-- **`readAnnouncedSizes`, normal form**: its reads, then its checks (`sizesOf`). -/
+theorem readAnnouncedSizes_eq (bytecode : List K) :
+    readAnnouncedSizes bytecode = (VerifierProgram.readScalars (2 + nTables)).bind fun announced ↦
+      liftOption (sizesOf bytecode announced) := by
+  unfold readAnnouncedSizes
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  congr 1
+  funext announced
+  unfold sizesOf
+  simp only [VerifierProgram.require]
+  split_ifs <;> simp only [VerifierProgram.ret_bind, fail_bind', Verifier.liftOption]
+  rcases buildLayout bytecode _ _ with _ | layout
+  · rfl
+  · simp only [Option.bind_some, VerifierProgram.ret_bind]
+    split_ifs <;> simp only [VerifierProgram.ret_bind, fail_bind']
 
 /-- The announced sizes, read off their history. -/
-def decSizes (bytecode : List K) (h : List Ev) : Option (Verifier.Layout × ℕ) :=
+def decSizes (bytecode : List K) (h : List Ev) : Option (Layout × ℕ) :=
   (h.mapM Ev.readVal).bind (sizesOf bytecode)
 
 theorem dec_readAnnouncedSizes (bytecode : List K) :
     DecP (readAnnouncedSizes bytecode) id (fun h ↦ decSizes bytecode (h.take skSizes.length)) := by
   rw [readAnnouncedSizes_eq]
-  simp only [VerifierProgram.bind_eq]
   refine DecP.congr (DecP.bind (skel_readScalars _) (dec_readScalars _)
     (d₂ := fun xs _ ↦ sizesOf bytecode xs) fun xs _ ↦ dec_liftOption _) fun h ↦ ?_
   simp [decSizes, skSizes]
 
 /-- **The cut verifier's value read off its history**: the announced sizes, then the body's trace. -/
 def decProgram (bytecode : List K) (h : List Ev) :
-    Option (Bool × ((Verifier.Layout × ℕ) × WhirTrace)) :=
+    Option (Bool × ((Layout × ℕ) × WhirTrace)) :=
   (decSizes bytecode (h.take skSizes.length)).bind fun a ↦
-    (decBody a.1 a.2 ((h.drop skSizes.length).take (skBody a.1 a.2).length)).map fun tr ↦
-      (true, (a, tr))
+    (decBody a.1.lite a.2 ((h.drop skSizes.length).take (skBody a.1.lite a.2).length)).map
+      fun tr ↦ (true, (a, tr))
 
-theorem dec_leanVmProgramCut (bytecode : List K) (pd : Digest) :
-    DecP (leanVmProgramCut bytecode pd) id (decProgram bytecode) := by
-  unfold leanVmProgramCut verifyExecutionClaimsCut
-  rw [VerifierProgram.bind_assoc]
+theorem dec_leanVmProgramCut (bytecode : List K) (input : PublicInput) :
+    DecP (leanVmProgramCut bytecode input) id (decProgram bytecode) := by
+  unfold leanVmProgramCut
   refine DecP.congr (DecP.bind (skel_readAnnouncedSizes bytecode)
     (dec_readAnnouncedSizes bytecode)
-    (d₂ := fun a h ↦ (decBody a.1 a.2 (h.take (skBody a.1 a.2).length)).map fun tr ↦
-      (true, (a, tr))) fun a _ ↦ ?_) fun h ↦ ?_
-  · rw [VerifierProgram.bind_assoc]
-    refine DecP.congr (DecP.bind (skel_veBodyCut pd a.1 a.2) (dec_veBodyCut pd a.1 a.2)
-      (d₂ := fun tr _ ↦ some (true, (a, tr))) fun tr _ ↦ ?_) fun h ↦ ?_
-    · simp only [VerifierProgram.ret_bind]
-      exact DecP.ret' _ id _ rfl
-    · simp only [id]
-      rcases hd : decBody a.1 a.2 (h.take (skBody a.1 a.2).length) <;> simp
+    (d₂ := fun a h ↦ (decBody a.1.lite a.2 (h.take (skBody a.1.lite a.2).length)).map fun tr ↦
+      (true, (a, tr))) fun a ha ↦ ?_) fun h ↦ ?_
+  · obtain ⟨lm, rows, hb⟩ := ha
+    have ht := (layoutBounds_of_buildLayout hb).tables_eq
+    refine DecP.congr (DecP.bind (skel_veBodyCut a.1 a.2 input ht) (dec_veBodyCut a.1 a.2 input ht)
+      (d₂ := fun tr _ ↦ some (true, (a, tr))) fun tr _ ↦ DecP.ret' _ id _ rfl) fun h ↦ ?_
+    simp only [id]
+    rcases decBody a.1.lite a.2 (h.take (skBody a.1.lite a.2).length) <;> simp
   · simp only [decProgram, List.take_take, min_self]
 
 end

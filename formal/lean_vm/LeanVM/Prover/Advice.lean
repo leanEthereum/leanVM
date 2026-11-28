@@ -12,8 +12,9 @@ public import Statement.Prover.Execute
 # The advice's text
 
 `parseAdvice` reads the advice the Rust writes (`CompiledProgram::export_hints`,
-`crates/isa/src/export_hints.rs`): whitespace-separated tokens, `leanvm-advice 1`, `main_frame n`, `hints` and per pc its hints (a tag and
-its fields, a field element as two hexadecimal limbs), `streams` and per stream its entries. The guest's
+`crates/isa/src/export_hints.rs`): whitespace-separated tokens, `leanvm-advice 2` (or `1`, the same
+text before the Rust numbered its aligned flags), `main_frame n`, `hints` and per pc its hints (a tag and
+its fields, a field element as two hexadecimal limbs, an allocation's `aligned` flag `0` or `1`, last), `streams` and per stream its entries. The guest's
 own (`LeanVM/Guest/Data/Advice.lean`) has no stream. Nothing is proved about it: the executor trusts no
 advice.
 -/
@@ -65,19 +66,27 @@ def dest : P BitsDest := do
   | "h" => .heap <$> nat
   | t => throw s!"advice: not a destination: `{t}`"
 
+/-- An allocation's `aligned` flag, `0` or `1`. -/
+def flag : P Bool := do
+  match ← tok with
+  | "0" => pure false
+  | "1" => pure true
+  | t => throw s!"advice: not a flag: `{t}`"
+
 def many {α : Type} (n : ℕ) (p : P α) : P (List α) := (List.range n).mapM fun _ ↦ p
 
 def hint : P Hint := do
   match ← tok with
   | "fa" => .frameAddress <$> nat
-  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat)
-  | "al" => return .alloc (← nat) (← nat)
+  | "af" => return .allocFrames (← nat) (← nat) (← nat) (K.ofBits (← hex)) (← nat) (← flag)
+  | "al" => return .alloc (← nat) (← nat) (← flag)
   | "ad" => return .allocDyn (← nat) (← nat)
   | "aa" => do
     let ptr ← nat
     let sel ← nat
     let n ← nat
-    return .allocArm ptr sel (← many n nat)
+    let sizes ← many n nat
+    return .allocArm ptr sel sizes (← flag)
   | "ca" => return .cellAddress (← nat) (← nat)
   | "ws" => return .witnessStack (← tok) (← nat) (← nat)
   | "wh" => return .witnessHeap (← tok) (← nat) (← nat) (← nat)
@@ -93,7 +102,10 @@ def hint : P Hint := do
   | t => throw s!"advice: not a hint: `{t}`"
 
 def advice : P Advice := do
-  expect "leanvm-advice"; expect "1"; expect "main_frame"
+  expect "leanvm-advice"
+  let version ← tok
+  unless version = "2" || version = "1" do throw s!"advice: version `{version}`, not 2"
+  expect "main_frame"
   let mainFrame ← nat
   expect "hints"
   let hints ← many (← nat) do

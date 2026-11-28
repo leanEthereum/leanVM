@@ -24,8 +24,8 @@ def DestIn (s : St) : BitsDest → Prop
 /-- The cells a hint reads are written. -/
 def HintIn (s : St) : Hint → Prop
   | .allocDyn _ size => s.mem.written (s.fp + size) = true
-  | .allocArm _ sel _ => s.mem.written (s.fp + sel) = true
-  | .allocFrames _ _ stop _ _ => s.mem.written (s.fp + stop) = true
+  | .allocArm _ sel _ _ => s.mem.written (s.fp + sel) = true
+  | .allocFrames _ _ stop _ _ _ => s.mem.written (s.fp + stop) = true
   | .witnessHeap _ ptr _ _ => s.mem.written (s.fp + ptr) = true
   | .log2Ceil bits _ nbits _ => match bits with
     | .stack base => ∀ j < nbits, s.mem.written (s.fp + base + j) = true
@@ -104,7 +104,8 @@ theorem bitsBase_val {s s1 : St} {d : BitsDest} {len : ℕ} {what : String} {b :
     obtain ⟨f, hm, hp⟩ := heapBase_val hs h1 hd
     exact ⟨f, hm, fun _ h ↦ BitsDest.noConfusion h, fun _ h ↦ by cases h; simpa using hp⟩
 
-theorem allocate_written {s s' : St} {ptr size : ℕ} (hs : s.Good) (h : allocate s ptr size = .ok s') :
+theorem allocate_written {s s' : St} {ptr size : ℕ} {aligned : Bool} (hs : s.Good)
+    (h : allocate s ptr size aligned = .ok s') :
     St.Follows s s' ∧ s'.mem.written (s.fp + ptr) = true := by
   refine ⟨allocate_follows hs h, ?_⟩
   unfold allocate at h
@@ -245,7 +246,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
   | frameAddress offset =>
     cases hstep
     exact ⟨trivial, fun e _ ↦ hH.follows (runHint_follows hs e)⟩
-  | alloc ptr size =>
+  | alloc ptr size aligned =>
     cases hstep
     refine ⟨trivial, fun e _ ↦ ?_⟩
     obtain ⟨f, hw⟩ := allocate_written hs e
@@ -261,7 +262,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
     obtain ⟨f2, hw2⟩ := allocate_written f1.good e
     exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
       rw [f2.fp]; exact hw2)
-  | allocArm ptr sel sizes =>
+  | allocArm ptr sel sizes aligned =>
     simp only [stepHint] at hstep
     split_ifs at hstep with hw
     cases hstep
@@ -274,7 +275,7 @@ theorem stepHint_sound {C : Ctx} {s s' : St} {A A' : Abs} {h : Hint} (hs : s.Goo
       exact (hH.follows (f1.trans f2)).addW (show s'.mem.written (s'.fp + ptr) = true by
         rw [f2.fp]; exact hw2)
     · simp at e
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse tail aligned =>
     simp only [stepHint] at hstep
     split_ifs at hstep with hw
     cases hstep

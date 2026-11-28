@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fam.FamDefs
+public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 
 /-!
 # Exponents a body pins, carried down

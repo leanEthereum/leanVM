@@ -1,27 +1,21 @@
 /-
   LeanVM.Guest.B1.Main.AggFs
 
-  The batching (`Node.batch`) on the guest's carried sponge, rows of a sponge in memory, and a
-  checker, by kernel evaluation, of a straight-line chain of `KECCAK`s absorbing packed words.
+  Rows of a sponge in memory, and a checker, by kernel evaluation, of a straight-line chain of
+  `KECCAK`s absorbing packed words.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.B1.Fs.Templates
-public import LeanVM.Guest.Batch.Run
 public import LeanVM.Guest.B1.Common.Atoms
 public import LeanVM.Guest.B1.Sumcheck.MeaningP
 import LeanVM.ToMathlib.List
 
 /-!
-# The batching's sponge
+# Rows of a sponge, and duplex chains
 
-* `batch_fs`: `Node.batch` on the carried sponge (`Fs`): the seed's capacity absorbs the
-  batching's words (`aggAbs`), the hinted nonce's permutation (`aggN`, `Fs.nonceState`) passes the
-  proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `bsRun` runs the
-  sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried sponge's operations
-  (`carries_absorb`, `carries_squeeze`, `powStep_carried`, `bsRun_run`).
 * `RowRel rd p s`: thirteen words at `p` carry the sponge `s`, its capacity cells, then each
   waiting scalar's two rate cells (as `fs_pack` writes them, `PackOf`), zeros past them;
   `rowRel_perm`: a `KECCAK` reading them permutes `s`.
@@ -39,106 +33,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
-/-! ## The batching on the carried sponge -/
-
-/-- **`bsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
-theorem bsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
-    s.Carries sp → ∃ sp', (bsRun rounds claim s).2.Carries sp' ∧
-      (Node.batchRounds claim rounds).run sp = ((bsRun rounds claim s).1, sp')
-  | [], claim, s, sp, h => ⟨sp, h, rfl⟩
-  | (g1, gInf) :: rest, claim, s, sp, h => by
-    have ha := carries_absorb (carries_absorb h g1 dsObserve) gInf dsObserve
-    obtain ⟨e1, e2⟩ := carries_squeeze ha
-    obtain ⟨sp', h', hrun⟩ := bsRun_run rest
-      ((gInf * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
-        (claim + g1 + g1 + gInf)) * ((s.absorb g1 dsObserve).absorb gInf dsObserve).squeeze.1 +
-        (claim + g1)) _ _ e2
-    refine ⟨sp', h', ?_⟩
-    set X := Id.run (Compile.absorb (m := Id) keccakF1600
-      (Id.run (Compile.absorb (m := Id) keccakF1600 sp g1 dsObserve)) gInf dsObserve) with hX
-    set c := (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).1 with hc
-    have key : (Node.batchRounds claim ((g1, gInf) :: rest)).run sp =
-        ((c :: ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.1,
-          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.2),
-          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
-          rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).2) := rfl
-    rw [key, e1, hrun]
-    rfl
-
 theorem bsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
     (bsRun rounds claim s).1.1.length = rounds.length
   | [], _, _ => rfl
   | (_, _) :: rest, _, _ => by simp [bsRun, bsRun_len rest]
-
-/-- The batching's initial sponge, carried: the seed's capacity, nothing waiting. -/
-def aggS0 : Fs := ⟨capOf batchSeed, []⟩
-
-theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, [], none⟩ := ⟨rfl, rfl, rfl⟩
-
-theorem carries_obsAll : ∀ (xs : List E) {s : Fs} {sp : Sponge}, s.Carries sp →
-    (s.absorbAll xs dsObserve).Carries (Batch.obsAll sp xs)
-  | [], _, _, h => h
-  | x :: xs, _, _, h => carries_obsAll xs (carries_absorb h x dsObserve)
-
-/-- The sponge after the batching's words. -/
-def aggAbs (cs : List ChildClaims) : Fs := aggS0.absorbAll (Batch.cellsBeforeChallenge cs) dsObserve
-
-/-- The permutation that absorbs the batching's grinding nonce `n`. -/
-def aggN (cs : List ChildClaims) (n : E) : KeccakState := (aggAbs cs).nonceState n
-
-/-- The lambdas (the powers of the challenge the nonce's permutation draws) and the sponge after
-them. -/
-def aggLam (cs : List ChildClaims) (n : E) : List (E × E) × Fs :=
-  (Batch.lambdaPowers (challengeOf (aggN cs n)) cs.length, ⟨capOf (aggN cs n), []⟩)
-
-/-- The sumcheck's run: its challenges and final claim, and the sponge after it. -/
-def aggRun (cs : List ChildClaims) (h : BatchingHints) : (List E × E) × Fs :=
-  bsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
-    (aggLam cs h.lambdaGrindNonce).2
-
-/-- The proof of work at any permutation `F` (a variable, so that `rfl` cannot unfold
-Keccak-f): the nonce absorbed, the permutation, its lane `2`, its challenge ground. -/
-theorem powStep_eq (F : KeccakState → KeccakState) (sp : Sponge) (n : E) :
-    powStep F sp n = (Keccak.lane (F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce)))) 2,
-      ⟨F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce))), [],
-        some (challengeOf (F (duplexInput (Id.run (Compile.absorb (m := Id) F sp n dsPowNonce)))))⟩) :=
-  rfl
-
-/-- The proof of work at a carried sponge: the nonce's permutation's lane `2`, and the sponge it
-leaves, its challenge ground. -/
-theorem powStep_carried {s : Fs} {sp : Sponge} (hs : s.Carries sp) (n : E) :
-    powStep keccakF1600 sp n = (Keccak.lane (s.nonceState n) 2,
-      ⟨s.nonceState n, [], some (challengeOf (s.nonceState n))⟩) := by
-  rw [powStep_eq, perm_eq (carries_absorb hs n dsPowNonce)]
-  rfl
-
-/-- **`Node.batch` on the carried sponge.** -/
-theorem batch_fs (cs : List ChildClaims) (h : BatchingHints) :
-    batch cs h =
-      if powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs h.lambdaGrindNonce) 2) then
-        if (aggRun cs h).1.2 = h.finalBytecodeValue *
-            Batch.batchedBytecodeWeight cs (aggLam cs h.lambdaGrindNonce).1 (aggRun cs h).1.1
-        then some ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩ else none
-      else none := by
-  rw [Batch.batch_eq]
-  have hc := carries_obsAll (Batch.cellsBeforeChallenge cs) carries_aggS0
-  have hpow : Batch.powB cs h = (Keccak.lane (aggN cs h.lambdaGrindNonce) 2,
-      ⟨aggN cs h.lambdaGrindNonce, [], some (challengeOf (aggN cs h.lambdaGrindNonce))⟩) :=
-    powStep_carried hc h.lambdaGrindNonce
-  have hsq : Batch.sqL cs.length ⟨aggN cs h.lambdaGrindNonce, [],
-      some (challengeOf (aggN cs h.lambdaGrindNonce))⟩ = ((aggLam cs h.lambdaGrindNonce).1,
-      ⟨aggN cs h.lambdaGrindNonce, [], none⟩) := rfl
-  have h1 : (aggLam cs h.lambdaGrindNonce).2.Carries ⟨aggN cs h.lambdaGrindNonce, [], none⟩ :=
-    ⟨rfl, rfl, rfl⟩
-  obtain ⟨sp', -, hr⟩ := bsRun_run h.sumcheckMessages
-    (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1) (aggLam cs h.lambdaGrindNonce).2 _ h1
-  rw [Batch.batchRounds_run _ _ rfl] at hr
-  have hr' : (Batch.rsRun h.sumcheckMessages (Batch.batchedClaim cs (aggLam cs h.lambdaGrindNonce).1)
-      ⟨aggN cs h.lambdaGrindNonce, [], none⟩).1 = (aggRun cs h).1 := congrArg Prod.fst hr
-  rw [hpow]
-  simp only [hsq, hr']
 
 /-! ## Absorbing a block of four -/
 

@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Prover.ExecuteHint
-public import LeanVM.Guest.Executor
+public import LeanVM.Guest.Bytecode
+public import Statement.LeanVmGuestProver
 
 /-!
 # The stream cursor
@@ -50,7 +51,7 @@ theorem cur_logOr {s s' : St} {x : K} {b k : ℕ} {f : Fault} (h : s.logOr x b f
     rfl
   · simp at h
 
-theorem cur_allocate {s s' : St} {ptr size : ℕ} (h : allocate s ptr size = .ok s') :
+theorem cur_allocate {s s' : St} {ptr size : ℕ} {aligned : Bool} (h : allocate s ptr size aligned = .ok s') :
     s'.cursor = s.cursor := by
   unfold allocate at h
   rw [bind_ok] at h
@@ -116,12 +117,12 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     simp only [runHint, bind_ok, pure_ok] at h
     obtain ⟨c, -, rfl⟩ := h
     rfl
-  | alloc ptr size => exact keep (cur_allocate h)
+  | alloc ptr size aligned => exact keep (cur_allocate h)
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     exact keep ((cur_allocate h).trans (cur_logOr h1))
-  | allocArm ptr sel sizes =>
+  | allocArm ptr sel sizes aligned =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
     split at h
@@ -131,7 +132,7 @@ theorem runHint_cursor {C : Ctx} {s s' : St} {hint : Hint} (h : runHint C s hint
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact keep (cur_withMem h)
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse tail aligned =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h
@@ -241,7 +242,7 @@ theorem runOp_cursor {C : Ctx} {s s' : St} {op : Op} (e : runOp C s op = .ok s')
       exact (cur_logOr h3).trans ((cur_logOr h2).trans (cur_withMem h1))
   | keccak ins out inOdd outOdd count =>
     simp only [runOp, bind_ok, pure_ok] at e
-    obtain ⟨_, -, _, -, _, -, s1, h1, rfl⟩ := e
+    obtain ⟨_, -, _, -, _, -, _, -, s1, h1, rfl⟩ := e
     have := cur_withMem h1
     exact this
 
@@ -286,11 +287,11 @@ theorem names_spec : ∀ (ps : List (String × List E)) (ns : List String), ns.N
 
 /-- **A stream of grouped pushes**: on a stream some push is on, the pushes on it, in order. -/
 theorem streams_group {adv : Advice} {C : Ctx} {prog : LeanIsaProgram} (hC : Ctx.of prog adv = .ok C)
-    {ps : List (String × List E)} (hs : adv.streams = Hints.group ps) {S : String} (hS : ∃ p ∈ ps, p.1 = S) :
+    {ps : List (String × List E)} (hs : adv.streams = Prover.group ps) {S : String} (hS : ∃ p ∈ ps, p.1 = S) :
     C.streams[S]? = some ((ps.filter (·.1 == S)).map (·.2)).toArray := by
   simp only [Ctx.of, bind_ok, pure_ok] at hC
   obtain ⟨ops, -, rfl⟩ := hC
-  rw [hs, Hints.group]
+  rw [hs, Prover.group]
   obtain ⟨hnd, hmem⟩ := names_spec ps [] List.nodup_nil
   generalize ps.foldl (fun ns p ↦ if ns.contains p.1 then ns else ns ++ [p.1]) [] = ns at hnd hmem
   refine Std.HashMap.getElem?_ofList_of_mem (k := S) (beq_self_eq_true S) ?_ ?_
@@ -302,10 +303,10 @@ theorem streams_group {adv : Advice} {C : Ctx} {prog : LeanIsaProgram} (hC : Ctx
 
 /-- **The guest's streams**: stream `S`, wherever some honest push is on it, is the honest pushes on
 `S`, in order. -/
-theorem streams_guest {seed s w} {C : Ctx}
-    (hC : Ctx.of guestProgram (honestAdvice seed s w) = .ok C) {S : String}
-    (hS : ∃ p ∈ Hints.honestPushes bytecodeShape seed s w, p.1 = S) :
-    C.streams[S]? = some (((Hints.honestPushes bytecodeShape seed s w).filter (·.1 == S)).map (·.2)).toArray :=
+theorem streams_guest {bytecode : List K} {seed s w} {C : Ctx}
+    (hC : Ctx.of guestProgram (guestAdvice bytecode seed s w) = .ok C) {S : String}
+    (hS : ∃ p ∈ Prover.honestPushes bytecode seed s w, p.1 = S) :
+    C.streams[S]? = some (((Prover.honestPushes bytecode seed s w).filter (·.1 == S)).map (·.2)).toArray :=
   streams_group hC rfl hS
 
 end

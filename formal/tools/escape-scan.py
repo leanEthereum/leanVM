@@ -10,9 +10,18 @@ Fails, listing each hit as `file:line: text`, on any of these outside comments:
 * the keyword `axiom` anywhere, so an `axiom` declaration whatever comes before it (`private axiom`,
   `meta axiom`, `@[simp] axiom`, `open Nat in axiom`, ...);
 * the ways to skip the kernel that `#print axioms` cannot see: `skipKernelTC`, `addDeclCore`,
-  `addDeclWithoutChecking`, `doCheck`, `ofReduceBool`, `trustCompiler`, and adding to the environment
-  past `addDecl`: `addConstAsync`, `commitConst`, `Kernel.Environment.add`, `setEnv` (`ALLOWED` lists
-  the benign uses).
+  `addDeclWithoutChecking`, `doCheck`, `ofReduceBool` and `trustCompiler` (older Lean's), adding to
+  the environment past `addDecl`: `addConstAsync`, `commitConst`, `Kernel.Environment.add`, `setEnv`,
+  `modifyEnv`, `ofKernelEnv`, `toKernelEnv` (`ALLOWED` lists the benign uses), and setting an option
+  from a program, whose name a string can build: `withOptions`, `setBool`, `Options.set`,
+  `KVMap.insert`, `modifyScope`;
+* `axiomDecl`, an axiom added by a program, and `extern` in a quoted attribute (`(attr| extern`).
+
+`#print axioms` reads the axioms each module recorded when it was built, so it is no independent
+check of what a metaprogram added: the scan forbids the metaprograms it knows. It is a deny-list,
+which a metaprogram can evade (an option set by `withScope`, its name built from strings, then
+`addDecl`); the independent check is a kernel replay of the end theorems' closure (the toolchain's
+`leanchecker`), which the gate does not run.
 
 Comments (`--` to the end of the line, `/- ... -/` nested, docstrings included) are blanked
 before the search, keeping the lines, so a forbidden word in a comment passes and one in code
@@ -28,12 +37,14 @@ import sys
 
 WORDS = ("sorry|sorryAx|admit|admitGoal|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|"
          "addDeclWithoutChecking|doCheck|ofReduceBool|trustCompiler|addConstAsync|commitConst|"
-         "Environment\\.add|setEnv")
+         "Environment\\.add|setEnv|modifyEnv|ofKernelEnv|toKernelEnv|withOptions|setBool|Options\\.set|"
+         "KVMap\\.insert|modifyScope|axiomDecl")
 PATTERN = re.compile(
     r"\b(?:" + WORDS + r")\b"
     r"|#exit\b"
     r"|\+native\b"
     r"|(?:@|\battribute\s*)\[[^\]]*\bextern\b"
+    r"|\(attr\|\s*extern\b"
     r"|(?<![.«`'])\baxiom\b(?!['?!])")
 
 # Every hit contains one of these words, and blanking comments only removes text: a file without
@@ -41,8 +52,11 @@ PATTERN = re.compile(
 QUICK = re.compile(r"(?:" + WORDS + r"|#exit|\+native|extern|axiom)")
 
 # The benign uses, by file (its path's end) and word: `copyDecl` sets compiler attributes on a
-# declaration `addDecl` added.
-ALLOWED = {("LeanVM/Prover/Fast/Copy.lean", "setEnv")}
+# declaration `addDecl` added; the cost compiler records its programs, measures and rewrites in its
+# own environment extensions (`addEntry`, no constant); the `vc` tactic elaborates with `Elab.async`
+# off.
+ALLOWED = {("LeanVM/Prover/Fast/Copy.lean", "setEnv"), ("LeanVM/Cost/Compiler.lean", "modifyEnv"),
+           ("LeanVM/Guest/VcTactic.lean", "withOptions")}
 
 RAW = re.compile(r'r(#*)"')
 

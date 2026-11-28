@@ -25,7 +25,7 @@ pub struct Report {
 
 /// Prove `n` random permutations, a state committed every `depth` rounds, with one warmup pass then `plan.repeat`
 /// measured ones, and verify the proof. The output is not committed: a claim on it is bound in the transcript, as the
-/// VM's memory bus does.
+/// VM's link does.
 pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let shape = Shape::new(n, depth);
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);

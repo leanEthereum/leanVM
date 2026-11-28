@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Guest.Hints
-public import LeanVM.Protocol.Verifier.DeferredShape
 public import Statement.LeanVmGuest
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Guest.AcceptableChild
@@ -23,25 +22,29 @@ Completeness assumes two hypotheses beside `NodeRelation`, each a precise predic
 
 * **`DeployedLimits s w`, the deployed limits** of the node, which the Spec does not have (listed at
   the structure): at most `16` children, which the guest enforces (`aggregate` refuses more than
-  `16` children), and caps on the children's claims, the raw signatures and the blob matrix's rows,
-  which neither the guest nor `aggregate` enforces: a node past a cap is still accepted, but
-  completeness does not cover it. An honest prover within them is never refused. The guest's proofs
-  take them with `NodeRelation`'s signature claims held and the coverage table below `2^23`
-  (`GuestLimits`), which their caps give.
+  `16` children), the blob matrix's rows, and the memory budget (`NodeWitness.memoryBudget`, linear
+  in the children, their claims, the raw signatures and the blob rows, at most `2^24` words), which
+  neither the guest nor `aggregate` enforces: a node past it is still accepted, but completeness
+  does not cover it. An honest prover within them is never refused. The guest's proofs take them
+  with `NodeRelation`'s signature claims held and the coverage table below `2^23` (`GuestLimits`),
+  which the budget gives (`46` words a child's claim and at least `1400` a raw signature: fewer
+  than `2^19` claims).
 * **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`,
   `LeanVM/Guest/AcceptableChild.lean`): besides `NodeRelation`'s conditions, a child's stack log at
-  least `20` and its proof stream at most `8192` scalars, both of which `NodeRelation`'s acceptance
-  gives (`Child/Accepted.lean`); its openings agree in the guest's Merkle caps (the guest writes
-  each level's Merkle cap once, so two openings of one query step meeting at a node of the tree must
-  give it one digest; one tree's openings agree). Two that disagree at a node exhibit a Keccak-256
-  collision (`OpeningsCollide`), the statement's alternative: with `NodeRelation`, `ChildrenOk`
-  holds or a child's proof exhibits one (`Child.acceptableChildren_or_collide`).
+  least `minChildStackLog` and its proof stream at most `8192` scalars, both from `NodeRelation`'s
+  acceptance (`Child/StackLog.lean`, `Child/Stream.lean`); its openings agree in the guest's Merkle
+  caps (the guest writes each level's Merkle cap once, so two openings of one query step meeting at
+  a node of the tree must give it one digest; one tree's openings agree). Two that disagree at a
+  node exhibit a Keccak-256 collision (`OpeningsCollide`), the statement's alternative: with
+  `NodeRelation`, `ChildrenOk` holds or a child's proof exhibits one
+  (`Child.acceptableChildren_or_collide`, `Child/Accepted.lean`).
 
 The coverage table's size (`coverageSlots`) is the number of claims made; an honest run lays it out
 by `Coverage.coveragePlan` (`planSlots`, equal to it under `SignatureClaimsHeld`:
 `B1/Main/Plan.lean`'s `planSlots_eq`). The guest's proofs take it below `2^23` (`GuestLimits`, every count of `meta` and
 of a child's lists at most it), so below the guest's memory, which is at least `2^23` words
-(`Memory.logMem`); the deployed limits' caps give it (`Budget/Fits.lean`'s `GuestLimits.of_limits`).
+(`Memory.logMem`); the deployed limits' budget gives it (proved for the bus era's caps,
+`Budget/Fits.lean`'s `GuestLimits.of_limits`, archived at tag `formal-bus-archive`).
 -/
 
 namespace LeanVM.Guest

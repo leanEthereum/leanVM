@@ -94,9 +94,14 @@ theorem winTab_loadO {rd : Reader} {t : E} {off : ℕ} (ht : WinTabs rd (t * gen
 
 variable {rd : Reader} {S : List Atom} {wo : ℕ → E} {σ : Val}
 
-/-- **`grind_check` inlined, its table reads at `off`, evaluated, is honest** on its own values:
-`gcVals` at the tables `tabs`, the windows at `tabs·g^off`. -/
-theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+/-- The shape facts the completeness of `grind_check` at `b` bits uses: its top window's width,
+the windows covering the word, at least one full window. -/
+def GcShape (b : ℕ) : Prop := (1 ≤ gcTop b ∧ gcTop b ≤ 11 ∧ b + 11 * gcW b + gcTop b = 64) ∧ 1 ≤ gcW b
+
+theorem gcShape_of_mem {b : ℕ} (hb : b ∈ grindBitsDeployed) : GcShape b := ⟨gc_shape b hb, gcW_pos b hb⟩
+
+/-- `gcInlineO_vals_of_good` at any `b` with `GcShape b` (the link's one bit among them). -/
+theorem gcInlineO_vals_of_shape {b o off : ℕ} (hb : GcShape b) {w tabs : V}
     (hwo : w.idx < o) (hto : tabs.idx < o)
     (hg : ∀ s ∈ gcInlineOT b o off w tabs, GoodS rd S wo σ s)
     (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
@@ -105,8 +110,7 @@ theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w
     (ht : WinTabs rd (σ tabs * gen ^ off))
     (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
     ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd b (σ w) (σ tabs) k := by
-  obtain ⟨hT1, hT, hsum⟩ := gc_shape b hb
-  have hW1 := gcW_pos b hb
+  obtain ⟨⟨hT1, hT, hsum⟩, hW1⟩ := hb
   generalize hWd : gcW b = W at hT1 hT hsum hW1 hwin
   generalize hRd : gcRen o w tabs = R at hg
   have Rk : ∀ k, 2 ≤ k → R (.n k) = .n (o + k - 2) := fun k hk ↦ by
@@ -357,6 +361,19 @@ theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w
     rwa [show W + 9 * ((k - W) / 9) + (k - W) % 9 = k by omega] at this
   · have := htail (k - (10 * W + 9)) (by omega)
     rwa [show 10 * W + 9 + (k - (10 * W + 9)) = k by omega] at this
+
+/-- **`grind_check` inlined, its table reads at `off`, evaluated, is honest** on its own values:
+`gcVals` at the tables `tabs`, the windows at `tabs·g^off`. -/
+theorem gcInlineO_vals_of_good {b o off : ℕ} (hb : b ∈ grindBitsDeployed) {w tabs : V}
+    (hwo : w.idx < o) (hto : tabs.idx < o)
+    (hg : ∀ s ∈ gcInlineOT b o off w tabs, GoodS rd S wo σ s)
+    (hS : ∀ a ∈ S, loadInto o (o + (gcLen b - 2)) a = false)
+    (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
+      wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
+    (ht : WinTabs rd (σ tabs * gen ^ off))
+    (hwin : ∀ j ≤ gcW b, wo (o + j) = gcWin b (σ w) j) :
+    ∀ k, 2 ≤ k → k < gcLen b → σ (.n (o + k - 2)) = gcVals rd b (σ w) (σ tabs) k :=
+  gcInlineO_vals_of_shape (gcShape_of_mem hb) hwo hto hg hS hrc ht hwin
 
 /-- **`grind_check` inlined, its table reads at `off`, evaluated: its table reads' pointers** are the
 tables' words `tabs·g^e`, `e < 2^11`: the head's, at `o + gcW b + 5`, and step `i + 1`'s, at

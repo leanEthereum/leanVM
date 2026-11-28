@@ -17,7 +17,7 @@ claims.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 lean_da.workspace = true
-# The protocol's structure (bus blocks, stacking, grinds, the stacked bytecode), from the reference prover.
+# The field conversions, the Keccak shape and the NTT the guest's constants and a child's witness use, from the reference prover.
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core" }
 pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
 primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }

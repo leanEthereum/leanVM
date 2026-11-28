@@ -1,0 +1,25 @@
+# The executors' faults, Rust against Lean: the stable and the experimental `cpu::execute` on `KECCAK` window cases
+# and on the compiler suite's programs (each again with every `aligned` allocation flag cleared), against each other,
+# and a case directory per run for `lake exe leanvm-execute`, with `fault.txt` where the Rust faults.
+#
+# leanVM is this repository (`../../../..`), as for `rust-verifier-cli`; `Cargo.lock` is its.
+[package]
+name = "leanvm-executor-faults"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Its own workspace, not a member of leanVM's, whose members still inherit that one's settings.
+[workspace]
+
+[dependencies]
+isa = { path = "../../../../crates/isa" }
+zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
+verifier = { path = "../../../../crates/verifier" }
+lean_vm_core = { package = "stable_lean_vm_core", path = "../../../../crates/stable_prover/lean_vm_core" }
+primitives = { package = "stable_primitives", path = "../../../../crates/stable_prover/primitives" }
+exp = { package = "experimental_lean_vm_core", path = "../../../../crates/experimental_prover/lean_vm_core" }
+eprim = { package = "experimental_primitives", path = "../../../../crates/experimental_prover/primitives" }
+
+[profile.release]
+codegen-units = 16

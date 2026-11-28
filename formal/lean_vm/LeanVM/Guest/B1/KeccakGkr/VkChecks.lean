@@ -16,6 +16,8 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 @[expose] public section
 
+theorem headD_eq_getD (l : List E) : l.headD 0 = l.getD 0 0 := by cases l <;> rfl
+
 theorem vkFirst_weights (inst outs : List E) (comm : E) (seg rl : List E) {z : ℕ} (hz : z < 1600) :
     (vkFirst inst outs comm seg rl).weights.getD z 0 =
       (eqKernel rl).getD (z / 64) 0 * eOfNat (2 ^ (z % 64)) := by
@@ -37,7 +39,7 @@ theorem vk_out_check {τ : ℕ} (inst outs : List E) (comm : E) (r0 : E) (rl : L
       (eqKernel rl).getD lane 0) * word = v) :
     ((foldAll slotO (keccakSlotWeights τ (vkFirst inst outs comm [r0] rl) 1 1)).headD []).headD 0 *
       word = v := by
-  rw [List.headD_eq_getD, openWeights_getD τ _ (Or.inl ⟨rfl, rfl⟩) slotO hs (by norm_num)]
+  rw [headD_eq_getD, openWeights_getD τ _ (Or.inl ⟨rfl, rfl⟩) slotO hs (by norm_num)]
   rw [← h]
   refine congrArg (· * word) (Finset.sum_congr rfl fun lane hl ↦ ?_)
   have hl' := Finset.mem_range.1 hl

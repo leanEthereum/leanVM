@@ -1,9 +1,27 @@
-"""`decode_query_windows`' contracts (`sigc.py`)."""
+"""`decode_query_windows`' contracts (`sigc.py`): `decode_query_windows__L{d}_L{c}(word, positions_out, win_ptrs_out,
+tabs)` reads `tabs[g^n]`, `n < 2^w`, for its windows' widths `w <= 7`, and writes `FIELD_BITS // d` positions and
+window pointers, each pointing at its query's `n_win` windows."""
+from fnrules import guest_const
+from sigseed import sig, cell, num, run, ptrs
 
-# `decode_query_windows__L14_L2`'s windows: its last window has four cells and the frame cell eight past it is
-# not written at the return (the compiler reuses it), so that pointer's cells `[0, 8)`, the others' `[0, 9)`.
-CONTRACTS = {'decode_query_windows__L14_L2': '[0, 1, 2, 3, 4, 5], none, [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num 64), 1, 0⟩], [], [], [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 9), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 9), 1, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num 64), 1, 0⟩], [], [], [(⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 8), 1, 0⟩, [0, 1, 2, 3, 4, 5, 6, 7, 8]), (⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 8), (.num 9), 1, 0⟩, [0, 1, 2, 3, 4, 5, 6, 7])], [], [], [], []'}
+F, QW = guest_const('FIELD_BITS'), guest_const('QW')
 
-# its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
-# it alone may change, by hand
+
+def par(i, hi, lo=0):
+    """Parameter `i`'s cells `[p]·g^k`, `lo <= k < hi`."""
+    return run(cell(0, [(2 + i, 1)]), num(lo), num(hi), 1, 0)
+
+
+TABS = [par(3, 2), par(3, 64), par(3, 128)]
+
+
+def contract(d, c):
+    pw, n_win = F // d, (d - c + QW - 1) // QW + 2
+    return sig(range(6), None, [], preR=TABS, postR=[par(1, pw), par(2, pw)] + TABS,
+               postP=[ptrs(par(2, pw), range(n_win))])
+
+
+# the tree and cap depths whose windows cross a limb, whose contracts the bus era did not write
+CONTRACTS = {'decode_query_windows__L%d_L%d' % dc: contract(*dc) for dc in [(9, 3), (10, 4), (11, 5), (14, 2), (14, 8)]}
+
 OWN = []

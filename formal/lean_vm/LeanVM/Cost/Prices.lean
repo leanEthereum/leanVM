@@ -96,7 +96,7 @@ every input. At counts at most `M` the witness costs `guestDecoderWitnessPriceAt
 at `6414234 ≈ 2^22.61` a count, mostly a raw leanSPHINCS signature (`4609882`: about `1500` words
 of its four frames, `verify_sig_lean_sphincs`' and its three `sp_wots`'), then a raw leanXMSS one
 (`784328`: `184` words of its `main_loop2` iteration's frame), each child's claims and the regions'
-tables; and `guestDecoderFrameLookupCountAt M = 3525073 + 8·M` frame lookups
+tables; and `guestDecoderFrameLookupCountAt M = 3590181 + 8·M` frame lookups
 (`guestDecoderFramePrice`, one binary search, growing as `log(steps)`; a count's eight are the
 leanSPHINCS signature's four frames and the search on `main_loop2`'s `56` arguments, which counts
 as four). The address tables are `guestDecoderAddressTablesPrice κ ℓ =
@@ -113,8 +113,8 @@ so at each `pc` at most `2^κ` values of `fp` let a step succeed; the run is det
 `(pc, fp)`, and a repeated state would loop without halting (argued, not a Lean theorem; `lean_vm`
 proves fewer than `2^128`, `steps_lt_replayFuel`). The per-step price and the frame lookup's are
 `lean_vm`'s bounds on the compiled decoder's own work, stated exactly (`entryArrayStatePrice_eq`;
-`frameAtAPrice_le`, equal at `16` words), at small maxima only (a memory read at `1271`, its price
-at `κ = 32`, above the deployed `κ ≤ 30`; two functions entered at a pc; `16` words a frame). The
+`frameAtAPrice_le`, equal at `17` words), at small maxima only (a memory read at `1271`, its price
+at `κ = 32`, above the deployed `κ ≤ 30`; two functions entered at a pc; `17` words a frame). The
 witness is priced at the bounds above, not at the run's counts, so on an execution with few
 children and claims the budget is several times what the compiled decoder spends (at
 `steps = 2^κ`, the bound at counts `2^κ` is about `4.7` times the bound at none for
@@ -152,11 +152,11 @@ def guestDecoderStateFilingPrice (exponent : ℕ) : ℕ :=
     2 * ((4343 + 5 * guestDecoderEntryTablePositionLimbs exponent) * exponent +
       7 * guestDecoderEntryTablePositionLimbs exponent + 4373)
 
-/-- A lookup of a call's frame in the entry table, one binary search (at most `16` words of
-arguments and returns), and a word of the frame. -/
+/-- A lookup of a call's frame in the entry table, one binary search (at most `17` words of
+arguments and returns, `open_stacked`'s `11` and `6`), and a word of the frame. -/
 def guestDecoderFramePrice (exponent : ℕ) : ℕ :=
-  (64 * 16 + 78 + 9 * guestDecoderEntryTablePositionLimbs exponent) * (exponent + 2) +
-    27 * 16 + 1271 + 1584
+  (64 * 17 + 78 + 9 * guestDecoderEntryTablePositionLimbs exponent) * (exponent + 2) +
+    27 * 17 + 1271 + 1584
 
 /-- The sorted tables of the addresses of a memory of `2^κ` words and of a program of `2^ℓ`
 instructions, built once. -/
@@ -168,10 +168,10 @@ signatures of each scheme, the coverage slots of the two regions), the frame loo
 tables apart: `16` children, each child's cursor at most `8192` words, the DA matrix of up to `32`
 rows, the children's proofs, the tables built once (the discrete logarithm's, the generator's
 powers', the readers'). Affine in `M`. -/
-def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 2946849400 + 6414234 * M
+def guestDecoderWitnessPriceAt (M : ℕ) : ℕ := 3017977468 + 6414234 * M
 
 /-- How many frame lookups the witness pays for, its counts at most `M`. -/
-def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 3525073 + 8 * M
+def guestDecoderFrameLookupCountAt (M : ℕ) : ℕ := 3590181 + 8 * M
 
 /-- **An upper bound on the guest decoder's price, its counts at most `M`** (`M = 2^κ` on a valid
 execution): per step the replay and the filing of the state, the tables of preconditions and of

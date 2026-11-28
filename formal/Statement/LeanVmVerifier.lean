@@ -19,18 +19,20 @@ transcribed. It is split as `crates/verifier/src` is, in reading order:
   language, which `runProof` reads on a proof over a permutation `π : KeccakState → m KeccakState`
   in any monad `m`, Keccak-256 the sponge over `π`, `keccak256With π` (`transcript.rs`,
   `merkle.rs`);
-* `Verifier/Multilinear.lean`, `Verifier/Layout.lean`, `Verifier/Bus.lean`, `Verifier/Whir.lean`,
-  `Verifier/Keccak.lean`, `Verifier/RingSwitch.lean`: the arithmetic, the layout, the sumchecks
-  and the bus, the WHIR opening, Keccak by GKR, ring switching;
+* `Verifier/Multilinear.lean`, `Verifier/Layout.lean`, `Verifier/Sumcheck.lean`,
+  `Verifier/Whir.lean`, `Verifier/Keccak.lean`, `Verifier/RingSwitch.lean`, `Verifier/Link.lean`:
+  the arithmetic, the layout and the program's split, the sumcheck rounds, the WHIR opening, Keccak
+  by GKR, ring switching, the link;
 * `Verifier/Lib.lean`: the verifier, ending with `verifyWith π bytecode publicInput proof`.
 
-The proof claims one value of the polynomial the statement fixes (the bytecode's multilinear
-extension) at a point the bus phase derives; the verifier checks that claim with a parameter
-`bytecodeValue : List K → List E → E → VerifierProgram Unit`. The deployed verifier evaluates the
-polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which the Rust
-verifier does not have, instead holds the point and the value to a claim it hands on, as an
-aggregate's in-circuit verifier of its children does
-(`guests/lean_ethereum.py`, `verify_sub`).
+The verifier meets the program the statement fixes where the link reads it: the program's split by
+opcode at the link's point over the instructions (`Split`), which a parameter
+`bytecodeSplit : List K → List E → List (ℕ × ℕ) → VerifierProgram Split` of `verifyLink` gives,
+called as the Rust calls `Bytecode::split`: on the program, the point and the `(opcode, slot)` pairs
+read times `pc` (`pc_slots`). The deployed verifier computes it (`computedSplit`,
+`Bytecode::split`). The deferring verifier (`verifyDeferred`), which the Rust verifier does not
+have, instead holds it to the child's fresh claim, which it hands on, as an aggregate's in-circuit
+verifier of its children does (`freshSplit`; `guests/lean_ethereum.py`, `verify_sub`).
 -/
 
 @[expose] public section
@@ -40,9 +42,10 @@ aggregate's in-circuit verifier of its children does
 
 The Rust verifier carries its WHIR constants, the ladder geometry (`derive_config`) and the query
 counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs`); they are the prover's
-(`crates/pcs/src/whir_config.rs`, its ladder `derive_ladder` and `derive_ladder_shape`), as the tests `whir_query_table_matches_the_search` and
-`grinding_constants_match_the_prover` (`crates/lean_vm_core/tests/verifiers/whir_query_table.rs`)
-check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
+(`crates/experimental_prover/pcs/src/whir_config.rs`, its ladder `derive_ladder` and `derive_ladder_shape`), as the tests `whir_query_table_matches_the_search` and
+`grinding_constants_match_the_prover` (`crates/experimental_prover/lean_vm_core/tests/verifiers/whir_query_table.rs`)
+check; that test and `lean_query_table_matches_rust` check this file's table, ladder and grinding
+constants against the Rust verifier's. The stacking window is `MIN_STACKED_LOG` and
 `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
 parameters instantiate (Annex B, `fig:protocol`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
 and gives no numbers.
@@ -67,7 +70,7 @@ verifier's `WHIR_QUERIES` (`whir.rs`), indexed by rate exponent `1..4` and stack
 `16..30`; outside that window `ladder` is `none`, as the verifier rejects (`whir_queries`,
 `whir.rs`; the prover's `validate_log_inv_rate`, `whir_config.rs`). `ladder` takes
 the stack size `μ`, as the verifier's `derive_config` does (the PCS crate's API takes
-`m = μ + LOG_PACKING`, `crates/pcs/src/pack.rs`), and the rate exponent is announced with the
+`m = μ + LOG_PACKING`, `crates/experimental_prover/pcs/src/pack.rs`), and the rate exponent is announced with the
 sizes.
 -/
 

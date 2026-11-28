@@ -17,7 +17,7 @@ public import LeanVM.Guest.Bridge.Cells
 /-!
 # The witness streams' track
 
-`YCur A r s`: in the prologue every cursor is `0`; past it, on the reference run, a state of the
+`YCur L D A r s`: in the prologue every cursor is `0`; past it, on the reference run, a state of the
 tree track at the state's pc and frame (`RefTrack`) whose entries done agree with the cursor on every
 stream (`CurOk`). `initY_cur`: it holds initially. `keepY_cur`: each step keeps it,
 by the step rule with its entries (`Bridge.stepD_of`): the hints at a pc move the cursor by the
@@ -25,14 +25,13 @@ entries they pop (`hints_cursor`), the flow ones compiling the atoms the track m
 (`count_pairs`). `hintWitness_cur`: a
 witness hint, the `j`-th flow hint of its pc, compiles the `j`-th flow atom the track moves past;
 the track past the atoms before it pops that atom's entry next (`TrackOk.witness_next`), which the
-honest pushes put at the cursor (`Ref.Ok.pops`, `streams_guest`); its words are the reference's at
+honest pushes put at the cursor (`RefH.pops`, `streams_guest`); its words are the reference's at
 the destination, a stack run's at the frame's cells, a heap run's the reference's own words there
-(`Ref.Ok.hintWords`).
+(`RefH.hintWords`).
 
-What it rests on beyond the tracks' premises: the alignment's advice is the executor's hints
-(`AdvAl`), each witness atom's destination cells hold its values in the reference, a heap pointer a
-power below `maxCells` (`WitCells`), and the honest pushes read the bytecode only through its length
-(`PushShape`).
+What it rests on beyond the tree track's premises: the alignment's advice is the executor's hints
+(`AdvAl`), and each witness atom's destination cells hold its values in the reference, a heap
+pointer a power below `maxCells` (`WitCells`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -40,7 +39,6 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Memory
 open LeanVM.Guest.Core hiding Hint
 open LeanVM.Guest.Bridge hiding St
-open LeanVM.Guest.End (mainEntry)
 open LeanVM.Prover.Exec
 
 @[expose] public section
@@ -59,14 +57,10 @@ def WitDest (loc : ℕ → ℕ) (M : ℕ → E) (fp : ℕ) (σ : Val) : Dest →
   | .heap p _ _ => ∃ b < maxCells, σ p = ofK (Parameters.g ^ b) ∧ fp + loc p.idx < maxCells ∧ M (fp + loc p.idx) = σ p
 
 /-- **The witness atoms' destinations in the reference**, at each frame of the tree track. -/
-def WitCells (A : String → FnAl) : Prop :=
-  ∀ r : Ref, r.Ok → ∀ pc fp done e st, RefTrack A r pc fp (done, e :: st) → ∀ es vs,
+def WitCells (L : Lay) (D : Ref → RefD) (A : String → FnAl) : Prop :=
+  ∀ r : Ref, RefH L (D r) r → r.Ok → ∀ pc fp done e st, RefTrack L D A r pc fp (done, e :: st) → ∀ es vs,
     walk e.σ e.fn.body = .ret es vs → ∀ S d, Ev.atom (.hint (.witness S d)) ∈ es →
       WitDest (A e.I.t.name).X.locAt (refMem r.img) e.I.fp e.σ d
-
-/-- **The honest pushes read the bytecode only through its length.** -/
-def PushShape : Prop :=
-  ∀ seed s w, Hints.honestPushes End.bytecode seed s w = Hints.honestPushes bytecodeShape seed s w
 
 /-! ## The track -/
 
@@ -76,9 +70,9 @@ def CurOk (s : St) (done : List Pop) : Prop :=
 
 /-- **The witness streams' track**: in the prologue every cursor `0`; past it, on the reference run,
 a state of the tree track at the state's pc and frame whose entries done are the cursor's. -/
-def YCur (A : String → FnAl) (r : Ref) (s : St) : Prop :=
+def YCur (L : Lay) (D : Ref → RefD) (A : String → FnAl) (r : Ref) (s : St) : Prop :=
   (s.steps < proLen → ∀ S, s.cursor.getD S 0 = 0) ∧
-    (proLen ≤ s.steps → s.steps < r.n → ∃ done st, RefTrack A r s.pc s.fp (done, st) ∧ CurOk s done)
+    (proLen ≤ s.steps → s.steps < r.n → ∃ done st, RefTrack L D A r s.pc s.fp (done, st) ∧ CurOk s done)
 
 end
 

@@ -43,9 +43,22 @@ record per permutation entry (`Dec.kinds`). An entry `(t, u)` is read as follows
     the challenge `challengeOf u`;
   - with four scalars consumed and the program at an absorption (`read`, `commit`, `grind`, or in
     the middle of a commitment), the permutation is forced by a fifth absorption: `u` is the
-    state at the same history and position, the queue emptied.
+    state at the same history and position, the queue emptied;
+  - at a `samplePacked n` node (after the openings), the permutation is a packed draw's first
+    chunk: its first `min(n, 8)` cells (`cells8`) are the draw's challenges, and `u` is the state
+    after the draw (`drawInfo`), or in its middle (`Pos.spk`);
+  - at a `readPacked n` node, the permutation is the one that absorbs what waits before a packed
+    message: `u` is at the start of the message (`Pos.rpk`, nothing absorbed).
+* **A packed message's chunk.** If the capacity is decoded in the middle of a packed message of
+  `n` scalars (`Pos.rpk`), or at a node whose next operation is one (nothing waits there), the
+  input carries the next chunk, its first `min(8, missing)` cells, untagged (`readChunk`): `u` is
+  the state at the boundary after the message once it has its `n` scalars, recorded as
+  `st h p none`, or in its middle.
+* **A packed draw's chunk.** If the capacity is decoded in the middle of a packed draw
+  (`Pos.spk`), the permutation squeezes the next chunk: `u`'s first cells (`drawInfo`).
 
-  Anything else is not decoded.
+  The position, not the input, tells a packed chunk from tagged scalars. Anything else is not
+  decoded.
 
 ## The records
 
@@ -53,10 +66,11 @@ Each permutation entry gets a `Shape`, paired with its output in `Dec.kinds`: `s
 output is a state at the boundary history `h` with node `p`, after the seed (`pw = none`) or a
 proof of work of `b` bits with nonce `n` (`pw = some (b, n)`); `sq h p` if it is the first
 squeeze of the group starting at the boundary `h`, the scalars of the permutation being the
-prover's last moves. The potential (`LeanVM.Protocol.Compile.Rom.Potential`) gives each record a
+prover's last moves; the boundary state after a packed message's last chunk gets `st h p none`, as
+the seed's does. The potential (`LeanVM.Protocol.Compile.Rom.Potential`) gives each record a
 term. A squeeze after the seed, with no scalar waiting, gets no record: the state's record carries
-its group. A proof of work's permutation draws the first challenge of its group itself, and its
-record carries the group.
+its group. A proof of work's permutation draws the first challenge of its group itself (or the first cells of a
+packed draw, `groundCells`), and its record carries the group.
 
 Every record and every decoded state carries a reachable history at which the program is at the
 recorded node (`decode_ok`): the certificate's lemmas apply to them.
@@ -103,6 +117,22 @@ theorem not_boundary_append_query (h : List Ev) (rows : List (List K)) :
   unfold Boundary; split
   · simp_all
   · rw [getLast?_append_single]; simp
+
+theorem boundary_append_readPacked (h : List Ev) (xs : List E) :
+    Boundary (h ++ [Ev.readPacked xs]) := by
+  unfold Boundary; split
+  · simp_all
+  · rw [getLast?_append_single]; trivial
+
+theorem not_boundary_append_samplePacked (h : List Ev) (cs : List E) :
+    ¬ Boundary (h ++ [Ev.samplePacked cs]) := by
+  unfold Boundary; split
+  · simp_all
+  · rw [getLast?_append_single]; simp
+
+theorem grindBits_append_readPacked (h : List Ev) (xs : List E) :
+    grindBits (h ++ [Ev.readPacked xs]) = 0 := by
+  simp [grindBits]
 
 theorem grindBits_append_read (h : List Ev) (x : E) : grindBits (h ++ [Ev.read x]) = 0 := by
   simp [grindBits]
@@ -154,6 +184,14 @@ theorem settle_ok {P : VerifierProgram Bool} :
     simp only [settle, Option.some.injEq, Prod.mk.injEq] at hs
     obtain ⟨rfl, rfl⟩ := hs
     exact ⟨hr, ha⟩
+  | .readPacked _ _, h, _, _, hr, ha, hs => by
+    simp only [settle, Option.some.injEq, Prod.mk.injEq] at hs
+    obtain ⟨rfl, rfl⟩ := hs
+    exact ⟨hr, ha⟩
+  | .samplePacked _ _, h, _, _, hr, ha, hs => by
+    simp only [settle, Option.some.injEq, Prod.mk.injEq] at hs
+    obtain ⟨rfl, rfl⟩ := hs
+    exact ⟨hr, ha⟩
   | .grind _ _, h, _, _, hr, ha, hs => by
     simp only [settle, Option.some.injEq, Prod.mk.injEq] at hs
     obtain ⟨rfl, rfl⟩ := hs
@@ -173,6 +211,12 @@ inductive Pos where
   | node (p : VerifierProgram Bool)
   /-- In the middle of a commitment. -/
   | half (ht w : ℕ) (k : VerifierProgram Bool) (x₀ : E)
+  /-- In the middle of a packed message of `n` scalars, continuing with `k`, the scalars `xs`
+  absorbed, none waiting. -/
+  | rpk (n : ℕ) (k : List E → VerifierProgram Bool) (xs : List E)
+  /-- In the middle of a packed draw of `n` challenges, continuing with `k`, the challenges `cs`
+  drawn. -/
+  | spk (n : ℕ) (k : List E → VerifierProgram Bool) (cs : List E)
 
 /-- The result of consuming waiting scalars. -/
 inductive Cons where
@@ -198,6 +242,8 @@ def consume (W : Digest → ℕ → ℕ → Word) : List Ev → Pos → List (E 
     if tag = 1 then
       consume W (h ++ [Ev.commit ht w (W (digestFromHalves (x₀, x)) ht w)]) (.node k) rest
     else .bad
+  | _, .rpk _ _ _, _ :: _ => .bad
+  | _, .spk _ _ _, _ :: _ => .bad
 
 /-! ## The decoder -/
 
@@ -230,6 +276,22 @@ one more. -/
 def forced (h : List Ev) (p : VerifierProgram Bool) (ps : List (E × ℕ)) : Shape × (KeccakState → Option Info) :=
   if ps.length = 4 then (.none, fun _ ↦ some (h, .node p)) else (.none, fun _ ↦ none)
 
+/-- The decoding after a packed draw of `n` challenges took `ys` after `cs`: the node after the
+draw once it has its `n` challenges, the middle of the draw otherwise. -/
+def drawInfo (h : List Ev) (n : ℕ) (k : List E → VerifierProgram Bool) (cs ys : List E) : Info :=
+  if n ≤ (cs ++ ys).length then (h ++ [Ev.samplePacked (cs ++ ys)], .node (k (cs ++ ys)))
+  else (h, .spk n k (cs ++ ys))
+
+/-- The record and the decoding after a packed message of `n` scalars absorbed `ys` after `xs`:
+the state at the boundary after the message once it has its `n` scalars, the middle of the
+message otherwise. -/
+def readChunk (h : List Ev) (n : ℕ) (k : List E → VerifierProgram Bool) (xs ys : List E) :
+    Shape × (KeccakState → Option Info) :=
+  if n ≤ (xs ++ ys).length then
+    (.st (h ++ [Ev.readPacked (xs ++ ys)]) (k (xs ++ ys)) none,
+      fun _ ↦ some (h ++ [Ev.readPacked (xs ++ ys)], .node (k (xs ++ ys))))
+  else (.none, fun _ ↦ some (h, .rpk n k (xs ++ ys)))
+
 /-- The record and the decoding of the output, once the waiting scalars are consumed. -/
 def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Info)
   | .done h (.half ht w k x₀), ps =>
@@ -238,6 +300,10 @@ def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Inf
     | some (h1, .sample k) =>
       (if ps = [] then .none else .sq h p,
         fun u ↦ some (h1 ++ [Ev.sample (challengeOf u)], .node (k (challengeOf u))))
+    | some (h1, .samplePacked n k) =>
+      (if ps = [] then .none else .sq h p, fun u ↦ some (drawInfo h1 n k [] ((cells8 u).take n)))
+    | some (h1, .readPacked n k) =>
+      if ps = [] then (.none, fun _ ↦ none) else (.none, fun _ ↦ some (h1, .rpk n k []))
     | some (h1, .read k) => forced h1 (.read k) ps
     | some (h1, .commit ht w k) => forced h1 (.commit ht w k) ps
     | some (h1, .grind b k) => forced h1 (.grind b k) ps
@@ -245,20 +311,25 @@ def decodeAt : Cons → List (E × ℕ) → Shape × (KeccakState → Option Inf
   | .grd h b k n, _ =>
     (.st (h ++ [Ev.grind b]) k (some (b, n)), fun u ↦ match settle (h ++ [Ev.grind b]) k with
       | some (h1, .sample k') => some (h1 ++ [Ev.sample (challengeOf u)], .node (k' (challengeOf u)))
+      | some (h1, .samplePacked n k') => some (drawInfo h1 n k' [] ((groundCells u).take n))
       | _ => none)
+  | .done _ (.rpk _ _ _), _ => (.none, fun _ ↦ none)
+  | .done _ (.spk _ _ _), _ => (.none, fun _ ↦ none)
   | .bad, _ => (.none, fun _ ↦ none)
-
-/-- A history at which a seed can put the program: reachable, a boundary without proof of work
-and without commitment, at a node of the program. -/
-def RootOk (P : VerifierProgram Bool) (h : List Ev) : Prop :=
-  P.Reachable h ∧ Boundary h ∧ grindBits h = 0 ∧ commits h = [] ∧ (P.after h).isSome
 
 /-- The node of the program at a history (`fail` off the program). -/
 def nodeAt (P : VerifierProgram Bool) (h : List Ev) : VerifierProgram Bool := (P.after h).getD .fail
 
+/-- A history at which a seed can put the program: reachable, a boundary without proof of work
+and without commitment, at a node of the program whose packed messages are nonempty
+(`VerifierProgram.PackedPos`). -/
+def RootOk (P : VerifierProgram Bool) (h : List Ev) : Prop :=
+  P.Reachable h ∧ Boundary h ∧ grindBits h = 0 ∧ commits h = [] ∧ (P.after h).isSome ∧
+    (nodeAt P h).PackedPos
+
 theorem after_nodeAt {P : VerifierProgram Bool} {h : List Ev} (hr : RootOk P h) :
     P.after h = some (nodeAt P h) := by
-  obtain ⟨-, -, -, -, hs⟩ := hr
+  obtain ⟨-, -, -, -, hs, -⟩ := hr
   rcases ha : P.after h with _ | p
   · rw [ha] at hs; cases hs
   · simp [nodeAt, ha]
@@ -286,6 +357,11 @@ noncomputable def stepF (ℓ : Log) (δ : Dec) (t : KeccakState) : Shape × (Kec
   match rootAt σ ℓ t with
   | some x => rootStep P (σ.root x)
   | none => match δ.info (capOf t) with
+    | some (h, .rpk n k xs) => readChunk h n k xs ((cells8 t).take (n - xs.length))
+    | some (h, .spk n k cs) => (.none, fun u ↦ some (drawInfo h n k cs ((cells8 u).take (n - cs.length))))
+    | some (h, .node p) => match settle h p with
+      | some (h1, .readPacked n k) => readChunk h1 n k [] ((cells8 t).take n)
+      | _ => decodeAt (consume (extract (lookH ℓ)) h (.node p) (parsePending t)) (parsePending t)
     | some (h, pos) =>
       decodeAt (consume (extract (lookH ℓ)) h pos (parsePending t)) (parsePending t)
     | none => (.none, fun _ ↦ none)
@@ -354,6 +430,8 @@ variable {X : Type} {σ : Seeds X} {P : VerifierProgram Bool}
 def InfoOk (P : VerifierProgram Bool) : Info → Prop
   | (h, .node p) => P.Reachable h ∧ P.after h = some p
   | (h, .half ht w k _) => P.Reachable h ∧ P.after h = some (.commit ht w k)
+  | (h, .rpk n k xs) => P.Reachable h ∧ P.after h = some (.readPacked n k) ∧ xs.length ≤ n
+  | (h, .spk n k cs) => P.Reachable h ∧ P.after h = some (.samplePacked n k) ∧ cs.length ≤ n
 
 /-- A record is at a reachable boundary history where the program is at the recorded node, with
 the proof-of-work bits that precede it. -/
@@ -468,6 +546,52 @@ theorem consume_ok {W : Digest → ℕ → ℕ → Word} (hW : ∀ r ht w, WellS
         · exact hc
         · trivial
     · trivial
+  | (_, _) :: _, _, .rpk _ _ _, _ => trivial
+  | (_, _) :: _, _, .spk _ _ _, _ => trivial
+
+theorem after_readPacked_step {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool}
+    (ha : P.after h = some (.readPacked n k)) {xs : List E} (hn : xs.length = n) :
+    P.after (h ++ [Ev.readPacked xs]) = some (k xs) := by
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after, hn]
+
+theorem after_samplePacked_step {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool}
+    (ha : P.after h = some (.samplePacked n k)) {cs : List E} (hn : cs.length = n) :
+    P.after (h ++ [Ev.samplePacked cs]) = some (k cs) := by
+  rw [VerifierProgram.after_append_single _ ha]; simp [VerifierProgram.after, hn]
+
+/-- A packed draw's decoding is at a reachable history. -/
+theorem drawInfo_ok {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool} {cs ys : List E}
+    (hr : P.Reachable h) (ha : P.after h = some (.samplePacked n k)) (hcs : cs.length ≤ n)
+    (hys : ys.length ≤ n - cs.length) : InfoOk P (drawInfo h n k cs ys) := by
+  unfold drawInfo
+  split
+  · rename_i hle
+    have hl : (cs ++ ys).length = n := by simp at hle ⊢; omega
+    exact ⟨.samplePacked _ hr ha hl, after_samplePacked_step ha hl⟩
+  · exact ⟨hr, ha, by simp; omega⟩
+
+/-- A packed message's record and decoding are at a reachable history. -/
+theorem readChunk_ok {h : List Ev} {n : ℕ} {k : List E → VerifierProgram Bool} {xs ys : List E}
+    (hr : P.Reachable h) (ha : P.after h = some (.readPacked n k)) (hxs : xs.length ≤ n)
+    (hys : ys.length ≤ n - xs.length) :
+    ShapeOk P (readChunk h n k xs ys).1 ∧
+      ∀ u i, (readChunk h n k xs ys).2 u = some i → InfoOk P i := by
+  unfold readChunk
+  split
+  · rename_i hle
+    have hl : (xs ++ ys).length = n := by simp at hle ⊢; omega
+    have hr' := VerifierProgram.Reachable.readPacked _ hr ha hl
+    have ha' := after_readPacked_step ha hl
+    exact ⟨⟨hr', boundary_append_readPacked _ _, ha', by simp [grindBits_append_readPacked]⟩,
+      fun _ i hi ↦ by cases hi; exact ⟨hr', ha'⟩⟩
+  · exact ⟨trivial, fun _ i hi ↦ by cases hi; exact ⟨hr, ha, by simp; omega⟩⟩
+
+theorem length_take_cells8_le (u : KeccakState) (m : ℕ) : ((cells8 u).take m).length ≤ m := by
+  simp
+
+theorem length_take_groundCells_le (u : KeccakState) (m : ℕ) :
+    ((groundCells u).take m).length ≤ m := by
+  simp
 
 theorem forced_ok {h : List Ev} {p : VerifierProgram Bool} (hr : P.Reachable h) (ha : P.after h =
     some p)
@@ -481,7 +605,7 @@ theorem forced_ok {h : List Ev} {p : VerifierProgram Bool} (hr : P.Reachable h) 
 /-- Reading the consumed scalars keeps the invariants. -/
 theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
     ShapeOk P (decodeAt c ps).1 ∧ ∀ u i, (decodeAt c ps).2 u = some i → InfoOk P i := by
-  rcases c with ⟨h, ⟨p⟩ | ⟨ht, w, k, x₀⟩⟩ | ⟨h, b, k, n⟩ | _
+  rcases c with ⟨h, ⟨p⟩ | ⟨ht, w, k, x₀⟩ | ⟨n, k, xs⟩ | ⟨n, k, cs⟩⟩ | ⟨h, b, k, n⟩ | _
   · obtain ⟨⟨hr, ha⟩, hb⟩ := hc
     simp only [decodeAt]
     split
@@ -495,6 +619,21 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
           exact ⟨hr, hb1, ha, hg⟩
       · cases hi
         exact ⟨VerifierProgram.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
+    · rename_i h1 n k hs
+      obtain ⟨hr1, ha1⟩ := settle_ok p h hr ha hs
+      refine ⟨?_, fun u i hi ↦ ?_⟩
+      · split
+        · trivial
+        · rename_i hne
+          obtain ⟨hb1, hg⟩ := hb hne p rfl
+          exact ⟨hr, hb1, ha, hg⟩
+      · cases hi
+        exact drawInfo_ok hr1 ha1 (by simp) (by simp)
+    · rename_i h1 n k hs
+      obtain ⟨hr1, ha1⟩ := settle_ok p h hr ha hs
+      split
+      · exact ⟨trivial, fun _ _ hi ↦ by simp at hi⟩
+      · exact ⟨trivial, fun _ i hi ↦ by cases hi; exact ⟨hr1, ha1, by simp⟩⟩
     · rename_i h1 k hs
       obtain ⟨hr1, ha1⟩ := settle_ok p h hr ha hs
       exact forced_ok hr1 ha1 ps
@@ -510,6 +649,8 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
     split
     · exact ⟨trivial, fun _ i hi ↦ by cases hi; exact ⟨hr, ha⟩⟩
     · exact ⟨trivial, fun _ _ hi ↦ by simp at hi⟩
+  · exact ⟨trivial, fun _ _ hi ↦ by simp [decodeAt] at hi⟩
+  · exact ⟨trivial, fun _ _ hi ↦ by simp [decodeAt] at hi⟩
   · obtain ⟨hr, ha⟩ := hc
     simp only [decodeAt]
     have hr' := VerifierProgram.Reachable.grind hr ha
@@ -521,6 +662,10 @@ theorem decodeAt_ok {ps : List (E × ℕ)} {c : Cons} (hc : ConsOk P ps c) :
       obtain ⟨hr1, ha1⟩ := settle_ok k _ hr' ha' hs
       cases hi
       exact ⟨VerifierProgram.Reachable.sample _ hr1 ha1, after_sample_step ha1 _⟩
+    · rename_i h1 n' k' hs
+      obtain ⟨hr1, ha1⟩ := settle_ok k _ hr' ha' hs
+      cases hi
+      exact drawInfo_ok hr1 ha1 (by simp) (by simp)
     · simp at hi
   · exact ⟨trivial, fun _ _ hi ↦ by simp [decodeAt] at hi⟩
 
@@ -548,10 +693,25 @@ theorem stepF_ok_of (ℓ : Log) (δ : Dec) (t : KeccakState)
       exact ⟨⟨hr.1, hr.2.1, after_nodeAt hr, by simpa using hr.2.2.1⟩,
         fun _ i hi ↦ by cases hi; exact ⟨hr.1, after_nodeAt hr⟩⟩
     · exact ⟨trivial, fun _ _ hi ↦ by simp at hi⟩
-  · split
-    · rename_i h pos hinfo
-      exact decodeAt_ok (consume_ok (fun r ht w ↦ wellShaped_extract _ r ht w) _ h pos
-        (hδ _ _ hinfo))
+  · have hW := fun r ht w ↦ wellShaped_extract (lookH ℓ) r ht w
+    split
+    · rename_i h n k xs hinfo
+      obtain ⟨hr, ha, hxs⟩ := hδ _ _ hinfo
+      exact readChunk_ok hr ha hxs (by simp)
+    · rename_i h n k cs hinfo
+      obtain ⟨hr, ha, hcs⟩ := hδ _ _ hinfo
+      refine ⟨trivial, fun u i hi ↦ ?_⟩
+      cases hi
+      exact drawInfo_ok hr ha hcs (length_take_cells8_le u _)
+    · rename_i h p hinfo
+      have hi := hδ _ _ hinfo
+      split
+      · rename_i h1 n k hs
+        obtain ⟨hr1, ha1⟩ := settle_ok p h hi.1 hi.2 hs
+        exact readChunk_ok hr1 ha1 (by simp) (by simp)
+      · exact decodeAt_ok (consume_ok hW _ h _ hi)
+    · rename_i h pos _ _ _ hinfo
+      exact decodeAt_ok (consume_ok hW _ h pos (hδ _ _ hinfo))
     · exact ⟨trivial, fun _ _ hi ↦ by simp at hi⟩
 
 /-- **The decoder's invariants**: every decoded state and every record is at a reachable history

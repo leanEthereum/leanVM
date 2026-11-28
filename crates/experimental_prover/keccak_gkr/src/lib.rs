@@ -7,8 +7,8 @@
 //! The prover commits a state every `depth` rounds, as lanes: the input of each of the
 //! `24 / depth` segments, for every instance of the batch. A segment's output is the next
 //! segment's committed input, except the last segment's, which is the permutation's output and is
-//! not committed: the caller holds a claim on it ([`OutputClaim`]), in the VM the memory bus's
-//! claim on the `KECCAK` table's output lanes. Nothing between two committed states is committed.
+//! not committed: the caller holds a claim on it ([`OutputClaim`]), in the VM the link's claim on
+//! the `KECCAK` table's output lanes (§sec:link-terminal). Nothing between two committed states is committed.
 //! The proof is that every segment of every instance follows the permutation, the last one ending
 //! where the caller's claim says.
 //!
@@ -136,7 +136,7 @@ pub mod witness;
 mod tests;
 
 pub use open::{Opening, Openings, WordOpening};
-pub use witness::{Shape, Witness};
+pub use witness::{Shape, Witness, slots, slots_mut};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
 /// the output state, as words over the instances, evaluated at `instance` (an instance index's
@@ -197,13 +197,12 @@ impl Witness {
     /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to
     /// openings of the commitment. `committed` is the WHOLE committed block, spare slots and
     /// all, not just the states [`Witness::generate`] wrote: the openings it leaves are claims
-    /// on all of it, so they fold whatever rides those slots (§cpu).
-    pub fn prove(&self, ps: &mut ProverState, committed: &[F64], output: &OutputClaim) -> Openings {
+    /// on all of it, so they fold whatever rides those slots (`lean_vm_core::cpu`). It comes slot by slot ([`witness::slots`]).
+    pub fn prove(&self, ps: &mut ProverState, committed: &[&[F64]], output: &OutputClaim) -> Openings {
         let shape = self.shape;
-        assert_eq!(
-            committed.len(),
-            1 << shape.stack_log(),
-            "the openings are claims on the whole committed block"
+        assert!(
+            committed.len() == 1 << shape.slot_log() && committed.iter().all(|slot| slot.len() == shape.n()),
+            "the openings are claims on the whole committed block, its slots"
         );
         // One message: the first claim is multilinear in the segment and lane coordinates.
         ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_BITS) as u128));

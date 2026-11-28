@@ -18,10 +18,10 @@ import LeanVM.Guest.B1.Common.Find
 
 `aggregate_claims` (`lean_ethereum.py`) keeps the batching's sponge in rows of thirteen words (`absorb`,
 `RowRel`: the capacity cells, then four waiting scalars' rate cells). Iteration `x = g^c`
-(`aggregate_claims_loop0`, core function `443`) writes the child's pointers `child_fresh·x^24`,
-`child_carried·x^24` into the tables `lf`, `lc`, permutes row `c`, absorbs the child's `50` words
-(its public input's two cells at `child_pi·x^2`, its fresh claim's `24` cells, its carried claim's
-`24`) and two zeros in thirteen `KECCAK`s, and writes row `c + 1` (`l25_step`, `L25Step`).
+(`aggregate_claims_loop0`) writes the child's pointers `child_fresh·x^55`, `child_carried·x^26`
+into the tables `lf`, `lc`, permutes row `c`, absorbs the child's `83` words (its public input's
+two cells at `child_pi·x^2`, its fresh claim's `55` cells, its carried claim's `26`) and one zero
+in twenty-one `KECCAK`s, and writes row `c + 1` (`l25_step`, `L25Step`).
 
 Its body is checked by kernel evaluation (`l25Ok`): the `KECCAK` chain (`DupSpec.check`), the
 row it reads and the row it writes, every word's source, and the pointers.
@@ -134,11 +134,11 @@ theorem DupSpec.wvals_eq (s : DupSpec) (σ : Val) :
       show 4 * (n + 1) = 4 * n + 4 by ring, List.range_add, List.map_append, List.map_map]
     rfl
 
-/-- The source of word `w` of a child: its public input's cells through `.n 59`, `.n 63`, its fresh
-claim's through `.n 50`, its carried claim's through `.n 57`, then two zeros. -/
+/-- The source of word `w` of a child: its public input's two cells, its fresh claim's `55`, its
+carried claim's `26`, then one zero. -/
 def l25Src (w : ℕ) : Option (V × ℕ) :=
   if w = 0 then some (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0"), 0) else if w = 1 then some (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0"), 1)
-  else if w < 26 then some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) else if w < 50 then some (.n (val% «aggregate_claims_loop0» "carried"), w - 26) else none
+  else if w < 57 then some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) else if w < 83 then some (.n (val% «aggregate_claims_loop0» "carried"), w - 57) else none
 
 /-- `x` is loaded from its source, or is the constant zero. -/
 def srcOk (atoms : List Atom) (x : V) : Option (V × ℕ) → Bool
@@ -153,12 +153,12 @@ theorem srcOk_none (atoms : List Atom) (x : V) :
 
 /-- Word `w` of the child at `x`. -/
 noncomputable def l25Word (rd : Reader) (cpi cfresh ccarried x : E) (w : ℕ) : E :=
-  if w < 2 then memAt rd (cpi * x ^ 2) w else if w < 26 then memAt rd (cfresh * x ^ 24) (w - 2)
-  else if w < 50 then memAt rd (ccarried * x ^ 24) (w - 26) else 0
+  if w < 2 then memAt rd (cpi * x ^ 2) w else if w < 57 then memAt rd (cfresh * x ^ 55) (w - 2)
+  else if w < 83 then memAt rd (ccarried * x ^ 26) (w - 57) else 0
 
-/-- The child's `52` words. -/
+/-- The child's `84` words. -/
 noncomputable def l25Words (rd : Reader) (cpi cfresh ccarried x : E) : List E :=
-  (List.range 52).map (l25Word rd cpi cfresh ccarried x)
+  (List.range 84).map (l25Word rd cpi cfresh ccarried x)
 
 /-! ## The check -/
 
@@ -167,15 +167,15 @@ def l25Ok (fn : Fn) : Bool :=
   let A := atomsIn (loopPre fn)
   let s : DupSpec := ⟨keccakBlocks A, packsOf A⟩
   loopShapeF fn name% «aggregate_claims_loop0» && decide (fn.params.length = 8) && s.check A &&
-      decide (s.nb = 13) &&
+      decide (s.nb = 21) &&
   rowInOk A (.n (val% «aggregate_claims_loop0» "row")) (s.ins 0) &&
-  storesOk A (.n (val% «aggregate_claims_loop0» "row")) 13 5 (fun i => (s.outs 12).getD (8 + i) default) &&
-  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (48 + j))) (.n (val% «aggregate_claims_loop0» "row")) (13 + (5 + 2 * j))) &&
-    A.any (isLoadAt (.n (s.wB (48 + j) + 1)) (.n (val% «aggregate_claims_loop0» "row")) (13 + (6 + 2 * j)))) &&
-  (List.range 52).all (fun w => srcOk A (s.wV w) (l25Src w)) &&
+  storesOk A (.n (val% «aggregate_claims_loop0» "row")) 13 5 (fun i => (s.outs 20).getD (8 + i) default) &&
+  (List.range 4).all (fun j => A.any (isLoadAt (.n (s.wB (80 + j))) (.n (val% «aggregate_claims_loop0» "row")) (13 + (5 + 2 * j))) &&
+    A.any (isLoadAt (.n (s.wB (80 + j) + 1)) (.n (val% «aggregate_claims_loop0» "row")) (13 + (6 + 2 * j)))) &&
+  (List.range 84).all (fun w => srcOk A (s.wV w) (l25Src w)) &&
   monoIs A (.n (val% «aggregate_claims_loop0» "row")) (.n (val% «aggregate_claims_loop0» "absorb")) (.n (val% «aggregate_claims_loop0» "xc")) 13 && monoIs A (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0")) (.n (val% «aggregate_claims_loop0» "child_pi")) (.n (val% «aggregate_claims_loop0» "xc")) 2 &&
-  monoIs A (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) (.n (val% «aggregate_claims_loop0» "child_pi")) (.n (val% «aggregate_claims_loop0» "xc")) 2 && monoIs A (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "child_fresh")) (.n (val% «aggregate_claims_loop0» "xc")) 24 &&
-  monoIs A (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "child_carried")) (.n (val% «aggregate_claims_loop0» "xc")) 24 &&
+  monoIs A (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) (.n (val% «aggregate_claims_loop0» "child_pi")) (.n (val% «aggregate_claims_loop0» "xc")) 2 && monoIs A (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "child_fresh")) (.n (val% «aggregate_claims_loop0» "xc")) 55 &&
+  monoIs A (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "child_carried")) (.n (val% «aggregate_claims_loop0» "xc")) 26 &&
   A.any (isLoadAt (.n (val% «aggregate_claims_loop0» "fresh")) (.n (val% «aggregate_claims_loop0» "s6#0")) 0) && isMul A (.n (val% «aggregate_claims_loop0» "s6#0")) (.n (val% «aggregate_claims_loop0» "fresh_row")) (.n (val% «aggregate_claims_loop0» "xc")) &&
   A.any (isLoadAt (.n (val% «aggregate_claims_loop0» "carried")) (.n (val% «aggregate_claims_loop0» "s8#0")) 0) && isMul A (.n (val% «aggregate_claims_loop0» "s8#0")) (.n (val% «aggregate_claims_loop0» "carried_row")) (.n (val% «aggregate_claims_loop0» "xc"))
 
@@ -193,7 +193,7 @@ theorem l25_idx : coreProgram.indexOf? name% «aggregate_claims_loop0» = some
 /-- **Child `x`'s absorption**: its pointers in the tables `lf`, `lc`, and from a row of four
 waiting scalars at `absorb·x^13`, the row after its words at `absorb·x^13·g^13`. -/
 def L25Step (rd : Reader) (absorb cfresh lfT ccarried lcT cpi x : E) : Prop :=
-  LoadHolds rd (lfT * x) 0 (cfresh * x ^ 24) ∧ LoadHolds rd (lcT * x) 0 (ccarried * x ^ 24) ∧
+  LoadHolds rd (lfT * x) 0 (cfresh * x ^ 55) ∧ LoadHolds rd (lcT * x) 0 (ccarried * x ^ 26) ∧
   ∀ st : Fs, st.pend.length = 4 → RowRel rd (absorb * x ^ 13) st →
     RowRel rd (absorb * x ^ 13 * gen ^ 13)
       (st.absorbAll (l25Words rd cpi cfresh ccarried x) dsObserve)
@@ -201,15 +201,15 @@ def L25Step (rd : Reader) (absorb cfresh lfT ccarried lcT cpi x : E) : Prop :=
 theorem l25Src_lt2 {w : ℕ} (h : w < 2) : l25Src w = some (if w = 0 then V.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0") else V.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0"), w) := by
   rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl <;> rfl
 
-theorem l25Src_fresh {w : ℕ} (h1 : 2 ≤ w) (h2 : w < 26) : l25Src w = some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) := by
+theorem l25Src_fresh {w : ℕ} (h1 : 2 ≤ w) (h2 : w < 57) : l25Src w = some (.n (val% «aggregate_claims_loop0» "fresh"), w - 2) := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
-theorem l25Src_carried {w : ℕ} (h1 : 26 ≤ w) (h2 : w < 50) : l25Src w = some (.n (val% «aggregate_claims_loop0» "carried"), w - 26) := by
+theorem l25Src_carried {w : ℕ} (h1 : 57 ≤ w) (h2 : w < 83) : l25Src w = some (.n (val% «aggregate_claims_loop0» "carried"), w - 57) := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
-theorem l25Src_pad {w : ℕ} (h1 : 50 ≤ w) : l25Src w = none := by
+theorem l25Src_pad {w : ℕ} (h1 : 83 ≤ w) : l25Src w = none := by
   unfold l25Src
   split_ifs <;> first | rfl | (exfalso; omega)
 
@@ -238,8 +238,8 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
   have p13 : σ (.n (val% «aggregate_claims_loop0» "row")) = absorb * x ^ 13 := by rw [monoIs_sound hm13 hat, h2, hx]
   have p59 : σ (.n (val% «aggregate_claims_loop0» "s9.u0.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm59 hat, h7, hx]
   have p63 : σ (.n (val% «aggregate_claims_loop0» "s9.u1.s1.t.s0#0")) = cpi * x ^ 2 := by rw [monoIs_sound hm63 hat, h7, hx]
-  have p50 : σ (.n (val% «aggregate_claims_loop0» "fresh")) = cfresh * x ^ 24 := by rw [monoIs_sound hm50 hat, h3, hx]
-  have p57 : σ (.n (val% «aggregate_claims_loop0» "carried")) = ccarried * x ^ 24 := by rw [monoIs_sound hm57 hat, h5, hx]
+  have p50 : σ (.n (val% «aggregate_claims_loop0» "fresh")) = cfresh * x ^ 55 := by rw [monoIs_sound hm50 hat, h3, hx]
+  have p57 : σ (.n (val% «aggregate_claims_loop0» "carried")) = ccarried * x ^ 26 := by rw [monoIs_sound hm57 hat, h5, hx]
   refine ⟨?_, ?_, fun st hp hrow => ?_⟩
   · have := load_sound hl50 hat
     rwa [isMul_sound hm51 hat, h4, hx, p50] at this
@@ -258,9 +258,9 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
   have hw : s.wvals σ = l25Words rd cpi cfresh ccarried x := by
     rw [DupSpec.wvals_eq, hnb, l25Words]
     refine List.map_congr_left fun w hw => ?_
-    have hw52 := List.mem_range.mp hw
+    have hw84 := List.mem_range.mp hw
     simp only [List.all_eq_true, List.mem_range] at hsrc
-    have hs' := hsrc w hw52
+    have hs' := hsrc w hw84
     unfold l25Word
     by_cases ha : w < 2
     · rw [l25Src_lt2 ha, srcOk_some] at hs'
@@ -269,11 +269,11 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
       · rw [ite_pos' rfl, p59]
       · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
-    by_cases hb : w < 26
+    by_cases hb : w < 57
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
       rw [ite_neg' ha, ite_pos' hb, ← p50]
       exact (memAt_of_load (load_sound hs' hat)).symm
-    by_cases hc : w < 50
+    by_cases hc : w < 83
     · rw [l25Src_carried (by omega) hc, srcOk_some] at hs'
       rw [ite_neg' ha, ite_neg' hb, ite_pos' hc, ← p57]
       exact (memAt_of_load (load_sound hs' hat)).symm
@@ -281,7 +281,7 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
       rw [ite_neg' ha, ite_neg' hb, ite_neg' hc, const_sound hs' hat, word_zero]
   rw [← hw, hch, hnb]
   -- the row written
-  have hcap : (List.range 5).map (fun i => σ ((s.outs (13 - 1)).getD (8 + i) default)) =
+  have hcap : (List.range 5).map (fun i => σ ((s.outs (21 - 1)).getD (8 + i) default)) =
       rowCap rd (absorb * x ^ 13 * gen ^ 13) := by
     rw [rowCap, ← p13]
     refine List.map_congr_left fun i hi => ?_
@@ -291,10 +291,10 @@ theorem l25_step {x : E} {ps : List E} (h : coreProgram.Rel rd name% «aggregate
   simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hrst
   obtain ⟨r6, r8⟩ := hrst j hj
   rw [← p13, store_at r6 hat, store_at r8 hat]
-  have hwj : (s.blk σ (13 - 1)).getD j 0 = σ (s.wV (48 + j)) := by
+  have hwj : (s.blk σ (21 - 1)).getD j 0 = σ (s.wV (80 + j)) := by
     simp [DupSpec.blk, List.getD_eq_getElem?_getD, hj]
   rw [hwj]
-  exact packOf_of (hP (48 + j) (by rw [hwl, hnb]; omega))
+  exact packOf_of (hP (80 + j) (by rw [hwl, hnb]; omega))
 
 end
 end LeanVM.Guest.B1.Main

@@ -15,7 +15,8 @@
 //! Johnson list at degree `d` and the agreement the message is analysed at:
 //!
 //! - `(alpha, beta)` of a fold round: `eps_aff + 2 ell / q`, after [`FOLD_GRINDING_BITS`];
-//! - level 0's batching `lambda` with the ring switch's map: `(J_0 + 1) ell / q`, after [`BATCH_GRINDING_BITS`];
+//! - level 0's batching `lambda`, drawn with the ring switch's map and `rho`: `(J_0 + 2) ell / q`, the batching's
+//!   `J_0 - 1` and the ring switch's `3` per candidate added, after [`BATCH_GRINDING_BITS`];
 //! - the OOD point after each commitment, level 0's (`crate::ood`) included: `C(ell, 2) mu / q`, after
 //!   [`OOD_GRINDING_BITS`];
 //! - a level's queries, with the next level's batching `lambda` in the same message: `((t_end - 1) / n)^omega +
@@ -285,7 +286,7 @@ const LOG_Q_BITS: usize = 128;
 
 /// Upper bound on the claims the stacked opening batches (the ring-switched claim and the committed columns'
 /// point claims), `J_0` of the outer batching term.
-pub const MAX_STACKED_CLAIMS: usize = 1 << 9;
+pub use verifier::MAX_STACKED_CLAIMS;
 
 /// Upper bound on level 0's list `ell(t_0, d)`: the extractor's price is budgeted for at most this many candidates.
 pub const MAX_LIST_0: u128 = 166;

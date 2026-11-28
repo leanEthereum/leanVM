@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.Fam.SelDefs
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.CoreMode.Fam.CarryDefs
 public import LeanVM.Guest.ExpTables
-public import LeanVM.Guest.Memory.StaticRun
+public import LeanVM.Guest.Memory.StaticCut
 
 /-!
 # The families' shared checks
@@ -20,7 +20,8 @@ public import LeanVM.Guest.Memory.StaticRun
 `topAtoms ss`: the top-level atoms of a block before its first statement that may return; each is
 on every returning path of the block. `powOf w` (`CarryDefs.lean`): the exponent `e` of a word `w = g^e`
 the guest's table of powers names (`Data.powTree`). `rcBound as v`: a range check of `as` on value `v` against
-a constant of `as`, `g^(N - 1)`, bounds `v`'s exponent below `N`.
+a constant of `as`, `g^(N - 1)`, bounds `v`'s exponent below `N`. `topSels ss`: the top-level
+selectors of a block before its first statement that may return.
 -/
 
 namespace LeanVM.Guest.Res
@@ -56,9 +57,6 @@ noncomputable def rcBound (as : List Atom) (v : V) : Option ℕ :=
       else none
     | _ => none
 
-/-- The exponent of a word `g^z`: `1`'s, or one the guest's powers name (`powOf`). -/
-noncomputable def powOf1 (c : E) : Option ℕ := if c.limb 1 = 0 ∧ c.limb 0 = 1 then some 0 else powOf c
-
 /-- The top-level selectors of a block before its first statement that may return: each one's value
 and count of arms. -/
 noncomputable def topSels : List Stmt → List (V × ℕ)
@@ -66,12 +64,6 @@ noncomputable def topSels : List Stmt → List (V × ℕ)
   | s :: ss => (match selOf s with
       | some p => [p]
       | none => []) ++ (if Memory.noRetR s then topSels ss else [])
-
-/-- **A family's witness**: atoms and selectors of a function's own code it reads, each on every
-returning path, so a family's check scans them, not the whole body. -/
-structure Wit where
-  as : List Atom
-  ss : List (V × ℕ)
 
 end
 

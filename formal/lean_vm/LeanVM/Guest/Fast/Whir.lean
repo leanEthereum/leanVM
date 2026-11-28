@@ -64,8 +64,8 @@ def levelOsN (rd : Reader) (σ : Val) (Vn : NFrames) (c : OsCall) : List Opening
 /-- **The child proof `verify_sub` checks** (`vsPiOf`), the frames numbered, `cl` the cursor's
 length (`cursorLen`). -/
 def vsPiOfN (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  let m := logGT (σ (.n (val% «verify_sub» "size_sel"))) 11
-  let j := logGT (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m
+  let m := logGT (σ (.n (val% «verify_sub» "size_sel"))) 15
+  let j := logGT (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 15 + m
   let fr := Vn (openStackedIdx m) (vsOsArgs σ) (vsOsRets σ)
   ⟨wordsAt rd (σ (.n (val% «verify_sub» "stream")))
       (cl (σ (.n (val% «verify_sub» "stream"))) (σ (.n (val% «verify_sub» "sumcheck_target~2")))) ++
@@ -85,8 +85,8 @@ theorem gIdx_eq_logGT (N : ℕ) (hN : N ≤ 256) (x : E) : gIdx N x = logGT x N 
   unfold gIdx logG
   congr 2
 
-theorem dispatchIdx_eq_logGT (x : E) : dispatchIdx x = logGT x 11 :=
-  gIdx_eq_logGT 11 (by norm_num) x
+theorem dispatchIdx_eq_logGT (x : E) : dispatchIdx x = logGT x 15 :=
+  gIdx_eq_logGT 15 (by norm_num) x
 
 theorem rateOf_sub_one (x : E) : VerifySub.rateOf x - 1 = logGT x 4 := by
   unfold VerifySub.rateOf
@@ -130,23 +130,23 @@ theorem map_zip_eq {α β γ : Type} {g : α → γ} {h : β → γ} :
 
 theorem vsPiOfN_eq (rd : Reader) (σ : Val) (Fm : FrameMap) :
     vsPiOfN rd σ (fun k ↦ Fm (decoderFunctionName k)) cursorLen = vsPiOf rd σ Fm := by
-  have hm := logG_lt (σ (.n (val% «verify_sub» "size_sel"))) (bound := 11) (by norm_num)
+  have hm := logG_lt (σ (.n (val% «verify_sub» "size_sel"))) (bound := 15) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at hm
   have hr := logG_lt (σ (.n (val% «verify_sub» "rate_sel"))) (bound := 4) (by norm_num)
   rw [logG_eq_logGT _ (by norm_num)] at hr
   unfold vsPiOfN vsPiOf piOfW vsOsW open_stacked_osW
   rw [dispatchIdx_eq_logGT, rateOf_sub_one]
-  generalize logGT (σ (.n (val% «verify_sub» "size_sel"))) 11 = m at hm ⊢
+  generalize logGT (σ (.n (val% «verify_sub» "size_sel"))) 15 = m at hm ⊢
   generalize logGT (σ (.n (val% «verify_sub» "rate_sel"))) 4 = ri at hr ⊢
-  have hj : ri * 11 + m < ligNSizes * ligNRates := by unfold ligNSizes ligNRates; omega
-  have hjm : (ri * 11 + m) % ligNSizes = m := by unfold ligNSizes; omega
-  have hjr : (ri * 11 + m) / ligNSizes = ri := by unfold ligNSizes; omega
+  have hj : ri * 15 + m < ligNSizes * ligNRates := by unfold ligNSizes ligNRates; omega
+  have hjm : (ri * 15 + m) % ligNSizes = m := by unfold ligNSizes; omega
+  have hjr : (ri * 15 + m) / ligNSizes = ri := by unfold ligNSizes; omega
   have hname : decoderFunctionName (openStackedIdx m) = openNames.getD m "" := by
     rw [openNames_eq, List.getD_map_range _ hm]
   obtain ⟨hlen, hok⟩ := callsOK _ hj
   unfold osQCalls osCfgAt at hlen hok
   rw [hjm, hjr] at hlen hok
-  have hw : osWordsTab.getD (ri * 11 + m) 0 = osWordsLen (osCfgR m ri) := by
+  have hw : osWordsTab.getD (ri * 15 + m) 0 = osWordsLen (osCfgR m ri) := by
     rw [osWordsTab_eq, List.getD_map_range _ hj, osCfgAt, hjm, hjr]
   dsimp only
   rw [hname, hw, osLevelsW_eq, Proof.mk.injEq]
@@ -391,11 +391,11 @@ def vsPiOfM (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E
 /-- The child proof, its size `m` given. -/
 def vsPiOfS (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) (m : ℕ) :
     Proof :=
-  vsPiOfM T rd σ Vn cl m (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m)
+  vsPiOfM T rd σ Vn cl m (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 15 + m)
 
 /-- **The child proof `verify_sub` checks, off the tables `T`** (`vsPiOfN`). -/
 def vsPiOfA (T : WhirTabs) (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) : Proof :=
-  vsPiOfS T rd σ Vn cl (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11)
+  vsPiOfS T rd σ Vn cl (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 15)
 
 /-- **Off the tables built, the reader is `vsPiOfN`.** -/
 theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → ℕ) :

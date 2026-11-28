@@ -1,6 +1,7 @@
 module
 
 public import Statement.Prover.Prove
+public import Statement.Prover.Execute
 public import Statement.RandomPermutation
 public import VCVio.EvalDist.ProbabilityNotation
 
@@ -9,8 +10,7 @@ public import VCVio.EvalDist.ProbabilityNotation
 
 A statement (a program and a public input), the verifier on it, and the end statements in the
 random-permutation model (`RandomPermutation.lean`; `statement.tex`, *The setting*),
-`LeanVM.KnowledgeSoundness` and `LeanVM.Completeness`, proved by `LeanVM.knowledgeSoundness_holds`
-and `completeness_holds` (`statement.tex` says how they reach this model).
+`LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`Statement.Theorems`).
 
 The verifier (`leanVmVerifier π`) and the honest prover are written over a permutation `π` in any
 monad, Keccak-256 the sponge over `π` (`keccak256With π`); in the model `π` is
@@ -24,8 +24,8 @@ edge (`Common.runWithRandomPermutation`).
 
 **Knowledge soundness** is stated for a straight-line extractor (`StraightLineExtractor`), which
 reads the statement, the proof and the adversary's transcript, and nothing else;
-`Statement.Theorems` states it for the extractor a cost-machine program computes
-(`LeanVM.extractorComputedBy`, `CostMachine.lean`). **Completeness** is stated for one honest
+`Statement.Theorems` states it for the extractor a cost-machine program
+computes (`LeanVM.extractorComputedBy`, `CostMachine.lean`). **Completeness** is stated for one honest
 prover, `LeanVM.Prover.prove` (`Statement/Prover/Prove.lean`). A proof is the Rust verifier's
 `Proof`; its wire encoding is a compression layer, formalized in `lean_vm` (`statement.tex`).
 -/
@@ -57,24 +57,71 @@ abbrev ProgramAndInput : Type := LeanIsaProgram × PublicInput
 
 /-! ### The committed size -/
 
-/-- **The committed size of an execution**: the number of cells the honest prover commits to, every
-committed column at its table's height, the least power of two holding the table's rows (`1` for no
-row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`crates/verifier/src/layout.rs`). The memory has three columns of `2^κ` rows (its two limbs and
-its final counts), and the bytecode's counts one of `2^logSize` rows (`NUM_GLOBAL_COLUMNS`,
-`layout.rs`, `kappas`). Each opcode has a table of one row per instruction of
-that opcode the execution executes (`Execution.opcodeCount`), with `13, 13, 7, 14, 14, 28`
-committed columns for `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`
-(`layout.rs`; of the `KECCAK` table's `92` columns, the `25` input lanes and `14` more ride
-`q_keccak`'s slots and the `25` output lanes are not committed, `layout.rs`); and
-`q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
+/-- The table rows of an execution, in opcode order (`table_rows`, the sizes the proof announces):
+one row per instruction of the table's opcode the execution executes (`Execution.opcodeCount`). -/
+noncomputable def Semantics.Execution.tableRows {program : LeanIsaProgram}
+    (execution : Execution program) : List ℕ :=
+  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].map execution.opcodeCount
+
+/-- Each table's log-height: the least `h` with `rows ≤ 2^h`, at least its floor
+(`TABLE_LOG_FLOORS`: `KECCAK`'s block of steps), as `buildLayout` (`build_layout`, `layout.rs`)
+computes it. -/
+noncomputable def Semantics.Execution.tableLogHeights {program : LeanIsaProgram}
+    (execution : Execution program) : List ℕ :=
+  List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) execution.tableRows tableLogFloors
+
+/-- **The committed size of an execution**: the words the stack holds before its padding to a power
+of two, every block of the stack (`stackBlocks`, `stack_blocks`, `layout.rs`) at its column's
+log-size (`columnKappas`, `column_kappas`), the total `stackOffsets` (`stack_offsets`,
+`multilinear.rs`) lays them out in: the memory's two columns of `2^κ` words, `q_keccak` of
+`2^slot_bits` words per row of the `KECCAK` table, and every other committed table column at its
+table's height; the program commits no column. The stack's log-size is
+`max(⌈log₂ committedSize⌉, MIN_STACKED_LOG)`, so `committedSize ≤ 2^30` is exactly the prover's
+`MAX_STACKED_LOG` cap. -/
 noncomputable def Semantics.Execution.committedSize {program : LeanIsaProgram}
     (execution : Execution program) : ℕ :=
-  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (execution.opcodeCount op)
-  let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (execution.opcodeCount .keccak)) 9
-  3 * 2 ^ execution.logMemorySize + 2 ^ program.logSize +
-    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
-    14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
+  let kappas := columnKappas tables execution.logMemorySize execution.tableLogHeights
+  (stackBlocks.map fun b ↦ 2 ^ kappas.getD b.column 0).sum
+
+/-- **The pointer width of an execution**: `pointer_width(log_memory, log_bytecode, cycles)`
+(`link.rs`), the cycles its tables' rows in all (`verify_link`); the link proves its pointers in
+this many bits, at most `MAX_WIDTH = maxPointerWidth = 24` (`Chunks::new`). -/
+noncomputable def Semantics.Execution.pointerWidth {program : LeanIsaProgram}
+    (execution : Execution program) : ℕ :=
+  Protocol.Verifier.pointerWidth execution.logMemorySize program.logSize execution.tableRows.sum
+
+/-- `cells` words from the memory address `address` lie in one window of `keccakWindow = 16` words
+(`KECCAK_WINDOW`, `crates/isa/src/lib.rs`): its index `i` (`address = g^i`) has
+`i % 16 + cells ≤ 16`. -/
+def Semantics.InKeccakWindow (κ : ℕ) (address : K) (cells : ℕ) : Prop :=
+  ∀ i ∈ addressIndex? κ address, i.val % Prover.Exec.keccakWindow + cells ≤ Prover.Exec.keccakWindow
+
+/-- A `KECCAK` at the frame `fp` has its blocks each in one window (`Op::Keccak`, `execute.rs`,
+which faults with `Fault::KeccakAcrossWindow` otherwise): its `tail` (input cells `4` to `7`), its
+`cap` (input cells `9` to `12`) and the output cells it writes; any other instruction, trivially. -/
+def Semantics.KeccakBlocksInWindowsAt (κ : ℕ) (fp : K) : LeanIsaInstruction → Prop
+  | .keccak _ otail _ ocap oout _ _ outCells =>
+    InKeccakWindow κ (fp * otail) 4 ∧ InKeccakWindow κ (fp * ocap) 4 ∧
+      InKeccakWindow κ (fp * oout) outCells.cellCount
+  | _ => True
+
+/-- Every `KECCAK` executed in `n` steps from `r`, stepping as `run` does (as `opcodeCountInRun`
+counts them), has its blocks each in one window. -/
+noncomputable def Semantics.keccakBlocksInWindowsInRun {κ : ℕ} (program : LeanIsaProgram)
+    (memory : MemoryImage κ) : ℕ → Registers K → Prop
+  | 0, _ => True
+  | n + 1, r =>
+    match program.fetch r.pc, step program memory r with
+    | some ins, some r' =>
+      KeccakBlocksInWindowsAt κ r.fp ins ∧ keccakBlocksInWindowsInRun program memory n r'
+    | _, _ => True
+
+/-- **Every `KECCAK` of the execution has its blocks in windows**: the Rust executor faults on any
+other (`Fault::KeccakAcrossWindow`), and the link reads a block through one window
+(`isa::KECCAK_WINDOW`). -/
+def Semantics.Execution.KeccakBlocksInWindows {program : LeanIsaProgram}
+    (execution : Execution program) : Prop :=
+  keccakBlocksInWindowsInRun program execution.memory execution.stepCount Registers.initial
 
 /-! ### The experiment -/
 
@@ -163,13 +210,14 @@ noncomputable def completenessExperiment (program : LeanIsaProgram) (input : Pub
     | some proof => leanVmVerifier queryPermutation program input proof
 
 /-- **Completeness in the random-permutation model**: trying `2^35` nonces per proof of work, the
-honest prover's (`LeanVM.Prover.prove`) proof of an execution within the verifier's size cap is
-rejected with probability at most `2^-256`. Within that cap the widest grind is the bus's,
-`busGrindingBits` of a push tree of depth at most `30`, `27` bits, and `2^35 = 2^27 · 2^8` nonces
-miss a `27`-bit proof of work with probability at most `2^-320`. -/
+honest prover's (`LeanVM.Prover.prove`) proof of an execution within the verifier's size cap
+(`committedSize ≤ 2^30`), whose pointers fit the link's width (`pointerWidth ≤ maxPointerWidth`,
+`MAX_WIDTH`) and whose `KECCAK`s have their blocks in windows (`KeccakBlocksInWindows`), is rejected
+with probability at most `2^-256`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
-    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
+    execution.pointerWidth ≤ maxPointerWidth → execution.KeccakBlocksInWindows → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← completenessExperiment program input execution ρ (2 ^ 35)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

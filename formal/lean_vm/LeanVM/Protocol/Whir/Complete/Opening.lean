@@ -1,46 +1,38 @@
 /-
   LeanVM.Protocol.Whir.Complete.Opening
 
-  The honest prover of leanVM's WHIR opening, the statement's own (`openingFast`'s levels on the
-  stack's and the claims' tables), the commitment it opens, and the completeness of the stacked
-  opening as the simulation `OpeningComplete`.
+  The stacked opening's ladder, its batched claims' tables, and the commitment it opens.
 -/
 
 module
 
 import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.Whir.Complete.Encoding
 public import Statement.Prover.Whir
+public import LeanVM.Protocol.EndToEnd.Claims
 import LeanVM.Parameters.Whir
 
 /-!
-# Completeness of the WHIR opening
+# The stacked opening's starting claim
 
 The verifier is `LeanVM.Protocol.Verifier.verifyStackedOpening` / `verifyWhir`
 (`crates/verifier/src/lib.rs`, `whir.rs`), with the commitment `commitStack`.
-The honest prover is the statement's (`LeanVM.Prover.levelsA`, `Statement/Prover/Whir.lean`) run
-on the stack's table and the batched claims' weight table in the WHIR variable order
-(`stackTable`, `basisTable`): the affine fold rounds on novel-basis coefficient tables, the next
-level's word, the out-of-domain values, the final level's folded lane and the tail sumcheck.
 
-* `honestOpening μ R q claims`: the batching challenge, then those levels.
-* `stackCommit μ R q`, `follows_commitStack`: the stack's word, which `commitStack` reads.
-* `OpeningComplete`: **perfect completeness of the stacked opening as a simulation**: for an
-  admissible `(μ, R)` and at most `maxStackedClaims` stack claims that hold of `q` with
-  multilinear weights, `honestOpening` follows `verifyStackedOpening` from the commitments
-  `[stackCommit μ R q]`. Every `require` holds: the claim count, each level's query check of the
-  final level, and the terminal check. Its proof is the affine fold's honest identities (the
-  table's `u₁ = ⟨W₁, G⟩` in characteristic two, the folded claim by linearity, the fold of an
-  opened row being the folded lane at its point by Annex D's `lem:mulx`) and the tail sumcheck's.
-  The consequences below take it as a hypothesis.
-* `follows_verifyStackedOpening`, `runFrom_verifyStackedOpening`: the simulation, and the
-  interactive run it gives against every challenge function.
+* The ladder of an admissible pair starts with the lane fold at the announced rate
+  (`exists_ladder`).
+* `batchedBasis`, `basisTable`: the claims batched by the powers of the batching challenge, and
+  their table at the rotated cube point. `dot_values_eq_dot`: claims that hold give the batched
+  value as the pairing of the basis table with the stack table; `multilinearEval_basisTable`: the
+  batched basis at the rotated point is the extension of the basis table.
+* `stackCommit μ R q`: the commitment the opening opens at level `0`.
+
+The honest opening's run against the verifier is `LeanVM.Prover.Complete.Whir.Levels`.
 -/
 
 namespace LeanVM.Protocol.Whir.Complete
 
-open LeanVM.Prover (Script levelsA)
+open LeanVM.Protocol.Tables
+
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd
   LeanVM.Protocol.Compile LeanVM.Protocol.Whir Finset
@@ -152,65 +144,10 @@ theorem multilinearEval_basisTable {μ : ℕ} (hμ : laneBits ≤ μ) (scales : 
   rw [Nat.add_comm] at hB
   exact multilinearEval_tableOf (isMultilinearFn_rotate hB) p hp
 
-/-! ## The opening -/
-
-/-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):
-receive the batching challenge, then run the statement's levels from the stack table and the
-basis table. -/
-def honestOpening (μ R : ℕ) (q : Column μ) (claims : List StackClaim) : Script Unit := do
-  let c ← Script.sampleE
-  let scales := powers c claims.length
-  match Whir.ladder μ R with
-  | none => return ()
-  | some config => levelsA μ config (stackTable μ q).toArray (basisTable μ scales claims).toArray
-
 /-- The commitment the opening opens at level `0`: the stack's word, `2^(μ−6+R)` leaves of `64`
 words. -/
 def stackCommit (μ R : ℕ) (q : Column μ) : ℕ × ℕ × Word :=
   (μ - laneBits + R, 2 ^ laneBits, stackWord μ R q)
-
-/-- **The honest commitment follows `commitStack`.** -/
-theorem follows_commitStack {μ R : ℕ} (hadm : Whir.Admissible μ R) (q : Column μ)
-    (cs : Commits) :
-    Follows (fun cs' _ _ ↦ cs' = cs ++ [stackCommit μ R q]) (Script.commitS (stackWord μ R q))
-      (commitStack μ R) cs := by
-  obtain ⟨q₀, rest, hc, _⟩ := exists_ladder hadm
-  simp only [commitStack, hc, Verifier.liftOption, VerifierProgram.bind_eq,
-      VerifierProgram.ret_bind, levelShape]
-  exact Follows.commitS_commitP (wellShaped_stackWord μ R q) cs
-
-/-- **Perfect completeness of the stacked opening, as a simulation**: see the module docstring. -/
-def OpeningComplete : Prop :=
-  ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ (q : Column μ) (claims : List StackClaim),
-    claims.length ≤ maxStackedClaims → (∀ c ∈ claims, StackClaim.Holds μ c q) →
-    (∀ c ∈ claims, IsMultilinearFn μ c.1) →
-    Follows (fun _ _ _ ↦ True) (honestOpening μ R q claims) (verifyStackedOpening μ R claims)
-      [stackCommit μ R q]
-
-/-- The simulation, from `OpeningComplete`. -/
-theorem follows_verifyStackedOpening (hW : OpeningComplete) {μ R : ℕ} (hadm : Whir.Admissible μ R)
-    (q : Column μ) (claims : List StackClaim) (hlen : claims.length ≤ maxStackedClaims)
-    (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q) (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1) :
-    Follows (fun _ _ _ ↦ True) (honestOpening μ R q claims) (verifyStackedOpening μ R claims)
-      [stackCommit μ R q] :=
-  hW hadm q claims hlen hholds hml
-
-/-- **Perfect completeness of the stacked opening**, from `OpeningComplete`: from any history
-whose only commitment is the stack's honest word, every strategy that sends what the honest
-prover sends after that history makes the interactive run of `verifyStackedOpening` return `()`
-against every challenge function, and commits well-shaped words. -/
-theorem runFrom_verifyStackedOpening (hW : OpeningComplete) {μ R : ℕ}
-    (hadm : Whir.Admissible μ R) (q : Column μ) (claims : List StackClaim)
-    (hlen : claims.length ≤ maxStackedClaims) (hholds : ∀ c ∈ claims, StackClaim.Holds μ c q)
-    (hml : ∀ c ∈ claims, IsMultilinearFn μ c.1) (h : List Ev)
-    (hcs : commits h = [stackCommit μ R q]) (S : Strategy)
-    (hS : ∀ e, S.msg (h ++ e) = (honestOpening μ R q claims).msgAt e ∧
-      S.word (h ++ e) = (honestOpening μ R q claims).wordAt e) (chal : List Ev → E) :
-    S.runFrom chal (verifyStackedOpening μ R claims) h = some () ∧
-      S.ShapedFrom chal (verifyStackedOpening μ R claims) h := by
-  obtain ⟨⟨b, hb, -⟩, hsh⟩ := runFrom_of_follows' S chal hS
-    (hcs ▸ follows_verifyStackedOpening hW hadm q claims hlen hholds hml)
-  exact ⟨hb, hsh⟩
 
 end
 end LeanVM.Protocol.Whir.Complete

@@ -29,15 +29,16 @@ step, so it uses the contracts at a smaller bound. A run of the program starts a
 
 **Completeness.** `Reach prog L s t` says some run goes from `s` to `t`; it is transitive, and
 the same instruction shapes extend it (`reach_fallThrough`, `reach_jump`, `reach_ret`). A
-function returns from frame `fp` (`Returns`) when it reaches the registers `retRegs L fp`.
-`validExecution_of_reach` closes a run
+function returns from frame `fp` (`Returns`) when it reaches the registers `retRegs L fp`;
+`returns_induction` proves that of a family of functions by strong induction on a measure the
+caller chooses (a loop's iterations left, a call depth). `validExecution_of_reach` closes a run
 from `(g^0, 1)` to the final registers.
 
 A contract's `P` and `Q` are any predicates on the frame over the fixed memory, so a
 precondition or a callee's postcondition can carry what a later step needs, such as a selector
 cell `L[fp·g^o] = g^j` with `j < n` that bounds a table dispatch; no rule assumes such a fact
-comes from a gadget in the same function. `Safe.jumpTo` takes a jump's target cells as such
-facts.
+comes from a gadget in the same function. `Safe.jumpTo` and `reach_jumpTo` take a jump's target
+cells as such facts.
 
 Each step lemma needs the instruction fetched, which `LeanVM.Guest.assemble_fetch` gives for an
 assembled program, and `pc < 2^logSize - 1`, which keeps the state away from the halting slot.

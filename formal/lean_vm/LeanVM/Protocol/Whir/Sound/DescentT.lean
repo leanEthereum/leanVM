@@ -9,8 +9,6 @@ module
 public import LeanVM.Protocol.Whir.Sound.DescentA
 import LeanVM.Prover.Ntt
 public import Statement.Prover.Ntt
-import LeanVM.ToMathlib.Finset
-import LeanVM.ToMathlib.Array
 
 /-!
 # The descent across levels over arrays
@@ -41,6 +39,12 @@ def polyOfAtH (cs : List E) (x : ℕ) : E :=
     let v := ofK (novelAtH c x)
     a * v).sum
 
+theorem sum_range_eq_list (f : ℕ → E) : ∀ n, ∑ c ∈ range n, f c = ((List.range n).map f).sum
+  | 0 => rfl
+  | n + 1 => by
+    rw [sum_range_succ, sum_range_eq_list f n, List.range_succ, List.map_append, List.sum_append]
+    simp
+
 theorem novelAtH_eq (c x : ℕ) : novelAtH c x = novelAt c (K.ofBits x) := by
   unfold novelAtH novelAt
   refine prod_congr rfl fun i hi ↦ ?_
@@ -48,7 +52,7 @@ theorem novelAtH_eq (c x : ℕ) : novelAtH c x = novelAt c (K.ofBits x) := by
 
 theorem polyOfAtH_eq (cs : List E) (x : ℕ) : polyOfAtH cs x = polyOfAt cs (K.ofBits x) := by
   unfold polyOfAtH polyOfAt
-  rw [Finset.sum_range_eq_sum_map_range]
+  rw [sum_range_eq_list]
   simp only [novelAtH_eq]
 
 /-- The message of the step up: entry `u + 2^m w` is entry `w` of the low part of lane `u` of the
@@ -107,9 +111,9 @@ theorem msgA_getD {κ' m : ℕ} {n' : ℕ} (hn' : 2 ^ κ' ≤ n') (V' : (Fin m �
     rw [hp, Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hu, zero_add]
   unfold msgA joinMsg
   simp only [Fin.cast_eq_self]
-  rw [Array.getD_ofFn _ (bitsToNat_lt p)]
+  rw [Enc.getD_ofFn _ _ _ (bitsToNat_lt p)]
   simp only [hmod, hdiv]
-  rw [Array.getD_ofFn _ hu]
+  rw [Enc.getD_ofFn _ _ _ hu]
   congr 2
   congr 1
   funext v

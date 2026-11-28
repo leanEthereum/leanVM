@@ -50,10 +50,10 @@ def fnPrePrice (R B : ℕ) : Option FnPre → ℕ
   | some t => (R + 153) * t.env.length + (R + B + 83) * t.pre.length +
       (2 * R + B + 181) * memCells t + 62
 
-/-- **The deployed table's shape**, decided: at most one entry check and bound, at
+/-- **The deployed table's shape**, decided: at most one entry check, at most two bounds, at
 most `99` bounds and memory bounds, exponents below `2^7`, logarithms' bounds at most `34`. -/
 def fnPreShape (t : FnPre) : Bool :=
-  decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 1) &&
+  decide (t.env.length ≤ 1) && decide (t.pre.length ≤ 2) &&
     decide (t.pre.length + memCells t ≤ 99) &&
     t.env.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (symExp p.2 < 2 ^ 7)) &&
     t.pre.all (fun p ↦ decide (p.1 < 2 ^ 7) && decide (p.2 ≤ 34)) &&

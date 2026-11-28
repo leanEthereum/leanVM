@@ -68,6 +68,7 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
       AllOk C rd σ (osTail c (osLevels c lvl (lv :: lvs) st).2).1 →
       ∃ (xs : List E) (recs' : List OsRec) (gs fold T : List E) (R' : List (Digest × ℕ × ℕ)),
         xs.length = lvsWords c lvl (lv :: lvs) + 2 * c.yrLog ∧ ReadsAt rd (st.cur σ) xs ∧
+        (osTail c (osLevels c lvl (lv :: lvs) st).2).2.1.cur σ = st.cur σ * gen ^ xs.length ∧
         RunsWith (whirLevelsOpen logN lane lvl cfg ws) (st.F σ) xs
           (osLevelsW rd V σ c lvl (lv :: lvs) st) R
           ⟨((ws.alphas ++ gs) ++ T).drop lane ++ ((ws.alphas ++ gs) ++ T).take lane,
@@ -90,9 +91,9 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   | lvl, lv, [], [level], st, ws, recs, R, root, hok, hin, hA, hT => by
     obtain ⟨hF, hcal⟩ := hok
     simp only [osLevels, List.append_nil] at hA hT
-    obtain ⟨xs, gs, fold, T, hxl, hrd, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT, e, hre, hrt⟩ :=
+    obtain ⟨xs, gs, fold, T, hxl, hrd, hcurT, hgl, hfl, hTl, hrun, hfm, hTr, lg, hmT, e, hre, hrt⟩ :=
       osLevelLast_sound hU hle hwt hF hcal hin hA hT lane
-    refine ⟨xs, [], gs, fold, T, R, by simp [hxl, lvsWords], hrd, ?_, rfl,
+    refine ⟨xs, [], gs, fold, T, R, by simp [hxl, lvsWords], hrd, hcurT, ?_, rfl,
       fun i hi ↦ absurd hi (by simp), hin.recF, by simp [hgl, lvsFolds], ?_, hfm, hfl, hTr, hTl,
       by simpa [osLevels] using hmT, [e], by simpa [osLevels] using hre, rfl, fun i hi ↦ ?_⟩
     · rw [whirLevelsOpen_last]
@@ -116,17 +117,18 @@ theorem osLevels_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     rw [allOk_append] at hA
     obtain ⟨xs1, ws1, r, root', hxl1, hrd1, hrun1, hin1, hrec, hcur1, ⟨gs1, hgs1, hgl1⟩, e1, hre1, hrt1⟩ :=
       osLevelMid_sound hU hle hwt hF hcal hin hA.1
-    obtain ⟨xs2, recs', gs2, fold, T, R', hxl2, hrd2, hrun2, hrl, hrecs, -, hgl2, hfch, hfm,
+    obtain ⟨xs2, recs', gs2, fold, T, R', hxl2, hrd2, hcurT2, hrun2, hrl, hrecs, -, hgl2, hfch, hfm,
       hfl, hTr, hTl, hmT, es, hes, hesl, hesr⟩ :=
       osLevels_sound hU hle hwt lane (lvl + 1) lv' lvs (next :: cfg) (osLevel c lvl lv st).2 ws1
         (recs ++ [r]) _ root' hrest hin1 hA.2 hT
     have eG : ws1.alphas ++ gs2 = ws.alphas ++ (gs1 ++ gs2) := by rw [hgs1, List.append_assoc]
     rw [eG] at hrun2 hfch
     rw [List.append_assoc] at hrun2
-    refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, by simp [hrl], ?_,
+    refine ⟨xs1 ++ xs2, r :: recs', gs1 ++ gs2, fold, T, R', ?_, ?_, ?_, ?_, by simp [hrl], ?_,
       hin.recF, by simp [hgl1, hgl2, lvsFolds], hfch, hfm, ?_, hTr, hTl, hmT, e1 :: es, ?_, ?_, ?_⟩
     · simp only [List.length_append, hxl1, hxl2, lvsWords]; ring
     · exact readsAt_append hrd1 (by rw [← hcur1]; exact hrd2)
+    · rw [hcurT2, hcur1, List.length_append, pow_add, mul_assoc]
     · rw [whirLevelsOpen_next]
       have h := RunsWith.bind' hrun1 hrun2
       simp only [VerifierProgram.bind_assoc] at h

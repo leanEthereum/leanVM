@@ -14,7 +14,7 @@ import LeanVM.Protocol.Keccak.Rounds
 # `verify_keccak`'s specification on the carried sponge
 
 * `runsTo_sumcheck3`: `sumcheck v 3 (replicate n none)` is `plainRun` (`keccak_plain_rounds`);
-* `runsTo_keccakLayers_nil`, `runsTo_keccakLayers_cons`: the layers, one after the other;
+* `runsTo_keccakLayers`: the layers, one after the other;
 * `vk_runsTo`: `verifyKeccak` runs, reading the committed outputs' value, the layers' words, the
   three openings' rounds, the word and the slices, once its two checks hold.
 -/
@@ -44,7 +44,7 @@ theorem runsTo_sumcheck3 :
         (runsTo_ret _ _)
       have h3 := h0.bind (f := fun constant ↦ VerifierProgram.readScalars 1 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : VerifierProgram (List E))) h2
-      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, Tables.grindingBits_le_eight,
+      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, grindingBits_le_eight,
         VerifierProgram.grindProofOfWork] using h3
     set q := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze with hq
     have hs := runsTo_sampleE ((s.absorb c0 dsObserve).absorb c2 dsObserve)
@@ -90,8 +90,10 @@ theorem keccakSegments_eq : keccakSegments = 2 := rfl
 theorem keccakSegmentBits_eq : keccakSegmentBits = 1 := by decide
 theorem qkeccakSlotBits_eq' : qkeccakSlotBits = 6 := by decide
 
-/-- `verifyKeccak` with its `0`-bit grind and its two segments' branches taken. -/
-theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
+/-- `verifyKeccak` with its shape check passed, its `0`-bit grind and its two segments' branches
+taken. -/
+theorem verifyKeccak_body (τ : ℕ) (inst outs : List E)
+    (hs : inst.length = τ ∧ outs.length = keccakStateLanes ∧ 4 ≤ τ) :
     verifyKeccak τ inst outs =
       (VerifierProgram.sampleChallenges keccakSegmentBits >>= fun seg ↦ VerifierProgram.sampleChallenges keccakLaneBits >>= fun rl ↦
         VerifierProgram.readScalar >>= fun committed ↦
@@ -104,11 +106,16 @@ theorem verifyKeccak_eq (τ : ℕ) (inst outs : List E) :
         VerifierProgram.require (multilinearEval claim.mu x.1 * dot y.2.1 slices = y.2.2) >>=
             fun _ ↦
         (pure ([⟨qkeccak, inst.take 4 ++ inst.drop 4 ++ o.1, word⟩], x.1 ++ claim.point.take (τ - 4) ++ y.1,
-          slices) : VerifierProgram (List ColumnClaim × List E × List E))) := rfl
+          slices) : VerifierProgram (List ColumnClaim × List E × List E))) := by
+  unfold verifyKeccak
+  rw [show VerifierProgram.require (inst.length = τ ∧ outs.length = keccakStateLanes ∧ 4 ≤ τ) =
+    VerifierProgram.ret () from ite_eq_left_iff.mpr fun h ↦ absurd hs h]
+  rfl
 
 /-- **`verifyKeccak` on the carried sponge**: it ends with the 64 slices absorbed,
 a full queue. -/
-theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 : Fs} {seg rl : List E}
+theorem vk_runsTo (τ : ℕ) (inst outs : List E)
+    (hshape : inst.length = τ ∧ outs.length = keccakStateLanes ∧ 4 ≤ τ) {s0 s1 s2 s3 s4 s5 s6 : Fs} {seg rl : List E}
     {committed word valO valL valI : E} {claim : KeccakClaim} {xsL slotO low slotI slices : List E}
     {mO mI mS : List (E × E)}
     (h1 : s0.squeezeN keccakSegmentBits = (seg, s1)) (h2 : s1.squeezeN keccakLaneBits = (rl, s2))
@@ -156,7 +163,7 @@ theorem vk_runsTo (τ : ℕ) (inst outs : List E) {s0 s1 s2 s3 s4 s5 s6 : Fs} {s
     refine (rS.bind (f := fun x ↦ VerifierProgram.ret (x.1, (foldAll x.1
       (keccakSlotWeights τ claim 0 2)).headD [], x.2)) (runsTo_ret _ _)).of_eq rfl ?_ rfl rfl
     simp
-  rw [verifyKeccak_eq]
+  rw [verifyKeccak_body τ inst outs hshape]
   refine RunsTo.of_eq (xs := [committed] ++ (xsL ++ (mO.flatMap (fun m ↦ [m.1, m.2]) ++ ([word] ++
     (mI.flatMap (fun m ↦ [m.1, m.2]) ++ (mS.flatMap (fun m ↦ [m.1, m.2]) ++ (slices ++ [])))))))
     ?main rfl ?hx rfl rfl

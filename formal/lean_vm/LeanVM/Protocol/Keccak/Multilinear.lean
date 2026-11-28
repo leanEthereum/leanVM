@@ -8,8 +8,9 @@
 module
 
 import LeanVM.Protocol.Keccak.Linear
-public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
-import LeanVM.ToMathlib.Finset
+public import LeanVM.Parameters.Field
+import Mathlib.Data.List.GetD
+public import LeanVM.Protocol.EndToEnd.Complete.PolyLE
 
 /-!
 # Multilinear sums
@@ -20,7 +21,7 @@ The verifier's points are lists, the first coordinate the lowest bit of an index
 * `eqAt pt w = Π_k eq(pt_k, bit k of w)`, defined coordinate by coordinate from the first;
   `eqKernel_getD`: the verifier's `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;
   `sum_eqAt`: the weights sum to one; `eqAt_append`: a point split in two;
-* `bitsE z m`: the hypercube point of index `z`, `eqAt_bitsE_lt`: equality weights at a cube point
+* `bitsE z m`: the hypercube point of index `z`, `eqAt_bitsE`: equality weights at a cube point
   are an indicator;
 * `multilinearEval_eq`, `dot_eqKernel`: the verifier's evaluation and inner product as sums;
 * `polyLE_eqAt`: `eqAt` is affine in each coordinate, so a sum of products of `k` multilinear
@@ -59,10 +60,19 @@ theorem eqAt_append : ∀ (a b : List E) (w : ℕ), eqAt (a ++ b) w = eqAt a w *
     rw [List.cons_append, eqAt_cons, eqAt_cons, eqAt_append a b, List.length_cons, pow_succ,
       Nat.div_div_eq_div_mul, mul_comm (2 ^ a.length) 2, mul_assoc]
 
+/-- Sums over `2N` indices pair them. -/
+theorem sum_range_two_mul (N : ℕ) (F : ℕ → E) :
+    ∑ w ∈ range (2 * N), F w = ∑ w ∈ range N, (F (2 * w) + F (2 * w + 1)) := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+    rw [show 2 * (N + 1) = 2 * N + 1 + 1 by ring, Finset.sum_range_succ, Finset.sum_range_succ, ih,
+      Finset.sum_range_succ, add_assoc]
+
 /-- Sums over the cube of `m + 1` coordinates split on the first. -/
 theorem sum_cube_succ (m : ℕ) (F : ℕ → E) :
     ∑ w ∈ range (2 ^ (m + 1)), F w = ∑ w ∈ range (2 ^ m), (F (2 * w) + F (2 * w + 1)) := by
-  rw [pow_succ, mul_comm, Finset.sum_range_two_mul]
+  rw [pow_succ, mul_comm, sum_range_two_mul]
 
 /-- The equality weights sum to one. -/
 theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w = 1

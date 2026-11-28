@@ -30,7 +30,7 @@ pub struct Report {
 
 /// Prove `n` random permutations, a state committed every `depth` rounds, with one warmup pass
 /// then `plan.repeat` measured ones, and verify the proof. The output is not committed: a claim
-/// on it is bound in the transcript, as the VM's memory bus does.
+/// on it is bound in the transcript, as the VM's link does.
 pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let shape = Shape::new(n, depth);
     let mu = shape.stack_log();
@@ -60,7 +60,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let output_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        let openings = witness.prove(&mut ps, &committed, &output);
+        let openings = witness.prove(&mut ps, &crate::witness::slots(shape, &committed), &output);
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();

@@ -69,27 +69,6 @@ theorem written_extendC {fs : List Atom} : ∀ {as : List Atom} {pre rest : List
             x (reads_of_writes (hq a List.mem_cons_self hf) hw))
     · exact Or.inr h
 
-/-- The atoms `as ++ bs` before a position stop no read but `as`' flow atoms. -/
-theorem stop_of_flow {as bs : List Atom} (hq : ∀ a ∈ as, flowAtom a = false → stopS H.readT a = false)
-    (hbs : ∀ a ∈ bs, stopS H.readT a = false) : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
-  intro a ha hn
-  rcases List.mem_append.mp ha with ha | ha
-  · cases hfa : flowAtom a
-    · exact hq a ha hfa
-    · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-  · exact hbs a ha
-
-/-- **The atoms `as ++ bs` add to `WrittenC` only what `as`' flow atoms write** (`written_extendC`). -/
-theorem written_flowC {as bs : List Atom} {pre rest : List Ev}
-    (hrw : ReadsAt sigOf H rd σ ws0 pre ((as ++ bs).map Ev.atom ++ rest))
-    (hq : ∀ a ∈ as, flowAtom a = false → stopS H.readT a = false) (hbs : ∀ a ∈ bs, stopS H.readT a = false)
-    {x : K} (hx : WrittenC sigOf H rd σ ws0 (pre ++ (as ++ bs).map Ev.atom) x) :
-    WrittenC sigOf H rd σ ws0 pre x ∨ ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ (as ++ bs).map Ev.atom ∧ Writes σ a x := by
-  rcases written_extendC (fs := as.filter flowAtom) hrw (stop_of_flow hq hbs) hx with h | ⟨a, ha, hwa⟩
-  · exact Or.inl h
-  · rw [List.mem_filter] at ha
-    exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
-
 /-- **Atoms on the path add to `WrittenC` only what those among `fs` write.** -/
 theorem atoms_writtenC {fs as : List Atom} {ss : List Stmt} {pre es : List Ev} {vs : List V}
     (hp : walk σ (as.map Stmt.atom ++ ss) = .ret es vs) (hrw : ReadsAt sigOf H rd σ ws0 pre es)
@@ -128,8 +107,18 @@ theorem pair_readC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     refine ⟨as, dv, pv, off, hpairs, hcell, hrd, by simp, ?_⟩
     have hR : Reads H σ (.load dv pv off) (cellAt σ pv off) := ⟨hrd, rfl⟩
     have hw := hrw ((as ++ bs).map Ev.atom) (.atom (.load dv pv off)) es2 (by simp) (evM_atoms _) _ hR
-    exact (written_flowC (rest := Ev.atom (.load dv pv off) :: es2) (by simpa [List.append_assoc] using hrw) hq hb
-      hw).imp_right fun ⟨a, ha, hf, hm, hwa⟩ ↦ ⟨a, ha, hf, List.mem_append_left _ hm, hwa⟩
+    have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
+      intro a ha hn
+      rcases List.mem_append.mp ha with ha | ha
+      · cases hfa : flowAtom a
+        · exact hq a ha hfa
+        · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
+      · exact hb a ha
+    rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.atom (.load dv pv off) :: es2)
+        (by simpa [List.append_assoc] using hrw) hqa hw with h | ⟨a, ha, hwa⟩
+    · exact Or.inl h
+    · rw [List.mem_filter] at ha
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
   · rcases hO' with hO' | ⟨o1', o2', o3', heq, hj⟩
     · simp [hO] at hO'
     · simp only [OffsetInstruction.deref.injEq] at heq
@@ -252,7 +241,12 @@ theorem pair_retC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   simp only [Out.ret.injEq] at hes'
   obtain ⟨rfl, -⟩ := hes'
   obtain ⟨-, -, -, hW⟩ := atoms_writtenC (fs := as.filter flowAtom) (ss := zs.pos) (pre := pre)
-    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (stop_of_flow hq hbs)
+    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (fun a ha hn ↦ by
+        rcases List.mem_append.mp ha with ha | ha
+        · cases hfa : flowAtom a
+          · exact hq a ha hfa
+          · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
+        · exact hbs a ha)
   refine ⟨evM_app (evM_atoms _) evM_nil, fun x hx ↦ ?_⟩
   rcases hW x (by simpa using hx) with h | ⟨a, ha, hwa⟩
   · exact Or.inl h

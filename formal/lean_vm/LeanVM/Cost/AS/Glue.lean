@@ -1,58 +1,37 @@
+/-
+  LeanVM.Cost.AS.Glue
+
+  The stack size the lite extractor's announced sizes decode to is the one the extractor's budget
+  reads.
+-/
+
 module
 
-public import LeanVM.Cost.Efficient
-public import LeanVM.Cost.AS.Program
-import all LeanVM.Protocol.Extraction.AS.Lite
-import all LeanVM.Protocol.EndToEnd.Sound.SkelPairs
-import all LeanVM.Protocol.EndToEnd.Sound.SkelWhir
-import all LeanVM.Protocol.EndToEnd.Sound.Avail
-import all LeanVM.Protocol.Extraction.Fast.AfterRoot
-import all Statement.LeanVmVerifier
-import all Statement.Verifier.Transcript
-import all Statement.Verifier.Multilinear
-import all Statement.Verifier.Layout
-import all Statement.Verifier.Bus
-import all Statement.Verifier.Whir
-import all Statement.Verifier.Keccak
-import all Statement.Verifier.RingSwitch
-import all Statement.Verifier.Lib
-import all Statement.CostMachine
+public import Statement.CostMachine
+public import LeanVM.Protocol.Extraction.AS.Lite
+import LeanVM.Protocol.Compile.RunPure
 
 /-!
-# The agreement-set extractor the compiled program computes
+# The announced stack size
 
-* `replay_reads`, **`announced_of_decSizesL`**: the stack size the replay's announced sizes decode
-  to is the one the statement's budget reads (`announcedStackLog`);
-* **`asOutput`**: in a program within a size bound `S` whose function `0` is `entryBody j`, if
-  function `j` computes `extractL` at a price `cost` that, with the entry's `14`, is within a budget
-  `B` wherever the extraction succeeds, the decoded output within `B` is `transcriptExtractorL`'s.
+* `replay_reads`: a replay of `n` reads succeeds only on a stream of at least `n` scalars, and its
+  values are the stream's first `n`;
+* `buildLayoutLite_stackLog`: `buildLayoutLite` succeeds with a stack size exactly where
+  `buildLayout` does, with that stack size;
+* **`announced_of_decSizesL`**: the stack size the replay's announced sizes decode to
+  (`skelReplayP`, `decSizesL`) is the one the statement's budget reads (`announcedStackLog`).
 -/
 
 namespace LeanVM.Cost.AS
 
 open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Extraction.AS
-open LeanVM.Protocol.EndToEnd.Sound Common
+open LeanVM.Protocol.Verifier LeanVM.Extraction.AS LeanVM.Protocol.EndToEnd.Sound
+open LeanVM.Protocol.Relation
 
 public section
 
-/-! ## The announced sizes -/
-
-theorem readPure_of_ground : ∀ (n : ℕ) (s : VerifierProgramState), s.sponge.ground = none →
-    n ≤ s.stream.length → (readPure n s).map (·.1) = some (s.stream.take n)
-  | 0, _, _, _ => rfl
-  | n + 1, ⟨sp, x :: xs, os, rs⟩, hg, hn => by
-    simp only at hg
-    simp only [readPure, hg]
-    have ih := readPure_of_ground n ⟨absorbPure sp x dsObserve, xs, os, rs⟩ (by
-      simp only [absorbPure]; split_ifs <;> exact hg) (by simp at hn ⊢; omega)
-    rcases h : readPure n ⟨absorbPure sp x dsObserve, xs, os, rs⟩ with _ | r
-    · rw [h] at ih; simp at ih
-    · rw [h] at ih
-      simp only [Option.map_some, Option.some.injEq] at ih ⊢
-      rw [ih]
-      rfl
-  | n + 1, ⟨sp, [], os, rs⟩, _, hn => by simp at hn
+private theorem ret_bind {α β : Type} (a : α) (f : α → VerifierProgram β) :
+    (VerifierProgram.ret a >>= f) = f a := rfl
 
 /-- **A replay of reads reads the stream's head.** -/
 theorem replay_reads (F : KeccakState → Option KeccakState) :
@@ -76,6 +55,32 @@ theorem replay_reads (F : KeccakState → Option KeccakState) :
       rfl
     · simp at h
 
+theorem tables_widths_opcodes : tables.map (fun t ↦ (t.width, t.opcode)) =
+    [(7, 0), (9, 1), (5, 2), (10, 3), (14, 4), (68, 5)] := by decide +kernel
+
+theorem columnKappas_tables (logMemory : ℕ) (tableLogHeights : List ℕ) :
+    columnKappas tables logMemory tableLogHeights = columnKappasL logMemory tableLogHeights := by
+  unfold columnKappas columnKappasL
+  have h : tables.flatMap (fun t ↦ List.replicate t.width (tableLogHeights.getD t.opcode 0)) =
+      (tables.map fun t ↦ (t.width, t.opcode)).flatMap
+        fun p ↦ List.replicate p.1 (tableLogHeights.getD p.2 0) := by
+    rw [List.flatMap_map]
+  rw [h, tables_widths_opcodes]
+  rfl
+
+/-- **`buildLayoutLite` is `buildLayout`'s sizes.** -/
+theorem buildLayoutLite_lite (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) :
+    buildLayoutLite bytecode logMemory tableRows =
+      (buildLayout bytecode logMemory tableRows).map Layout.lite := by
+  unfold buildLayoutLite buildLayout
+  rcases log2Strict bytecode.length with _ | logLength
+  · rfl
+  · dsimp only
+    split_ifs
+    · rw [columnKappas_tables]
+      rfl
+    · rfl
+
 /-- **The stack size the decoded announced sizes give is the one the budget reads.** -/
 theorem announced_of_decSizesL (F : KeccakState → Option KeccakState) (prog : LeanIsaProgram)
     (π : Proof) (seed : KeccakState) {r₁ : List EvP × VerifierProgramState} {lay : LayoutLite} {ρ : ℕ}
@@ -83,61 +88,26 @@ theorem announced_of_decSizesL (F : KeccakState → Option KeccakState) (prog : 
     (hd : decSizesL (bytecodeWords prog) r₁.1 = some (lay, ρ)) :
     Cost.announcedStackLog prog π = lay.stackLog := by
   obtain ⟨hn, hm⟩ := replay_reads F _ _ r₁ hr
+  change 2 + nTables ≤ π.stream.length at hn
+  change _ = some (π.stream.take (2 + nTables)) at hm
   unfold decSizesL at hd
-  rw [hm, Option.bind_some, sizesOfL_eq] at hd
-  obtain ⟨a, ha, he⟩ := Option.map_eq_some_iff.mp hd
-  have hl : (layoutLite a.1).stackLog = lay.stackLog := congrArg (fun x ↦ x.1.stackLog) he
-  unfold Cost.announcedStackLog announcedLayoutAndRate
-  rw [runPure_readSizes]
-  unfold readSizesPure
-  have hrp := readPure_of_ground (2 + tables.length) ⟨⟨default, [], none⟩, π.stream, [], []⟩ rfl hn
-  rcases h : readPure (2 + tables.length) ⟨⟨default, [], none⟩, π.stream, [], []⟩ with _ | rp
-  · rw [h] at hrp; simp at hrp
-  · rw [h] at hrp
-    simp only [Option.map_some, Option.some.injEq] at hrp
-    simp only [Option.bind_some]
-    have hrp' : rp.1 = (startState π seed).stream.take (2 + tables.length) := hrp
-    rw [hrp']
-    simp only [startState] at ha ⊢
-    rw [ha]
-    simp only [Option.map_some, Option.getD_some]
-    exact hl
-
-/-! ## The output -/
-
-/-- **The glue**: in a program within the size bound `S` whose function `0` is `entryBody j`, if
-function `j` computes `extractL` at the price `cost`, with the entry's `14` within the budget `B`
-wherever the extraction succeeds, the output within `B`, decoded, is `transcriptExtractorL`'s. -/
-theorem asOutput (P : MachineProgram) (S : ℕ) (hsize : MachineProgram.size P ≤ S)
-    (j : ℕ) (hentry : P[0]? = some (entryBody j))
-    (cost : LeanIsaProgram → PublicInput → List (PermutationQuery KeccakState × KeccakState) →
-      Proof → ℕ)
-    (hrun : ∀ prog input qs π, RunsBody P j [encodeValue prog, encodeValue input, encodeValue qs,
-      encodeValue π] (encodeValue (extractL prog input qs π)) (cost prog input qs π))
-    (prog : LeanIsaProgram) (input : PublicInput) (T : OracleQueryLog) (proof : Proof) (B : ℕ)
-    (hcost : ∀ t, extractL prog input (permutationQueries T) proof = some t →
-      cost prog input (permutationQueries T) proof + 14 ≤ B) :
-    (outputWithin P S B (encodeLeanVmKnowledgeExtractorInput prog input T proof)).bind
-        (decodeExecution prog) = transcriptExtractorL prog input T proof := by
-  obtain ⟨c, hc, hentryRun⟩ := runsBody_entry hentry (hrun prog input (permutationQueries T) proof)
-  change _ = extractL prog input (permutationQueries T) proof
-  cases ht : extractL prog input (permutationQueries T) proof with
-  | none =>
-    rw [ht] at hentryRun
-    cases ho : outputWithin P S B (encodeLeanVmKnowledgeExtractorInput prog input T proof) with
-    | none => rfl
-    | some v =>
-      obtain ⟨c', hv⟩ := runsBody_of_outputWithin ho
-      obtain ⟨rfl, -⟩ := RunsBody.unique hv hentryRun
-      exact decodeExecution_unwrap prog none
-  | some t =>
-    rw [ht] at hentryRun
-    have hb := hcost t ht
-    have hx : encodeLeanVmKnowledgeExtractorInput prog input T proof =
-        .constructor 0 [encodeValue prog, encodeValue input, encodeValue (permutationQueries T),
-          encodeValue proof] := rfl
-    rw [hx, outputWithin_of_runs hsize hentryRun (by omega)]
-    exact decodeExecution_unwrap prog (some t)
+  rw [hm, Option.bind_some] at hd
+  unfold sizesOfL at hd
+  dsimp only at hd
+  split_ifs at hd with h1 h2
+  obtain ⟨lay', hb, hd⟩ := Option.bind_eq_some_iff.mp hd
+  split_ifs at hd with h3
+  cases hd
+  rw [buildLayoutLite_lite] at hb
+  obtain ⟨L, hL, rfl⟩ := Option.map_eq_some_iff.mp hb
+  obtain ⟨s', -, hs'⟩ := runPure_readScalars (2 + nTables)
+    ⟨⟨default, [], none⟩, π.stream, [], []⟩ rfl hn
+  unfold Cost.announcedStackLog announcedLayoutAndRate readAnnouncedSizes
+  show ((runPure ((VerifierProgram.readScalars (2 + nTables)).bind _) _).map _ |>.map _).getD 0 = _
+  rw [runPure_bind, hs', Option.bind_some]
+  have h3' : Whir.minLogStack ≤ L.stackLog ∧ L.stackLog ≤ Whir.maxLogStack := h3
+  simp only [VerifierProgram.require, h1, h2, h3', hL, ite_true, Verifier.liftOption, ret_bind]
+  rfl
 
 end
 

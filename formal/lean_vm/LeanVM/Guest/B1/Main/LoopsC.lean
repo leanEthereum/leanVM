@@ -222,14 +222,16 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
     C "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] → ExpTables rd gsq ∧ ExpWinTab rd gsq →
     VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
   /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
-  with the hints `wA args`. -/
+  with the hints `wA args`: the batching program (`Batch.nodeBatchingProgram`) accepts the stream of
+  the children whose words the memory holds, with the claim written at `dst` as its outcome. -/
   agg : ∀ ncg cpi cfresh ccarried dst tabs, C "aggregate_claims"
     [ncg, cpi, cfresh, ccarried, dst, tabs] [] → WinTabs rd tabs → ∀ m, 1 ≤ m → m ≤ 16 →
       ncg = gen ^ m →
       ∃ out : DeferredBytecodeClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
+          Batch.runBatching (m := Id) keccakF1600 (Batch.nodeBatchingProgram (· = out) bytecode cs)
+            ⟨Batch.batchingStream cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]), []⟩ = true
 
 /-! ## The iterations -/
 
@@ -350,10 +352,10 @@ def KidStepC (C : CallRel) (rd : Reader) (written lxt cover lxs lst spc lss carr
     coreProgram.Rel rd "child_claim_list_digest" [lst, spc, base * gen ^ ex, lss, gen ^ es]
       [cs0, cs1] ∧
     LoadHolds rd (dadig * x ^ 2) 0 d0 ∧ LoadHolds rd (dadig * x ^ 2) 1 d1 ∧
-    coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 24]
+    coreProgram.Rel rd "statement_digest" [s0, s1, cx0, cx1, cs0, cs1, d0, d1, carried * x ^ 26]
       [p0, p1] ∧
     LoadHolds rd (cpi * x ^ 2) 0 p0 ∧ LoadHolds rd (cpi * x ^ 2) 1 p1 ∧
-    C "verify_sub" [p0, p1, s0, s1, gsq, cfresh * x ^ 24] [] ∧
+    C "verify_sub" [p0, p1, s0, s1, gsq, cfresh * x ^ 55] [] ∧
     LoadHolds rd (written * x) 1 (base * (gen ^ ex * gen ^ es))
 
 theorem l5_stepC {rd : Reader} {C : CallRel} (hC : Unfolds rd C)

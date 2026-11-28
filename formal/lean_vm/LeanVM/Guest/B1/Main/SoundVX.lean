@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Final
 public import LeanVM.Guest.B1.Sig.Interface
-public import LeanVM.Guest.B1.Main.Aggregate
+public import LeanVM.Guest.B1.Main.AggIface
 public import LeanVM.Guest.B1.Da.Verify
 public import LeanVM.Guest.B1.Sig.SphincsSound
 public import LeanVM.Guest.B1.VerifySub.Interface
@@ -23,7 +23,8 @@ import LeanVM.Guest.Data.ValNames.«main»
 `decWitVX sigOf σ rd V piOf` is `SoundV`'s `decWitV` with the leanXMSS signature of raw iteration
 `j` read by `sigOf` off `main_loop2`'s frame at its arguments (`V "main_loop2" args []`: the
 leanXMSS check is inline in `main_loop2` at 40f877dc). `main_sound_VX`: given the segment's
-statement for `sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`) and `verify_sub`'s (`SubSoundW`), a
+statement for `sigOf` (`Sig.verify_lean_xmss_sound_Spec sigOf`), `verify_sub`'s (`SubSoundW`) and
+`aggregate_claims`' (`AggregateClaimsSound`), a
 run of `main`'s body gives the statement of the public input's digest, held by `decWitVX sigOf σ rd
 V piOf`. `SoundV` instantiates it with the xmss family's reader and proof.
 -/
@@ -48,12 +49,15 @@ noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd :
 theorem find_verify_sub : coreProgram.find? "verify_sub" = some fn% «verify_sub» :=
   coreProgram_find?_at (j := idx% «verify_sub») rfl
 
-/-- **`verify_sub`'s statement, its proof named by `piOf`**: on a memory image of at most `2^32`
-words, under a call relation that unfolds at `V` and lies below `coreProgram.Rel`, a run of its
-body whose arguments hold the exponent tables returns nothing, and its proof `piOf L.read σ V` is
-accepted for the public input and the seed of its arguments. -/
+/-- **`verify_sub`'s statement, its proof named by `piOf`**: for a stacked program of
+`2^(19 + BYTECODE_SLOT_BITS)` words, on a memory image of at most `2^32` words, under a call
+relation that unfolds at `V` and lies below `coreProgram.Rel`, a run of its body whose arguments
+hold the exponent tables (`VerifySubPre`) returns nothing, its sixth argument holds the cells of a
+fresh claim of the shape `ChildHasBytecodeShape` asks, and its proof `piOf L.read σ V` is accepted
+by the deferring verifier for the public input and the seed of its arguments with that fresh claim
+(`VerifySubOut`). -/
 def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof) : Prop :=
-  bytecode.length = 2 ^ bytecodeVars → ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 →
+  bytecode.length = 2 ^ (bytecodeLog + bytecodeSlotBits) → ∀ {κ : ℕ} (L : MemoryImage κ), κ ≤ 32 →
     ∀ (C : CallRel) (V : FrameMap), UnfoldsV L.read C V → CallRel.Le C (coreProgram.Rel L.read) →
       ∀ (σ : Val) (rets : List E),
         Stmt.HoldsList C L.read σ (Fn.body fn% «verify_sub») False (fun rs ↦ rs = rets) →
@@ -65,8 +69,8 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
 given the segment's statement and `verify_sub`'s with its proof named. -/
 theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
     {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
-    (hv : SubSoundW bytecode piOf) :
-    bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
+    (hv : SubSoundW bytecode piOf) (ha : AggregateClaimsSound) :
+    bytecode.length = 2 ^ (bytecodeLog + bytecodeSlotBits) → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
       UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),
         LoadHolds rd 1 0 (digestHalves D).1 → LoadHolds rd 1 1 (digestHalves D).2 →
         Stmt.HoldsList C rd σ (fn% «main»).body False (fun rs ↦ rs = []) →
@@ -101,7 +105,8 @@ theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap �
     exact ho
   · intro ncg cpi cfresh ccarried dst tabs h hw m hm1 hm16 hN
     obtain ⟨hp, hba⟩ := body_ofV hV find_aggregate_claims h
-    exact (aggregate_claims_val hm hle hp hba hw m hm1 hm16 hN).2
+    obtain ⟨-, out, hl, hr, hcs⟩ := ha hm hle hp hba hw m hm1 hm16 hN
+    exact ⟨out, hl, hr, fun cs h1 h2 => hcs cs h1 h2 bytecode (dvc_bytecode hbl)⟩
 
 end
 end LeanVM.Guest.B1.Main

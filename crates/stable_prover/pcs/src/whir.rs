@@ -349,15 +349,12 @@ mod tests {
                 // The first and the last committed lane, and the whole stack, whose weight reaches past them.
                 let claims: Vec<_> = [(0, lane_vars), (used - lane_block, lane_vars), (0, log_n)]
                     .into_iter()
-                    .map(|(offset, vars)| StackClaim {
+                    .map(|(offset, vars)| StackClaim::Point {
                         offset,
                         low_point: rng.ext_vec(vars),
                     })
                     .collect();
-                let ring = RingSwitchOpen {
-                    offset: 0,
-                    points: Vec::new(),
-                };
+                let ring = RingSwitchOpen::default();
                 let prove = |msg: &[F64]| {
                     let mut ps = ProverState::from_label(b"whir-test");
                     let committed = commit(&mut ps, msg, log_n, MIN_LOG_INV_RATE);

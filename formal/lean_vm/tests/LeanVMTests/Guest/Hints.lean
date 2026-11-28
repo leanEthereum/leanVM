@@ -28,7 +28,7 @@ def signature : LeanXmss.Signature :=
 
 def seed : Digest := keccak256 [1, 2, 3]
 
-def leaf : NodeStatement := ⟨⟨[(key, message)], [], zeroDigest⟩, ⟨List.replicate 23 0, 5⟩⟩
+def leaf : NodeStatement := ⟨⟨[(key, message)], [], zeroDigest⟩, ⟨List.replicate 25 0, 5⟩⟩
 
 def witness : NodeWitness := ⟨[], [((key, message), signature)], [], none, ⟨0, [], 0⟩⟩
 

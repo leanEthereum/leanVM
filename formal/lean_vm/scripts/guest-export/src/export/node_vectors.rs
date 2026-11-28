@@ -1,10 +1,11 @@
 //! Known answers of the deployed Rust for `Statement/LeanVmGuest.lean`, at the guest's real shape: the
-//! claim lists' digests, the DA list's, the statement's digest under the
-//! deployed seed, and a batching of two children with true claims on the guest's stacked
-//! bytecode (`aggregate_deferred_claims`, its sumcheck over all `bytecode_vars()` variables), as
-//! `tests/LeanVMTests/Spec/NodeVectors.lean`. The successor of the BLAKE2s-era
-//! `node_spec_vectors`; the Lean checks (`#guard`s against the Spec definitions, and the mutations)
-//! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
+//! claim lists' digests, the DA list's, the statement's digest under the deployed seed, the split table's first
+//! entry (`DeferredBytecodeClaim::leaf`), the split columns at instructions (`FreshClaim::at` at vertices of the
+//! instructions' cube: entries of `split_table`), and a batching of two children
+//! with true claims on the split program (`aggregate_deferred_claims`, its column challenges and its sumcheck over
+//! all `bytecode_vars()` variables), as `tests/LeanVMTests/Spec/NodeVectors.lean`. The Lean checks (`#guard`s
+//! against the Spec definitions, and the mutations) are hand-written in `tests/LeanVMTests/Spec/Node.lean`, the
+//! slow ones compiled in `cli/NodeVectors.lean`.
 
 use super::*;
 use lean_sphincs::LeanSphincsPublicKey;
@@ -106,31 +107,35 @@ pub fn file() -> File {
     let claims = AggregateClaims { lean_xmss: xmss_typed, lean_sphincs: sphincs_typed, da_commitment: Some(root) };
     let statement = statement_digest(&claims, &defer);
 
-    // Two children with true claims on the stacked bytecode: each one's public input and fresh claim.
-    let subproofs: Vec<([F128; 2], DeferredBytecodeClaim)> = (0..2)
-        .map(|_| {
-            let point = elements(&mut rng, kbcv);
-            let scalars: Vec<_> = point.iter().map(to_scalar).collect();
-            let value = from_scalar(unified_guest().bytecode().evaluate(&scalars).unwrap());
-            let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
-            let public_input = [canonical(&mut rng), canonical(&mut rng)];
-            (public_input, DeferredBytecodeClaim { bytecode_point: point, bytecode_value: value })
-        })
-        .collect();
+    // Two children with true claims on the split program: each one's public input, the fresh claim its verification
+    // raises at a point over the instructions, and the claim its statement carries.
+    let kbc = unified_guest().prog.len().trailing_zeros() as usize;
+    let public_inputs: Vec<[F128; 2]> = (0..2).map(|_| [element(&mut rng), element(&mut rng)]).collect();
+    <StableProver as isa::Prover>::init();
+    let fresh: Vec<FreshClaim> = (0..2).map(|_| FreshClaim::at(elements(&mut rng, kbc))).collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
         .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)))
         .collect();
-    // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
-    let public_inputs: Vec<[F128; 2]> = subproofs.iter().map(|(public_input, _)| *public_input).collect();
-    let claims: Vec<DeferredBytecodeClaim> = subproofs
-        .iter()
-        .zip(&carried)
-        .flat_map(|((_, fresh), carried)| [fresh.clone(), carried.clone()])
+    let carried_points: Vec<Vec<F128>> = carried.iter().map(|c| c.bytecode_point.clone()).collect();
+    let carried_sums = bytecode_sums::<StableProver>(&carried_points);
+    let (hints, batched) =
+        aggregate_deferred_claims::<StableProver>(&public_inputs, &fresh, &carried, carried_sums);
+    // The split columns at instructions: the first of each opcode, and the last. At a vertex of the instructions'
+    // cube, `split_values` is the split table's entries there.
+    let table = split_table();
+    let n = table.len() >> SPLIT_LOG;
+    let mut instructions: Vec<usize> = (0..verifier::layout::tables().len())
+        .filter_map(|op| (0..n).find(|&k| table[op * n + k] == 1))
         .collect();
-    let points: Vec<Vec<F128>> = claims.iter().map(|claim| claim.bytecode_point.clone()).collect();
-    <StableProver as isa::Prover>::init();
-    let sums = bytecode_sums::<StableProver>(&points);
-    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums);
+    instructions.push(n - 1);
+    let vertices: Vec<(usize, Vec<F128>)> = instructions
+        .iter()
+        .map(|&k| {
+            let point = (0..kbc).map(|i| F128::new(((k >> i) & 1) as u64, 0)).collect();
+            (k, FreshClaim::at(point).values)
+        })
+        .collect();
+    let leaf = DeferredBytecodeClaim::leaf();
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
@@ -187,15 +192,16 @@ pub fn file() -> File {
         cells_digest(&statement)
     )
     .unwrap();
-    let children: Vec<String> = subproofs
+    let children: Vec<String> = public_inputs
         .iter()
+        .zip(&fresh)
         .zip(&carried)
-        .map(|((public_input, s), c)| {
+        .map(|((public_input, f), c)| {
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
                 cells_digest(public_input),
-                es(&s.bytecode_point),
-                e(s.bytecode_value),
+                es(&f.point),
+                es(&f.values),
                 es(&c.bytecode_point),
                 e(c.bytecode_value)
             )
@@ -203,8 +209,22 @@ pub fn file() -> File {
         .collect();
     writeln!(
         out,
-        "/-- Two children, true claims on the guest's stacked bytecode. -/\ndef children : List ChildClaims :=\n  {}\n",
+        "/-- Two children, true claims on the split program: each one's public input, fresh claim (`FreshClaim::at`) \
+         and carried claim (`DeferredBytecodeClaim::recompute`). -/\ndef children : List ChildClaims :=\n  {}\n",
         list(children)
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "/-- The leaf's deferred value, the split table's first entry (`DeferredBytecodeClaim::leaf`). -/\ndef leafValue : E := {}\n",
+        e(leaf.bytecode_value)
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "/-- The split columns at instructions `k`, the first of each opcode and the last (`FreshClaim::at` at the \
+         vertex `k`). -/\ndef vertices : List (ℕ × List E) :=\n  {}\n",
+        list(vertices.iter().map(|(k, values)| format!("({k}, {})", es(values))).collect())
     )
     .unwrap();
     let rounds: Vec<String> = msgs.chunks(2).map(|p| format!("({}, {})", e(p[0]), e(p[1]))).collect();

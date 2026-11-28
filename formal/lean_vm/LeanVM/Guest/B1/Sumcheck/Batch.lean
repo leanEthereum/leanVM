@@ -15,7 +15,7 @@ import LeanVM.Guest.KernelRfl
 /-!
 # `batch_sumcheck`
 
-`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, 23)` (`guests/lean_ethereum.py`) copies the
+`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, 25)` (`guests/lean_ethereum.py`) copies the
 carried capacity, then per round `j` reads `g(1)`, `g(∞)` at `msgs[2j]`, `msgs[2j + 1]`, absorbs
 them, squeezes the challenge (`fs_grind_squeeze` at zero bits: one permutation, its cell `0`),
 stores it at `point[j]` and folds the degree-two round; it returns the last capacity and claim.
@@ -98,7 +98,7 @@ private theorem meaningBatchSumcheck_iff (n : ℕ) (rd : Reader)
 /-- **`batch_sumcheck`'s core IR is its meaning.** -/
 theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   intro rd args rets
-  rw [rel_iff_fnSem (coreProgram_find?_at (j := idx% «batch_sumcheck__L23») rfl)]
+  rw [rel_iff_fnSem (coreProgram_find?_at (j := idx% «batch_sumcheck__L25») rfl)]
   by_cases h : ∃ f0 f1 f2 f3 f4 msgs running point tabs,
       args = [f0, f1, f2, f3, f4, msgs, running, point, tabs]
   · obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩ := h

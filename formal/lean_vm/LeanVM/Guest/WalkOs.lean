@@ -45,6 +45,9 @@ theorem getD_mapV {σ : Val} {l : List V} {i : ℕ} (h : i < l.length) :
     (l.map σ).getD i 0 = σ (l.getD i (.n 0)) := by
   rw [List.getD_eq_getElem _ _ (by simpa using h), List.getD_eq_getElem _ _ h, List.getElem_map]
 
+theorem word_gpowE {S : ℕ} (hS : S < ordG) : gpowE S = Protocol.Verifier.gen ^ S := by
+  rw [gpowE, gpowK_eq (lt_trans hS (by unfold u128Bound ordG; norm_num)), ← Value.gen_pow_eq_ofK]
+
 /-- An arm `sqArmOk` accepts sets the value to `g^S`, if its atoms hold. -/
 theorem sqArm_val {rd : Reader} {σ : Val} {arm : List Stmt} {sv : V} {S : ℕ} (hS : S < ordG)
     (h : sqArmOk arm sv S = true) (hall : ∀ a, .atom a ∈ arm → a.Holds rd σ) :
@@ -64,7 +67,7 @@ theorem sqArm_val {rd : Reader} {σ : Val} {arm : List Stmt} {sv : V} {S : ℕ} 
       have e1 := hall _ hs1
       have e2 := hall _ hs2
       simp only [Atom.Holds] at e1 e2
-      rw [e1, e2, eEqb_sound hx, B1.Whir.gw_eq (lt_trans hS (by unfold u128Bound ordG; norm_num))]
+      rw [e1, e2, eEqb_sound hx, word_gpowE hS]
 
 /-- **A tuple `osTupOk` accepts holds**: at arm `r`, the windows `level_positions`' arm `r`
 decodes on the dispatch's window pointers, in the tuple's cell, in the squeezes the level's match

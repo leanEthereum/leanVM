@@ -1,165 +1,174 @@
-//! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode is one `Table` impl that declares,
-//! in one place, its committed columns, how to fill them from the trace, its bus
-//! interactions (flushes), the read-count columns that feed the count channel,
-//! and its degree-2 constraint. Column indices here are *local* (`0..n_committed_columns`);
-//! `cpu` offsets them by the verifier's `GLOBAL_COLUMN_BASES` to global witness columns.
+//! The six instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Their columns and links are the
+//! verifier's ([`verifier::layout::tables`]), read here with their forms over [`F128`] ([`Links`]); each table adds how
+//! to fill its columns from the trace and, for `JUMP`, its identities as one [`Form`]. Column indices are local
+//! (`0..n_committed_columns`); `cpu`'s layout offsets them by the verifier's [`GLOBAL_COLUMN_BASES`].
 //!
-//! Columns are `K`-valued (`F64`). The pc/fp, operands, counts, opcodes and
-//! separators are single `K`-columns; a machine word (memory value) is
-//! 128-bit (`E = F128`), committed as two `K`-lane columns. Nothing a row
-//! derives is a column at all: an operand address `fp·o`, an `XOR`/`MUL` result,
-//! the `DEREF` store, the `JUMP` successors are each written out as the degree-2
-//! bus coordinate that carries them (§sec:m3), which leaves `JUMP`'s is-nonzero
-//! indicator as the one identity any table has. Every identity is `K`-valued,
-//! so a relation on machine words is written out lane by lane. A table hands its
-//! identities to the table sumcheck as a degree-2 form (`Table::constraint`).
+//! Columns are `K`-valued (`F64`); a machine word is 128-bit (`E = F128`), two `K` lanes. Nothing a row derives is a
+//! column, and neither is anything it only reads where one of its pointers points: those are [`Read`]s, weighed on
+//! the side of the link that holds them. Every table's pointer columns hold one-hot words ([`Chunks`]).
 
-use crate::constraints::Form;
-use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Srow, Trace};
-use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
-use primitives::field::{F64, F128, mul_by_g};
-use std::ops::Range;
-use verifier::layout::TABLE_WIDTHS;
+use crate::cpu::from_scalar;
+use crate::cpu::{Memory, Op, Trace};
+use crate::form::Form;
+use crate::link::pointer::Chunks;
+use primitives::field::{F64, F128};
+use std::sync::OnceLock;
 
-// ---- the identities ----------------------------------------------------------
-//
-// Every identity is `K`-valued, like the columns it reads and like the bus
-// coordinates (§sec:air). A relation between machine words is therefore written out
-// lane by lane, with the tower multiplication unrolled by hand ([`TOWER_LANES`]),
-// rather than assembled into one `E` equation.
+pub use verifier::layout::{
+    GLOBAL_COLUMN_BASES, N_TABLES, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, TABLE_LOG_FLOORS, TABLE_WIDTHS,
+};
+const _: () = assert!(crate::keccak::MIN_STEPS == 1 << TABLE_LOG_FLOORS[OP_KECCAK]);
 
-/// The tower product `x·y` in `E = K[y]/(y²+x·y+1)` as two lane sums: lane `i` is
-/// `Σ g^e·x_j·y_k` over `(j, k, e)` in `TOWER_LANES[i]`, so `c0 = x0y0 + x1y1` and
-/// `c1 = x0y1 + x1y0 + g·x1y1`; written once here for `MUL`'s result coordinate
-/// ([`arith_result`]) and the test that pins it against the field.
-const TOWER_LANES: [&[(usize, usize, u32)]; 2] = [&[(0, 0, 0), (1, 1, 0)], &[(0, 1, 0), (1, 0, 0), (1, 1, 1)]];
-
-// ---- shared bus vocabulary ---------------------------------------------------
-
-/// `g^k` at compile time (`g = x`, so repeated `mul_by_g` from `g^0 = 1`).
-const fn g_pow(k: usize) -> F64 {
-    let mut acc = F64::ONE;
-    let mut i = 0;
-    while i < k {
-        acc = mul_by_g(acc);
-        i += 1;
-    }
-    acc
+/// The verifier's tables, built once: what this tree reads its columns and links from.
+pub fn layout_tables() -> &'static [verifier::layout::Table] {
+    static TABLES: OnceLock<Vec<verifier::layout::Table>> = OnceLock::new();
+    TABLES.get_or_init(verifier::layout::tables)
 }
 
-// Domain separators (coordinate 0 of every bus tuple) and opcodes (coordinate 3 of a bytecode tuple), the verifier's.
-pub(crate) const SEP_STATE: F64 = F64(verifier::layout::SEP_STATE.c0);
-pub(crate) const SEP_MEM: F64 = F64(verifier::layout::SEP_MEM.c0);
-pub(crate) const SEP_BYTECODE: F64 = F64(verifier::layout::SEP_BYTECODE.c0);
-pub(crate) const OP_XOR: F64 = g_pow(verifier::layout::OP_XOR);
-pub(crate) const OP_MUL: F64 = g_pow(verifier::layout::OP_MUL);
-pub(crate) const OP_SET: F64 = g_pow(verifier::layout::OP_SET);
-pub(crate) const OP_DEREF: F64 = g_pow(verifier::layout::OP_DEREF);
-pub(crate) const OP_JUMP: F64 = g_pow(verifier::layout::OP_JUMP);
-pub(crate) const OP_KECCAK: F64 = g_pow(verifier::layout::OP_KECCAK);
-
-// ---- flush builder -----------------------------------------------------------
-
-/// Collects a table's push/pull bus interactions in *local* column indices. The
-/// push/pull of a memory-checked entry differ only by one coordinate carrying the
-/// post-increment `g·count` (`GCol`) instead of the pre-increment (`Col`); these
-/// helpers encode that pairing so each table reads declaratively.
-pub(crate) struct FlushBuilder {
-    pub(crate) push: Vec<Vec<Coord>>,
-    pub(crate) pull: Vec<Vec<Coord>>,
+/// The local index of table `t`'s column `name`.
+pub fn column(t: usize, name: &str) -> usize {
+    (layout_tables()[t].columns.iter())
+        .position(|c| c == name)
+        .unwrap_or_else(|| panic!("table {t} has no column {name}"))
 }
 
-impl FlushBuilder {
-    pub(crate) fn new() -> Self {
+// ---- links -------------------------------------------------------------------
+
+/// A row's step of the state chain: its cycle pointer, its `(pc, fp)`, and the successor state, affine in its columns.
+#[derive(Clone, Debug)]
+pub struct StateLink {
+    pub cycle: usize,
+    pub pc: usize,
+    pub fp: usize,
+    pub next: [Form; 2],
+}
+
+/// A row's read of the program: its pointer, its `pc`, its opcode, and each operand equation `Σ_{s ∈ slots} BC_s =
+/// form` it checks against its instruction, weighed by the first slot's challenge (`verifier::layout::BytecodeLink`).
+#[derive(Clone, Debug)]
+pub struct BytecodeLink {
+    pub pointer: usize,
+    pub pc: usize,
+    pub opcode: usize,
+    pub operands: Vec<(Vec<usize>, Form)>,
+}
+
+/// A term of an access's word that the row reads where one of its pointers points, rather than from its columns
+/// (`verifier::layout::Read`).
+#[derive(Clone, Debug)]
+pub enum Read {
+    /// `scale·word(σ)`, the word in the cell the pointer column `pointer` names; `scale` is affine.
+    Word { pointer: usize, scale: Form },
+    /// `scale·BC_slot(σ_bc)`, a slot of the row's instruction.
+    Slot { slot: usize, scale: F128 },
+    /// `scale·fp·BC_slot(σ_bc)`.
+    Frame { slot: usize, scale: F128 },
+    /// `scale·pc·BC_slot(σ_bc)`, where `pc = g^{σ_bc}`.
+    Pc { slot: usize, scale: F128 },
+}
+
+/// A row's memory access (`verifier::layout::Access`): its pointer and how far past the pointer's cell it reads, the
+/// column gating it if any, the address and the word `lo + y·hi`. The address is `address + g^e·fp·BC_slot(σ_bc)` for
+/// `frame = Some((slot, e))`, and the word is `value + Σ reads`.
+#[derive(Clone, Debug)]
+pub struct Access {
+    pub pointer: usize,
+    pub shift: usize,
+    pub gate: Option<usize>,
+    pub address: Form,
+    pub frame: Option<(usize, u64)>,
+    pub value: Form,
+    pub reads: Vec<Read>,
+}
+
+/// Everything a table links, in local column indices: the verifier's links, their forms over [`F128`].
+#[derive(Clone, Debug)]
+pub struct Links {
+    pub state: StateLink,
+    pub bytecode: BytecodeLink,
+    pub memory: Vec<Access>,
+    pointers: Vec<usize>,
+}
+
+impl Links {
+    /// The verifier's links of a table of `n_cols` columns.
+    pub fn of(links: &verifier::layout::Links, n_cols: usize) -> Self {
+        let form = |f: &verifier::layout::Form| Form::from_verifier(f, n_cols);
+        let state = links.state();
+        let bytecode = links.bytecode_link();
+        let read = |r: &verifier::layout::Read| match *r {
+            verifier::layout::Read::Word { pointer, ref scale } => Read::Word {
+                pointer,
+                scale: form(scale),
+            },
+            verifier::layout::Read::Slot { slot, scale } => Read::Slot {
+                slot,
+                scale: from_scalar(scale),
+            },
+            verifier::layout::Read::Frame { slot, scale } => Read::Frame {
+                slot,
+                scale: from_scalar(scale),
+            },
+            verifier::layout::Read::Pc { slot, scale } => Read::Pc {
+                slot,
+                scale: from_scalar(scale),
+            },
+        };
         Self {
-            push: Vec::new(),
-            pull: Vec::new(),
+            state: StateLink {
+                cycle: state.cycle,
+                pc: state.pc,
+                fp: state.fp,
+                next: state.next.each_ref().map(form),
+            },
+            bytecode: BytecodeLink {
+                pointer: bytecode.pointer,
+                pc: bytecode.pc,
+                opcode: bytecode.opcode,
+                operands: (bytecode.operands.iter())
+                    .map(|(slots, f)| (slots.clone(), form(f)))
+                    .collect(),
+            },
+            memory: (links.memory.iter())
+                .map(|a| Access {
+                    pointer: a.pointer,
+                    shift: a.shift,
+                    gate: a.gate,
+                    address: form(&a.address),
+                    frame: a.frame,
+                    value: form(&a.value),
+                    reads: a.reads.iter().map(read).collect(),
+                })
+                .collect(),
+            pointers: links.pointers(),
         }
     }
 
-    fn pair(&mut self, push: Vec<Coord>, pull: Vec<Coord>) {
-        self.push.push(push);
-        self.pull.push(pull);
+    /// The pointer columns, in the order Hotwire numbers them: the cycle, the bytecode, then each access's pointer in
+    /// order of first use.
+    pub fn pointers(&self) -> &[usize] {
+        &self.pointers
     }
 
-    /// Fall-through state step: the next pc is `g·pc`, fp unchanged.
-    pub(crate) fn state_step(&mut self, pc: usize, fp: usize) {
-        self.pair(
-            vec![Const(SEP_STATE), GCol(pc, 1), Col(fp)],
-            vec![Const(SEP_STATE), Col(pc), Col(fp)],
-        );
-    }
-
-    /// Explicit state transition (JUMP): push the next state, which the row
-    /// derives from its columns rather than committing, and pull `(pc, fp)`.
-    pub(crate) fn state_derived(&mut self, pc: usize, fp: usize, npc: Coord, nfp: Coord) {
-        self.pair(
-            vec![Const(SEP_STATE), npc, nfp],
-            vec![Const(SEP_STATE), Col(pc), Col(fp)],
-        );
-    }
-
-    /// Bytecode read at `pc`: the program tuple (opcode + twelve operand slots),
-    /// with the per-pc execution count advanced by ×g on the push side.
-    pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
-        let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
-        let mut pull = vec![Const(SEP_BYTECODE), Col(pc), Col(count), Const(opcode)];
-        push.extend_from_slice(operands);
-        pull.extend_from_slice(operands);
-        self.pair(push, pull);
-    }
-
-    /// The shape every memory interaction shares: the word at `addr` carried as
-    /// two value coordinates, with the cell's access count advanced by ×g on the
-    /// push side. A value the row derives rather than commits (an `XOR`/`MUL`
-    /// result, a `DEREF` store) is passed here as its form: the cell then holds
-    /// whatever the form says, with no value column and no identity to tie one
-    /// (§sec:m3).
-    pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 2]) {
-        self.memory_pushing(GCol(count, 1), addr, count, vals);
-    }
-
-    /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
-    /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
-    pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 2]) {
-        let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
-        self.memory_pushing(counter, addr, count, vals);
-    }
-
-    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 2]) {
-        let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
-        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
-        push.extend_from_slice(&vals);
-        pull.extend(vals);
-        self.pair(push, pull);
-    }
-
-    /// Memory access: read the two-limb word at `addr`.
-    pub(crate) fn memory(&mut self, addr: Coord, count: usize, val0: usize, val1: usize) {
-        self.memory_coords(addr, count, [Col(val0), Col(val1)]);
-    }
-
-    /// Memory read of a K-valued word: the high limb is literal zero. Used where
-    /// the word is carried by a single K column (e.g. the DEREF pointer). Sound
-    /// because the bus balances only if the stored value's high lane is likewise 0.
-    pub(crate) fn memory_k(&mut self, addr: Coord, count: usize, val: usize) {
-        self.memory_coords(addr, count, [Col(val), Const(F64::ZERO)]);
+    /// The largest shift any access takes.
+    pub fn max_shift(&self) -> usize {
+        self.memory.iter().map(|a| a.shift).max().unwrap_or(0)
     }
 }
 
 // ---- fill context ------------------------------------------------------------
 
-/// Inputs a table needs to fill its columns: the trace rows, the final memory
-/// image (for read values), and `g^0..` for O(1) address/operand lookups.
-pub(crate) struct FillCtx<'a> {
+/// What a table's fill reads: the trace rows, the final memory image, `g^0..` for the pcs, frames and offsets, the
+/// program, and the pointer layout.
+pub struct FillCtx<'a> {
     pub(crate) trace: &'a Trace,
     pub(crate) mem: &'a Memory,
     pub(crate) gpow: &'a [F64],
     pub(crate) prog: &'a [Op],
-    /// This table's height `2^tau`, the length of every window in `out`. Rows past the
-    /// trace's are padding rows, each holding `padding` ([`Table::padding`]).
-    height: usize,
-    padding: Vec<F64>,
+    pub(crate) chunks: &'a Chunks,
+    /// This table's height `2^tau`, every column's length. Rows past the trace's hold [`Table::padding`].
+    pub(crate) height: usize,
+    pub(crate) padding: Vec<F64>,
 }
 
 impl<'a> FillCtx<'a> {
@@ -168,6 +177,7 @@ impl<'a> FillCtx<'a> {
         mem: &'a Memory,
         gpow: &'a [F64],
         prog: &'a [Op],
+        chunks: &'a Chunks,
         height: usize,
         padding: Vec<F64>,
     ) -> Self {
@@ -176,132 +186,126 @@ impl<'a> FillCtx<'a> {
             mem,
             gpow,
             prog,
+            chunks,
             height,
             padding,
         }
     }
 
-    fn g_at(&self, i: u32) -> F64 {
+    /// `g^i`.
+    pub(crate) fn g_at(&self, i: u32) -> F64 {
         self.gpow[i as usize]
     }
 
-    /// The three frame offsets of an `XOR`/`MUL` row. A row records
-    /// only its `(pc, fp)`; the operands are the instruction's, so they are read
-    /// back from the bytecode rather than copied into every row (`cpu::trace`).
-    fn ternary_operands(&self, pc: u32) -> (u32, u32, u32) {
-        match self.prog[pc as usize] {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (a, b, c),
-            op => unreachable!("a three-operand row's pc {pc} holds {op:?}"),
-        }
+    /// The one-hot word of pointer `sigma`.
+    pub(crate) fn ptr(&self, sigma: u32) -> F64 {
+        F64(self.chunks.encode(sigma as usize))
     }
 
-    /// Write local column `at`: `f` over the trace rows, then its padding value to the
-    /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [&mut [F64]], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
-        self.cols(out, rows, at, |r| [f(r)]);
+    /// The two `K` lanes of the word in cell `addr`.
+    pub(crate) fn limbs(&self, addr: u32) -> [F64; 2] {
+        self.mem.word(addr as usize).to_limbs().map(F64)
     }
 
-    /// Write the `N` local columns at `at..at + N` from one closure per row, so that columns fed by the same read
-    /// fill together.
-    fn cols<const N: usize, R: Sync>(
+    /// Write every column of a table with these trace rows: row `u` is `row(&rows[u])`, a padding row past them.
+    fn fill_rows<const N: usize, R: Sync>(
         &self,
         out: &mut [&mut [F64]],
         rows: &[R],
-        at: usize,
-        f: impl Fn(&R) -> [F64; N] + Sync,
+        row: impl Fn(&R) -> [F64; N] + Sync,
     ) {
-        self.cols_at(out, rows.len(), at, |i| f(&rows[i]));
+        assert!(rows.len() <= self.height, "a table's rows fit its height");
+        let padding: [F64; N] = self.padding.clone().try_into().expect("a padding value per column");
+        write_rows(out, self.height, |u| rows.get(u).map_or(padding, &row));
     }
+}
 
-    /// [`Self::cols`] over row indices, for values held in a side buffer rather
-    /// than read off the row.
-    fn cols_at<const N: usize>(
-        &self,
-        out: &mut [&mut [F64]],
-        n_rows: usize,
-        at: usize,
-        f: impl Fn(usize) -> [F64; N] + Sync,
-    ) {
-        /// Rows per task.
-        const CHUNK: usize = 1 << 12;
-        /// Rows staged at a time. A row's values go to `N` windows a power of two apart, which share cache sets, so
-        /// they are written a column's run at a time rather than a row at a time.
-        const STAGE: usize = 64;
-        assert!(n_rows <= self.height, "a table's rows must fit its cube");
-        let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        let window: &mut [&mut [F64]; N] = (&mut out[at..at + N]).try_into().unwrap();
-        let columns = window.each_mut().map(|column| {
-            assert_eq!(column.len(), self.height, "a column's window is the table's height");
-            &mut **column
-        });
-        // All `N` columns in one pass, each row's values computed once.
-        parallel::map_reduce_chunks_mut(
-            columns,
-            [CHUNK; N],
-            || (),
-            |_, task, mut chunks| {
-                for start in (0..chunks[0].len()).step_by(STAGE) {
-                    let len = STAGE.min(chunks[0].len() - start);
-                    let mut staged = [[F64::ZERO; N]; STAGE];
-                    for (i, values) in staged[..len].iter_mut().enumerate() {
-                        let row = task * CHUNK + start + i;
-                        *values = if row < n_rows { f(row) } else { padding };
-                    }
-                    for (k, column) in chunks.iter_mut().enumerate() {
-                        for (slot, values) in column[start..start + len].iter_mut().zip(&staged) {
-                            *slot = values[k];
-                        }
-                    }
+/// Rows a task of [`write_rows`] writes at most.
+const ROW_BLOCK: usize = 512;
+
+/// Write `height` rows to the columns `out`, row `u` being `row(u)`, in parallel over blocks of rows. A column with no
+/// rows is held elsewhere and not written.
+pub(crate) fn write_rows<const N: usize>(
+    out: &mut [&mut [F64]],
+    height: usize,
+    row: impl Fn(usize) -> [F64; N] + Sync,
+) {
+    assert_eq!(out.len(), N, "a value per column");
+    assert!(
+        out.iter().all(|c| c.is_empty() || c.len() == height),
+        "every column written is the table's height"
+    );
+    let block = height.min(ROW_BLOCK);
+    if block == 0 {
+        return;
+    }
+    // `blocks[b][c]`: column `c`'s rows `b·block..(b + 1)·block`, empty for a column not written.
+    let mut blocks: Vec<Vec<&mut [F64]>> = (0..height / block).map(|_| Vec::with_capacity(N)).collect();
+    for column in out.iter_mut() {
+        if column.is_empty() {
+            blocks.iter_mut().for_each(|b| b.push(&mut []));
+        }
+        for (b, run) in blocks.iter_mut().zip(column.chunks_mut(block)) {
+            b.push(run);
+        }
+    }
+    parallel::chunks_mut(&mut blocks, 1, |b, columns| {
+        for j in 0..block {
+            for (column, value) in columns[0].iter_mut().zip(row(b * block + j)) {
+                if let Some(slot) = column.get_mut(j) {
+                    *slot = value;
                 }
-            },
-            |_, _| (),
-        );
-    }
+            }
+        }
+    });
+}
 
-    /// The two `K`-lanes of the 128-bit word in memory cell `addr`.
-    fn limbs(&self, addr: u32) -> [F64; 2] {
-        self.mem.word(addr as usize).to_limbs().map(F64)
-    }
+/// The local indices of table `t`'s columns `names`.
+fn columns<const N: usize>(t: usize, names: [&str; N]) -> [usize; N] {
+    names.map(|name| column(t, name))
 }
 
 // ---- the trait ---------------------------------------------------------------
 
-/// One instruction table. Indices in [`flushes`](Table::flushes) and
-/// [`count_columns`](Table::count_columns) are local to this table.
-pub(crate) trait Table: Sync {
+/// One instruction table, over its local columns.
+pub trait Table: Sync {
+    /// Its opcode, which is also its index in [`tables`] and in the verifier's.
+    fn opcode(&self) -> usize;
     /// Number of committed columns (local indices `0..n_committed_columns`).
-    fn n_committed_columns(&self) -> usize;
-    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` of each accessed cell
-    /// (and the pc), each of which gets its own single-column count bus block.
-    fn count_columns(&self) -> Range<usize>;
-    /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
-    /// table's constraint. All zeros by default.
-    fn padding(&self) -> Vec<F64> {
-        vec![F64::ZERO; self.n_committed_columns()]
+    fn n_committed_columns(&self) -> usize {
+        TABLE_WIDTHS[self.opcode()]
     }
-    /// How many identities [`constraint`](Table::constraint) folds, the length of this table's range of `xi`-powers
-    /// (§sec:air). None but for `JUMP`: a value that rides the bus as a coordinate needs no identity (§sec:m3).
+    /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): the verifier's.
+    fn padding(&self) -> Vec<F64> {
+        (layout_tables()[self.opcode()].padding.iter())
+            .map(|e| {
+                assert_eq!(e.c1, 0, "a padding value is K-valued");
+                F64(e.c0)
+            })
+            .collect()
+    }
+    /// How many identities [`constraint`](Table::constraint) weighs.
     fn n_constraints(&self) -> usize {
         0
     }
-    /// The table's identities as one degree-2 form over its local columns, identity `i` weighted by `pows[i]`, this
-    /// table's [`n_constraints`](Table::n_constraints) `xi`-powers. It vanishes on every valid row (§sec:air).
-    fn constraint(&self, pows: &[F128]) -> Form {
-        assert!(pows.is_empty(), "a table with constraints must state them");
+    /// The table's identities as one degree-2 form over its local columns, identity `i` weighed by `coefs[i]`. It
+    /// vanishes on every valid row and every padding row.
+    fn constraint(&self, coefs: &[F128]) -> Form {
+        assert!(coefs.is_empty(), "a table with constraints must state them");
         Form::new(self.n_committed_columns())
     }
-    /// Declare the table's bus interactions.
-    fn flushes(&self, f: &mut FlushBuilder);
-    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s window, at its padded length, written
-    /// in full by `FillCtx::col` / `FillCtx::cols`.
+    /// The table's links, the verifier's.
+    fn links(&self) -> Links {
+        Links::of(&layout_tables()[self.opcode()].links, self.n_committed_columns())
+    }
+    /// Fill the table's columns from the trace: `out[c]` is local column `c`'s rows, `FillCtx::height` of them, to
+    /// be written in full, its padding value past the trace's rows. A column with no rows is held elsewhere (a
+    /// `KECCAK` input lane, by `q_keccak`) and is not written.
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
-/// order of `row_counts` / `taus` throughout `cpu`.
-pub use verifier::layout::N_TABLES;
-
-pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
+/// The tables in opcode order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the order of `row_counts` and `taus`.
+pub fn tables() -> [&'static dyn Table; N_TABLES] {
     [
         &Arith { is_xor: true },
         &Arith { is_xor: false },
@@ -312,13 +316,26 @@ pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
     ]
 }
 
-/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
-pub use verifier::layout::TABLE_LOG_FLOORS;
-const _: () = assert!(crate::keccak::MIN_STEPS == 1 << TABLE_LOG_FLOORS[verifier::layout::OP_KECCAK]);
+/// The fewest committed columns of a table's row: a run of `n` steps commits at least `n` times it, which bounds the
+/// steps of a provable run (the interpreter's step limit).
+pub(crate) const MIN_COMMITTED_COLUMNS: usize = {
+    let mut min = TABLE_WIDTHS[0];
+    let mut t = 1;
+    while t < N_TABLES {
+        if TABLE_WIDTHS[t] < min {
+            min = TABLE_WIDTHS[t];
+        }
+        t += 1;
+    }
+    min
+};
+const _: () = assert!(MIN_COMMITTED_COLUMNS == 5, "SET's five columns");
 
-/// What each cell a `KECCAK` row touches is addressed by, in flush order (the four `m` cells, the
-/// four `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells): the offset
-/// operand it follows, in the order of their bytecode slots ([`KeccakOp`]), and how far.
+// ---- KECCAK's cells ----------------------------------------------------------
+
+/// What each cell a `KECCAK` row touches is addressed by, in link order (the four `m` cells, the four `tail` cells,
+/// `b8`, the four `cap` cells, then the thirteen output cells): the offset operand it follows, in the order of their
+/// bytecode slots ([`KeccakOp`]), and how far.
 const KECCAK_CELLS: [(usize, u32); crate::keccak::ROW_CELLS] = {
     let mut t = [(0, 0); crate::keccak::ROW_CELLS];
     let mut c = 0;
@@ -335,11 +352,11 @@ const KECCAK_CELLS: [(usize, u32); crate::keccak::ROW_CELLS] = {
     t
 };
 
-/// A `KECCAK` instruction: its offset operands `m`, `tail`, `b8`, `cap` and `out` in the order of
-/// their bytecode slots, its two layout flags, and the output cells it writes.
+/// A `KECCAK` instruction: its offset operands `m`, `tail`, `b8`, `cap` and `out` in the order of their bytecode
+/// slots, its two layout flags, and the output cells it writes.
 #[derive(Clone, Copy)]
 pub(crate) struct KeccakOp {
-    offsets: [u32; 8],
+    pub(crate) offsets: [u32; 8],
     pub(crate) in_odd: bool,
     pub(crate) out_odd: bool,
     pub(crate) out_cells: crate::cpu::OutCells,
@@ -367,7 +384,7 @@ impl KeccakOp {
         }
     }
 
-    /// Cell `c` (in flush order) of a row at frame `fp`.
+    /// Cell `c` (in link order) of a row at frame `fp`.
     pub(crate) fn cell(&self, fp: u32, c: usize) -> u32 {
         let (offset, step) = self.cell_parts(c);
         fp + offset + step
@@ -380,9 +397,8 @@ impl KeccakOp {
     }
 }
 
-/// The one limb of a row's read cells that holds no lane, `(cell, high)`, in the even layout and
-/// in the odd one.
-const FREE_LIMB: [(usize, bool); 2] = [free_limb(false), free_limb(true)];
+/// The one limb of a row's read cells that holds no lane, `(cell, high)`, in the even layout and in the odd one.
+pub(crate) const FREE_LIMB: [(usize, bool); 2] = [free_limb(false), free_limb(true)];
 
 const fn free_limb(odd: bool) -> (usize, bool) {
     let lanes = verifier::layout::keccak_cell_lanes(odd);
@@ -396,573 +412,355 @@ const fn free_limb(odd: bool) -> (usize, bool) {
     }
 }
 
-// ---- XOR / MUL ---------------------------------------------------------------
+// ---- the tables --------------------------------------------------------------
 
-/// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
-/// differ only in the opcode tag and in how the destination cell's value rides
-/// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
-/// Neither commits that value and neither has an identity: the destination's
-/// memory flush carries the result as a degree-≤2 coordinate over the operand
-/// lanes, so bus balance is the assertion (§sec:m3).
+/// `XOR` and `MUL`: neither commits its result, the destination's word being linear in the words its pointers read.
+/// `MUL` commits its first word, the coefficient of its read of the second.
 struct Arith {
     is_xor: bool,
 }
 
-mod arith {
-    pub const PC: usize = 0;
-    pub const FP: usize = 1;
-    pub const OA: usize = 2;
-    pub const OB: usize = 3;
-    pub const OC: usize = 4;
-    // No absolute-address columns: the memory bus carries `fp·o` as a product
-    // coordinate (§sec:m3), which is why there is no address binding below.
-    // The two read words, two K-limbs each. The third word (the result) is derived.
-    pub const VA_LO: usize = 5;
-    pub const VA_HI: usize = 6;
-    pub const VB_LO: usize = 7;
-    pub const VB_HI: usize = 8;
-    pub const RA: usize = 9;
-    pub const RB: usize = 10;
-    pub const RC: usize = 11;
-    pub const RBC: usize = 12;
-    pub const N: usize = 13;
-}
-
-/// The result word's two K-lanes as forms over the operand lanes. For `XOR`
-/// that is the lane-wise sum; for `MUL` it is the tower product, unrolled through
-/// [`TOWER_LANES`].
-fn arith_result(is_xor: bool) -> [Coord; 2] {
-    use arith::*;
-    if is_xor {
-        return [
-            Coord::Sum(vec![Col(VA_LO), Col(VB_LO)]),
-            Coord::Sum(vec![Col(VA_HI), Col(VB_HI)]),
-        ];
-    }
-    let (a, b) = ([VA_LO, VA_HI], [VB_LO, VB_HI]);
-    let lane = |i: usize| Coord::Sum(TOWER_LANES[i].iter().map(|&(j, k, e)| Prod(a[j], b[k], e)).collect());
-    [lane(0), lane(1)]
-}
-
 impl Table for Arith {
-    fn n_committed_columns(&self) -> usize {
-        arith::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        arith::RA..arith::RBC + 1
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use arith::*;
-        f.state_step(PC, FP);
-        f.bytecode(
-            PC,
-            RBC,
-            if self.is_xor { OP_XOR } else { OP_MUL },
-            &[Col(OA), Col(OB), Col(OC), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        f.memory(Prod(FP, OA, 0), RA, VA_LO, VA_HI);
-        f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI);
-        f.memory_coords(Prod(FP, OC, 0), RC, arith_result(self.is_xor));
+    fn opcode(&self) -> usize {
+        if self.is_xor { OP_XOR } else { OP_MUL }
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
-        use arith::*;
-        let rows = if self.is_xor { &ctx.trace.xor } else { &ctx.trace.mul };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        ctx.cols(out, rows, OA, |r| {
-            let (a, b, c) = ctx.ternary_operands(r.pc);
-            let (va, vb) = (ctx.limbs(r.fp + a), ctx.limbs(r.fp + b));
-            [ctx.g_at(a), ctx.g_at(b), ctx.g_at(c), va[0], va[1], vb[0], vb[1]]
-        });
-        ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+        let operands = |pc: u32| match ctx.prog[pc as usize] {
+            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (a, b, c),
+            op => unreachable!("a three-operand row's pc {pc} holds {op:?}"),
+        };
+        if self.is_xor {
+            debug_assert_eq!(
+                layout_tables()[OP_XOR].columns,
+                ["pc", "fp", "ix_a", "ix_b", "ix_c", "ix_bc", "ix_cycle"]
+            );
+            ctx.fill_rows(out, &ctx.trace.xor, |r| {
+                let (a, b, c) = operands(r.pc);
+                [
+                    ctx.g_at(r.pc),
+                    ctx.g_at(r.fp),
+                    ctx.ptr(r.fp + a),
+                    ctx.ptr(r.fp + b),
+                    ctx.ptr(r.fp + c),
+                    ctx.ptr(r.pc),
+                    ctx.ptr(r.step),
+                ]
+            });
+        } else {
+            debug_assert_eq!(
+                layout_tables()[OP_MUL].columns,
+                ["pc", "fp", "a_0", "a_1", "ix_a", "ix_b", "ix_c", "ix_bc", "ix_cycle"]
+            );
+            ctx.fill_rows(out, &ctx.trace.mul, |r| {
+                let (a, b, c) = operands(r.pc);
+                let [a_0, a_1] = ctx.limbs(r.fp + a);
+                [
+                    ctx.g_at(r.pc),
+                    ctx.g_at(r.fp),
+                    a_0,
+                    a_1,
+                    ctx.ptr(r.fp + a),
+                    ctx.ptr(r.fp + b),
+                    ctx.ptr(r.fp + c),
+                    ctx.ptr(r.pc),
+                    ctx.ptr(r.step),
+                ]
+            });
+        }
     }
 }
 
-// ---- SET ---------------------------------------------------------------------
-
+/// `SET`: the immediate is read from the instruction.
 struct SetTable;
 
-mod set {
-    pub const PC: usize = 0;
-    pub const FP: usize = 1;
-    pub const O: usize = 2;
-    // The stored immediate's two K-limbs ride the bytecode's spare slots.
-    pub const K_LO: usize = 3;
-    pub const K_HI: usize = 4;
-    pub const R: usize = 5;
-    pub const RBC: usize = 6;
-    pub const N: usize = 7;
-}
-
 impl Table for SetTable {
-    fn n_committed_columns(&self) -> usize {
-        set::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        set::R..set::RBC + 1
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use set::*;
-        f.state_step(PC, FP);
-        // The immediate's two limbs occupy bytecode operand slots o2, o3 (as `isa::Program`'s encoding lays out a
-        // SET).
-        f.bytecode(
-            PC,
-            RBC,
-            OP_SET,
-            &[Col(O), Col(K_LO), Col(K_HI), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        // The stored constant K is the cell's value.
-        f.memory(Prod(FP, O, 0), R, K_LO, K_HI);
+    fn opcode(&self) -> usize {
+        OP_SET
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
-        use set::*;
-        let rows = &ctx.trace.set;
-        // The offset and the stored immediate are the instruction's.
-        let imm = |r: &Srow| match ctx.prog[r.pc as usize] {
-            Op::Set { o, k } => (o, crate::cpu::from_scalar(k)),
-            op => unreachable!("a SET row's pc {} holds {op:?}", r.pc),
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        ctx.col(out, rows, O, |r| ctx.g_at(imm(r).0));
-        ctx.cols(out, rows, K_LO, |r| {
-            let k = imm(r).1;
-            k.to_limbs().map(F64)
+        debug_assert_eq!(layout_tables()[OP_SET].columns, ["pc", "fp", "ix", "ix_bc", "ix_cycle"]);
+        ctx.fill_rows(out, &ctx.trace.set, |r| {
+            let o = match ctx.prog[r.pc as usize] {
+                Op::Set { o, .. } => o,
+                op => unreachable!("a SET row's pc {} holds {op:?}", r.pc),
+            };
+            [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
+                ctx.ptr(r.fp + o),
+                ctx.ptr(r.pc),
+                ctx.ptr(r.step),
+            ]
         });
-        ctx.col(out, rows, R, |r| ctx.g_at(r.r));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
-// ---- DEREF -------------------------------------------------------------------
-
+/// `DEREF`: its pointer word is committed, one `K` lane, and addresses the store at `ptr·o2`.
 struct DerefTable;
 
-mod deref {
-    pub const PC: usize = 0;
-    pub const FP: usize = 1;
-    pub const O1: usize = 2;
-    pub const O2: usize = 3;
-    pub const O3: usize = 4;
-    pub const FPC: usize = 5;
-    pub const FFP: usize = 6;
-    // The pointer word is a single K-lane, so its extension limbs are provably
-    // zero: they are not committed, and the memory read carries literal zeros
-    // there. Being a column is what puts it in K, and the pointer-relative
-    // address it forms on the bus, `p·o2`, is a K product for the same reason.
-    pub const P: usize = 7;
-    // The local cell, a full 128-bit word. The store target is derived from it,
-    // the two flags, `pc` and `fp`, so it is no column.
-    pub const V3_LO: usize = 8;
-    pub const V3_HI: usize = 9;
-    pub const R1: usize = 10;
-    pub const R2: usize = 11;
-    pub const R3: usize = 12;
-    pub const RBC: usize = 13;
-    pub const N: usize = 14;
-}
-
-/// The stored word's two K-lanes as forms:
-/// `v_2 = (1+f_pc+f_fp)·v_3 + f_pc·(g²·pc) + f_fp·fp`, the flag-selected source
-/// of §sec:tab-deref. The `pc` source is the virtual return target `g²·pc`, a
-/// free `×g²` on the product coordinate. Only the low lane takes the two K-valued
-/// sources; the high one is the gated local lane alone.
-fn deref_store() -> [Coord; 2] {
-    use deref::*;
-    let gated = |v: usize| vec![Col(v), Prod(FPC, v, 0), Prod(FFP, v, 0)];
-    let mut lo = gated(V3_LO);
-    lo.push(Prod(FPC, PC, 2));
-    lo.push(Prod(FFP, FP, 0));
-    [Coord::Sum(lo), Coord::Sum(gated(V3_HI))]
-}
-
 impl Table for DerefTable {
-    fn n_committed_columns(&self) -> usize {
-        deref::N
+    fn opcode(&self) -> usize {
+        OP_DEREF
     }
-    fn count_columns(&self) -> Range<usize> {
-        deref::R1..deref::RBC + 1
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use deref::*;
-        f.state_step(PC, FP);
-        f.bytecode(PC, RBC, OP_DEREF, &[Col(O1), Col(O2), Col(O3), Col(FPC), Col(FFP)]);
-        // The pointer cell and the local cell are frame-relative; the store target
-        // is pointer-relative, so its address is `p·o2`, and its value is the
-        // flag-selected source rather than a column.
-        f.memory_k(Prod(FP, O1, 0), R1, P);
-        f.memory_coords(Prod(P, O2, 0), R2, deref_store());
-        f.memory(Prod(FP, O3, 0), R3, V3_LO, V3_HI);
-    }
+    /// The target is the cell `ptr·g^{o2}` names, which the run recorded (`Drow::store`).
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
-        use deref::*;
-        let rows = &ctx.trace.deref;
-        // Offsets and store mode are the instruction's. Neither the store target's
-        // address nor its value is committed.
-        let ins = |r: &Drow| match ctx.prog[r.pc as usize] {
-            Op::Deref { o1, o2, o3, mode } => (o1, o2, o3, mode),
-            op => unreachable!("a DEREF row's pc {} holds {op:?}", r.pc),
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        debug_assert!(
-            rows.iter()
-                .all(|r| ctx.mem.word((r.fp + ins(r).0) as usize).as_base().is_some()),
-            "deref pointer must be K-valued"
-        );
-        ctx.cols(out, rows, O1, |r| {
-            let (o1, o2, o3, mode) = ins(r);
-            let v3 = ctx.limbs(r.fp + o3);
+        debug_assert_eq!(
+            layout_tables()[OP_DEREF].columns,
             [
-                ctx.g_at(o1),
+                "pc",
+                "fp",
+                "ptr",
+                "o2",
+                "s",
+                "ix_ptr",
+                "ix_target",
+                "ix_local",
+                "ix_bc",
+                "ix_cycle"
+            ]
+        );
+        ctx.fill_rows(out, &ctx.trace.deref, |r| {
+            let (o1, o2, o3, mode) = match ctx.prog[r.pc as usize] {
+                Op::Deref { o1, o2, o3, mode } => (o1, o2, o3, mode),
+                op => unreachable!("a DEREF row's pc {} holds {op:?}", r.pc),
+            };
+            let [ptr, high] = ctx.limbs(r.fp + o1);
+            debug_assert_eq!(high, F64::ZERO, "a DEREF pointer is K-valued");
+            [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
+                ptr,
                 ctx.g_at(o2),
-                ctx.g_at(o3),
-                F64(u64::from(mode.f_pc())),
-                F64(u64::from(mode.f_fp())),
-                F64(ctx.mem.word((r.fp + o1) as usize).c0),
-                v3[0],
-                v3[1],
+                F64(u64::from(mode.f_pc() || mode.f_fp())),
+                ctx.ptr(r.fp + o1),
+                ctx.ptr(r.store),
+                ctx.ptr(r.fp + o3),
+                ctx.ptr(r.pc),
+                ctx.ptr(r.step),
             ]
         });
-        ctx.cols(out, rows, R1, |r| [r.r1, r.r2, r.r3].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
-// ---- JUMP --------------------------------------------------------------------
-
+/// `JUMP`: its three words are committed, one `K` lane each, and so is its successor, which its identities tie to
+/// the jump.
 struct JumpTable;
 
-mod jump {
-    pub const PC: usize = 0;
-    pub const FP: usize = 1;
-    pub const OC: usize = 2;
-    pub const OD: usize = 3;
-    pub const OF: usize = 4;
-    // The condition, destination and frame words are all K-valued, so each is a
-    // single lane read through `memory_k`: bus balance forces the stored words
-    // into K, exactly as for the DEREF pointer. A guest branches on g-powers,
-    // never on an arbitrary word: `assert a != b` takes an inverse hint instead
-    // of a branch (§sec:prog-div-ne).
-    pub const V_COND: usize = 5;
-    pub const V_PC: usize = 6;
-    pub const V_FP: usize = 7;
-    pub const RC: usize = 8;
-    pub const RD: usize = 9;
-    pub const RF: usize = 10;
-    pub const RBC: usize = 11;
-    // Local witness columns (committed, never flushed): the inverse hint `w = c⁻¹`
-    // and the taken indicator `b = [c ≠ 0]` it certifies (the `JUMP` table in
-    // `doc/leanvm/body/07-instruction-tables.tex`). Both are single K lanes.
-    pub const W: usize = 12;
-    pub const B: usize = 13;
-    pub const N: usize = 14;
-}
-
 impl Table for JumpTable {
-    fn n_committed_columns(&self) -> usize {
-        jump::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        jump::RC..jump::RBC + 1
+    fn opcode(&self) -> usize {
+        OP_JUMP
     }
     fn n_constraints(&self) -> usize {
-        2 // the two indicator identities; the selections ride the state push
+        4
     }
-    /// `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump), weighted `pows[0]` and `pows[1]`.
+    /// `b + cond·w` and `cond·(b + 1)` (§sec:tab-jump), then `pc' + b·v_pc + (b + 1)·g·pc` and
+    /// `fp' + b·v_fp + (b + 1)·fp`, weighed by `coefs` (`verifier::layout`'s `jump_constraints`).
     ///
-    /// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
-    /// gives `b = 1` (and the first `w = cond⁻¹`); when `cond = 0` the first gives
-    /// `b = 0`. The two selections need no identity: the state push carries each as its
-    /// own degree-2 coordinate (§sec:m3).
-    ///
-    /// The condition is `K`-valued, so both identities are single-lane. Its memory
-    /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
-    /// `K` cannot balance the bus; the interpreter rejects one outright.
-    fn constraint(&self, pows: &[F128]) -> Form {
-        use jump::*;
-        let mut form = Form::new(N);
-        form.coeffs[B] = pows[0];
-        form.coeffs[V_COND] = pows[1];
-        form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
+    /// The first two force `b = [cond ≠ 0]`: when `cond ≠ 0` the second gives `b = 1` (and the first `w = cond⁻¹`);
+    /// when `cond = 0` the first gives `b = 0`. The last two fix the successor.
+    fn constraint(&self, coefs: &[F128]) -> Form {
+        let col = |name| column(OP_JUMP, name);
+        let [pc, fp, cond, dest, frame, pc_next, fp_next, w, b] =
+            ["pc", "fp", "v_cond", "v_pc", "v_fp", "pc_next", "fp_next", "w", "b"].map(col);
+        let g = coefs[2].mul_base(primitives::field::g_pow(1));
+        let mut form = Form::new(self.n_committed_columns());
+        for (c, k) in [
+            (b, coefs[0]),
+            (cond, coefs[1]),
+            (pc_next, coefs[2]),
+            (pc, g),
+            (fp_next, coefs[3]),
+            (fp, coefs[3]),
+        ] {
+            form.coeffs[c] += k;
+        }
+        let products = [
+            (cond, w, coefs[0]),
+            (cond, b, coefs[1]),
+            (b, dest, coefs[2]),
+            (b, pc, g),
+            (b, frame, coefs[3]),
+            (b, fp, coefs[3]),
+        ];
+        form.prods = products.iter().map(|&(x, y, k)| (x.min(y), x.max(y), k)).collect();
         form
     }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use jump::*;
-        // The successor state is derived: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`,
-        // each degree 2 in K columns, so neither successor is committed. Written
-        // out in characteristic 2 as `b·d + b·(g·pc) + g·pc`.
-        f.state_derived(
-            PC,
-            FP,
-            Coord::Sum(vec![Prod(B, V_PC, 0), Prod(B, PC, 1), GCol(PC, 1)]),
-            Coord::Sum(vec![Prod(B, V_FP, 0), Prod(B, FP, 0), Col(FP)]),
-        );
-        f.bytecode(
-            PC,
-            RBC,
-            OP_JUMP,
-            &[Col(OC), Col(OD), Col(OF), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        f.memory_k(Prod(FP, OC, 0), RC, V_COND);
-        f.memory_k(Prod(FP, OD, 0), RD, V_PC);
-        f.memory_k(Prod(FP, OF, 0), RF, V_FP);
-    }
+    /// The three words are `K`-valued on every row, taken or not (`cpu::execute` rejects anything else). `b = [cond ≠
+    /// 0]`, `w = cond⁻¹` (zero when `cond` is), and the successor is the jump's when `b = 1`, the next instruction's
+    /// in the same frame otherwise.
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
-        use jump::*;
-        let rows = &ctx.trace.jump;
-        let ins = |r: &Jrow| match ctx.prog[r.pc as usize] {
-            Op::Jump { oc, od, of } => (oc, od, of),
-            op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
-        };
-        let cell = |r: &Jrow, o: u32| ctx.mem.word((r.fp + o) as usize);
-        let cond = |r: &Jrow| {
-            let c = cell(r, ins(r).0);
-            debug_assert!(c.as_base().is_some(), "a JUMP condition outside K at pc {}", r.pc);
-            F64(c.c0)
-        };
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        // The three cells the offsets name are K-valued on every row, taken or not (`cpu::execute`
-        // rejects anything else), so each is one lane and the memory flush carries
-        // literal zeros above it.
-        ctx.cols(out, rows, OC, |r| {
-            let (oc, od, of) = ins(r);
+        debug_assert_eq!(
+            layout_tables()[OP_JUMP].columns,
             [
-                ctx.g_at(oc),
-                ctx.g_at(od),
-                ctx.g_at(of),
-                F64(cell(r, oc).c0),
-                F64(cell(r, od).c0),
-                F64(cell(r, of).c0),
+                "pc", "fp", "v_cond", "v_pc", "v_fp", "pc_next", "fp_next", "w", "b", "ix_c", "ix_d", "ix_f", "ix_bc",
+                "ix_cycle"
+            ]
+        );
+        ctx.fill_rows(out, &ctx.trace.jump, |r| {
+            let (oc, od, of) = match ctx.prog[r.pc as usize] {
+                Op::Jump { oc, od, of } => (oc, od, of),
+                op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
+            };
+            let word = |o: u32| {
+                let [lo, hi] = ctx.limbs(r.fp + o);
+                debug_assert_eq!(hi, F64::ZERO, "a JUMP word outside K at pc {}", r.pc);
+                lo
+            };
+            let (cond, dest, frame) = (word(oc), word(od), word(of));
+            let taken = !cond.is_zero();
+            let (pc_next, fp_next) = if taken {
+                (dest, frame)
+            } else {
+                (ctx.g_at(r.pc) * F64::G, ctx.g_at(r.fp))
+            };
+            [
+                ctx.g_at(r.pc),
+                ctx.g_at(r.fp),
+                cond,
+                dest,
+                frame,
+                pc_next,
+                fp_next,
+                if taken { cond.inv() } else { F64::ZERO },
+                F64(u64::from(taken)),
+                ctx.ptr(r.fp + oc),
+                ctx.ptr(r.fp + od),
+                ctx.ptr(r.fp + of),
+                ctx.ptr(r.pc),
+                ctx.ptr(r.step),
             ]
         });
-        // The is-nonzero witness `w = c⁻¹` (0 where c = 0) and the taken indicator `b = [c ≠ 0]`. The
-        // conditions lie in K, a subfield, so the inversion runs in K.
-        ctx.cols(out, rows, W, |r| {
-            let c = cond(r);
-            if c.is_zero() {
-                [F64::ZERO; 2]
-            } else {
-                [c.inv(), F64::ONE]
-            }
-        });
-        ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
-// ---- KECCAK ---------------------------------------------------------------------
-
-/// `KECCAK` (“KECCAK” in `doc/leanvm/body/07-instruction-tables.tex`): the Keccak-f\[1600\]
-/// permutation of a state in memory. The four `m` cells and `b8` are addressed *independently*
-/// at `fp·o_i` (`o_i = g^{m[i]}`), so a caller hashing e.g. `(tweak, pp)` need not copy them into
-/// adjacent cells; the four `tail` cells, the four `cap` cells and the thirteen output cells are
-/// consecutive runs based at `fp·o_T`, `fp·o_C` and `fp·o_O`. No address is committed: each rides
-/// the bus as the product `fp·o_X·g^k` (§sec:m3). The permutation relating output lanes to input
-/// lanes carries no table constraint either: it is proven by the Keccak reduction over
-/// `q_keccak` (§annex:keccak), which leaves this table with no identity of its own.
-///
-/// The cells read and written hold the lanes in the layout their flag names
-/// ([`verifier::layout::keccak_cell_lanes`]), the flags bound by the bytecode read, so a cell's limb is the
-/// form `a + flag·(a + b)` of its lane in either layout, of degree two. The one limb of a read
-/// cell that holds no lane is the column `FREE`; written, it is zero. The fifty lanes are
-/// value columns, listed in `n_committed_columns` (they need a local index for the flushes), but
-/// `cpu` treats them as virtual ([`crate::cpu::keccak_value`]): the input lanes are `q_keccak`'s
-/// slots, which hold those words, so their claims route there and the fill leaves them alone,
-/// and the output lanes' claims are the Keccak reduction's claim on the output.
+/// `KECCAK`: the permutation of a state in memory, proven by the Keccak reduction over `q_keccak` (§annex:keccak). Its
+/// fifty lane columns are virtual (`cpu::keccak_value`): the input lanes are `q_keccak`'s slots, and the output lanes'
+/// claims are the reduction's claim on the output.
 struct KeccakTable;
 
-pub(crate) mod keccakt {
-    use crate::keccak::ROW_CELLS;
-    use primitives::hash::STATE_LANES;
-
-    pub const PC: usize = 0;
-    pub const FP: usize = 1;
-    pub const O_M0: usize = 2; // the g-powers of the eight offset operands, as `KeccakOp` orders them
-    pub const IN_ODD: usize = O_M0 + 8; // the layout read …
-    pub const OUT_ODD: usize = IN_ODD + 1; // … and the layout written
-    pub const OUT_TWO: usize = OUT_ODD + 1; // whether output cell 1 is written …
-    pub const OUT_ALL: usize = OUT_TWO + 1; // … and cells 2..13
-    pub const FREE: usize = OUT_ALL + 1; // the read limb that holds no lane
-    pub const V_IN: usize = FREE + 1; // the 25 input lanes, in lane order …
-    pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
-    pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
-    pub const RBC: usize = R0 + ROW_CELLS;
-    pub const N: usize = RBC + 1;
-}
-
-/// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
-/// selects: `a + flag·(a + b)`, a missing lane being `missing`.
-fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usize, missing: Option<usize>) -> Coord {
-    let col = |lane: Option<usize>| lane.map(|l| values + l).or(missing);
-    let (a, b) = (col(even), col(odd));
-    if a == b {
-        return a.map_or(Const(F64::ZERO), Col);
-    }
-    Coord::Sum(
-        [a.map(Col), a.map(|a| Prod(flag, a, 0)), b.map(|b| Prod(flag, b, 0))]
-            .into_iter()
-            .flatten()
-            .collect(),
-    )
-}
-
 impl Table for KeccakTable {
-    fn n_committed_columns(&self) -> usize {
-        keccakt::N
+    fn opcode(&self) -> usize {
+        OP_KECCAK
     }
-    fn count_columns(&self) -> Range<usize> {
-        keccakt::R0..keccakt::RBC + 1
-    }
-    /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
-    /// steps, permutes zeros, in the even layout.
-    fn padding(&self) -> Vec<F64> {
-        let mut row = vec![F64::ZERO; keccakt::N];
-        let mut out = [0; primitives::hash::STATE_LANES];
-        primitives::hash::keccak_f(&mut out);
-        for (lane, w) in out.into_iter().enumerate() {
-            row[keccakt::V_OUT + lane] = F64(w);
-        }
-        row
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::keccak::STATE_CELLS;
-        use keccakt::*;
-        use verifier::layout::keccak_cell_lanes;
-        f.state_step(PC, FP);
-        let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
-        f.bytecode(PC, RBC, OP_KECCAK, &operands);
-        // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
-        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
-        let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
-        for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
-            let (s, values, flag, free) = if c < STATE_CELLS {
-                (c, V_IN, IN_ODD, Some(FREE))
-            } else {
-                (c - STATE_CELLS, V_OUT, OUT_ODD, None)
-            };
-            let lo = layout_limb(even[s].0, odd[s].0, values, flag, free);
-            let hi = layout_limb(even[s].1, odd[s].1, values, flag, free);
-            let (addr, vals) = (Prod(FP, O_M0 + operand, step), [lo, hi]);
-            match c.checked_sub(STATE_CELLS) {
-                None | Some(0) => f.memory_coords(addr, R0 + c, vals),
-                Some(1) => f.memory_coords_if(OUT_TWO, addr, R0 + c, vals),
-                Some(_) => f.memory_coords_if(OUT_ALL, addr, R0 + c, vals),
-            }
-        }
-    }
-    /// Every column but the input lanes, which are `q_keccak`'s and have no window here. The output lanes are the
-    /// input permuted again, since a row writes only the output cells its bytecode requests.
+    /// The input lanes are `q_keccak`'s and have no rows here. The output lanes are the input permuted, whichever
+    /// output cells the row writes. Each operand's pointer names its first cell: the later cells of the `tail`, `cap`
+    /// and `out` runs are shifted reads of it.
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
-        use crate::keccak::state_of_cells;
-        use keccakt::*;
-        let rows = &ctx.trace.keccak;
-        let op = |r: &Krow| KeccakOp::of(&ctx.prog[r.pc as usize]);
+        use verifier::layout::{KECCAK_IN, KECCAK_IX, KECCAK_OUT};
+        const N: usize = TABLE_WIDTHS[OP_KECCAK];
+        let [pc, fp, o_out, odd_in, odd_out, out_two, out_all, free] = columns(
+            OP_KECCAK,
+            ["pc", "fp", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"],
+        );
+        let [ix_bc, ix_cycle] = columns(OP_KECCAK, ["ix_bc", "ix_cycle"]);
+        debug_assert_eq!(column(OP_KECCAK, "ix_m0"), KECCAK_IX);
         let flag = |b: bool| F64(u64::from(b));
-        ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
-        ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        ctx.cols(out, rows, O_M0, |r| {
-            let k = op(r);
-            let [m0, m1, m2, m3, tail, b8, cap, o] = k.offsets.map(|o| ctx.g_at(o));
-            let (cell, high) = FREE_LIMB[usize::from(k.in_odd)];
-            let free = ctx.mem.word(k.cell(r.fp, cell) as usize);
-            let free = F64(if high { free.c1 } else { free.c0 });
+        ctx.fill_rows(out, &ctx.trace.keccak, |r| {
+            let k = KeccakOp::of(&ctx.prog[r.pc as usize]);
+            let word = |c: usize| ctx.mem.word(k.cell(r.fp, c) as usize);
             let (two, all) = k.out_cells.flags();
-            [
-                m0,
-                m1,
-                m2,
-                m3,
-                tail,
-                b8,
-                cap,
-                o,
-                flag(k.in_odd),
-                flag(k.out_odd),
-                flag(two),
-                flag(all),
-                free,
-            ]
-        });
-        // The permutations eight at a time, with the batched one.
-        let outputs = parallel::map_collect(rows.len().div_ceil(8), |g| {
-            let mut states = [[0; primitives::hash::STATE_LANES]; 8];
-            for (state, r) in states.iter_mut().zip(&rows[8 * g..]) {
-                let k = op(r);
-                *state = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
+            let (free_cell, high) = FREE_LIMB[usize::from(k.in_odd)];
+            let input = crate::keccak::state_of_cells(k.in_odd, word);
+            let mut output = input;
+            primitives::hash::keccak_f(&mut output);
+            let mut v = [F64::ZERO; N];
+            (v[pc], v[fp], v[o_out]) = (ctx.g_at(r.pc), ctx.g_at(r.fp), ctx.g_at(k.offsets[7]));
+            [v[odd_in], v[odd_out], v[out_two], v[out_all]] = [k.in_odd, k.out_odd, two, all].map(flag);
+            v[free] = F64(if high { word(free_cell).c1 } else { word(free_cell).c0 });
+            v[KECCAK_IN..KECCAK_OUT].copy_from_slice(&input.map(F64));
+            v[KECCAK_OUT..KECCAK_IX].copy_from_slice(&output.map(F64));
+            for (i, &offset) in k.offsets.iter().enumerate() {
+                v[KECCAK_IX + i] = ctx.ptr(r.fp + offset);
             }
-            primitives::hash::keccak_f_many(&mut states);
-            states
-        })
-        .into_flattened();
-        ctx.cols_at(out, rows.len(), V_OUT, |i| outputs[i].map(F64));
-        ctx.cols(out, rows, R0, |r| r.r.map(|k| ctx.g_at(k)));
-        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
+            (v[ix_bc], v[ix_cycle]) = (ctx.ptr(r.pc), ctx.ptr(r.step));
+            v
+        });
     }
 }
-
-/// The fewest committed columns of a table's row, `SET`'s: a run of `n` steps commits at least `n` times it, which
-/// bounds the steps of a provable run (the interpreter's step limit).
-pub(crate) const MIN_COMMITTED_COLUMNS: usize = set::N;
-const _: () = assert!(set::N <= arith::N && set::N <= deref::N && set::N <= jump::N && set::N <= keccakt::N);
-
-// Each table's columns are the verifier's, in number, and the KECCAK value lanes and read counts where the verifier's
-// spare slots expect them.
-const _: () = {
-    use verifier::layout::{KECCAK_CNT, KECCAK_IN, KECCAK_OUT, OP_DEREF, OP_JUMP, OP_MUL, OP_SET, OP_XOR};
-    assert!(arith::N == TABLE_WIDTHS[OP_XOR] && arith::N == TABLE_WIDTHS[OP_MUL]);
-    assert!(set::N == TABLE_WIDTHS[OP_SET] && deref::N == TABLE_WIDTHS[OP_DEREF] && jump::N == TABLE_WIDTHS[OP_JUMP]);
-    assert!(keccakt::N == TABLE_WIDTHS[verifier::layout::OP_KECCAK]);
-    assert!(keccakt::V_IN == KECCAK_IN && keccakt::V_OUT == KECCAK_OUT && keccakt::R0 == KECCAK_CNT);
-};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::field::powers;
+    use primitives::test_rng::Rng;
 
-    const C: F128 = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
-
-    /// One lane of the tower product, in the columns' own field.
-    fn tower_lane(lane: usize, x: [F64; 2], y: [F64; 2]) -> F64 {
-        TOWER_LANES[lane]
-            .iter()
-            .map(|&(j, k, e)| g_pow(e as usize) * x[j] * y[k])
-            .sum()
+    /// `JUMP`'s form is the verifier's identities, weighed.
+    #[test]
+    fn jump_constraint_is_the_verifiers() {
+        let mut rng = Rng::new(0x1a);
+        let table = &layout_tables()[OP_JUMP];
+        for _ in 0..8 {
+            let coefs = rng.ext_vec(4);
+            let row = rng.ext_vec(table.width());
+            let row_e: Vec<verifier::E> = row.iter().map(|v| verifier::E::new(v.c0, v.c1)).collect();
+            let theirs: F128 = (table.constraints)(&row_e)
+                .into_iter()
+                .zip(&coefs)
+                .map(|(i, &c)| from_scalar(i) * c)
+                .sum();
+            assert_eq!(JumpTable.constraint(&coefs).evaluate(&row), theirs);
+        }
+        assert_eq!(JumpTable.n_constraints(), table.n_constraints());
     }
 
-    /// The hand-unrolled tower product is `E`'s multiplication, lane by lane. `MUL`'s
-    /// result coordinate is written out from [`TOWER_LANES`] and rides the bus, where
-    /// nothing checks it against the field at run time, so pin the unrolling here.
+    /// Every table's links are the verifier's: the same columns, slots, shifts and gates, and every form the same
+    /// polynomial at random rows. The padding row satisfies the identities.
     #[test]
-    fn unrolled_tower_product_matches_field_product() {
-        let lanes = |v: F128| v.to_limbs().map(F64);
-        let (x, y) = (C, C * C + F128::ONE);
-        let got = [0, 1].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
-        assert_eq!(F128::from_limbs(got), x * y);
-    }
-
-    /// `JUMP`'s two identities vanish on an honest row, taken or not.
-    #[test]
-    fn jump_identities_vanish_on_an_honest_row() {
-        let pows = powers(F128::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0), 2);
-        // The condition is K-valued (`memory_k` on its read, §sec:tab-jump), so the
-        // pair is single-lane: `w = c⁻¹` in K too.
-        for cond in [F64::ZERO, F64(0x9e37_79b9_7f4a_7c15)] {
-            let mut row = vec![F64::ZERO; jump::N];
-            let w = cond.inv();
-            row[jump::V_COND] = cond;
-            row[jump::W] = w;
-            row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };
-            let row: Vec<F128> = row.into_iter().map(F128::from).collect();
-            assert_eq!(
-                JumpTable.constraint(&pows).eval(&row, false),
-                F128::ZERO,
-                "cond = {cond:?}"
-            );
+    fn links_match_the_verifier() {
+        use verifier::layout::Read as V;
+        let mut rng = Rng::new(0x11);
+        for (t, table) in tables().into_iter().enumerate() {
+            let theirs = &layout_tables()[t];
+            assert_eq!((table.opcode(), table.n_committed_columns()), (t, theirs.width()));
+            let (ours, theirs) = (table.links(), &theirs.links);
+            assert_eq!(ours.pointers(), theirs.pointers());
+            assert_eq!(ours.max_shift(), theirs.max_shift());
+            for _ in 0..4 {
+                let row = rng.ext_vec(table.n_committed_columns());
+                let row_e: Vec<verifier::E> = row.iter().map(|v| verifier::E::new(v.c0, v.c1)).collect();
+                let same = |ours: &Form, theirs: &verifier::layout::Form| {
+                    assert_eq!(ours.evaluate(&row), from_scalar(theirs.evaluate(&row_e)), "table {t}");
+                };
+                let (s, their_s) = (&ours.state, theirs.state());
+                assert_eq!((s.cycle, s.pc, s.fp), (their_s.cycle, their_s.pc, their_s.fp));
+                s.next.iter().zip(&their_s.next).for_each(|(a, b)| same(a, b));
+                let (b, their_b) = (&ours.bytecode, theirs.bytecode_link());
+                assert_eq!(
+                    (b.pointer, b.pc, b.opcode),
+                    (their_b.pointer, their_b.pc, their_b.opcode)
+                );
+                assert_eq!(b.operands.len(), their_b.operands.len());
+                for ((slots, form), (their_slots, their_form)) in b.operands.iter().zip(&their_b.operands) {
+                    assert_eq!(slots, their_slots);
+                    same(form, their_form);
+                }
+                assert_eq!(ours.memory.len(), theirs.memory.len());
+                for (a, their_a) in ours.memory.iter().zip(&theirs.memory) {
+                    assert_eq!(
+                        (a.pointer, a.shift, a.gate, a.frame),
+                        (their_a.pointer, their_a.shift, their_a.gate, their_a.frame)
+                    );
+                    same(&a.address, &their_a.address);
+                    same(&a.value, &their_a.value);
+                    assert_eq!(a.reads.len(), their_a.reads.len());
+                    for (r, their_r) in a.reads.iter().zip(&their_a.reads) {
+                        match (r, their_r) {
+                            (Read::Word { pointer, scale }, V::Word { pointer: p, scale: q }) => {
+                                assert_eq!(pointer, p);
+                                same(scale, q);
+                            }
+                            (Read::Slot { slot, scale }, V::Slot { slot: s, scale: q })
+                            | (Read::Frame { slot, scale }, V::Frame { slot: s, scale: q })
+                            | (Read::Pc { slot, scale }, V::Pc { slot: s, scale: q }) => {
+                                assert_eq!((slot, *scale), (s, from_scalar(*q)));
+                            }
+                            _ => panic!("table {t}: {r:?} is not {their_r:?}"),
+                        }
+                    }
+                }
+            }
+            let padding: Vec<F128> = table.padding().into_iter().map(F128::from).collect();
+            let coefs = vec![F128::new(3, 5); table.n_constraints()];
+            assert_eq!(table.constraint(&coefs).evaluate(&padding), F128::ZERO);
         }
     }
 }

@@ -1,7 +1,7 @@
 /-
   LeanVM.Cli.GuestCase
 
-  The reader of the guest's test cases (`scripts/guest-export`'s `guest_diff`, format `leanvm-guest-diff 5`),
+  The reader of the guest's test cases (`scripts/guest-export`'s `guest_diff`, format `leanvm-guest-diff 6`),
   shared by `guest-diff` and `guest-run`. No proof imports it.
 -/
 
@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Hints
 public import LeanVM.Cli.Common
+public import LeanVM.Protocol.Files
 
 @[expose] public section
 
@@ -91,7 +92,8 @@ def childR : R Child := do
   expect "child"
   let statement ← statementR
   expect "fresh"
-  let fresh : BytecodeClaim := ⟨← many eR, ← eR⟩
+  -- The fresh claim: the link point's instruction coordinates, then the split columns there.
+  let fresh : FreshClaim := ⟨← many eR, ← many eR⟩
   expect "proof"
   let stream ← many eR
   let openings ← many do many do return (⟨← nat, ← many kR, ← many digestR⟩ : Opening)
@@ -151,7 +153,7 @@ structure Case where
   streams : Streams
 
 def caseR : R Case := do
-  expect "leanvm-guest-diff"; expect "5"
+  expect "leanvm-guest-diff"; expect "6"
   expect "case"; let name ← tok
   expect "seed"; let seed ← digestR
   expect "log_memory"; let logMemory ← nat

@@ -15,7 +15,7 @@ its public input, an execution's memory and `trace.txt`, and the Rust prover's p
   3. writes the Lean-made proof as a verifier fixture (bytecode, public input and the proof's files)
      and runs scripts/fuzz-verifier.py on the fixtures: the Lean verifier (`leanvm-verify`) and
      the Rust verifier (`scripts/rust-verifier-cli`) on the honest Lean-made proof and on
-     `--mutations` mutations of it, structured and random. With `--identical` and `--expected`,
+     its structured mutations and `--mutations` random ones. With `--identical` and `--expected`,
      when every Lean-made proof is the expected one byte for byte, this step is skipped: those
      are the fixtures the verifier differential (fuzz-verifier.py) already fuzzes.
 
@@ -50,7 +50,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("cases", type=Path)
     parser.add_argument("only", nargs="*")
-    parser.add_argument("--mutations", type=int, default=60, help="fuzz cases per proof, the honest one included")
+    parser.add_argument("--mutations", type=int, default=60, help="random fuzz cases per proof, after the structured ones")
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--memory-gb", type=int, default=16)
     parser.add_argument("--prove-exe", type=Path, default=PROVE_EXE)
@@ -120,7 +120,7 @@ def main() -> None:
         else:
             log = fixtures / "fuzz.log"
             fuzz = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "fuzz-verifier.py"), str(fixtures),
-                                   "--mutations", str(arguments.mutations), "--jobs", str(arguments.jobs),
+                                   "--random", str(arguments.mutations), "--jobs", str(arguments.jobs),
                                    "--memory-gb", str(arguments.memory_gb), "--log", str(log)])
             if fuzz.returncode != 0:
                 failed = True

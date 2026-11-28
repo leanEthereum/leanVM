@@ -13,7 +13,6 @@ import LeanVM.Protocol.Whir.Sound.FoldRound
 public import LeanVM.Protocol.Whir.Sound.Weights
 public import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.Sound.Tuple
-import LeanVM.ToMathlib.List
 
 /-!
 # The running state of `verify_whir`
@@ -54,10 +53,17 @@ def runW (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) : E :=
       weight + claim.scalar * claim.weightAt (s.alphas.drop claim.foldStart ++ x))
     (w (rotL ℓ₀ (s.alphas ++ x)))
 
+/-- `foldl` of a sum is the initial value plus the sum. -/
+theorem foldl_add_map {γ : Type*} (f : γ → E) (a : E) (l : List γ) :
+    l.foldl (fun acc c ↦ acc + f c) a = a + (l.map f).sum := by
+  induction l generalizing a with
+  | nil => simp
+  | cons c l ih => rw [List.foldl_cons, ih, List.map_cons, List.sum_cons, add_assoc]
+
 theorem runW_eq (w : List E → E) (ℓ₀ : ℕ) (s : WhirState) (x : List E) :
     runW w ℓ₀ s x = w (rotL ℓ₀ (s.alphas ++ x)) +
       (s.glued.map fun c ↦ c.scalar * c.weightAt (s.alphas.drop c.foldStart ++ x)).sum :=
-  List.foldl_add_eq_add_sum_map _ _ _
+  foldl_add_map _ _ _
 
 /-- Every glued claim started at or before the current fold and owes a multiaffine weight on the
 variables left when it was glued. -/

@@ -10,20 +10,21 @@ public import Statement.Prover.Whir
 public import LeanVM.Prover.Ntt
 public import LeanVM.Prover.Mle
 public import LeanVM.Protocol.Whir.Complete.Opening
-import LeanVM.ToMathlib.Array
 
 /-!
 # The opening's tables
 
 Each array computation of `Statement/Prover/Whir.lean` is the list computation of the
 specification (`LeanVM.Protocol.Whir.Complete`): the round coefficients (`roundC0A_eq`,
-`roundC2A_eq`), the incremental fold (`toList_foldPairsA`; a fold, the multilinear
+`roundC2A_eq`), the incremental fold (`toList_foldPairsA_foldAll`; a fold, the multilinear
 extension and the equality table are `LeanVM.Prover.Mle`'s), the out-of-domain claim's table
 (`eqKernel_eq_tableOf`), gluing (`toList_glueTablesA`), the query table by tensor products
 (`toList_queryTableA`) and the stack table (`toList_stackTableA`).
 -/
 
 namespace LeanVM.Prover.Enc
+
+open LeanVM.Protocol.Tables
 
 open LeanVM.Parameters LeanVM.Protocol.Whir LeanVM.Protocol.Whir.Complete LeanVM.Protocol
 open LeanVM.Protocol.EndToEnd LeanVM.Protocol.Verifier Finset
@@ -78,6 +79,14 @@ theorem roundC2A_eq (W g : Array E) : roundC2A W g = roundC2 W.toList g.toList :
   rw [roundC2A, sumRange_eq, roundC2_eq_sum, Array.length_toList, Array.length_toList]
   simp only [toList_getD_E]
 
+/-! ## Folds -/
+
+/-- The incremental fold is the specification's fold from the stack table. -/
+theorem toList_foldPairsA_foldAll {f₀ : List E} {folds : List E} {g : Array E}
+    (hg : g.toList = foldAll f₀ folds) (c : E) :
+    (foldPairsA c g).toList = foldAll f₀ (folds ++ [c]) := by
+  rw [toList_foldPairsA, hg, foldAll_concat]
+
 /-! ## The equality kernel -/
 
 theorem getD_eqTable_eqKernel (z : List E) (j : ℕ) :
@@ -86,7 +95,7 @@ theorem getD_eqTable_eqKernel (z : List E) (j : ℕ) :
 
 /-- The out-of-domain claim's table is the equality kernel of the point. -/
 theorem eqKernel_eq_tableOf {m : ℕ} (z : List E) (hz : z.length = m) :
-    eqKernel z = tableOf m (eqEval z) := by
+    eqKernel z = LeanVM.Protocol.Tables.tableOf m (eqEval z) := by
   subst hz
   refine list_ext_getD (by rw [length_eqKernel, length_tableOf]) fun j hj ↦ ?_
   rw [length_eqKernel] at hj
@@ -224,7 +233,7 @@ theorem toList_stackTableA {μ : ℕ} (q : Column μ) :
     (stackTableA μ q.values.toArray).toList = stackTable μ q := by
   refine list_ext_getD (by simp [stackTableA]) fun i hi ↦ ?_
   have hi' : i < 2 ^ μ := by simpa [stackTableA] using hi
-  rw [toList_getD_E, stackTableA, Array.getD_ofFn _ hi', stackTable,
+  rw [toList_getD_E, stackTableA, getD_ofFn _ _ _ hi', stackTable,
     List.getD_eq_getElem _ _ (by simpa using hi'), List.getElem_map, List.getElem_range]
   rfl
 

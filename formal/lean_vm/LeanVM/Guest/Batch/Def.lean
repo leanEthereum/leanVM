@@ -60,9 +60,10 @@ def batchSeed : KeccakState := keccakF1600 (seedInput (keccak256 batchingLabel) 
 /-- **The batching**: one transcript absorbs the children's count, then every child's public
 input and claims, each group padded to a whole rate; after a proof of work of
 `batchLambdaGrindBits` bits on the hinted nonce, it squeezes one challenge `λ`, whose powers
-`λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), and one sumcheck reduces every
-child's two claims on the bytecode to one point. The claim deferred there, if the sumcheck
-closes. -/
+`λ^(2i)`, `λ^(2i+1)` are child `i`'s coefficients (`lambdaPowers`), then the `splitLog` column
+challenges, which fold each fresh claim's values into one claim on the split table, and one
+sumcheck reduces every child's two claims on the split table to one point. The claim deferred
+there, if the sumcheck closes. -/
 def batch (children : List ChildClaims) (h : BatchingHints) : Option DeferredBytecodeClaim :=
   go.run' ⟨batchSeed, [], none⟩
 where
@@ -73,9 +74,12 @@ where
       for x in padToRate c.words do observe x
     if ← grind Guest.Batch.batchLambdaGrindBits h.lambdaGrindNonce then
       let lam ← sample
+      let mut column : List E := []
+      for _ in List.range splitLog do
+        column := column ++ [← sample]
       let lambdas := Guest.Batch.lambdaPowers lam children.length
-      let (r, final) ← batchRounds (Guest.Batch.batchedClaim children lambdas) h.sumcheckMessages
-      if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas r then
+      let (r, final) ← batchRounds (Guest.Batch.batchedClaim children lambdas column) h.sumcheckMessages
+      if final = h.finalBytecodeValue * Guest.Batch.batchedBytecodeWeight children lambdas column r then
         return some ⟨r, h.finalBytecodeValue⟩
       else return none
     else return none

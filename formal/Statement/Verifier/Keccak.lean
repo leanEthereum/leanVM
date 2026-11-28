@@ -1,6 +1,6 @@
 module
 
-public import Statement.Verifier.Bus
+public import Statement.Verifier.Sumcheck
 
 /-!
 # Keccak, by GKR over its rounds (`keccak.rs`)
@@ -199,10 +199,12 @@ random claim on every segment's output at `instance`, `KECCAK_DEPTH` layers down
 inputs. The last segment's output is the permutation's, claimed by the table's lanes `output` at
 `instance`; the others are committed. It leaves openings of `q_keccak`: the committed outputs as
 words at one point (column claims), and the column's 64 slices at another (the point and the
-slices, for ring switching). The Rust first checks the shape (`keccak.rs`), which the
-`KECCAK` table's point and lanes always meet, its log-height at least `keccakMinStepsLog`. -/
+slices, for ring switching). It first checks the shape (`AnnouncedTableSizes`): `logSteps`
+instance coordinates, `STATE_LANES` output lanes, and at least `PACK_BITS = 4` steps' bits, which
+the walk's `KECCAK` point and lanes always meet, its log-height at least `keccakMinStepsLog`. -/
 def verifyKeccak (logSteps : ℕ) (inst output : List E) : VerifierProgram
     (List ColumnClaim × List E × List E) := do
+  VerifierProgram.require (inst.length = logSteps ∧ output.length = keccakStateLanes ∧ 4 ≤ logSteps)
   let packBits := logSteps - 4
   let rLow := inst.take 4
   -- One message, the segment then the lane: the first claim is multilinear in them.

@@ -22,7 +22,8 @@ A tuple has `m` slots, and its fingerprint is the linear form `π_A(t) = Σ_i A_
 `M` of tuples is `grandProductPoly M = Π_{t ∈ M} (X − π_A(t))`, a polynomial in the `m` weights
 and one more variable, `X`, indexed by `none`. A padding leaf is `1 − π_A(d)` for a tuple `d`
 (`padLeafPoly`): what a padding row's leaf becomes when the row holds the tuple `p + d`, `p` the
-public padding row's (`doc/leanvm/body/08-end-to-end-protocol.tex`, Proposition `prop:pad`).
+public padding row's (the bus era's `doc/leanvm`, Proposition `prop:pad`, at tag
+`formal-bus-archive`).
 
 * Over an integral domain the polynomial determines the multiset, multiplicities included
   (`grandProductPoly_injective`): read as a polynomial in `X` over the weights, it is monic and
@@ -67,7 +68,7 @@ noncomputable def padProductPoly (D : Multiset (Vector R m)) : MvPolynomial (Opt
   (D.map padLeafPoly).prod
 
 /-- A grand product times padding leaves: a bus side whose padding rows differ from the public
-padding row by the tuples of `D` (`doc/leanvm`, Proposition `prop:pad`). -/
+padding row by the tuples of `D` (the bus era's Proposition `prop:pad`). -/
 noncomputable def paddedProductPoly (D M : Multiset (Vector R m)) :
     MvPolynomial (Option (Fin m)) R :=
   padProductPoly D * grandProductPoly M
@@ -188,7 +189,7 @@ private theorem optionEquivLeft_padProductPoly (D : Multiset (Vector R m)) :
     rw [map_sub, map_one, constantCoeff_fingerprintPoly, sub_zero, map_zero] at this
     exact one_ne_zero this
 
-/-- **Padded grand products determine their tuples** (`doc/leanvm`, Proposition `prop:pad`): equal
+/-- **Padded grand products determine their tuples** (the bus era's Proposition `prop:pad`): equal
 padded products have equal multisets of tuples, whatever the padding. As a polynomial in `X`, a
 padded product is a nonzero constant times the grand product, so it has the same roots. -/
 theorem paddedProductPoly_eq {D D' M N : Multiset (Vector R m)}
@@ -228,7 +229,7 @@ theorem card_grandProduct_collision_le (M N : Multiset (Vector F m)) (hne : M �
   simpa only [MvPolynomial.eval_sub, sub_eq_zero, Fintype.card_option, Fintype.card_fin,
     Nat.add_sub_cancel] using h
 
-/-- **Proposition `prop:pad`, counting form**: two sides with different multisets of tuples and
+/-- **The bus era's Proposition `prop:pad`, counting form**: two sides with different multisets of tuples and
 at most `cap` leaves each, padding included, have padded products that agree at no more than
 `cap · |F|^m` of the `|F|^(m+1)` points, whatever the padding. -/
 theorem card_paddedProduct_collision_le {D D' M N : Multiset (Vector F m)} (hne : M ≠ N)

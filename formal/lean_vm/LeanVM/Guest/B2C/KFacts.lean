@@ -13,7 +13,7 @@ public import LeanVM.Guest.B2C.ArmsFresh
 public import LeanVM.Guest.B2C.RunsFit
 public import LeanVM.Guest.B2C.Shared
 public import LeanVM.Guest.Sound
-public import LeanVM.Guest.EndComplete
+public import LeanVM.Guest.Memory.HonestMain
 
 /-!
 # Frame runs in the cells
@@ -34,6 +34,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 @[expose] public section
+
+variable {al : String → Bool}
 
 section Static
 
@@ -89,7 +91,7 @@ theorem kfacts_cert_inj : ∀ f, ∀ t ∈ coreProgram.temps f, ∀ t' ∈ coreP
 
 /-- **A temporary's cell holds only it**, in every instance of a re-chosen tree. -/
 theorem kfacts_tmp (hdr : E × E) (T : Tree) :
-    ∀ ν, ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)), ∀ f σ bufs kids,
+    ∀ ν, ∀ I' ∈ honestInstsA coreProgram fs al H hdr (T.retempA coreProgram fs al ν (0, T.block fs coreProgram.loop)), ∀ f σ bufs kids,
       I'.t = .node f σ bufs kids → ∀ t ∈ coreProgram.temps f, ∀ q ∈ C I', q.1 = cert f t →
         q.2 = σ t := by
   intro ν I' _ f σ bufs kids ht t htm q hq hqt
@@ -187,7 +189,7 @@ theorem run_kfact {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : L
 
 /-- **`KFacts.run`** for every tree. -/
 theorem kfacts_run (hdr : E × E) (T : Tree) :
-    ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+    ∀ I ∈ honestInstsA coreProgram fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events coreProgram →
         ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
           ∀ t ∈ coreProgram.temps f, cert f r + k ≠ cert f t :=
@@ -195,8 +197,12 @@ theorem kfacts_run (hdr : E × E) (T : Tree) :
 
 end Run
 
+/-- **The certificate's facts for every tree of `main`** (the checker). -/
+def KFactsAll : Prop :=
+  ∀ (al : String → Bool) hdr (T : Tree), T.name = "main" → B1.Main.KFacts coreProgram fs al cert H C hdr T
+
 /-- **The checker's facts for every tree of `main`.** -/
-theorem kFactsAll : End.KFactsAll fs H C cert := fun hdr T _ ↦
+theorem kFactsAll : KFactsAll := fun _ hdr T _ ↦
   ⟨cellsOk_C _, fun _ ↦ cellsOk_C _, kfacts_cert_lt, kfacts_cert_inj, kfacts_run hdr T, kfacts_tmp hdr T,
     kfacts_keep_all hdr T⟩
 

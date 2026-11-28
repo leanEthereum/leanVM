@@ -28,3 +28,8 @@ bench_harness.workspace = true
 rand.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+stable_primitives = { path = "../crates/stable_prover/primitives" }
+experimental_primitives = { path = "../crates/experimental_prover/primitives" }
+experimental_lean_vm_core = { path = "../crates/experimental_prover/lean_vm_core" }

@@ -145,7 +145,7 @@ variable {σ : Val} {σV : MachineValue}
 include hσ hS
 
 /-- A child's statement's price off its lists' slots, at most `N` a list. -/
-@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 30050) * N + 26 * R + 3 * S + 81877
+@[expose] def kidStmtAtPrice (R S N : ℕ) : ℕ := (8 * R + 30050) * N + 28 * R + 3 * S + 87951
 
 /-- **A child's statement, its lists' slots given** (`kidStmtAtC`), `c < 2^34`, at most `N` slots
 a list, each below `2^34`: a claim a slot (`xmssSlotClaim_cost`), the DA digest and the deferred
@@ -178,12 +178,12 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p52 p55 : E) (c : 
   have m2 := Nat.mul_le_mul_left (4 * R + 15012 + 13) hss
   have h3 := daDigestAt_cost P hrd hR hσ hS (by includes) c (by omega)
   have h4 := hS (.n (val% «main» "child_carried"))
-  have h5 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num)
+  have h5 := powSqK_cost_lt P (by includes) Parameters.g (26 * c) 39 (by norm_num) (by norm_num)
     (by omega)
-  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n (val% «main» "child_carried"))).limb 0 * Parameters.g ^ (24 * c))
-    24 (by norm_num)
+  have h6 := readCellsK_cost P hrd hR (by includes) ((σ (.n (val% «main» "child_carried"))).limb 0 * Parameters.g ^ (26 * c))
+    26 (by norm_num)
   have h7 := deferOfCells_cost P (by includes)
-    (readCellsK rd ((σ (.n (val% «main» "child_carried"))).limb 0 * Parameters.g ^ (24 * c)) 24)
+    (readCellsK rd ((σ (.n (val% «main» "child_carried"))).limb 0 * Parameters.g ^ (26 * c)) 26)
   limbs_one
   unfold kidStmtAtPrice
   have : (4 * R + 15012 + 13) * N + (4 * R + 15012 + 13) * N = (8 * R + 30050) * N := by ring
@@ -235,14 +235,14 @@ theorem kidStmt_cost (D : DiscreteLogTables) (hP : Includes P kidStmtC.costDeps)
   unfold kidStmtPrice
   omega
 
-/-- **Child `c`'s `verify_sub` words** (`subArgsC`), `c < 2^34`: at most `7·S + 2·R + 8989`. -/
+/-- **Child `c`'s `verify_sub` words** (`subArgsC`), `c < 2^34`: at most `7·S + 2·R + 9062`. -/
 theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^ 34) :
-    machineCost P subArgsC.costIdx [rdV, σV, encodeValue c] ≤ 7 * S + 2 * R + 8989 := by
+    machineCost P subArgsC.costIdx [rdV, σV, encodeValue c] ≤ 7 * S + 2 * R + 9062 := by
   rw [subArgsC.costEq P hP rd rdV hrd σ σV hσ]
   have h1 := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "child_pi"))) (2 * c) (by omega)
   have h2 := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "child_pi"))) (2 * c + 1) (by omega)
-  have h3 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
-  have h4 := mulK_cost P (by includes) (σ (.n (val% «main» "child_fresh"))) (Parameters.g ^ (24 * c))
+  have h3 := powSqK_cost_lt P (by includes) Parameters.g (55 * c) 40 (by norm_num) (by norm_num) (by omega)
+  have h4 := mulK_cost P (by includes) (σ (.n (val% «main» "child_fresh"))) (Parameters.g ^ (55 * c))
   have := hS (.n (val% «main» "child_pi")); have := hS (.n (val% «main» "fs_seed[0]")); have := hS (.n (val% «main» "fs_seed[1]")); have := hS (.n (val% «main» "g_squares"))
   have := hS (.n (val% «main» "child_fresh"))
   limbs_one
@@ -255,10 +255,10 @@ variable {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
 include hwV
 
 /-- A child's price. -/
-@[expose] def decKidPrice (G R S W N : ℕ) : ℕ := kidStmtPrice G R S N + W + 8 * S + 26 * R + 84828
+@[expose] def decKidPrice (G R S W N : ℕ) : ℕ := kidStmtPrice G R S N + W + 8 * S + 57 * R + 178627
 
 /-- **Child `c`** (`decKidC`), off good tables of at most `N` marks, `c < 2^34`: its statement, its
-proof's claim (24 reads), its proof (`wV` at its `verify_sub` words, at most `W` there): at most
+fresh claim (55 reads), its proof (`wV` at its `verify_sub` words, at most `W` there): at most
 `decKidPrice G R S W N`. -/
 theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
     (hG : GLogBound P D G) (w380 p53 p56 : E) (tx ts : Array ℕ × Array ℕ) (htx : TableGood tx)
@@ -269,11 +269,11 @@ theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
   rw [decKidC.costEq P hP D rd rdV hrd σ σV hσ wV wVV hwV]
   have h1 := kidStmt_cost P hrd hR hσ hS D (by includes) hG w380 p53 p56 tx ts htx hts N hN htxN htsN c
     hc
-  have h2 := powSqK_cost_lt P (by includes) Parameters.g (24 * c) 39 (by norm_num) (by norm_num) (by omega)
-  have h3 := readCellsK_cost P hrd hR (by includes) ((σ (.n (val% «main» "child_fresh"))).limb 0 * Parameters.g ^ (24 * c)) 24
+  have h2 := powSqK_cost_lt P (by includes) Parameters.g (55 * c) 40 (by norm_num) (by norm_num) (by omega)
+  have h3 := readCellsK_cost P hrd hR (by includes) ((σ (.n (val% «main» "child_fresh"))).limb 0 * Parameters.g ^ (55 * c)) 55
     (by norm_num)
-  have h4 := fixedOfCells_cost P (by includes)
-    (readCellsK rd ((σ (.n (val% «main» "child_fresh"))).limb 0 * Parameters.g ^ (24 * c)) 24)
+  have h4 := freshOfCells_cost P (by includes)
+    (readCellsK rd ((σ (.n (val% «main» "child_fresh"))).limb 0 * Parameters.g ^ (55 * c)) 55)
   have h5 := subArgs_cost P hrd hR hσ hS (by includes) c hc
   have := hS (.n (val% «main» "child_fresh"))
   limbs_one

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Extractor.Rewrites
+public import LeanVM.Cost.FastLib
 public import LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.Transcript
 import all LeanVM.Protocol.Extraction.Fast.Replay
@@ -14,8 +14,8 @@ import all LeanVM.Protocol.Extraction.Extractor
 `transcriptIndex qs L` (`Fast/Transcript.lean`: the replay in sorted maps, the evaluations of at
 most `L` bytes, their first answers and the preimage index) and `leafAt` (a position of the
 committed word). The extractor's compiled modules form one import chain (indices are allocated
-from what a module imports): this module follows the rewrites (`Rewrites.lean`)
-and precedes the runner's.
+from what a module imports): this module follows the encodings (`FastLib.lean`)
+and precedes the shared functions (`Top.lean`).
 
 The sorted maps' operations the bounds name (`Bounds/Transcript.lean`) are compiled first, under
 names of their own (`searchPreC`, `carryPreC`, …), so the compiled transcript calls them and the

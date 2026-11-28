@@ -53,6 +53,12 @@ fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing)
         crate::report::details(stats, aggregation::unified_guest().code_len())
     );
     crate::report::print_proof_size(sig.to_bytes().len());
+    let (scalars, vm_bytes) = sig.__vm_proof_shape();
+    println!(
+        "  proof stream                : {scalars} F128 scalars ({:.1} KiB), Merkle openings {:.1} KiB",
+        (16 * scalars) as f64 / 1024.0,
+        (vm_bytes - 4 - 16 * scalars) as f64 / 1024.0
+    );
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are
     // real per-node costs. `--tracing` breaks it down.
@@ -89,6 +95,7 @@ pub fn run_aggregation<P: Prover>(
     n_blobs: usize,
     log_inv_rate: usize,
     plan: Plan,
+    verify_repeat: usize,
 ) {
     assert!(
         n_lean_xmss > 0 || n_lean_sphincs > 0 || n_blobs > 0,
@@ -112,7 +119,7 @@ pub fn run_aggregation<P: Prover>(
         )
         .expect("leaf aggregates")
     });
-    let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
+    let (_, verify_time) = Plan::new(verify_repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench_harness::suppress_tracing);
         assert!(sig.verify(&claims), "the leaf aggregate verifies");
     });

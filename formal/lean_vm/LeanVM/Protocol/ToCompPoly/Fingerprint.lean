@@ -23,8 +23,8 @@ degree is at most one (`totalDegree_fingerprintPoly`). With a separate variable 
 
 It replaces the multilinear fingerprint `Σ_ι eq(A, ι)·t_ι` on four variables derived from
 Verified-zkEVM/leanth (`Leanth/ProofSystem/Logup.lean`, revision
-`23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`), whose factors had degree four: leanVM's bus now
-draws a weight per slot (`doc/leanvm/body/05-arithmetization.tex`, §5.2). Nothing here
+`23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`), whose factors had degree four: leanVM's bus drew a
+weight per slot (`doc/leanvm/body/05-arithmetization.tex`, §5.2, at tag `formal-bus-archive`). Nothing here
 transcribes a source.
 -/
 

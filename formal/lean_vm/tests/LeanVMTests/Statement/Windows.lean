@@ -1,6 +1,7 @@
 import Statement.Corollaries
-import LeanVM.Protocol.LeanVMRpmAS
 import LeanVM.Guest.Batch.Rpm
+import Common.Linear
+import Common.Prob
 
 /-!
 # The end statements against their capped forms
@@ -19,6 +20,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHa
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest.Batch
 
 /-! ## Query counts -/
+
+/-- **Past `2^128` queries the knowledge soundness bound exceeds one**: its first term alone is at
+least `2^128 · 2^-125 = 8`. -/
+theorem one_le_knowledgeSoundnessBound {Q : ℕ} (hQ : 2 ^ 128 < Q) :
+    1 ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 + 5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  refine le_add_right (Common.one_le_mul_inv_two_pow ?_)
+  have : 2 ^ 125 ≤ Q + 2 ^ 14 := by omega
+  exact_mod_cast this
 
 /-- `KnowledgeSoundness` capped at `Q ≤ 2^128`. -/
 def KnowledgeSoundnessCapped (extractor : StraightLineExtractor) : Prop :=
@@ -74,8 +83,8 @@ def BatchingSoundCapped : Prop :=
            runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
          return (output, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
-          (2 : ℝ≥0∞)⁻¹ ^ 130 +
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M + 2) 16 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 131 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
 theorem batchingSound_iff_capped : BatchingSoundCapped ↔ BatchingSound :=

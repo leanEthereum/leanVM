@@ -80,6 +80,10 @@ theorem bitE_Lb (f : ℕ → Bool) (j : ℕ) : bitE (Lb f j) = Llin (fun p ↦ b
 
 /-! ## Reindexing sums -/
 
+theorem sum_range_mul (a b : ℕ) (F : ℕ → E) :
+    ∑ p ∈ range (a * b), F p = ∑ i ∈ range a, ∑ k ∈ range b, F (b * i + k) :=
+  Finset.sum_range_mul a b F
+
 /-- The positions by column, slice and row. -/
 theorem sum_regroup (F : ℕ → E) :
     ∑ p ∈ range 1600, F p = ∑ x ∈ range 5, ∑ z ∈ range 64, ∑ y ∈ range 5, F (64 * (x + 5 * y) + z) := by
@@ -161,6 +165,10 @@ theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
   induction l with
   | nil => simp
   | cons x l ih => intro a; rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
+
+theorem list_sum_range (f : ℕ → E) (n : ℕ) :
+    ((List.range n).map f).sum = ∑ y ∈ range n, f y :=
+  (Finset.sum_range_eq_sum_map_range f n).symm
 
 theorem array_getD_toArray (l : List E) (i : ℕ) : l.toArray.getD i 0 = l.getD i 0 := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]

@@ -35,13 +35,15 @@ open LeanVM.Guest.End (mainEntry JumpTables)
 
 @[expose] public section
 
+variable {al : String → Bool}
+
 /-- **What B2's completeness rests on**: each function's completeness check (`cplRun_of_ok`) and
 the frames of any memory covering the honest writes. -/
 structure B2Hyps : Prop where
   run : ∀ j, 1 ≤ j → j < nFns → CplRun j
-  frame : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ {κ : ℕ} (L : MemoryImage κ),
-      Covers coreProgram fs H C hdr T L → ∀ I ∈ honestInsts coreProgram fs H hdr T,
+  frame : ∀ (al : String → Bool) hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
+    HonestAtA coreProgram fs al H C hdr T cert rd [] [] → ∀ {κ : ℕ} (L : MemoryImage κ),
+      Covers coreProgram fs al H C hdr T L → ∀ I ∈ honestInstsA coreProgram fs al H hdr T,
       ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ j, idxOf f = some j → ∀ es vs,
         walk σ (coreOf j).body = .ret es vs →
           FrameHolds L j I.fp σ es vs I.kidFps I.hdr
@@ -218,12 +220,12 @@ def InstRuns {κ : ℕ} (L : MemoryImage κ) (I : Inst) (args rets : List E) : P
 section Insts
 
 variable (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (hname : T.name = "main")
-  (hH : HonestAt coreProgram fs H C hdr T cert rd [] []) {L : MemoryImage (logMem (T.total fs))}
-  (hL : Covers coreProgram fs H C hdr T L)
+  (hH : HonestAtA coreProgram fs al H C hdr T cert rd [] []) {L : MemoryImage (logMem (T.wordsA fs coreProgram.loop al))}
+  (hL : Covers coreProgram fs al H C hdr T L)
 include h hname hH hL
 
 /-- **Every instance that runs runs**, by induction on the words its subtree allocates. -/
-theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.total fs < n →
+theorem inst_runs : ∀ n, ∀ I ∈ honestInstsA coreProgram fs al H hdr T, I.t.total fs < n →
     (I.t.name = "main" → I.fp = 0) → ∀ args rets,
       I.t.Valid coreProgram L.read args rets → InstRuns L I args rets
   | 0, _, _, hn, _, _, _, _ => absurd hn (Nat.not_lt_zero _)
@@ -235,7 +237,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
       obtain ⟨i, rfl, hi, hn', hfind, hcore, -, -, h1, hlt⟩ := fn_of_idx hj
       obtain rfl : fn = coreProgram[i] := Option.some.inj (hf.symm.trans hfind)
       have hw' : walk σ (coreOf (i + 1)).body = .ret es vs := by rw [hcore]; exact hw
-      have hF := h.frame hdr rd T hname hH L hL I hI f σ bufs kids hti (i + 1) hj es vs hw'
+      have hF := h.frame al hdr rd T hname hH L hL I hI f σ bufs kids hti (i + 1) hj es vs hw'
       have hkv := kidsValid_get hk
       have hkids : I.t.kids = kids := by rw [hti]; rfl
       have hex : ∀ i' : ℕ, ∃ ci : Opcode → ℕ, (∀ (c : Memory.Call) (kfp : ℕ), (calls es)[i']? = some c →
@@ -251,7 +253,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
         | some c =>
           obtain ⟨k, hk', hkn, hkval⟩ := hkv.2 i' c hc
           by_cases htk : c.taken = true
-          · obtain ⟨J, hJ, hJt, hJfp, -⟩ := honest_kid hI (k := k) (by rw [hkids]; exact hk')
+          · obtain ⟨J, hJ, hJt, hJfp, -⟩ := honestA_kid hI (k := k) (by rw [hkids]; exact hk')
             have hlt' : J.t.total fs < n := by
               have := total_lt_of_kid (f := f) (σ := σ) (bufs := bufs) hk'
               rw [hti] at hn
@@ -282,8 +284,8 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
         have hget : ck.getD i' 0 = cf i' := by simp [hck, hi']
         rw [hget]
         exact (hcf i').1 c kfp hc hkfp ht
-      have hjt : JumpTables L := jumpTables_cover hH.toHonest hL hname
-      have hκ : logMem (T.total fs) ≤ 32 := hH.toHonest.logMem_le.trans (by decide)
+      have hjt : JumpTables L := jumpTables_cover hH.toHonestA hL hname
+      have hκ : logMem (T.wordsA fs coreProgram.loop al) ≤ 32 := hH.toHonestA.logMem_le.trans (by decide)
       have hmain : i + 1 = 1 → I.fp = 0 := fun h1' =>
         hm (by rw [hti]; exact (idx_one_iff hj).mp h1')
       obtain ⟨r, c, hr, hrun, hle, hrets'⟩ := h.run (i + 1) (by omega) hlt L hκ (End.jtHolds_of hjt) hjt
@@ -324,13 +326,13 @@ end Insts
 
 /-- `main` runs from its entry at frame `1` to the final registers, within the tree's weight. -/
 theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (hname : T.name = "main")
-    (hH : HonestAt coreProgram fs H C hdr T cert rd [] []) {L : MemoryImage (logMem (T.total fs))}
-    (hL : Covers coreProgram fs H C hdr T L) :
+    (hH : HonestAtA coreProgram fs al H C hdr T cert rd [] []) {L : MemoryImage (logMem (T.wordsA fs coreProgram.loop al))}
+    (hL : Covers coreProgram fs al H C hdr T L) :
     ∃ c : Opcode → ℕ, RunC guestProgram L ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) c ∧
       ∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) T := by
-  obtain ⟨I, hI, hIt, hfp, -⟩ := root_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
+  obtain ⟨I, hI, hIt, hfp, -⟩ := rootA_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
   have hv : I.t.Valid coreProgram L.read [] [] := by
-    rw [hIt]; exact hL.valid hH.toHonest
+    rw [hIt]; exact hL.valid hH.toHonestA
   obtain ⟨r, c, hr, hrun, hle, -⟩ := inst_runs h hname hH hL _ I hI (Nat.lt_succ_self _) (fun _ => hfp) [] [] hv
   rw [hIt] at hr hrun hle
   rw [hname] at hr hrun
@@ -342,8 +344,8 @@ theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (h
 /-- **B2 on a covering memory**: on any memory covering the honest writes, `main` runs from its
 entry to the final registers. -/
 theorem b2_completeL (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ L : MemoryImage (logMem (T.total fs)),
-      Covers coreProgram fs H C hdr T L →
+    HonestAtA coreProgram fs al H C hdr T cert rd [] [] → ∀ L : MemoryImage (logMem (T.wordsA fs coreProgram.loop al)),
+      Covers coreProgram fs al H C hdr T L →
         Reach guestProgram L ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) := by
   intro hdr rd T hname hH L hL
   obtain ⟨c, hc, -⟩ := main_runC h hname hH hL
@@ -352,13 +354,13 @@ theorem b2_completeL (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.n
 /-- **B2 on a covering memory, counted**: a halting run executes at most `cnt T op` instructions
 of each opcode. -/
 theorem b2_countL (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ L : MemoryImage (logMem (T.total fs)),
-      Covers coreProgram fs H C hdr T L → ∀ n,
+    HonestAtA coreProgram fs al H C hdr T cert rd [] [] → ∀ L : MemoryImage (logMem (T.wordsA fs coreProgram.loop al)),
+      Covers coreProgram fs al H C hdr T L → ∀ n,
         run guestProgram L n Registers.initial = some (Registers.final guestProgram) →
           ∀ op, (⟨_, L, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op := by
   intro hdr rd T hname hH L hL n hn op
   obtain ⟨c, hc, hle⟩ := main_runC h hname hH hL
-  have hpro := runC_jumpTables (jumpTables_cover hH.toHonest hL hname)
+  have hpro := runC_jumpTables (jumpTables_cover hH.toHonestA hL hname)
   rw [show (⟨addressOfIndex 0, 1⟩ : Registers K) = Registers.initial
       by rw [addressOfIndex, pow_zero]; rfl] at hpro
   rw [count_eq_of_runC (hpro.trans hc) hn op, Pi.add_apply]
@@ -369,17 +371,17 @@ theorem b2_countL (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name
 /-- **B2**: on the honest memory, `main` runs from its entry to the final registers (`End`'s
 `b2`). -/
 theorem b2_complete (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      Reach guestProgram (honest coreProgram fs H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) :=
-  fun hdr rd T hname hH => b2_completeL h hdr rd T hname hH _ hH.toHonest.covers
+    HonestAtA coreProgram fs al H C hdr T cert rd [] [] →
+      Reach guestProgram (honestA coreProgram fs al H C hdr T) ⟨addressOfIndex mainEntry, 1⟩ (Registers.final guestProgram) :=
+  fun hdr rd T hname hH => b2_completeL h hdr rd T hname hH _ hH.toHonestA.covers
 
 /-- **B2, counted**: a halting run on the honest memory executes at most `cnt T op` instructions
 of each opcode (`End`'s `count`). -/
 theorem b2_count (h : B2Hyps) : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-      run guestProgram (honest coreProgram fs H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
-        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op :=
-  fun hdr rd T hname hH => b2_countL h hdr rd T hname hH _ hH.toHonest.covers
+    HonestAtA coreProgram fs al H C hdr T cert rd [] [] → ∀ n,
+      run guestProgram (honestA coreProgram fs al H C hdr T) n Registers.initial = some (Registers.final guestProgram) →
+        ∀ op, (⟨_, honestA coreProgram fs al H C hdr T, n⟩ : Execution guestProgram).opcodeCount op ≤ cnt T op :=
+  fun hdr rd T hname hH => b2_countL h hdr rd T hname hH _ hH.toHonestA.covers
 
 end
 end LeanVM.Guest.B2C

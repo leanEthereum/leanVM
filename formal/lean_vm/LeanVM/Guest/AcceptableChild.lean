@@ -2,8 +2,7 @@
   LeanVM.Guest.AcceptableChild
 
   What the guest program checks of a child (`AcceptableChild`), and the guest program's
-  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`): an honest
-  child is an acceptable one (`HonestChildren.lean`).
+  completeness stated with it (`GuestCompleteOnAcceptableChildren`, `GuestChildComplete`).
 -/
 
 module
@@ -22,14 +21,22 @@ import LeanVM.Guest.Data.Consts
 `Statement/LeanVmGuestCompleteness.lean` states the guest program's completeness for children the
 verifier accepts, unless a child's proof exhibits a Keccak-256 collision (`OpeningsCollide`). The
 proofs go through what the guest program checks of a child, defined here: `ChildrenProven`'s two
-conditions, a stack log at least `20`, a proof stream of at most `STREAM_CAP = 8192` scalars, and
+conditions, a stack log at least `minChildStackLog`, a proof stream of at most `STREAM_CAP = 8192`
+scalars, and
 its openings agreeing in the guest program's Merkle caps at every query step of its verifier's run
 (`Limits.OpeningsAgree`, `AcceptableChild`).
 `GuestCompleteOnAcceptableChildren` is the guest program's completeness on nodes within the
-deployed limits whose children are acceptable, for every seed; `Child/Collision.lean` shows that
-the children of a node `NodeRelation` admits are acceptable, or a child's proof exhibits a
-collision (`Child.acceptableChildren_or_collide`). A child carrying the honest prover's proof
-(`HonestChild`) is acceptable too (`GuestChildComplete`, `HonestChildren.lean`).
+deployed limits whose children are acceptable, for every seed. That the children of a node
+`NodeRelation` admits are acceptable, or a child's proof exhibits a collision, is proved on every
+bytecode (`Child.acceptableChildren_or_collide`, `LeanVM/Guest/Child/Accepted.lean`): the stream
+cap from the deferring verifier's reads (`Child.stream_le_of_verifyDeferred`: at most
+`leanVmStream = 4792` scalars), the stack log from the announced layout
+(`Child.stackLog_ge_of_announced`), the caps unless the openings collide
+(`Child.capsAgree_or_collide`). That a child carrying the honest prover's proof (`HonestChild`) is
+acceptable too (`GuestChildComplete`) was proved for the bus era (`HonestChildren.lean`, archived at
+tag `formal-bus-archive`). Neither proposition is proved for Hotwire, and no proof needs them:
+`GuestExecutionComplete` (`Statement.Theorems`) is proved through `Child.acceptableChildren_or_collide`
+(`LeanVM/Guest/Complete/Open.lean`).
 -/
 
 @[expose] public section
@@ -41,13 +48,13 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 namespace Coverage
 
-/-- `STREAM_CAP` (`crates/aggregation/src/child.rs`): a child's proof stream is zero-padded to
-it. -/
+/-- `STREAM_CAP` (`crates/aggregation/src/child.rs`): the most proof-stream words a child may have,
+`gen_verify`'s admission and the guest's bound on its chunk count (`verify_sub`). -/
 def childStreamCap : ℕ := guest_const% STREAM_CAP
 
 /-- The least stack log the guest program has an opening arm for (`min_execution_stacked_log` of
-its `2^19` instructions, `crates/verifier`'s `layout.rs`). -/
-def minChildStackLog : ℕ := 20
+its `2^19` instructions, `crates/verifier`'s `layout.rs`; `minExecutionStackedLog`). -/
+def minChildStackLog : ℕ := minExecutionStackedLog 19
 
 /-- The deferring verifier's initial state on a child's proof under the node's seed
 (`verifyDeferredWith`). -/
@@ -101,6 +108,15 @@ def queryStepsOf {α : Type} : VerifierProgram α → VerifierProgramState → L
   | .sample k, state =>
     let (c, sponge) := Id.run (squeeze keccakF1600 state.sponge)
     queryStepsOf (k c) { state with sponge := sponge }
+  | .readPacked n k, state =>
+    if state.sponge.ground.isNone ∧ n ≤ state.stream.length then
+      let xs := state.stream.take n
+      queryStepsOf (k xs) { state with
+        sponge := Id.run (observePacked keccakF1600 state.sponge xs), stream := state.stream.drop n }
+    else []
+  | .samplePacked n k, state =>
+    let (cs, sponge) := Id.run (samplesPacked keccakF1600 state.sponge n)
+    queryStepsOf (k cs) { state with sponge := sponge }
   | .grind bits k, state => match state.stream, state.sponge.ground with
     | n :: xs, none =>
       let (pow, sponge) := Id.run (absorbNonce keccakF1600 state.sponge n)
@@ -126,8 +142,8 @@ end Limits
 
 /-- **A child the guest program accepts** under the seed `seed`: what the guest program asks of
 each child, `ChildrenProven`'s two conditions and the deployed ones:
-* its stack log is at least `20`: the guest program has one opening arm per stack log in
-  `[20, 30]`; the verifier admits stack logs from `Whir.minLogStack`;
+* its stack log is at least `minChildStackLog`: the guest program has one opening arm per stack
+  log from it to `30`; the verifier admits stack logs from `Whir.minLogStack`;
 * its proof stream is at most `STREAM_CAP = 8192` scalars;
 * its openings agree in the guest program's Merkle caps: at every query step of its deferring
   verifier, run under the node's seed, the step's openings agree wherever they meet (one tree's
@@ -138,7 +154,7 @@ structure AcceptableChild (bytecode : List K) (seed : Digest) (child : Child) : 
   /-- The deferring verifier accepts its proof. -/
   verifies : verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
     child.proof = true
-  /-- Its stack log is at least `20`. -/
+  /-- Its stack log is at least `minChildStackLog`. -/
   stackLogAtLeastMinimum : ∀ layout r, announcedLayoutAndRate bytecode child.proof.stream = some
       (layout, r) →
     Coverage.minChildStackLog ≤ layout.stackLog
@@ -158,8 +174,9 @@ open Coverage
 for every seed, statement and witness with `NodeRelation`, within the deployed limits
 (`DeployedLimits`), every child one the guest program accepts (`AcceptableChild`: at one of its
 opening arms, its openings agreeing in the caps), there is a valid execution of the guest program
-on the statement's digest of committed size at most `2^30`. Proved by
-`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`. -/
+on the statement's digest of committed size at most `2^30`. Proved for the bus era by
+`LeanVM.Guest.Budget.guest_complete_on_acceptable_children` (archived), not for Hotwire, where
+`GuestExecutionComplete` is proved without it. -/
 abbrev GuestCompleteOnAcceptableChildren : Prop :=
   ∀ (seed : Digest) (statement : NodeStatement) (witness : NodeWitness),
     NodeRelation (bytecodeWords guestProgram) seed statement witness →
@@ -173,7 +190,7 @@ abbrev GuestCompleteOnAcceptableChildren : Prop :=
 /-- **A child carrying an honest proof**: its fresh claim on the bytecode is true, and its proof
 is the honest prover's, with the deployed Keccak, of an execution of the guest program on its
 statement's digest under the deployed seed. Every such child that `NodeRelation` admits is
-acceptable (`acceptableChildren_of_honest`). -/
+acceptable (`GuestChildComplete`; the bus era's `acceptableChildren_of_honest`, archived). -/
 def HonestChild (child : Child) : Prop :=
   let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) child.statement)
   child.freshClaim.Holds (bytecodeWords guestProgram) ∧
@@ -183,8 +200,9 @@ def HonestChild (child : Child) : Prop :=
 
 /-- **A child carrying an honest proof is one the guest program accepts** under the deployed seed,
 wherever its deferred claim has the bytecode's shape and the deferring verifier accepts its proof
-with its fresh claim (`ChildrenProven`'s two conditions). Proved by
-`LeanVM.Guest.Budget.guest_child_complete`. -/
+with its fresh claim (`ChildrenProven`'s two conditions). Proved for the bus era by
+`LeanVM.Guest.Budget.guest_child_complete` (archived), not for Hotwire, where
+`GuestExecutionComplete` is proved without it. -/
 def GuestChildComplete : Prop :=
   ∀ child : Child, HonestChild child →
     child.statement.deferredClaim.HasBytecodeShape (bytecodeWords guestProgram) →

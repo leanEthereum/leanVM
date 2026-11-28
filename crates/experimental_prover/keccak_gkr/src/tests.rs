@@ -103,7 +103,7 @@ fn prove(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &[primitives::f
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
-    let openings = witness.prove(&mut ps, committed, &output);
+    let openings = witness.prove(&mut ps, &crate::slots(shape, committed), &output);
     // The states must be the honest ones; what rides the spare slots past them is free.
     if lane_error == F128::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
         // Each opening is what the commitment scheme means by it.
@@ -164,7 +164,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate_over(shape, &inputs, &mut committed);
-    // Other columns ride the slots the states leave free (§cpu). The reduction weighs nothing
+    // Other columns ride the slots the states leave free (`lean_vm_core::cpu`). The reduction weighs nothing
     // there, but its openings are claims on the whole committed block, so they have to fold
     // whatever sits in them: junk here, and the checks against the commitment below are what
     // say the fold did.
@@ -209,7 +209,7 @@ fn spare_slots_must_be_the_committed_ones() {
     let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, LOG_INV_RATE_0);
     let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
-    let openings = witness.prove(&mut ps, &folded, &output);
+    let openings = witness.prove(&mut ps, &crate::slots(shape, &folded), &output);
     open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
     verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
 }
@@ -249,7 +249,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
             let mut ps = ProverState::from_label(LABEL);
             let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
             ps.add_scalars(&output.lanes);
-            let openings = witness.prove(&mut ps, &committed, &output);
+            let openings = witness.prove(&mut ps, &crate::slots(shape, &committed), &output);
             (openings, ps.into_proof())
         };
         assert!(stream(&padded) == stream(&dense(shape, &inputs)), "{n} instances");

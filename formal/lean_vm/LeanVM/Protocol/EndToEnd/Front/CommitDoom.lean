@@ -1,91 +1,56 @@
 /-
   LeanVM.Protocol.EndToEnd.Front.CommitDoom
 
-  The doom the stack's commitment creates: no stack the committed word binds satisfies the
-  leanISA instance's relation. Its definition on histories, and the specification of the
-  program's first two phases (the announced sizes and the stack's root) that creates it.
+  The stack's root and its out-of-domain sample, specified from any doom the root creates: the
+  first commitment's word and candidates, and the OOD sample's specification on them.
 -/
 
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.EndToEnd.Candidates
-public import LeanVM.Protocol.EndToEnd.Front.LayoutInstance
 public import LeanVM.Protocol.EndToEnd.Front.OodBind
 
 /-!
 # The commitment's doom
 
-Steps 1 and 2 of the verifier program (`readAnnouncedSizes`, `commitStack`; `verify_execution`,
-`crates/verifier/src/lib.rs` at leanVM `40f877dc`) read
-the announced sizes and the stack's root. Before the root, nothing is at stake: the doom is
-false, so no group of challenges is charged. The root creates the doom `CommitDoom`: for the sizes
-`s` the layout was built from, no candidate of the committed word `W₀` (`Candidates`, at the
-Johnson threshold `A μ R`, a parameter) satisfies `M3Holds` of the leanISA instance at `s` for the
-public input `input`.
+Step 2 of the verifier program (`commitStack`, `readOod`; `verify_execution`,
+`crates/verifier/src/lib.rs`) reads the stack's root, then its out-of-domain sample. Before the
+root nothing is at stake; the root creates the doom (`commitSpec`, from no doom to any
+postcondition `Post` created at the root). The OOD sample (`commitOodSpec`) keeps any doom `J` on
+the commitments and adds that the root's candidates (`firstCands`, at a threshold `A μ R`) are
+separated at its point, so that the phases after it face the one candidate `oodCands` leaves.
 
-* `firstWord h`: the word of the first commitment of a history, the stack's (commitment `0`).
-* `CommitDoom prog input A (layout, ρ) h`: the doom after the root, for the value
-  `(layout, ρ)` `readAnnouncedSizes` returned.
-* `readSizesSpec`, `commitStackSpec`: the specifications of the two steps, from no doom; the
-  second ends in `CommitDoom`. They compose with `Spec.bind` as the program does:
-  `readSizesSpec.bind fun a ↦ (commitStackSpec a).bind fun _ ↦ …`.
+* `firstWord h`, `firstWordC cs`: the word of the first commitment, the stack's (commitment `0`).
+* `firstCands μ R A cs`: the candidates of the first commitment's word; `firstCands_bound`: as
+  finite and as few as the candidates of any word.
 
-Right after the root comes the commitment's OOD sample (`readOod`, `commitOodSpec`): the
-grind, the point `z₀`, the answer `y₀`. Its doom keeps `CommitDoom` and adds that the root's candidates are separated at `z₀` (`OodBind`), so that
-the phases after it face the one candidate `oodCands` leaves.
-
-The doom quantifies over the candidates; it says nothing about which candidate the prover had
-in mind. Its negation, at the end of a run, is the knowledge statement: some candidate satisfies
-the relation, and it is the extractor's output.
+This is the generic part of the archived `EndToEnd/Front/CommitDoom.lean` (tag
+`formal-bus-archive`); the doom the root creates is the assembly's.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Protocol.LeanIsa
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
 /-- The word of the first commitment of a history. -/
 def firstWord (h : List Ev) : Option Word := (commits h).head?.map (·.2.2)
 
-/-- The commitments of a concatenation. -/
-theorem commits_append_hist (h l : List Ev) : commits (h ++ l) = commits h ++ commits l := by
-  induction h with
-  | nil => rfl
-  | cons e h ih => cases e <;> simp [commits, ih]
-
 /-- The first commitment of a history extended past it is unchanged. -/
 theorem firstWord_append {h : List Ev} {W : Word} (hW : firstWord h = some W) (l : List Ev) :
     firstWord (h ++ l) = some W := by
   unfold firstWord at hW ⊢
-  rw [commits_append_hist]
+  rw [commits_append]
   rcases hc : commits h with _ | ⟨c, cs⟩
   · simp [hc] at hW
   · simpa [hc] using hW
 
-/-- **The commitment's doom**, for the value `(layout, ρ)` the announced sizes gave: `layout` is
-the verifier's layout at sizes `s`, the history's first commitment is the word `W₀`, and no
-candidate of `W₀` (at the threshold `A μ ρ`) satisfies the leanISA relation at `s` for the public
-input `input`. -/
-def CommitDoom (prog : LeanIsaProgram) (input : PublicInput) (A : ℕ → ℕ → ℕ)
-    (a : Verifier.Layout × ℕ) (h : List Ev) : Prop :=
-  ∃ s W₀, a.1 = verifierLayout prog s ∧ firstWord h = some W₀ ∧
-    ∀ q ∈ Candidates (leanIsaμ prog s) a.2 (A (leanIsaμ prog s) a.2) W₀,
-      ¬ M3Holds (leanIsaInstance prog s) input q
-
-/-- The commitment's doom is a property of the stack's root: later events keep it. -/
-theorem CommitDoom.append {prog : LeanIsaProgram} {input : PublicInput}
-    {A : ℕ → ℕ → ℕ} {a : Verifier.Layout × ℕ} {h : List Ev}
-    (hD : CommitDoom prog input A a h) (l : List Ev) : CommitDoom prog input A a (h ++ l) := by
-  obtain ⟨s, W₀, hs, hW, hq⟩ := hD
-  exact ⟨s, W₀, hs, firstWord_append hW l, hq⟩
-
-/-! ## The OOD sample after the root -/
-
 /-- The first word of a list of commitments. -/
 def firstWordC (cs : List (ℕ × ℕ × Word)) : Option Word := cs.head?.map (·.2.2)
+
+theorem firstWord_eq (h : List Ev) : firstWord h = firstWordC (commits h) := rfl
 
 /-- The candidates of the first commitment of a list, on `μ` variables at threshold `A`. -/
 def firstCands (μ R A : ℕ) (cs : List (ℕ × ℕ × Word)) : Set (Column μ) :=
@@ -120,22 +85,29 @@ noncomputable def commitOodSpec {εmax T : ENNReal} {μ R L : ℕ} (A : ℕ → 
 
 variable {εmax T : ENNReal}
 
-/-- **The announced sizes**: no doom, none created. -/
-def readSizesSpec (bytecode : List K) (Post : Verifier.Layout × ℕ → List Ev → Prop) :
-    Spec (readAnnouncedSizes bytecode) (fun _ ↦ False) Post εmax 0 0 :=
-  Spec.dead
-
-/-- **The stack's root**: from no doom to the commitment's doom. The boundary after the root
-carries the follower's lead `T`, so `T ≤ εmax`. -/
-noncomputable def commitStackSpec (prog : LeanIsaProgram) (input : PublicInput)
-    (A : ℕ → ℕ → ℕ) (a : Verifier.Layout × ℕ) (logN logInvRate : ℕ) (hT : T ≤ εmax) :
-    Spec (commitStack logN logInvRate) (fun _ ↦ False)
-      (fun _ h ↦ CommitDoom prog input A a h) εmax 0 T :=
+/-- **The stack's root with any postcondition**: from no doom, the doom after the root is
+`Post ()`, created by the commitment. The boundary after the root carries the follower's lead
+`T`. -/
+noncomputable def commitSpec (Post : Unit → List Ev → Prop) (logN logInvRate : ℕ)
+    (hT : T ≤ εmax) : Spec (commitStack logN logInvRate) (fun _ ↦ False) Post εmax 0 T :=
   Spec.bind (Spec.dead : Spec _ _ (fun _ _ ↦ False) εmax 0 0) fun config ↦ by
     cases config with
     | nil => exact Spec.fail
     | cons level _ =>
       exact Spec.commitP _ _ (fun _ _ h _ ↦ h.elim) hT
+
+/-- The doom of the stack's root, right after it: the postcondition. -/
+theorem commitSpec_D (Post : Unit → List Ev → Prop) {logN logInvRate : ℕ} (hT : T ≤ εmax)
+    {level : Whir.Level} {rest : List Whir.Level}
+    (hc : Whir.ladder logN logInvRate = some (level :: rest)) (h₀ : List Ev) (e : Ev) :
+    (commitSpec Post logN logInvRate hT).D h₀ [e] ↔ Post () (h₀ ++ [e]) := by
+  have hs : (liftOption (Whir.ladder logN logInvRate)).retSplit [e] =
+      some (level :: rest, [], [e]) := by
+    rw [hc]
+    exact VerifierProgram.retSplit_of_after (VerifierProgram.ret (level :: rest)) [] [e] rfl
+  rw [commitSpec, Spec.bind_D, Spec.bindD_after hs (List.cons_ne_nil _ _)]
+  simp only [List.append_nil]
+  rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Front

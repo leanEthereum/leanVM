@@ -6,18 +6,20 @@ public import LeanVM.Cost.AS.Bounds.Top
 # The agreement-set extractor's price within its budget
 
 `asBudget μ N = 2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, `D = log₂(N + 2) + 1`: the
-first term pays for the descent (level 0's dominating), level 0's stack, the candidate run and every
-other price independent of the transcript (`traceBound_ok`); the second for the transcript's two
-indexes (its first forward answers, and one preimage index every root shares) and every lookup in
-them, per query (`queryPart_le`) and per committed leaf or replayed operation (`fixedPart_le`).
-**`asPrice_le`**: the price where the extraction succeeds, the entry's `14` included, is within it;
-`asBudget_le_statement`: within the statement's budget too.
+first term pays for the descent (level 0's dominating), level 0's stack, the candidate execution
+(every table row's state read, `≤ 2^53`) and every other price independent of the transcript
+(`traceBound_ok`); the second for the transcript's two indexes (its first forward answers, and one
+preimage index every root shares) and every lookup in them, per query (`queryPart_le`) and per
+replayed operation, packed scalar or hashed block (`fixedPart_le`). **`asPrice_le`**: the price
+where the extraction succeeds, the entry's `14` included, is within it; `asBudget_le_statement`:
+it is the statement's budget.
 -/
 
 namespace LeanVM.Cost.Bounds.AS
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.AS LeanVM.Cost.Library LeanVM.Parameters
 open LeanVM.Protocol.Whir.Sound LeanVM.Extraction.AS LeanVM.Extraction.Fast
+open LeanVM.Protocol.EndToEnd.Sound
 
 public section
 
@@ -54,47 +56,32 @@ theorem queryPart_le (D W : ℕ) (hD : 2 ≤ D) (hW : 64 * W ≤ D + 65) :
   nlinarith [Nat.mul_le_mul_right (D * D) hW, Nat.mul_le_mul_right D hW, hW,
     Nat.zero_le (D * D * D), Nat.zero_le (D * D), Nat.zero_le (W * D * D)]
 
-/-- **The price but per query**, per committed leaf, hashed block or replayed operation. -/
+/-- **The price but per query**, per replayed operation or packed scalar, hashed block or
+committed leaf. -/
 theorem fixedPart_le (D W : ℕ) (hD : 2 ≤ D) (hW : 64 * W ≤ D + 65) :
-    (2 ^ 30 + 2) * fwdLookupPrice D W + 80016 * (fwdLookupPrice D W + 4) +
+    (2 ^ 30 + 2) * fwdLookupPrice D W + 82016 * (fwdLookupPrice D W + 4) +
         6 * (2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) + idxFixed 512 D W + 1000 ≤
       2 ^ 30 * ((D + 2) ^ 2 * (2 ^ 15 + 2 * D)) := by
   unfold fwdLookupPrice fwdGetPrice idxFixed firstAnswersStepPrice preimageStepPrice
   nlinarith [Nat.mul_le_mul_right (D * D) hW, Nat.mul_le_mul_right D hW, hW,
     Nat.zero_le (D * D * D), Nat.zero_le (D * D), Nat.zero_le (W * D * D)]
 
-/-- The candidate run's price at its worst shape. -/
-theorem runnerPrice_le (lay : LayoutLite) (ℓ : ℕ) (hF : LayoutFacts lay) (hℓ : ℓ ≤ 30) :
-    runnerPrice lay ℓ ≤ 4682 * 2 ^ 30 + 395201 * 2 ^ 35 + 45 * 2 ^ 30 + 5000 := by
-  have hcap := stepCapLite_le lay hF.logMemory_le hF.logBytecode_le hF.heights_le hF.heights_length
-  have hm := hF.logMemory_le
-  have hS : runnerStepPrice lay.logMemory ℓ + 41 ≤ 395201 := by unfold runnerStepPrice; omega
-  have e1 : (74 * lay.logMemory + 121) * 2 ^ lay.logMemory ≤ 2341 * 2 ^ 30 :=
-    Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hm)
-  have e2 : (74 * ℓ + 121) * 2 ^ ℓ ≤ 2341 * 2 ^ 30 :=
-    Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) hℓ)
-  have e3 : 2 ^ lay.logMemory ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hm
-  have := Nat.mul_le_mul hS hcap
-  unfold runnerPrice
-  omega
-
 /-- **The price where the extraction succeeds within the budget**, the entry's `14` included, at
 every admissible shape the announced sizes and the trace give. -/
 theorem asPrice_le (N ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
-    (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) (hℓ : ℓ ≤ 30) (hF : LayoutFacts lay)
+    (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) (hℓ : ℓ ≤ 30)
     (h1 : 16 ≤ lay.stackLog) (h2 : lay.stackLog ≤ 30) (h3 : 1 ≤ ρ) (h4 : ρ ≤ 4)
     (hroots : RootsOk lay.stackLog ρ (roots.map Prod.snd))
     (hsh : TraceShape lay.stackLog 0 ((Whir.ladder lay.stackLog ρ).getD []) tr) :
     headPrice N (extractorSortedMapLevels N) (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) ℓ +
-        finishPrice (extractorSortedMapLevels N) (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) N ℓ
-          lay ρ tr roots + 14 ≤ asBudget lay.stackLog N := by
+        finishPrice (extractorSortedMapLevels N) (limbsBelowTwoPow (extractorSortedMapLevels N + 1)) N
+          (10 ^ 7) lay ρ tr roots + 14 ≤ asBudget lay.stackLog N := by
   -- the first term
   obtain ⟨m, hm⟩ : ∃ m, lay.stackLog = m + 16 := ⟨lay.stackLog - 16, by omega⟩
   obtain ⟨r, hr⟩ : ∃ r, ρ = r + 1 := ⟨ρ - 1, by omega⟩
   have hok := traceBound_ok m (by omega) r (by omega)
   rw [← hm, ← hr] at hok
   have htr := traceCostB_le_bound lay.stackLog ρ 64 0 0 _ tr hsh
-  have hrun := runnerPrice_le lay ℓ hF hℓ
   -- the levels and the limbs
   have hW64 : 64 * limbsBelowTwoPow (extractorSortedMapLevels N + 1) ≤ extractorSortedMapLevels N + 65 := by
     unfold limbsBelowTwoPow; omega
@@ -119,6 +106,7 @@ theorem asPrice_le (N ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
   have hcap := capOf_le 64 roots fun x hx' ↦ (hx x.2 (List.mem_map_of_mem hx')).2.2
   have hmono := transcriptIndexPrice_mono D N W (show capOf roots ≤ 512 by omega)
   have hlenw := Nat.mul_le_mul_right (wordConst + 2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) hl
+  have hpow : 2 ^ roots.length ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) hl
   rw [transcriptIndexPrice_split, transcriptIndexPrice_split] at hmono
   -- the seed's blocks
   have hpl : 2 ^ ℓ ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hℓ
@@ -135,7 +123,7 @@ theorem asPrice_le (N ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
   have e4 : 6 * (wordConst + 2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) =
       6 * wordConst + 6 * (2 ^ 28 * (2 * (D * (20 + (162 + 9 * W) * (D + 2))))) := by ring
   rw [e2]
-  unfold headPrice finishPrice bytecodeWordsPrice at *
+  unfold headPrice finishPrice bytecodeWordsPrice bodyReplayPrice at *
   rw [transcriptIndexPrice_split]
   have hwc : wordConst ≤ 70000000000000 := by unfold wordConst; norm_num
   linarith

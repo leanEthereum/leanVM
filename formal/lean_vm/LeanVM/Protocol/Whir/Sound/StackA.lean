@@ -7,10 +7,9 @@
 module
 
 import LeanVM.Protocol.Whir.Sound.DescentT
-public import LeanVM.Protocol.EndToEnd.Sound.ExtractorC
+public import LeanVM.Protocol.Whir.Sound.StackV
 public import LeanVM.Protocol.Whir.Sound.DescentA
 import LeanVM.Prover.Ntt
-import LeanVM.ToMathlib.Array
 
 /-!
 # Level 0's stack over arrays
@@ -22,7 +21,7 @@ tuple the array holds (`stackA_eq`).
 
 namespace LeanVM.Protocol.Whir.Sound
 
-open LeanVM.Parameters LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.Sound
+open LeanVM.Parameters LeanVM.Protocol.EndToEnd
 
 @[expose] public section
 
@@ -36,7 +35,7 @@ def stackA (μ : ℕ) (VA : AV) : Vector K (2 ^ μ) :=
 theorem novelInvE_limb0 (κ : ℕ) (y : Array E) {j : ℕ} (hj : j < 2 ^ κ) :
     ((novelInvE κ y).getD j 0).limb 0 = (Extraction.novelInv κ (limbArr 0 y)).getD j 0 := by
   simp only [novelInvE]
-  rw [Array.getD_ofFn _ hj, limb_ofLimbs, Matrix.cons_val_zero]
+  rw [Prover.Enc.getD_ofFn _ _ _ hj, limb_ofLimbs, Matrix.cons_val_zero]
 
 theorem stackA_eq {μ : ℕ} (hμ : laneBits ≤ μ) {n : ℕ} (hn : 2 ^ (μ - laneBits) ≤ n)
     (V : (Fin laneBits → Bool) → Fin n → E) :
@@ -52,7 +51,7 @@ theorem stackA_eq {μ : ℕ} (hμ : laneBits ≤ μ) {n : ℕ} (hn : 2 ^ (μ - l
         ((toAV n laneBits V).getD v #[]).getD (i / 2 ^ (μ - laneBits)) 0))).getD
         (i % 2 ^ (μ - laneBits)) 0 := by
     simp only [stackA, Vector.getElem_ofFn]
-    rw [Array.getD_ofFn _ hu]
+    rw [Prover.Enc.getD_ofFn _ _ _ hu]
   have hr : (stackV hμ hn V).values[i] = ((novelInvE (μ - laneBits)
       (Array.ofFn fun v : Fin (2 ^ (μ - laneBits)) ↦ V ((bitsEquiv laneBits).symm
         ⟨i / 2 ^ (μ - laneBits), hu⟩) (Fin.castLE hn v))).getD (i % 2 ^ (μ - laneBits)) 0).limb 0 := by

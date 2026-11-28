@@ -1,80 +1,19 @@
 /-
   LeanVM.Guest.CoreMode.Fn.verify_sub.Fam
 
-  `verify_sub`'s own residual families (`CoreMode/FnReg.lean`): its exponent family.
+  `verify_sub`'s own residual families (`CoreMode/FnReg.lean`): its values' exponent bounds where they bound its
+  callees' runs.
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.CoreRes
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.Chal
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.Ix
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.GwInv
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.Stream
 public meta import LeanVM.Guest.CoreRef
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«verify_sub»
-
-namespace LeanVM.Guest.CoreMode
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
-
-@[expose] public section
-
-/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)`: the tables' log-heights `dims[1..6]`
-(`kb[2..7]`, `tau_keccak_g` the keccak table's again), the bus depth `g_bus_mu`, the table sumcheck's depth `g_zc_n`, the
-stack's log `gmv` and less `20`, `size_sel`. -/
-def vsPows : List (ℕ × ℕ × ℕ) :=
-  [(val% «verify_sub» "kb[2]", 0, 30), (val% «verify_sub» "kb[3]", 0, 30), (val% «verify_sub» "kb[4]", 0, 30),
-    (val% «verify_sub» "kb[5]", 0, 30), (val% «verify_sub» "kb[6]", 0, 30), (val% «verify_sub» "kb[7]", 9, 24),
-    (val% «verify_sub» "tau_keccak_g", 9, 24), (val% «verify_sub» "g_bus_mu", 20, 33), (val% «verify_sub» "g_zc_n", 9, 33),
-    (val% «verify_sub» "gmv", 20, 30), (val% «verify_sub» "size_sel", 0, 10)]
-
-/-- `verify_sub`'s products naming one of its values: `size_sel = gmv·size_sel~0`. -/
-def vsMuls : List ((ℕ × ℕ) × ℕ) := [((val% «verify_sub» "gmv", val% «verify_sub» "size_sel~0"), val% «verify_sub» "size_sel")]
-
-/-- `verify_sub`'s orders `e(x) ≤ e(y) + c`. -/
-def vsLes : List (ℕ × ℕ × ℕ) :=
-  [(val% «verify_sub» "kb[7]", val% «verify_sub» "g_zc_n", 0), (val% «verify_sub» "tau_keccak_g", val% «verify_sub» "g_zc_n", 0),
-    (val% «verify_sub» "gmv", val% «verify_sub» "size_sel", 20)]
-
-/-- `verify_sub`'s cursors in its stream `[stream]·[0, 8192)`, each with room for `207` words. -/
-def vsCurs : List ℕ := [val% «verify_sub» "cursor@2", val% «verify_sub» "cursor@3", val% «verify_sub» "cursor@4"]
-
-/-- **An index as `verify_sub`'s value times `g^c`**: the value (a product of `vsMuls` naming it) and `c`. -/
-def vsBase : CIdx → Option (ℕ × ℕ)
-  | .num _ => none
-  | .val x => some (x, 0)
-  | .mono c => match c.bases with
-    | [(x, 1)] => some (x, c.off)
-    | [(a, 1), (b, 1)] => (vsMuls.lookup (a, b)).map fun x ↦ (x, c.off)
-    | _ => none
-
-/-- An index's exponent bounds by `vsPows`. -/
-def vsIv (i : CIdx) : Option (ℕ × ℕ) :=
-  match i with
-  | .num n => some (n, n)
-  | _ => (vsBase i).bind fun p ↦ (vsPows.lookup p.1).map fun b ↦ (b.1 + p.2, b.2 + p.2)
-
-/-- **An order of `verify_sub`'s exponents** its bounds or orders decide. -/
-def vsLt (a b : CIdx) : Bool :=
-  match vsIv a, vsIv b with
-  | some (_, ha), some (lb, hb) => decide (ha < capE) && decide (hb < capE) && (decide (ha < lb) ||
-      match vsBase a, vsBase b with
-      | some (x, ca), some (y, cb) => vsLes.any fun l ↦ decide (l.1 = x ∧ l.2.1 = y ∧ ca + l.2.2 < cb)
-      | _, _ => false)
-  | _, _ => false
-
-/-- **`verify_sub`'s exponent family**: an order its bounds decide
-(`vsLt`), a read `c < 207` words past a cursor inside its stream, either under branch conditions (`EndExec.vsExp_inst`). -/
-def vsExp (fn : Fn) : CRes → Bool
-  | .lt a b => fn.name == name% «verify_sub» && vsLt a b
-  | .sub c q => fn.name == name% «verify_sub» && decide (q = ⟨⟨[(val% «verify_sub» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
-      (match c.bases with
-        | [(x, 1)] => vsCurs.contains x
-        | _ => false) && decide (c.off < 207)
-  | .under _ r => vsExp fn r
-  | _ => false
-
-end
-
-end LeanVM.Guest.CoreMode
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.CoreMode.Own.verify_sub
 
@@ -82,8 +21,21 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **Its family**: its exponent family (`vsExp`). -/
-noncomputable def fams : List (String × (Fn → CRes → Bool)) := [(name% «verify_sub», vsExp)]
+/-- **Its values' exponent bounds** `(v, n)`, `e(v) < n`, where they bound its callees' runs: its link width `g_w`
+(value `409`, `shape[g]`, `g^w`, `19 ≤ w ≤ 24`, by `assert log(g_w·g^-BYTECODE_LOG) < LINK_W_ARMS`); the Keccak
+table's height word `kb[2 + TABLE_KECCAK]` (value `120`, `g^h`, `h ≤ 24`, `SizesOk.heights24`); its tallest height `g_n`
+(value `408`, `shape[1]`, `g_n / kb[2]` range checked below `2^24`); `g_log_mem` (value `101`, `logMemory ≤ 30`) and
+`gmv` (value `485`, `stackLog ≤ 30`) (`SizesOk`). -/
+def vsBounds : List (ℕ × ℕ) := [(409, 25), (120, 25), (408, 49), (101, 31), (485, 31)]
+
+/-- **`e(v) < m`**, `(v, n)` one of `vsBounds`, `n ≤ m < capE`. -/
+def gwFam : CRes → Bool
+  | .lt (.val x) (.num m) => vsBounds.any (fun b ↦ Nat.beq b.1 x && Nat.ble b.2 m) && Nat.blt m capE
+  | _ => false
+
+/-- **Its families.** -/
+def fams : List (String × (Fn → CRes → Bool)) :=
+  [(name% «verify_sub», fun _ r ↦ gwFam r || chalFam r || ixFam r || gwInvFam r || streamFam r)]
 
 end
 

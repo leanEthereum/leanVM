@@ -6,7 +6,7 @@ site of the caller passes both its entries parameter and its bound's quotient, r
 (`Pack/*/Core.lean`) alone: the core route's `glOk` links their caller's cells.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/anylink.py [--check]"""
-import sys, os, re, glob
+import sys, os, glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -95,7 +95,7 @@ def render():
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLinkOk'
     t = [header(mod, '`anyLink`\'s checks.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.CoreMode.Fam.ResA\n\n'
+    t.append('public import LeanVM.Guest.EndExecCoreLinkA\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
     app = 'anyCallers_0'
@@ -112,7 +112,9 @@ def render():
              '  main := fun F hF ↦ of_decide_eq_true (List.all_eq_true.mp\n'
              '    (show anyLink.fams.all (fun F ↦ decide (F.1 ≠ "main")) = true by decide +kernel) F hF)\n\n'
              'end\n\nend LeanVM.Guest.EndExec\n')
-    files[mod] = ''.join(t)
+    # the link's checks, with its family's soundness (`EndExecCoreLinkA`)
+    if os.path.exists(os.path.join(ROOT, 'EndExecCoreLinkA.lean')):
+        files[mod] = ''.join(t)
     return files
 
 
@@ -123,7 +125,7 @@ def path(mod):
 def main(argv):
     check = '--check' in argv
     files = {path(m): text for m, text in render().items()}
-    stale = genfiles.sync(files, glob.glob(os.path.join(OUT, 'AnyCallers*.lean')), check)
+    stale = genfiles.sync(files, glob.glob(os.path.join(OUT, 'AnyCallers*.lean')) + glob.glob(os.path.join(OUT, 'AnyLinkOk.lean')), check)
     print('anylink: %d files, %d stale%s' % (len(files), len(stale), (': ' + ', '.join(stale)) if stale else ''))
     return 1 if check and stale else 0
 

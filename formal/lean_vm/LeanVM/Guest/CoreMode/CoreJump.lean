@@ -1063,8 +1063,8 @@ theorem slotGet_ofL {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × 
     subst hw
     exact ⟨o, rfl, h2, hv⟩
 
-theorem idxL_of_idxX {gl : List (ℕ × ℕ × ℕ)} {i : Mode.Idx} {ci : CIdx} (h : idxX i = some ci) :
-    idxL gl i = some ci := by
+theorem idxL_of_idxX {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {i : Mode.Idx} {ci : CIdx}
+    (h : idxX i = some ci) : idxL gl gp i = some ci := by
   cases i with
   | num n => exact h
   | ex b c =>
@@ -1072,11 +1072,37 @@ theorem idxL_of_idxX {gl : List (ℕ × ℕ × ℕ)} {i : Mode.Idx} {ci : CIdx} 
     | fr o => exact h
     | hp q d => simp [idxX] at h
 
-/-- **A bound's exponent, the caller's cells linked**: a constant's or a frame cell's (`idxX`), or a caller's cell's
-(`isHp1`, its word the linked slot's). -/
+/-- **A bound's exponent, the caller's cells linked**: a constant's or a frame cell's (`idxX`), a caller's cell's
+(`isHp1`, its word the linked slot's), or a parameter's word's plus a constant (`isHpW`, its word its ghost slot's). -/
 theorem rep_idxValL {gl : List (ℕ × ℕ × ℕ)} {gp : List ((ℕ × ℕ) × ℕ)} {s : St} {ws : List E} {i : Mode.Idx}
-    {ci : CIdx} (hi : idxL gl i = some ci) (hb : bndX i = true) (hc : SlotGetL gl gp s ws (idxB i)) {x : ℕ}
+    {ci : CIdx} (hi : idxL gl gp i = some ci) (hb : bndX i = true) (hc : SlotGetL gl gp s ws (idxB i)) {x : ℕ}
     (h : rep ((idxC ci).valW (slotW ws)) = some x) (hx : (idxC ci).off ≤ x) : IdxVal s i x := by
+  rcases Bool.or_eq_true_iff.mp hb with hb | hb
+  swap
+  · -- a parameter's word plus the offset `c`
+    match i, hb, hi with
+    | .ex (.hp q d) c, hb, hi =>
+      have hq1 : q ≠ 1 := by rintro rfl; simp [isHpW] at hb
+      have hc28 : c < 2 ^ 28 := by
+        unfold isHpW at hb
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hb
+        exact hb.2
+      simp only [idxL] at hi
+      rw [ite_eq_right (fun h ↦ hq1 h.1), ite_eq_left ⟨hq1, hc28⟩] at hi
+      obtain ⟨b, hl, rfl⟩ := Option.map_eq_some_iff.mp hi
+      obtain ⟨w, hw, hv⟩ := hc _ List.mem_cons_self
+      simp only [BaseL, hq1, ↓reduceIte, hl, Option.map_some, Option.some.injEq] at hw
+      subst hw
+      rw [idxC_idxO] at hx
+      change c ≤ x at hx
+      rw [valW_idxO] at h
+      obtain ⟨hx1, hwx⟩ := rep_spec h
+      rw [capE_eq] at hx1
+      have hw' : slotW ws b = ofK (g ^ (x - c)) := by
+        have hne : ofK (addressOfIndex c) ≠ 0 := Mode.ofK_gpow_ne_zero c
+        refine mul_right_cancel₀ hne ?_
+        rw [hwx, addressOfIndex, addressOfIndex, ← ofK_mul', ← pow_add, Nat.sub_add_cancel hx]
+      exact ⟨_, x - c, hv, hw', by omega, by omega⟩
   rcases Bool.or_eq_true_iff.mp hb with hb | hb
   · obtain ⟨ci', hci'⟩ := Option.isSome_iff_exists.mp hb
     rw [idxL_of_idxX hci', Option.some.injEq] at hi
@@ -1143,13 +1169,13 @@ theorem hpValS_rd {pows : Exec.PowTree} (hp : pows.Ok) {body : List Stmt} (htop 
       exact hl.2
     · cases h
 
-/-- **A callee's ghost words** (`hpArgOk`): ghost `j` the word of the monomial `ghostW` names for the callee's pointer
-base `(hpBs G)[j]`, at the call's argument values `ks`. -/
+/-- **A callee's ghost words** (`hpArgOk`): ghost `j` the word of the monomial `ghostW` or `ghostV` names for the
+callee's pointer base `(hpBs G)[j]`, at the call's argument values `ks`. -/
 theorem gargsW_ghost {Cf : CFun} {G : Mode.Sig} {f : String} {args : List V} {σ : Val}
     (hgl : (gargsOf Cf.H.gargs f args).length = (Cf.sigOf f).ghosts)
     (hgh : Nat.beq (Cf.sigOf f).ghosts (hpBs G).length = true) (hpa : hpArgOk Cf G f = true) :
     (gargsW Cf.H σ f args).length = (hpBs G).length ∧ ∀ (j : ℕ) (p : ℕ × ℕ), (hpBs G)[j]? = some p → ∃ ks c, keyOk args ks = true ∧
-      ghostW Cf ks p = some c ∧ (gargsW Cf.H σ f args)[j]? = some (c.valW (vw σ)) := by
+      (ghostW Cf ks p = some c ∨ ghostV Cf ks p = some c) ∧ (gargsW Cf.H σ f args)[j]? = some (c.valW (vw σ)) := by
   rw [Nat.beq_eq] at hgh
   simp only [hpArgOk, Bool.and_eq_true, List.all_eq_true] at hpa
   obtain ⟨-, hpa⟩ := hpa
@@ -1170,20 +1196,17 @@ theorem gargsW_ghost {Cf : CFun} {G : Mode.Sig} {f : String} {args : List V} {σ
     have hf := List.find?_some hfd
     simp only [Bool.and_eq_true, decide_eq_true_eq] at hf
     have h1 := hpa x hmem
-    simp only [hf.1, beq_self_eq_true, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h1
-    have hj' := congrArg (·[j]?) h1
-    simp only [List.getElem?_map, hj, Option.map_some] at hj'
-    cases hc : ghostW Cf x.2.1 p with
-    | none =>
-      rw [hc] at hj'
-      cases h : x.2.2[j]? <;> simp [h] at hj'
-    | some c =>
-      rw [hc] at hj'
-      cases h : x.2.2[j]? with
-      | none => simp [h] at hj'
-      | some c' =>
-        simp only [h, Option.map_some, Option.some.injEq] at hj'
-        exact ⟨x.2.1, c, hf.2, hc, by simp [h, hj']⟩
+    simp only [hf.1, beq_self_eq_true, Bool.not_true, Bool.false_or, Bool.and_eq_true, Nat.beq_eq,
+      List.all_eq_true] at h1
+    obtain ⟨hl, hz⟩ := h1
+    obtain ⟨hjl, hp⟩ := List.getElem?_eq_some_iff.mp hj
+    have hjx : j < x.2.2.length := by omega
+    have hzm : (x.2.2[j], p) ∈ List.zip x.2.2 (hpBs G) := by
+      rw [← hp]
+      exact List.mem_iff_getElem.mpr ⟨j, by simp [hjx, hjl], by simp⟩
+    have hok := hz _ hzm
+    simp only [ghostOk, Bool.or_eq_true, decide_eq_true_eq] at hok
+    exact ⟨x.2.1, x.2.2[j], hf.2, hok, by simp [hjx]⟩
 
 theorem glOfs_cons (n q d : ℕ) (l : List (ℕ × ℕ)) :
     glOfs n ((q, d) :: l) = if q = 1 then (d, n, 0) :: glOfs (n + 1) l else glOfs (n + 1) l := by
@@ -1726,6 +1749,10 @@ theorem entry_fitB {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mod
     obtain ⟨⟨⟨h2, hdn⟩, hd28⟩, hde⟩ := hp1
     refine ⟨written_mono hle (hentw d hde), hd28, ?_⟩
     obtain ⟨ks, c, -, hc, hget⟩ := hGL.2 _ _ (List.getElem?_idxOf hd)
+    replace hc : ghostW Cf ks (1, d) = some c := by
+      rcases hc with hc | hc
+      · exact hc
+      · simp [ghostV] at hc
     simp only [ghostW, Nat.beq_refl, Bool.cond_true, Option.some.injEq] at hc
     subst hc
     rw [slotW_app_get (List.length_map _) (by simpa using hget)]
@@ -1740,8 +1767,16 @@ theorem entry_fitB {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mod
     intro q d hqd hq1 h2 hqn
     obtain ⟨ks, c, hks, hc, hget⟩ := hGL.2 _ _ (List.getElem?_idxOf hqd)
     have hqb : Nat.beq q 1 = false := Bool.eq_false_iff.mpr fun h ↦ hq1 (Nat.eq_of_beq_eq_true h)
-    simp only [ghostW, hqb, Bool.cond_false, Option.bind_eq_some_iff, Option.map_eq_some_iff] at hc
-    obtain ⟨a, ha, n, hn, rfl⟩ := hc
+    -- the ghost a loaded value `n`, its word `wordNf`'s monomial of `n` or `n` itself
+    obtain ⟨a, ha, n, hn, hcv⟩ : ∃ a, ks[q - 2]? = some a ∧ ∃ n, hpValS Cf.pows Cf.fn.body a d = some n ∧
+        c.valW (vw σ) = σ (V.n n) := by
+      rcases hc with hc | hc
+      · simp only [ghostW, hqb, Bool.cond_false, Option.bind_eq_some_iff, Option.map_eq_some_iff] at hc
+        obtain ⟨a, ha, n, hn, rfl⟩ := hc
+        exact ⟨a, ha, n, hn, wordNf_val hp htop hb hh _ _⟩
+      · simp only [ghostV, hqb, Bool.cond_false, Option.bind_eq_some_iff, Option.map_eq_some_iff] at hc
+        obtain ⟨a, ha, n, hn, rfl⟩ := hc
+        exact ⟨a, ha, n, hn, by simp [CCell.valW, prodW, vw, addressOfIndex]⟩
     have harg := keyOk_get hks ha
     -- the argument's cell, a precondition of the callee
     have hpc := hGpb (q, d) hqd
@@ -1764,8 +1799,7 @@ theorem entry_fitB {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mod
     have hx := hxn.1
     rw [Mode.limb_mul_ofK] at hx
     simp only [addressOfIndex] at hL2
-    rw [slotW_app_get (List.length_map _) (by simpa using hget), wordNf_val hp htop hb hh,
-      ← readD_ref hκ hxn.2, ← hx, hL2]
+    rw [slotW_app_get (List.length_map _) (by simpa using hget), hcv, ← readD_ref hκ hxn.2, ← hx, hL2]
     rfl
   refine ⟨fun o ho ↦ hentry.w o (foldlT_nil_get ho), fun o x hx ↦ (by rw [trieNil_get rfl] at hx; cases hx),
     fun o hx ↦ (by rw [trieNil_get rfl] at hx; cases hx), fun p hp ↦ (by cases hp), fun m hm' ↦ ?_,

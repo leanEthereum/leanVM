@@ -3,7 +3,7 @@
 
 use primitives::field::F128;
 use primitives::field::lanes::{ByteMap, Linear16, map_bytes, map_fields, transpose_bytes, transpose_words};
-use verifier::keccak::RMFE_EMBED;
+use verifier::keccak::{BITS, RMFE_EMBED};
 
 use crate::witness::BLOCK_WORDS;
 
@@ -39,6 +39,22 @@ pub fn embed_run(block: &[u64], j: usize) -> [Run; PACKS] {
     let mut out = [[0; 8]; PACKS];
     for (out, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(&words) {
         *out = map_fields(&EMBEDDING, *word);
+    }
+    out
+}
+
+/// The bytes of the 64 positions `64 lane ..` of a block: byte `z` of `out[t]` is byte `t` of position `64 lane + z`,
+/// the low (`t` even) or high byte of its pack `t / 2`.
+pub fn lane_bytes(block: &[u64], lane: usize) -> [[u64; 8]; 64] {
+    debug_assert!(64 * lane < BITS);
+    let mut out = [[0u64; 8]; 64];
+    let positions = block[64 * lane * BLOCK_WORDS..][..64 * BLOCK_WORDS]
+        .as_chunks::<BLOCK_WORDS>()
+        .0;
+    for (k, positions) in positions.as_chunks::<16>().0.iter().enumerate() {
+        for (out, t) in out.iter_mut().zip(transpose_bytes(positions)) {
+            out[2 * k..][..2].copy_from_slice(&[t as u64, (t >> 64) as u64]);
+        }
     }
     out
 }

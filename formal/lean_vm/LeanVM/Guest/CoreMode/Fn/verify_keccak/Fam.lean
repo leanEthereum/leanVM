@@ -1,89 +1,15 @@
 /-
   LeanVM.Guest.CoreMode.Fn.verify_keccak.Fam
 
-  `verify_keccak`'s own residual families (`CoreMode/FnReg.lean`): its reads past its layers' cursors and its exponents at `τ`.
+  `verify_keccak`'s own residual family (`CoreMode/FnReg.lean`): its exponent facts, its rule file's `arg_bound`s,
+  `sel_bound` and `fact`, its equation residual (`RES_EQ`), its runs and its stream (`fn/verify_keccak.py`).
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public meta import LeanVM.Guest.CoreRef
-import LeanVM.Guest.ValRef
-import LeanVM.Guest.Data.ValNames.«verify_keccak»
-
-namespace LeanVM.Guest.CoreMode
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
-
-@[expose] public section
-
-/-- `verify_keccak`'s layers' returned cursors, step `s`'s at index `s` (`EndExec.vk_rets`). -/
-def vkCurs : List ℕ :=
-  [val% «verify_keccak» "cursor@2", val% «verify_keccak» "cursor@3", val% «verify_keccak» "cursor@4",
-    val% «verify_keccak» "cursor@5", val% «verify_keccak» "cursor@6", val% «verify_keccak» "cursor@7",
-    val% «verify_keccak» "cursor@8", val% «verify_keccak» "cursor@9", val% «verify_keccak» "cursor@10",
-    val% «verify_keccak» "cursor@11", val% «verify_keccak» "cursor@12", val% «verify_keccak» "cursor@13"]
-
-/-- The order of `g`: exponents are taken modulo it. -/
-def gOrd : ℕ := 2 ^ 64 - 1
-
-/-- **`verify_keccak`'s values' exponents at `τ`**, `y = τ - 3`: `tau_g`, `g^-4` (modulo the
-order), `pack_g`, `y_g`, the pack rounds' step `g^(y / 8)` and remainder `g^(y % 8)`, and their bits' factors. -/
-def vkTab (τ : ℕ) : List (ℕ × ℕ) :=
-  [(val% «verify_keccak» "tau_g", τ), (val% «verify_keccak» "pack_g~0", gOrd - 4), (val% «verify_keccak» "pack_g", τ - 4),
-    (val% «verify_keccak» "s5#1", τ - 3), (val% «verify_keccak» "step_g@2", (τ - 3) / 8), (val% «verify_keccak» "rem_g@3", (τ - 3) % 8),
-    (val% «verify_keccak» "step_g@1", (τ - 3) / 8 % 2), (val% «verify_keccak» "step_g@2~3", 2 * ((τ - 3) / 16 % 2)),
-    (val% «verify_keccak» "rem_g@1", (τ - 3) % 2), (val% «verify_keccak» "rem_g@2~3", 2 * ((τ - 3) / 2 % 2)),
-    (val% «verify_keccak» "rem_g@3~3", 4 * ((τ - 3) / 4 % 2))]
-
-/-- A value's exponent at `τ` (`vkTab`). -/
-def vkE (τ v : ℕ) : Option ℕ := (vkTab τ).lookup v
-
-/-- **A cell's exponent at `τ`**, its bases all of `vkE`'s, modulo the order. -/
-def vkEv (τ : ℕ) (c : CCell) : Option ℕ :=
-  (c.bases.foldr (fun b acc ↦ acc.bind fun a ↦ (vkE τ b.1).map fun e ↦ a + b.2 * e) (some c.off)).map (· % gOrd)
-
-/-- A cell's bases `vkE` does not know, in order. -/
-def vkU (τ : ℕ) (c : CCell) : List (ℕ × ℕ) := c.bases.filter fun b ↦ (vkE τ b.1).isNone
-
-/-- A cell's part `vkE` knows. -/
-def vkK (τ : ℕ) (c : CCell) : CCell := ⟨c.bases.filter fun b ↦ (vkE τ b.1).isSome, c.off⟩
-
-/-- **A run inside a run at `τ`**, the known parts' and bounds' exponents given: the same bases `vkE` does not know,
-each cell `kq + S·j` of the first, `lq ≤ j < hq`, a cell `kr + S'·j'` of the second, `lr ≤ j' < hr`. -/
-def vkRun (τ : ℕ) (q r : CRun) (kq kr lq hq lr hr : ℕ) : Bool :=
-  decide (vkU τ q.base = vkU τ r.base) && Nat.blt 0 r.stride && decide (hq < capE) &&
-    decide (kq + q.stride * hq < capE) && decide (hr < capE) &&
-    (List.range (hq - lq)).all fun t ↦
-      decide (kr ≤ kq + q.stride * (lq + t)) && Nat.beq ((kq + q.stride * (lq + t) - kr) % r.stride) 0 &&
-      decide (lr ≤ (kq + q.stride * (lq + t) - kr) / r.stride) &&
-      decide ((kq + q.stride * (lq + t) - kr) / r.stride < hr)
-
-/-- **A residual at `τ`**: an order of exponents `vkE` gives; a run inside a run (`vkRun`); either under branch
-conditions. -/
-def vkAt (τ : ℕ) : CRes → Bool
-  | .lt a b => ((vkEv τ (idxC a)).bind fun u ↦ (vkEv τ (idxC b)).map fun v ↦
-      decide (u < v) && decide (v < capE)).getD false
-  | .subR q r => ((vkEv τ (vkK τ q.base)).bind fun kq ↦ (vkEv τ (vkK τ r.base)).bind fun kr ↦
-      (vkEv τ (idxC q.lo)).bind fun lq ↦ (vkEv τ (idxC q.hi)).bind fun hq ↦ (vkEv τ (idxC r.lo)).bind fun lr ↦
-      (vkEv τ (idxC r.hi)).map fun hr ↦ vkRun τ q r kq kr lq hq lr hr).getD false
-  | .under _ r => vkAt τ r
-  | _ => false
-
-/-- **`verify_keccak`'s family** (`EndExec.vkQC_inst`): a read `c < (11 - s)·96 + 97` words past step `s`'s returned
-cursor (`vkCurs`), one of its stream's, parameter `stream`'s `[0, 8192)`; else a residual that holds at every `τ` of
-`[9, 28]` (`vkAt`); either under branch conditions. -/
-def vkQC (fn : Fn) : CRes → Bool
-  | .sub c q => fn.name == name% «verify_keccak» && decide (q = ⟨⟨[(val% «verify_keccak» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) &&
-      match c.bases with
-      | [(x, 1)] => (List.range 12).any fun s ↦ Nat.beq (vkCurs.getD s 0) x && decide (c.off < (11 - s) * 96 + 97)
-      | _ => false
-  | .under _ r => vkQC fn r
-  | r => fn.name == name% «verify_keccak» && (List.range 20).all fun i ↦ vkAt (9 + i) r
-
-end
-
-end LeanVM.Guest.CoreMode
+public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.CoreMode.Own.verify_keccak
 
@@ -91,8 +17,112 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **Its family** (`vkQC`). -/
-noncomputable def fams : List (String × (Fn → CRes → Bool)) := [(name% «verify_keccak», vkQC)]
+/-- The values `x` and their exponent bounds `n`, `e(x) < n`: `pack_g` (`18`), `step_g` (`29`), `rem_g` (`48`),
+`tau_g` (`6`). -/
+def expB : List (ℕ × ℕ) := [(18, 21), (29, 2), (48, 16), (6, 25)]
+
+/-- **Its exponent facts**: `e(x) < n`, `(x, m) ∈ expB`, `m ≤ n < capE`; `c < e(tau_g)`, `c < 9` (value `6`). -/
+def expFam (r : CRes) : Bool :=
+  match r with
+  | .lt (.val x) (.num n) => Nat.blt n capE && expB.any fun p ↦ Nat.beq p.1 x && Nat.ble p.2 n
+  | .lt (.num c) (.val x) => Nat.beq x 6 && Nat.blt c 9
+  | _ => false
+
+/-- **Its equation residual**: step `0`'s claim point (value `443`, loaded from `claims·g^KC_POINT`) is the point
+(value `62`) loaded there before. -/
+def ptEq : CRes := .eq ⟨[(443, 1)], 0⟩ ⟨[(62, 1)], 0⟩
+
+/-- `pack_g = tau_g·g^-4` as a monomial (values `6`, `17`). -/
+def pM : List (ℕ × ℕ) := [(6, 1), (17, 1)]
+
+/-- `rem_g` as the product of its bit factors (values `33`, `37`, `42`, `47`). -/
+def remM : List (ℕ × ℕ) := [(33, 1), (37, 1), (42, 1), (47, 1)]
+
+/-- `y_g = step_g^16·rem_g` (`step_g` value `29`). -/
+def yC : CCell := ⟨(29, 16) :: remM, 0⟩
+
+/-- A run past one base. -/
+def run1 (b o S : ℕ) (lo hi : CIdx) : CRun := ⟨⟨[(b, 1)], o⟩, S, lo, hi⟩
+
+/-- **Its runs over the head's exponents**: loop0's run `chi·g^4·[0, e(pack_g))` inside `chi[0, e(tau_g))`; the point's
+(value `62`) residue runs over `step_g` and its run past `step_g^16` inside its whole run `[0, e(y_g))`; loop2's reads
+of the last layer's point (value `1740`) `[0, e(pack_g))` inside its whole run; `z_vals`' (value `9`) pack coordinates
+`[4, e(tau_g))` at offsets `0` and `QKECCAK_VARS_CAP = 39`, as loops 1 and 2 write them. -/
+def vkRuns : List CRes :=
+  [.subR (run1 7 4 1 (.num 0) (.mono ⟨pM, 0⟩)) (run1 7 0 1 (.num 0) (.val 6)),
+    .subR ⟨⟨[(29, 16), (62, 1)], 0⟩, 1, .num 0, .mono ⟨remM, 0⟩⟩ (run1 62 0 1 (.num 0) (.mono yC)),
+    .subR (run1 1740 0 1 (.num 0) (.mono ⟨pM, 0⟩)) (run1 1740 0 1 (.num 0) (.mono yC)),
+    .subR (run1 9 0 1 (.num 4) (.val 6)) (run1 9 4 1 (.num 0) (.mono ⟨pM, 0⟩)),
+    .subR (run1 9 39 1 (.num 4) (.val 6)) (run1 9 43 1 (.num 0) (.mono ⟨pM, 0⟩))] ++
+  (List.range 16).map fun d ↦ .subR (run1 62 d 16 (.num 0) (.val 29)) (run1 62 0 1 (.num 0) (.mono yC))
+
+/-- **Its runs** (`vkRuns`), under any conditions; `e(pack_g) < n`, `21 ≤ n`; `c < e(pack_g·g^k)`, `c < 5 + k`. -/
+def runFam (r : CRes) : Bool :=
+  decide (r ∈ vkRuns) || match r with
+    | .under _ r' => decide (r' ∈ vkRuns)
+    | .lt (.mono c) (.num n) => decide (c = ⟨pM, 0⟩) && Nat.ble 21 n && Nat.blt n capE
+    | .lt (.num c) (.mono m) => decide (m.bases = pM) && Nat.blt c (5 + m.off) && Nat.blt m.off 4294967296
+    | _ => false
+
+/-! ## The proof stream -/
+
+/-- **The exponents at height `h`** (`tau_g = g^h`, `y = h - 3`) of its head's values: `tau_g` (`6`), `step_g = g^(y / 16)`
+(`29`), `rem_g = g^(y % 16)` (`48`) and `rem_g`'s bit factors `g^(2^j·b_j)` (`33`, `37`, `42`, `47`). -/
+def stEx (h v : ℕ) : Option ℕ :=
+  if v = 6 then some h else if v = 29 then some ((h - 3) / 16) else if v = 48 then some ((h - 3) % 16)
+  else if v = 33 then some ((h - 3) % 2) else if v = 37 then some (2 * ((h - 3) / 2 % 2))
+  else if v = 42 then some (4 * ((h - 3) / 4 % 2)) else if v = 47 then some (8 * ((h - 3) / 8 % 2)) else none
+
+/-- A product of the head's values' powers, its exponent at height `h`. -/
+def stSum (h : ℕ) : List (ℕ × ℕ) → Option ℕ
+  | [] => some 0
+  | (v, a) :: l => match stEx h v, stSum h l with
+    | some e, some s => some (a * e + s)
+    | _, _ => none
+
+/-- An index's exponent at height `h`. -/
+def stIdx (h : ℕ) : CIdx → Option ℕ
+  | .num n => some n
+  | .val v => stEx h v
+  | .mono c => (stSum h c.bases).map (· + c.off)
+
+/-- **The stream's run**: its `24` residue runs `⟨cursor·g^d, 24, 0, e(tau_g) + 44⟩` merged (`cursor` value `5`),
+`cursor·g^j`, `j < 24·(e(tau_g) + 44)`. -/
+def stQ : CRun := ⟨⟨[(5, 1)], 0⟩, 1, .num 0, .mono ⟨[(6, 24)], 1056⟩⟩
+
+/-- **A run over `cursor` inside the stream's at height `h`**: its base `cursor·M·g^o`, `M` and its bounds over the
+head's values, its last cell's exponent below `24·(h + 44)`. -/
+def stRunAt (q : CRun) (h : ℕ) : Bool :=
+  decide (q.base.bases.head? = some (5, 1)) &&
+  match stSum h q.base.bases.tail, stIdx h q.lo, stIdx h q.hi with
+  | some t, some l, some u => Nat.blt u 4294967296 && Nat.blt l 4294967296 &&
+      (Nat.ble u l || Nat.blt (t + q.base.off + q.stride * (u - 1)) (24 * (h + 44)))
+  | _, _, _ => false
+
+/-- At every height `9 ≤ h ≤ 24`. -/
+def stRunOk (q : CRun) : Bool := (List.range 16).all fun i ↦ stRunAt q (9 + i)
+
+/-- A bound over the head's values below a constant at every height (the stream runs' `e(tau_g) + 44`). -/
+def stLt : CIdx → CIdx → Bool
+  | .mono c, .num n => Nat.blt n 4611686018427387904 && (List.range 16).all fun i ↦
+      match stIdx (9 + i) (.mono c) with
+      | some t => Nat.blt t n
+      | none => false
+  | _, _ => false
+
+/-- **The stream family**: a read `sub c stQ` and a callee's run `subR q stQ` inside the stream at every height, and
+a bound `stLt`, under any conditions. -/
+def stFam : CRes → Bool
+  | .lt a b => stLt a b
+  | .sub c r => decide (r = stQ) && stRunOk ⟨c, 1, .num 0, .num 1⟩
+  | .subR q r => decide (r = stQ) && stRunOk q
+  | .under _ r => stFam r
+  | _ => false
+
+/-- **Its family**: its exponent facts (`expFam`), its equation residual (`ptEq`), its runs (`runFam`), its stream
+(`stFam`). -/
+noncomputable def fams : List (String × (Fn → CRes → Bool)) :=
+  [(name% «verify_keccak», fun _ r ↦ expFam r || decide (r = ptEq) || runFam r || stFam r)]
 
 end
 

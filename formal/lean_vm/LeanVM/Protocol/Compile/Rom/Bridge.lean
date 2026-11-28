@@ -130,6 +130,38 @@ theorem simulateQ_absorbNonce (sp : Sponge) (n : E) :
     simulateQ impl (absorbNonce callKeccakF1600 sp n) = absorbNonce (implF impl) sp n := by
   simp only [absorbNonce, simulateQ_bind, simulateQ_absorb, simulateQ_duplex, simulateQ_pure]
 
+theorem simulateQ_absorbPackedChunks :
+    ∀ (fuel : ℕ) (state : KeccakState) (values : List E),
+      simulateQ impl (absorbPackedChunks callKeccakF1600 fuel state values) =
+        absorbPackedChunks (implF impl) fuel state values
+  | 0, _, _ => by simp [absorbPackedChunks]
+  | _ + 1, _, [] => by simp [absorbPackedChunks]
+  | fuel + 1, state, _ :: _ => by
+    simp only [absorbPackedChunks, simulateQ_bind, simulateQ_queryF]
+    congr 1; funext st; exact simulateQ_absorbPackedChunks fuel st _
+
+theorem simulateQ_observePacked (sp : Sponge) (values : List E) :
+    simulateQ impl (observePacked callKeccakF1600 sp values) = observePacked (implF impl) sp values := by
+  simp only [observePacked]
+  split
+  · simp only [simulateQ_bind, simulateQ_pure, pure_bind, simulateQ_absorbPackedChunks]
+  · simp only [simulateQ_bind, simulateQ_duplex, simulateQ_absorbPackedChunks, simulateQ_pure]
+
+theorem simulateQ_squeezePackedChunks :
+    ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ),
+      simulateQ impl (squeezePackedChunks callKeccakF1600 fuel sp missing) =
+        squeezePackedChunks (implF impl) fuel sp missing
+  | 0, _, _ => by simp [squeezePackedChunks]
+  | _ + 1, _, 0 => by simp [squeezePackedChunks]
+  | fuel + 1, sp, missing + 1 => by
+    simp only [squeezePackedChunks, simulateQ_bind, simulateQ_duplex]
+    congr 1; funext sp'
+    simp only [simulateQ_squeezePackedChunks fuel, simulateQ_pure]
+
+theorem simulateQ_samplesPacked (sp : Sponge) (count : ℕ) :
+    simulateQ impl (samplesPacked callKeccakF1600 sp count) = samplesPacked (implF impl) sp count := by
+  simp only [samplesPacked, simulateQ_bind, simulateQ_squeezePackedChunks, simulateQ_pure]
+
 theorem simulateQ_run :
     ∀ (p : VerifierProgram Bool) (s : VerifierProgramState),
       simulateQ impl (runWithHash callKeccak256 callKeccakF1600 p s) = runWithHash (implH impl) (implF impl) p s
@@ -143,6 +175,15 @@ theorem simulateQ_run :
     · simp
   | .sample k, s => by
     simp only [runWithHash, simulateQ_bind, simulateQ_squeeze]
+    congr 1; funext r; exact simulateQ_run _ _
+  | .readPacked n k, s => by
+    simp only [runWithHash]
+    split
+    · simp only [simulateQ_bind, simulateQ_observePacked]
+      congr 1; funext sp; exact simulateQ_run _ _
+    · simp
+  | .samplePacked n k, s => by
+    simp only [runWithHash, simulateQ_bind, simulateQ_samplesPacked]
     congr 1; funext r; exact simulateQ_run _ _
   | .grind bits k, s => by
     simp only [runWithHash]

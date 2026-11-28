@@ -144,11 +144,11 @@ noncomputable def midOk : Bool :=
 
 noncomputable def leafOk : Bool :=
   mLeaf.all Stmt.flat &&
-  ((List.range 23).all fun k => (atomsIn mLeaf).any (isConstAt (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) 0 0) &&
+  ((List.range 25).all fun k => (atomsIn mLeaf).any (isConstAt (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) 0 0) &&
     isLoad (atomsIn mLeaf) (.n ((val% «main» "s63.t.s1.u0.s0#0") + k)) (.n (val% «main» "defer_stmt")) k) &&
-  isLoad (atomsIn mLeaf) (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 23 &&
+  isLoad (atomsIn mLeaf) (.n (val% «main» "leaf_value")) (.n (val% «main» "defer_stmt")) 25 &&
   mAgg.all Stmt.flat &&
-  (atomsIn mAgg).any (isConstAt (.n (val% «main» "s63.e.s0#0")) 133823759239872512 0) &&
+  (atomsIn mAgg).any (isConstAt (.n (val% «main» "s63.e.s0#0")) 365917469723852800 0) &&
   isMul (atomsIn mAgg) (.n (val% «main» "s63.e.s0#1")) (.n (val% «main» "g_squares")) (.n (val% «main» "s63.e.s0#0")) &&
   hasCall mAgg "aggregate_claims" [.n (val% «main» "meta[6]"), .n (val% «main» "child_pi"), .n (val% «main» "child_fresh"), .n (val% «main» "child_carried"), .n (val% «main» "defer_stmt"), .n (val% «main» "s63.e.s0#1")] []
 

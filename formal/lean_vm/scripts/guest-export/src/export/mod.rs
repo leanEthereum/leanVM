@@ -5,8 +5,8 @@
 use super::*;
 // The crate's modules (`build.rs` widens their items).
 use super::{
-    cells::*, child::*, claim_pool::*, coverage::*, deferred::*, error::*, guest::*, hints::*, node::*,
-    placeholders::*, proof::*, statement::*,
+    cells::*, child::*, coverage::*, deferred::*, error::*, guest::*, hints::*, node::*, placeholders::*, proof::*,
+    split::*, statement::*,
 };
 use std::collections::BTreeMap;
 use verifier::E;

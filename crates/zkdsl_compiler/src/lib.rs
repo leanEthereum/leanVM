@@ -129,6 +129,8 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                 keep: frame_size,
                 rets: 0..0,
                 fixed: true,
+                loop_frame: false,
+                aligned: false,
             },
         );
     }
@@ -144,10 +146,12 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
     // Assign entry program counters and frame sizes.
     let mut entry = HashMap::new();
     let mut frame_size = HashMap::new();
+    let mut aligned = HashMap::new();
     let mut pc = 0u32;
     for l in &lowered {
         entry.insert(l.name.clone(), pc);
         frame_size.insert(l.name.clone(), l.frame_size);
+        aligned.insert(l.name.clone(), l.aligned);
         pc += l.code.len() as u32;
     }
     // The padded bytecode size `B` is fixed by the lowered length, so the halt
@@ -181,7 +185,11 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                             count,
                             tail,
                         } => {
-                            let size = frame_size[&callee];
+                            let (size, aligned) = (frame_size[&callee], aligned[&callee]);
+                            debug_assert!(
+                                !aligned || size.is_multiple_of(isa::KECCAK_WINDOW),
+                                "{callee}: aligned loop frames of {size} cells"
+                            );
                             match count {
                                 LoopCount::Constant(n) => RHint::Alloc {
                                     ptr,
@@ -190,6 +198,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                                         .and_then(|n| size.checked_mul(n))
                                         .and_then(|frames| frames.checked_add(tail))
                                         .expect("loop frames overflow"),
+                                    aligned,
                                 },
                                 LoopCount::Bound { cell, start } => RHint::AllocFrames {
                                     ptr,
@@ -197,19 +206,26 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
                                     end: cell,
                                     start_inverse: F64::G.pow(u128::from(start)).inv(),
                                     tail,
+                                    aligned,
                                 },
                             }
                         }
                         Hint::AllocFrame { ptr, callee } => RHint::Alloc {
                             ptr,
                             size: frame_size[&callee],
+                            aligned: aligned[&callee],
                         },
                         Hint::AllocArm { ptr, sel, callees } => RHint::AllocArm {
                             ptr,
                             sel,
                             sizes: callees.iter().map(|c| frame_size[c]).collect(),
+                            aligned: callees.iter().any(|c| aligned[c]),
                         },
-                        Hint::AllocBuffer { ptr, size } => RHint::Alloc { ptr, size },
+                        Hint::AllocBuffer { ptr, size } => RHint::Alloc {
+                            ptr,
+                            size,
+                            aligned: false,
+                        },
                         Hint::AllocBufferDyn { ptr, size } => RHint::AllocDyn { ptr, size },
                         Hint::Resolved(r) => r,
                     })

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Extractor.Top
+public import LeanVM.Cost.Extractor.Replay
 public import LeanVM.Protocol.Whir.Sound.NewtonK
 import all LeanVM.Protocol.Whir.Sound.NewtonK
 import all LeanVM.Protocol.Whir.Sound.Newton

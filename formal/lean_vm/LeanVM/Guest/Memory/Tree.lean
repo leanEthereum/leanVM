@@ -33,8 +33,8 @@ Both conditions are syntactic and decidable; the guest's core IR satisfies them
 allocation order (`allocs`).
 
 **Results.** `Program.Rel.tree`: for a well-formed program, a derivation of `P.Rel rd f args
-rets` is a valid tree `t` of `f` with `t.BufsOk P`; with `Tree.Valid.rel`, the two are
-equivalent.
+rets` is a valid tree `t` of `f` with `t.BufsOk P`; `rel_iff_tree`: with `Tree.Valid.rel`, the
+two are equivalent.
 -/
 
 namespace LeanVM.Guest.Memory

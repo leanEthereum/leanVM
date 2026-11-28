@@ -16,8 +16,8 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 # `y` in the exponent
 
 With the table's height `τ` (`tau_g = g^τ`), `pack_g = g^(τ - 4)` and `y_g = g^(τ - 3)`; the
-hinted bits of `y = τ - 3`, pinned boolean, give `step_g = g^(y / 8)` and `rem_g = g^(y % 8)`,
-which `assert step_g⁸·rem_g = y_g` ties back to `y`.
+hinted bits of `y = τ - 3`, pinned boolean, give `step_g = g^(y / 16)` and `rem_g = g^(y % 16)`,
+which `assert step_g^16·rem_g = y_g` ties back to `y`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -47,62 +47,68 @@ theorem word_17 : word 17 0 = gen ^ 2 ^ 2 + 1 := by
   rw [word_eOfNat, show (17 : ℕ) = 2 ^ 4 ^^^ 1 from rfl, eOfNat_xor, eOfNat_one, ← word_eOfNat,
     word_two_pow (by decide)]; norm_num
 
-/-- **`y` in the exponent**: `step_g = g^⌊y/8⌋` (value `34`) and
-`rem_g = g^(y % 8)` (value `48`), `y = τ - 3`. -/
+theorem word_257 : word 257 0 = gen ^ 2 ^ 3 + 1 := by
+  rw [word_eOfNat, show (257 : ℕ) = 2 ^ 8 ^^^ 1 from rfl, eOfNat_xor, eOfNat_one, ← word_eOfNat,
+    word_two_pow (by decide)]; norm_num
+
+/-- **`y` in the exponent**: `step_g = g^⌊y/16⌋` (value `29`, from bit `4`) and
+`rem_g = g^(y % 16)` (value `48`, from bits `0 .. 3`), `y = τ - 3`. -/
 theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkBitsT next kret) :
     σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
-      σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧ next := by
+      σ (.n 29) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 48) = gen ^ ((τ - 3) % krStep) ∧ next := by
   simp only [vkBitsT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
   obtain ⟨e17, e18, e19, e20, -, b0, b1, b2, b3, b4, e26, e27, e28, e29, e30, e31, e32, e33, e34,
     e35, e36, e37, e38, e39, e40, e41, e42, e43, e44, e45, e46, e47, e48, e49, e50, e51, e52,
-    e53, e54, heq, hn⟩ := h
+    e53, e54, e55, heq, hn⟩ := h
   have h18 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) := by
     rw [e18, htg, e17, show τ = τ - 4 + 4 by omega, pow_add, mul_assoc, mul_comm (gen ^ 4),
       word_ginv4_mul, mul_one]
     congr 1
   have h20 : σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) := by
     rw [e20, h18, e19, word_gen, ← pow_succ]; congr 1; omega
-  -- the step chain: bits 3 and 4
+  -- the step: bit 4
   set c : ℕ → E := fun k ↦ σ (.n (25 + k)) with hc
-  have hcb : ∀ k < 2, c k * c k = c k := by
+  have hcb : ∀ k < 1, c k * c k = c k := by
     intro k hk
     interval_cases k
-    · exact b3.symm
-    · exact b4.symm
-  have h34 : σ (.n (val% «verify_keccak» "step_g@2")) = ∏ j ∈ Finset.range 2, (1 + c j * (gen ^ 2 ^ j + 1)) := by
+    exact b4.symm
+  have h29 : σ (.n 29) = ∏ j ∈ Finset.range 1, (1 + c j * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, hc]
-    rw [e34, e33, e32, e31, e30, e29, e28, e27, e26]
-    simp only [word_one, Nat.reduceAdd, word_3, word_5]
-  rw [prod_gen_pow_of_bool hcb] at h34
-  set S := bitsVal (fun j ↦ decide (c j = 1)) 2 with hS
-  have hSlt : S < 4 := bitsVal_lt _ 2
-  -- the remainder chain: bits 0, 1, 2
-  set r : ℕ → E := fun k ↦ σ (.n (22 + k)) with hr
-  have hrb : ∀ k < 3, r k * r k = r k := by
+    rw [e29, e28, e27, e26]
+    simp only [word_one, Nat.reduceAdd, word_3]
+  rw [prod_gen_pow_of_bool hcb] at h29
+  set S := bitsVal (fun j ↦ decide (c j = 1)) 1 with hS
+  have hSlt : S < 2 := bitsVal_lt _ 1
+  -- the remainder: bits 0 .. 3
+  set r : ℕ → E := fun k ↦ σ (.n (21 + k)) with hr
+  have hrb : ∀ k < 4, r k * r k = r k := by
     intro k hk
     interval_cases k
     · exact b0.symm
     · exact b1.symm
     · exact b2.symm
-  have h48 : σ (.n (val% «verify_keccak» "rem_g@3")) = ∏ j ∈ Finset.range 3, (1 + r j * (gen ^ 2 ^ j + 1)) := by
+    · exact b3.symm
+  have h48 : σ (.n 48) = ∏ j ∈ Finset.range 4, (1 + r j * (gen ^ 2 ^ j + 1)) := by
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, hr]
-    rw [e48, e47, e46, e45, e44, e43, e42, e41, e40, e39, e38, e37, e36, e35]
-    simp only [word_one, Nat.reduceAdd, word_3, word_5, word_17]
+    rw [e48, e47, e46, e45, e44, e43, e42, e41, e40, e39, e38, e37, e36, e35, e34, e33, e32, e31,
+      e30]
+    simp only [word_one, Nat.reduceAdd, word_3, word_5, word_17, word_257]
   rw [prod_gen_pow_of_bool hrb] at h48
-  set R := bitsVal (fun j ↦ decide (r j = 1)) 3 with hR
-  have hRlt : R < 8 := bitsVal_lt _ 3
+  set R := bitsVal (fun j ↦ decide (r j = 1)) 4 with hR
+  have hRlt : R < 16 := bitsVal_lt _ 4
   -- the check
-  have hchk : gen ^ (8 * S + R) = gen ^ (τ - 3) := by
+  have hchk : gen ^ (16 * S + R) = gen ^ (τ - 3) := by
     have := eq_of_add_eq_zero' heq
-    rw [e52, e51, e50, e49, h34, h48, e54, e53, h18, word_gen, ← pow_succ] at this
-    rw [show 8 * S + R = S + S + (S + S) + (S + S + (S + S)) + R by ring]
+    rw [e53, e52, e51, e50, e49, h29, h48, e55, e54, h18, word_gen, ← pow_succ] at this
+    rw [show 16 * S + R = S + S + (S + S) + (S + S + (S + S)) + (S + S + (S + S) + (S + S + (S + S)))
+      + R by ring]
     simp only [pow_add]
     rw [this]
     congr 1; omega
   have hy := gen_pow_inj (by omega) (by omega) hchk
   refine ⟨h18, h20, ?_, ?_, hn⟩
-  · rw [h34]; congr 1; simp only [krStep]; omega
+  · rw [h29]; congr 1; simp only [krStep]; omega
   · rw [h48]; congr 1; simp only [krStep]; omega
 
 /-! ## Copies, the point, the squeezes -/
@@ -136,7 +142,7 @@ theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ =
   simp [cap5, List.range_succ]
 
 /-- **The six squeezes**: the segment coordinate, then the five lane coordinates. -/
-theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
+theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 12).map σ = cap0)
     (hz : ∀ k < 4, σ (.n ((val% «verify_keccak» "s19.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]") + k)) = 0) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
     (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n (val% «verify_keccak» "nxt[0]@1"))], ⟨(cap5 82).map σ, []⟩) ∧
@@ -187,7 +193,7 @@ theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 13).map σ = cap0)
 theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n (val% «verify_keccak» "tau_g")) = gen ^ τ)
     {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkHeadT next kret) :
     σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4) ∧ σ (.n (val% «verify_keccak» "s5#1")) = gen ^ (τ - 3) ∧
-    σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep) ∧ σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep) ∧
+    σ (.n 29) = gen ^ ((τ - 3) / krStep) ∧ σ (.n 48) = gen ^ ((τ - 3) % krStep) ∧
     (∀ i < 4, LoadHolds rd (σ (.n (val% «verify_keccak» "chi"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i))) ∧
       LoadHolds rd (σ (.n (val% «verify_keccak» "z_vals"))) i (σ (.n ((val% «verify_keccak» "s14.u0.s0#0") + i)))) ∧
     (1 + σ (.n (val% «verify_keccak» "pack_g")) ≠ 0 → C name% «verify_keccak_loop0» [1, σ (.n (val% «verify_keccak» "pack_g")), σ (.n (val% «verify_keccak» "point")),
@@ -216,7 +222,7 @@ theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ 
     · rw [z70, word_zero]
     · rw [z71, word_zero]
     · rw [z72, word_zero]
-  have hcap : (cap5 13).map σ = [σ (.n (val% «verify_keccak» "fs0@1")), σ (.n (val% «verify_keccak» "fs1@1")), σ (.n (val% «verify_keccak» "fs2@1")), σ (.n (val% «verify_keccak» "fs3@1")), σ (.n (val% «verify_keccak» "fs4@1"))] := by
+  have hcap : (cap5 12).map σ = [σ (.n (val% «verify_keccak» "fs0@1")), σ (.n (val% «verify_keccak» "fs1@1")), σ (.n (val% «verify_keccak» "fs2@1")), σ (.n (val% «verify_keccak» "fs3@1")), σ (.n (val% «verify_keccak» "fs4@1"))] := by
     simp only [cap5, List.map_cons, List.map_nil]
     rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega), hcp 4 (by omega)]
   obtain ⟨q1, q5, l86, lr, h⟩ := vkSqueezesT_holds hcap hz h

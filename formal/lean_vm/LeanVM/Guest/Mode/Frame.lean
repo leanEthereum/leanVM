@@ -46,12 +46,13 @@ def Reads (s : St) : Op → Prop
     s.mem.written (s.fp + f) = true
   | .keccak ins _ _ _ _ => ∀ i ∈ ins.toList, s.mem.written (s.fp + i) = true
 
-/-- The reference's part of `OpModed`: a `MUL` holds, and a `DEREF`'s pointer times `g^o` and a
-taken `JUMP`'s frame are powers below `maxCells`. -/
+/-- The reference's part of `OpModed`: a `MUL` holds, a `DEREF`'s pointer times `g^o` and a
+taken `JUMP`'s frame are powers below `maxCells`, and a `KECCAK`'s blocks lie in windows. -/
 def RefOk (M : ℕ → E) (s : St) : Op → Prop
   | .mul a b c => M (s.fp + a) * M (s.fp + b) = M (s.fp + c)
   | .deref a o _ _ => ∃ b < maxCells, (M (s.fp + a)).limb 0 * g ^ o = g ^ b
   | .jump c _ f => M (s.fp + c) ≠ 0 → ∃ k < maxCells, (M (s.fp + f)).limb 0 = g ^ k
+  | .keccak ins out _ _ count => KeccakInWindows s.fp ins out count
   | _ => True
 
 /-- The reads written and the reference's part give `OpModed`, the memory agreeing with `M`. -/
@@ -73,7 +74,7 @@ theorem opModed_of {M : ℕ → E} {s : St} {op : Op} (hag : Agree s.mem M) (h1 
   | set => trivial
   | deref => exact ⟨h1, h2⟩
   | jump => exact ⟨h1.1, h1.2.1, h1.2.2, h2⟩
-  | keccak => exact h1
+  | keccak => exact ⟨h1, h2⟩
 
 /-! ## Monotonicity -/
 

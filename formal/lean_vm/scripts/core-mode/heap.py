@@ -314,7 +314,7 @@ def scope_fns():
     return [k for k, (p, b) in CORE.items() if not calls_or_loops(b)]
 
 
-# ---- Lean output: per pack, the certificates and their checks (`CoreMode/Gen/<pack>/Ok.lean`)
+# ---- Lean output: per pack, the certificates (`CoreMode/Gen/<pack>/Data.lean`) and their checks (`Ok.lean`)
 
 GUEST = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest'))
 HEADER = genfiles.header('core-mode/heap.py --emit')
@@ -364,8 +364,8 @@ def lean_cert(f, pre=None):
 
 
 def emit(out_dir, res, check=False):
-    """Each pack's `Ok.lean` under `out_dir`, a pack with no function left removed (`check`: compared, nothing
-    written; a `Data.lean` an older layout wrote is removed too)."""
+    """Each pack's `Data.lean` and `Ok.lean` under `out_dir`, a pack with no function left removed (`check`: compared,
+    nothing written)."""
     import glob
     packs = collections.defaultdict(list)
     po = pack_of()
@@ -377,12 +377,14 @@ def emit(out_dir, res, check=False):
     files = {}
     for (pack, coremod), ks in sorted(packs.items()):
         d = os.path.join(out_dir, pack)
+        data = HEADER(f'LeanVM.Guest.CoreMode.Gen.«{pack}».Data',
+                      f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more.')
+        data += 'public import LeanVM.Guest.CoreMode.Defs\n\nset_option maxRecDepth 100000\nset_option linter.all false\n'
         ok = HEADER(f'LeanVM.Guest.CoreMode.Gen.«{pack}».Ok',
-                    f'The heap certificates of `{ks[0]}` and {len(ks) - 1} more, and the kernel\'s checks of them.')
-        ok += (f'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.CoreMode.Heap\n'
-               f'public import LeanVM.Guest.CoreMode.Pows.«{pack}»\npublic import LeanVM.Guest.Pack.«{pack}».{coremod}\n'
-               '\nsection\n\nset_option maxRecDepth 100000\nset_option linter.all false\n')
-        data = ''
+                    f'The kernel\'s heap checks of `{ks[0]}` and {len(ks) - 1} more.')
+        ok += (f'public import LeanVM.Guest.CoreMode.Heap\npublic import LeanVM.Guest.CoreMode.Pows.«{pack}»\n'
+               f'public import LeanVM.Guest.Pack.«{pack}».{coremod}\n'
+               f'public import LeanVM.Guest.CoreMode.Gen.«{pack}».Data\n\nset_option Elab.async false\n')
         oks = ''
         for k in ks:
             post = ''
@@ -394,9 +396,9 @@ def emit(out_dir, res, check=False):
                      f'def hcert : CoreMode.HCert where\n'
                      f'{lean_cert(res[k], R[k]["pre"] if k in R else None)}{post}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
             oks += f'theorem Fn.«{k}».heap_ok : CoreMode.heapOk Fn.«{k}».pows (fun _ ↦ .empty) core hcert = true := by decide +kernel\n'
-        ok += (data + '\nend\n\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\n'
-               'namespace LeanVM.Guest\n\npublic section\n\n' + oks + '\nend\n\nend LeanVM.Guest\n')
-        files[os.path.join(d, 'Ok.lean')] = ok
+        ok += '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\npublic section\n\n' + oks + '\nend\n\nend LeanVM.Guest\n'
+        for name, text in (('Data', data), ('Ok', ok)):
+            files[os.path.join(d, name + '.lean')] = text
     have = glob.glob(os.path.join(out_dir, '*', 'Data.lean')) + glob.glob(os.path.join(out_dir, '*', 'Ok.lean'))
     stale = genfiles.sync(files, have, check)
     lines = sum(t.count('\n') for t in files.values())

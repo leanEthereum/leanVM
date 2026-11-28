@@ -1,4 +1,4 @@
-//! zkDSL sources as `.py` files (as in leanVM's `test_data`): the `snark_lib`
+//! zkDSL sources as `.py` files: the `snark_lib`
 //! stub import makes them valid Python for editors/linters, and the compiler
 //! skips it (single-file programs only: importing anything else is an error).
 //!
@@ -77,7 +77,6 @@ fn all_py_programs() {
         let program = Program::from(compile(&ast));
         let (proof, _) = prove(&program, &witness(&src), want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{name}: verify: {e:?}"));
-        println!("{name}: ok");
     }
 }
 

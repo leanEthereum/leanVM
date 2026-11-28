@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
 // The module is the rectangular (f = 64, e = 128) generalization of binius64's
-// DP24 ring switch described in the ring-switching-generalized note.
+// DP24 ring switch (Annex A).
 
 //! Ring-switching reduction for the 64-bit transition: F_2 to K = GF(2^64)
 //! packing, opened over E = GF(2^128) = K\[y\]/(y^2 + x*y + 1) ([`F128`]).
@@ -30,8 +30,8 @@
 //! - **The 64 slices come in bound**: `s_hat_v[i] = sum_y eq(r_suffix, y) *
 //!   bit_i(packed[y])`, the MLE of the i-th bit-slice at the suffix point, is
 //!   supplied by the caller on both sides, which is where it was transmitted
-//!   and checked (the Keccak reduction sends them and checks them against its
-//!   last claim). This module therefore reads nothing off the stream and only has
+//!   and checked (the Keccak reduction or the link sends them and checks them
+//!   against its last claim). This module therefore reads nothing off the stream and only has
 //!   to bind the slices to the commitment.
 //!
 //! ## Protocol (prover)
@@ -64,7 +64,6 @@
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::xor_into8;
 use primitives::field::{F64, F128, mul4};
-use primitives::transcript::ProverState;
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
@@ -74,9 +73,11 @@ use primitives::multilinear::eq_table_serial;
 /// The batching map's challenges: `f_0..f_7`, then `g_0..g_7`.
 pub(crate) const MAP_CHALLENGES: usize = 16;
 
-/// The map misses a nonzero error with probability at most this many over `|E|`, one per stage. The WHIR list-size
-/// soundness accounting adds it to the batching numerator.
-pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 2;
+/// The ring switch's error over `|E|` for one candidate of the opening's level-0 list: `2` for the map, one per stage,
+/// and `1` for `rho`, which merges the two ring claims (the Keccak reduction's and the link's) by a polynomial of degree
+/// one. The WHIR soundness accounting adds it to the batching numerator, an upper bound: per candidate the error of the
+/// message is the larger of the two, as whether a point claim is false is fixed before it.
+pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 3;
 
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w = x^i·y^j` (`w = 64j + i`)
 /// is the `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat` produces), and
@@ -113,16 +114,18 @@ pub(crate) const RING_SWITCH_ERROR_NUMERATOR: usize = 2;
 /// Grouped by `p`, the discrepancy is `sum_p f_p·M_p` with
 /// `M_p = sum_b g_b^(2^(8p))·V_{8p+b} = (sum_b g_b·V_{8p+b}^(2^(-8p)))^(2^(8p))`. The Frobenius is a bijection, so for
 /// a `p` with some `V_{8p+b} != 0` the inner form is a nonzero linear form in the `g_b`, zero with probability
-/// `1 / |E|`, and otherwise the outer one is nonzero in the `f_p`, zero with probability `1 / |E|`:
-/// [`RING_SWITCH_ERROR_NUMERATOR`] in all.
+/// `1 / |E|`, and otherwise the outer one is nonzero in the `f_p`, zero with probability `1 / |E|`: `2 / |E|` in all.
 ///
 /// The 64 terms are also the floor: the weights must separate any nonzero
 /// error on the 128 transposed `K`-columns, which is `|S|` `E`-equations, i.e.
 /// `2·|S|` `K`-equations, in `128` `K`-unknowns, and with `2·|S| < 128` a
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
-pub(crate) fn build_coordinate_weights(challenges: &[F128; MAP_CHALLENGES]) -> [F128; DEGREE_E] {
-    std::array::from_fn(|w| apply_map(coordinate_basis(w), challenges))
+///
+/// With `scale`, the weights are those of `v -> Phi(scale v)`, for a claim that joins a merged ring switch as `scale`
+/// times itself.
+pub(crate) fn build_coordinate_weights(challenges: &[F128; MAP_CHALLENGES], scale: F128) -> [F128; DEGREE_E] {
+    std::array::from_fn(|w| apply_map(scale * coordinate_basis(w), challenges))
 }
 
 /// `Phi(value)` of [`build_coordinate_weights`], stage by stage.
@@ -142,12 +145,6 @@ fn apply_map(value: F128, challenges: &[F128; MAP_CHALLENGES]) -> F128 {
         }
     }
     phi
-}
-
-/// Sample the map's challenges, `f_0..f_7` then `g_0..g_7`, after every ring-switch message has
-/// been bound.
-pub(crate) fn sample_map_challenges(ch: &mut ProverState) -> [F128; MAP_CHALLENGES] {
-    std::array::from_fn(|_| ch.sample())
 }
 
 // ---------------------------------------------------------------------------
@@ -211,16 +208,6 @@ pub fn fold_ext_elems_naive(suffix_tensor: &[F128], coordinate_weights: &[F128; 
     })
 }
 
-/// Deferred, lambda-baked ring-switch output used by the stacked opener.
-///
-/// Keeping the claim's point and its map avoids materializing one full
-/// `rs_eq_ind` vector per claim. The map already contains the claim's batching
-/// scalar, so combining several claims needs only additions.
-pub(crate) struct DeferredRingSwitchOutput {
-    pub(crate) batched_sumcheck_claim: F128,
-    pub(crate) weight: RingWeight,
-}
-
 /// `Phi(eq(point, y))` over a claim's suffix domain, for an F_2-linear `Phi` given by its
 /// value on every coordinate basis element of `E`.
 #[derive(Clone)]
@@ -258,22 +245,23 @@ impl RingWeight {
         }
     }
 
-    pub(crate) fn point(&self) -> &[F128] {
-        &self.point
-    }
-
     /// `Phi(value)`.
     pub(crate) fn apply(&self, value: F128) -> F128 {
-        let mut acc = F128::ZERO;
-        for (limb, word) in value.to_limbs().into_iter().enumerate() {
-            let mut bits = word;
-            while bits != 0 {
-                acc += self.weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];
-                bits &= bits - 1;
-            }
-        }
-        acc
+        apply(&self.weights, value)
     }
+}
+
+/// `Phi(value)` for the map `weights` ([`build_coordinate_weights`]): the weights of `value`'s bits.
+pub(crate) fn apply(weights: &[F128; DEGREE_E], value: F128) -> F128 {
+    let mut acc = F128::ZERO;
+    for (limb, word) in value.to_limbs().into_iter().enumerate() {
+        let mut bits = word;
+        while bits != 0 {
+            acc += weights[limb * PACKING_WIDTH + bits.trailing_zeros() as usize];
+            bits &= bits - 1;
+        }
+    }
+    acc
 }
 
 impl RingFold {
@@ -322,28 +310,9 @@ impl RingFold {
     }
 }
 
-/// Finish a ring-switch claim without materializing its dense weight vector.
-/// The batching scalar is baked into both the target and the map.
-pub(crate) fn prove_finish_deferred(
-    state: RingSwitchProveState,
-    coordinate_weights: &[F128; DEGREE_E],
-    lambda: F128,
-) -> DeferredRingSwitchOutput {
-    let s_hat_u = transpose_s_hat(&state.s_hat_v);
-    let sumcheck_claim = inner_product_base_ext(&s_hat_u, coordinate_weights);
-    let scaled_weights = coordinate_weights.map(|x| lambda * x);
-    DeferredRingSwitchOutput {
-        batched_sumcheck_claim: lambda * sumcheck_claim,
-        weight: RingWeight::new(scaled_weights, state.point),
-    }
-}
-
-/// The dense weight of several deferred claims, accumulated into `out`: the reference for tests.
-#[cfg(test)]
-pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], out: &mut [F128]) {
-    for claim in outputs {
-        claim.weight.fold().add_chunk(0, out);
-    }
+/// The ring claim's target under the map `weights`: `sum_w weights[w] * t_w` over the transposed slices `s_hat_v`.
+pub(crate) fn sumcheck_claim(s_hat_v: &[F128; PACKING_WIDTH], weights: &[F128; DEGREE_E]) -> F128 {
+    inner_product_base_ext(&transpose_s_hat(s_hat_v), weights)
 }
 
 /// Split point for the factored eq build: low half sized ~n/2 (min 4, the
@@ -365,50 +334,19 @@ fn build_eq_split_ext(point: &[F128]) -> (Vec<F128>, Vec<F128>) {
 // Prover of the reduction
 // ---------------------------------------------------------------------------
 
-/// Prover-side scratch carried from [`prove_prepare`] into finalization.
-///
-/// The two phases exist because one map is shared by every claim, and it can
-/// only be sampled once all of them have been sent. So each claim's
-/// map-independent work (its slice-MLE vector and its point) has to survive
-/// that barrier.
-#[derive(Clone)]
-pub struct RingSwitchProveState {
-    s_hat_v: [F128; PACKING_WIDTH],
-    point: Vec<F128>,
-}
-
-/// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
-/// `suffix_point`, and return the scratch for finalization. The caller samples the
-/// possibly shared map afterwards.
-///
-/// The slices are NOT sent here: the caller has already bound them (the Keccak
-/// reduction sends them itself), which is what lets this
-/// phase touch no transcript at all. `precomputed_s_hat_v` is `None` only for a
-/// caller that wants them folded out of the witness instead.
-pub fn prove_prepare(
-    packed_witness: &[F64],
-    suffix_point: &[F128],
-    precomputed_s_hat_v: Option<&[F128]>,
-) -> RingSwitchProveState {
+/// `s_hat_v`, the 64 bit-slices of `packed_witness` at `suffix_point`, folded out of the witness for a claim whose
+/// caller does not hold them.
+pub(crate) fn prove_prepare(packed_witness: &[F64], suffix_point: &[F128]) -> [F128; PACKING_WIDTH] {
     assert_eq!(
         packed_witness.len(),
         1usize << suffix_point.len(),
         "packed witness must have 2^|suffix_point| words"
     );
-    let s_hat_v = match precomputed_s_hat_v {
-        Some(v) => v.try_into().expect("one slice per packing bit"),
-        None => {
-            let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
-            let mask = eq_lo.len() - 1;
-            let shift = eq_lo.len().trailing_zeros();
-            let full: Vec<F128> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
-            fold_1b_rows(packed_witness, &full)
-        }
-    };
-    RingSwitchProveState {
-        s_hat_v,
-        point: suffix_point.to_vec(),
-    }
+    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
+    let mask = eq_lo.len() - 1;
+    let shift = eq_lo.len().trailing_zeros();
+    let full: Vec<F128> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
+    fold_1b_rows(packed_witness, &full)
 }
 
 #[cfg(test)]
@@ -423,44 +361,15 @@ mod tests {
         bits.chunks(PACKING_WIDTH).map(|c| F64(word(c))).collect()
     }
 
+    /// A ring weight's fold writes `Phi(eq(point, y))`, the map applied to the dense `eq` table.
     #[test]
-    fn deferred_batch_matches_materialized_weights() {
+    fn ring_fold_writes_phi_of_eq() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
         let point = rng.ext_vec(10);
-        let coordinate_weights = std::array::from_fn(|_| rng.ext());
-        let lambdas = [rng.ext(), rng.ext()];
-        let states = (0..2)
-            .map(|_| RingSwitchProveState {
-                s_hat_v: std::array::from_fn(|_| rng.ext()),
-                point: point.clone(),
-            })
-            .collect::<Vec<_>>();
-
-        // Reference: one dense weight vector per claim, combined afterwards.
-        let dense_basis = fold_ext_elems_naive(&eq_table_serial(&point), &coordinate_weights);
-        let expected_target: F128 = states
-            .iter()
-            .zip(lambdas)
-            .map(|(state, lambda)| {
-                lambda * inner_product_base_ext(&transpose_s_hat(&state.s_hat_v), &coordinate_weights)
-            })
-            .sum();
-        let expected_basis = dense_basis
-            .iter()
-            .map(|&w| (lambdas[0] + lambdas[1]) * w)
-            .collect::<Vec<_>>();
-
-        let deferred = states
-            .into_iter()
-            .zip(lambdas)
-            .map(|(state, lambda)| prove_finish_deferred(state, &coordinate_weights, lambda))
-            .collect::<Vec<_>>();
-        let deferred_target = deferred.iter().map(|out| out.batched_sumcheck_claim).sum::<F128>();
-        let mut deferred_basis = vec![F128::ZERO; expected_basis.len()];
-        combine_deferred_chunk(&deferred, &mut deferred_basis);
-
-        assert_eq!(deferred_target, expected_target);
-        assert_eq!(deferred_basis, expected_basis);
+        let weights = std::array::from_fn(|_| rng.ext());
+        let mut folded = vec![F128::ZERO; 1 << point.len()];
+        RingWeight::new(weights, point.clone()).fold().add_chunk(0, &mut folded);
+        assert_eq!(folded, fold_ext_elems_naive(&eq_table_serial(&point), &weights));
     }
 
     /// The contract between the native opener and every verifier that batches
@@ -477,7 +386,7 @@ mod tests {
 
             // Column side: sum_w weights[w] * t_w over the transposed K columns.
             let columns = transpose_s_hat(&s_hat_v);
-            let lhs = inner_product_base_ext(&columns, &build_coordinate_weights(&challenges));
+            let lhs = inner_product_base_ext(&columns, &build_coordinate_weights(&challenges, F128::ONE));
 
             // Row side: sum_j x^j * Phi(y_j), the guest's loop.
             let x = F128::new(2, 0);
@@ -586,7 +495,7 @@ mod tests {
             "prefix x suffix split must factor the MLE"
         );
         assert_eq!(
-            prove_prepare(&packed, suffix_point, None).s_hat_v,
+            prove_prepare(&packed, suffix_point),
             s_ref,
             "the witness fold must reproduce the reference slices"
         );

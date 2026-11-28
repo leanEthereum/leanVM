@@ -42,7 +42,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `exponent_tables` (lean_ethereum.py) -/
 
 /-- **`exponent_tables()`**: it returns a pointer holding the exponent table (`ExpTables`) and its
-bit windows (`ExpWinTab`, read as `WinTabs` at `q·g^236`, `winTabs_of_expWinTab`). -/
+bit windows (`ExpWinTab`, read as `WinTabs` at `q·g^178`, `winTabs_of_expWinTab`). -/
 def MeaningExponentTables (rd : Reader) : List E → List E → Prop
   | [], [q] => ExpTables rd q ∧ ExpWinTab rd q
   | _, _ => False
@@ -100,8 +100,7 @@ def log2_ceil_in_the_exponent_SpecP (P : Program) (name : String) (fl : ℕ) : P
 
 /-- The deployed specializations: floors `0` and `16`, 34 bits. -/
 def log2_SpecP (P : Program) : Prop :=
-  log2_ceil_in_the_exponent_SpecP P "log2_ceil_in_the_exponent__L0_L34" 0 ∧
-    log2_ceil_in_the_exponent_SpecP P "log2_ceil_in_the_exponent__L16_L34" 16
+  log2_ceil_in_the_exponent_SpecP P "log2_ceil_in_the_exponent__L16_L34" 16
 
 /-! ## `grind_check` (TRIAGE #21) -/
 

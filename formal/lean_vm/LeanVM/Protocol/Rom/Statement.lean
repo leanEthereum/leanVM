@@ -1,35 +1,32 @@
 /-
   LeanVM.Protocol.Rom.Statement
 
-  Knowledge soundness and completeness of the leanVM verifier in the two-oracle random-oracle
-  model: a step of the proofs of the statements of `Statement/LeanVm.lean`, not a statement of the
+  Knowledge soundness of the leanVM verifier in the two-oracle random-oracle model: a step of the
+  proof of `LeanVM.KnowledgeSoundness` (`Statement/LeanVm.lean`), not a statement of the
   specification.
 -/
 
 module
 
 public import Statement.LeanVm
-public import LeanVM.Protocol.Errors
-import LeanVM.Facts.Verifier
-import LeanVM.Protocol.Extraction.Defs
-import Statement.Fast.Keccak
-import FastFields.QuadExt
-import FastFields.FieldWords
+public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.Extraction.Defs
+public import LeanVM.Protocol.Relation.ExtractorDef
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation
-public import LeanVM.Protocol.WithHash
 
 /-!
-# The two-oracle random-oracle model, a step of the proofs
+# The two-oracle random-oracle model, a step of the proof
 
-The statements are in the random-permutation model (`Statement/LeanVm.lean`: `KnowledgeSoundness`,
-`Completeness`). Their proofs (`LeanVM/Protocol/LeanVMRpm.lean`) go through the model defined here,
-in which Keccak-256 is a lazily sampled random function from byte strings to digests and
-Keccak-f[1600] an independent lazily sampled random function from states to states (the calls
-`HashSpec` of `Statement/LeanVm.lean`, answered by `HashSpec.randomOracle`): `common`'s
-sponge indifferentiability moves an event of the random-permutation experiment to this model at
-a cost of `q² / 2^508` for `q` permutation calls (`Common.keccak256_transfer2`).
+The end statement is in the random-permutation model (`Statement/LeanVm.lean`,
+`KnowledgeSoundness`). Its proof goes through the model defined here, in which Keccak-256 is a
+lazily sampled random function from byte strings to digests and Keccak-f[1600] an independent
+lazily sampled random function from states to states (the calls `KeccakCalls`, answered by
+`KeccakCalls.randomOracle`): `common`'s sponge indifferentiability moves an event of the
+random-permutation experiment to this model at a cost of `q² / 2^508` for `q` permutation calls
+(`Common.keccak256_transfer2`; `LeanVM/Protocol/LeanVMRpmAS.lean`).
 
 An adversary here is any computation with access to both oracles that outputs a statement and a
 proof (`Adversary`). The experiment runs the adversary, then the verifier on its output, against
@@ -37,18 +34,20 @@ one oracle, and records the verdict, the oracle's answers at the end, and the or
 the adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
 * `Breaks extract`: the verifier accepts while the extractor `extract` (from the adversary's cached
-  answers and the proof) does not return a valid execution of the program on the public input;
-  the agreement-set extractor's bound on it is `LeanVM.knowledgeSoundnessRomAS`
-  (`LeanVM/Protocol/LeanVMSoundAS.lean`).
-* `CompletenessRom`: there is an honest prover which, given a valid execution whose committed size
-  is at most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces
-  per proof of work, makes the verifier reject with probability at most `completenessError fuel`.
-  Proved: `LeanVM.completenessRom_holds` (`LeanVM/Protocol/LeanVM.lean`).
+  answers and the proof) does not return a valid execution of the program on the public input.
+* `KnowledgeSoundnessRom extract ε`: an adversary of at most `Q` queries breaks it with
+  probability at most `ε Q`.
+* `extractorAS`: the agreement-set extractor (`Relation.extractAS`) on the adversary's cached
+  answers, and `soundnessErrorAS`, its error: the random-oracle theorem's
+  `(Q + V) · (2^-125 + 5 (Q + V) / 2^256)` at `V = leanVmQueryBound`, a fresh hit of the final
+  query's proof of work (`2^-127`, once), and a fresh hash answer of the verifier that is a root
+  the replay reads (`romRootCap · 2^-256` per verifier query). `knowledgeSoundnessRomAS`, the
+  statement `KnowledgeSoundnessRom extractorAS soundnessErrorAS`, is the random-oracle step.
 -/
 
 namespace LeanVM
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open OracleComp OracleSpec
 open scoped ENNReal
@@ -79,9 +78,6 @@ abbrev Outcome.proof (z : Outcome) : Proof := z.1.1.2
 /-- The verifier accepted. -/
 abbrev Outcome.accepted (z : Outcome) : Prop := z.1.2 = true
 
-/-- The verifier rejected. -/
-abbrev Outcome.rejected (z : Outcome) : Prop := z.1.2 = false
-
 /-- The oracle's answers to the adversary's queries: the cache when the adversary returned,
 before the verifier ran. -/
 abbrev Outcome.adversaryCache (z : Outcome) : KeccakCalls.QueryCache := z.2.2
@@ -91,8 +87,8 @@ statement and proof, continuing from the cache the adversary left: one lazily sa
 oracle. -/
 noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
   let (z, adversaryCache) ← (simulateQ KeccakCalls.randomOracle A).run ∅
-  let (verdict, cache) ←
-    (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
+  let (verdict, cache) ← (simulateQ KeccakCalls.randomOracle
+    (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
   return ((z, verdict), cache, adversaryCache)
 
 /-! ## Knowledge soundness -/
@@ -109,17 +105,34 @@ def Breaks (extract : Extractor) (z : Outcome) : Prop :=
   z.accepted ∧ ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
     ValidExecution z.program z.input t
 
-/-! ## Completeness -/
+/-- **Knowledge soundness in the two-oracle random-oracle model**, for the extractor `extract`
+with the error `ε`: an adversary of at most `Q` oracle queries breaks soundness with probability
+at most `ε Q`. -/
+def KnowledgeSoundnessRom (extract : Extractor) (ε : ℕ → ℝ≥0∞) : Prop :=
+  ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
+    Pr{let z ← experiment A}[Breaks extract z] ≤ ε Q
 
-/-- **Completeness in the two-oracle random-oracle model.** The experiment takes a proof: no
-proof (`none`) enters it as the empty proof, which the verifier rejects. -/
-def CompletenessRom : Prop :=
-  ∃ prover : HonestProverWithHash, ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ fuel : ℕ),
-    ValidExecution prog input t →
-    t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
-    Pr{let z ← experiment
-        ((fun proof ↦ ((prog, input), proof.getD ⟨[], []⟩)) <$> prover prog input t ρ fuel)}[
-      z.rejected] ≤ completenessError fuel
+/-! ## The agreement-set extractor and its error -/
+
+/-- **The agreement-set extractor of the random-oracle model** (`Relation.extractAS`), on the
+adversary's cached answers: the hash answers, their inputs enumerated (`supportKeys`), and the
+permutation answers. -/
+noncomputable def extractorAS : Extractor := fun prog input answers π ↦
+  Relation.extractAS prog input (fun x ↦ answers (.inl x))
+    (Extraction.supportKeys fun x ↦ answers (.inl x)) (fun t ↦ answers (.inr t)) π
+
+/-- The roots the extractor's replay may read, at most: one per two quarters of the verifier
+program's cost (`leanVmCost`), a commitment costing more. -/
+def romRootCap : ℕ := leanVmCost / 2
+
+/-- **The knowledge-soundness error for the agreement-set extractor**: the random-oracle theorem's
+at `leanVmQueryBound` verifier queries, a fresh hit of the final proof of work (`2^-127`, once),
+and a fresh hash answer of the verifier that is a root the replay reads (`romRootCap · 2^-256` per
+verifier query). -/
+noncomputable def soundnessErrorAS (Q : ℕ) : ℝ≥0∞ :=
+  ((Q + leanVmQueryBound : ℕ) : ℝ≥0∞) *
+      ((2 : ℝ≥0∞)⁻¹ ^ 125 + ((5 * (Q + leanVmQueryBound) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+    (2 : ℝ≥0∞)⁻¹ ^ 127 + (leanVmQueryBound : ℝ≥0∞) * (romRootCap * (2 ^ 256 : ℝ≥0∞)⁻¹)
 
 end
 end LeanVM

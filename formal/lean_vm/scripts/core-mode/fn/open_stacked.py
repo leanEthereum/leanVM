@@ -1,13 +1,7 @@
-"""`open_stacked`'s rules: its arms, by stack log (`scripts/count`)."""
+"""`open_stacked`'s rules: its rate values' exponent bounds (`level_rate`'s, matched per level) and its table read at
+its rate selector."""
 import re
 
-
-def count_arms(g):
-    """The opening arms `open_stacked__L{m}`, `m` from `0` (`gen.G.os_names`)."""
-    ns = [n for n in g.by if re.fullmatch(r'open_stacked__L\d+', n)]
-    out = ['open_stacked__L%d' % m for m in range(len(ns))]
-    assert sorted(out) == sorted(ns), ns
-    return out
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
@@ -115,17 +109,6 @@ def fact(EM, base):
     return f
 
 
-# ---- its heap certificate split at the rate selector (`CoreMode.heapOkC`, `HCert.arms`): each rate's arm checked with
-# its own `level_rate` constants and its own `level_positions` arm's guarantees, which `level_residual` reads
-
-def split(k):
-    """`(x, n)`: the rate selector (its first top-level `match`'s) and its arms."""
-    if not _os(k):
-        return None
-    s = _sels(k)
-    return s[0] if s else None
-
-
 _SIGS = {}
 
 
@@ -138,3 +121,34 @@ def res_filter(k, r):
         import route
         _SIGS.update(route.sigs())
     return callcres.res_ok(k, [r], _SIGS)
+
+
+# ---- its certificate split at the rate selector (`CoreMode.heapOkC`, `HCert.arms`): each rate's arm checked with its
+# own `level_rate` constants, every later level's rate `match` on the same selector taken at that arm (`cond`), so
+# `level_residual` reads the positions its arm's `level_positions` wrote
+
+def split(k):
+    """`(x, n)`: the rate selector (its first top-level `match`'s) and its arms."""
+    if not _os(k):
+        return None
+    s = _sels(k)
+    return s[0] if s else None
+
+
+# ---- its contracts (`sigc.py`): the proof stream's cells it reads, `cursor[g^k]`, `k < N` (its shared scalars, one
+# count a stacked log-size, whatever the rate), and the tables' runs its windows and grinds read; it writes its returned
+# point and `1 + point` whole, `SIZE_BITS + QKECCAK_SLOT_LOG` cells each (returns `1`, `2`: `check_stack_terminal`'s)
+from sigseed import sig as _sig, cell as _cell, num as _num, run as _run
+from fnrules import guest_const as _gc
+
+STREAM = [103, 109, 119, 137, 132, 138, 148, 166, 161, 167, 177, 195, 190, 196, 206]
+_PT = _gc('SIZE_BITS') + _gc('QKECCAK_SLOT_LOG')
+
+
+def contract(m):
+    return _sig(range(13), None, [13, 14, 15, 16, 17, 18], pre=[_cell(k, [(11, 1)]) for k in range(STREAM[m])],
+                preR=[_run(_cell(0, [(12, 1)]), _num(0), _num(n), 1, 0) for n in (2, 64, 128, 2048)],
+                postR=[_run(_cell(0, [(r, 1)]), _num(0), _num(_PT), 1, 0) for r in (14, 15)])
+
+
+CONTRACTS = {'open_stacked__L%d' % m: contract(m) for m in range(len(STREAM))}

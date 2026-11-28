@@ -1,25 +1,25 @@
 /-
   LeanVM.Guest.Memory.GuestExtra
 
-  The deployed guest's hint-only cells (`Bridge.extraOf`) are fresh, and each names one value:
-  `ExtraFresh` and the value premise of `extra_read`, from a kernel check over the functions'
-  data.
+  The deployed guest's hint-only cells (`exOf`, the core route's alignment data) are fresh, and each
+  names one value: `ExtraFresh` and the value premise of `extra_read`, from a check over the
+  functions' data (`ExtraOk`, which the route decides by the kernel on its data).
 -/
 
 module
 
 public import LeanVM.Guest.Memory.DischargeE
-public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.B2C.KFacts
 
 /-!
 # The guest's hint-only cells
 
-`refExtra f` is function `f`'s hint-only cells, its alignment's (`Bridge.extraOf`). An instance's
+`refExtra exOf f` is function `f`'s hint-only cells, `exOf` by its compiled index (the core
+route's alignment data, `Bridge.extraOf` at tag `formal-bus-archive`). An instance's
 frame cells (`B2C.C`) are its temporaries' and named values' certificate cells, its frame runs'
-cells, its fixed cells, call sites' and table jumps' cells (`Bridge.plumbCells`), its chained
-`match`es' targets and, in `main`, the jump table (`cells_static`). `extraOk j`, checked by the
-kernel for every function (`extraOk_all`): a function with hint-only cells is not `main`, has no
+cells, its fixed cells, call sites' and table jumps' cells (`plumbCellsOf`), its chained
+`match`es' targets and, in `main`, the jump table (`cells_static`). `ExtraOk exOf`, for every
+function: a function with hint-only cells is not `main`, has no
 frame run, its cells are distinct, past the header, in the frame, no certificate cell and none of
 `plumbAll`, and each value its body names at such an index is the one of that index. So the cells
 are fresh (`extraFresh_guest`) and name one value (`extraUses_guest`).
@@ -31,8 +31,15 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 @[expose] public section
 
+variable {al : String → Bool}
+
 /-- **The hint-only cells of each function**, its alignment's. -/
-noncomputable def refExtra (f : String) : List (ℕ × ℕ) := Bridge.extraOf ((idxOf f).getD 0)
+noncomputable def refExtra (exOf : ℕ → List (ℕ × ℕ)) (f : String) : List (ℕ × ℕ) := exOf ((idxOf f).getD 0)
+
+/-- A frame's plumbing cells: its fixed cells, its call sites' and table jumps' cells
+(`Bridge.plumbCells` at tag `formal-bus-archive`). -/
+def plumbCellsOf (p : B2C.Plumb) : List ℕ :=
+  p.stat.map (·.1) ++ p.sites.flatMap (fun s ↦ [s.q, s.tgt]) ++ p.arms.map (·.2.1)
 
 /-- An atom that is no frame run. -/
 def noRun : Core.Atom → Bool
@@ -41,7 +48,7 @@ def noRun : Core.Atom → Bool
 
 /-- The cells a frame of function `j` holds beyond its values': its plumbing and its chained
 `match`es' targets. -/
-noncomputable def plumbAll (j : ℕ) : List ℕ := Bridge.plumbCells (plumbOf j) ++ (plumbOf j).chains.flatMap (·.2.2.1)
+noncomputable def plumbAll (j : ℕ) : List ℕ := plumbCellsOf (plumbOf j) ++ (plumbOf j).chains.flatMap (·.2.2.1)
 
 /-- Hint-only cells `ex` of function `j` are fresh and name one value each: none, or `j` is not
 `main`, has no frame run among `atoms`, its cells are distinct, past the header, in the frame of
@@ -54,14 +61,13 @@ def extraOkB (ex : List (ℕ × ℕ)) (j : ℕ) (locs plumb : List ℕ) (n : ℕ
     uses.all fun v ↦ (ex.lookup v.idx).isNone || v == ⟨[], 0, v.idx⟩)
 
 /-- Function `j`'s hint-only cells are fresh and name one value each. -/
-noncomputable def extraOk (j : ℕ) : Bool :=
-  extraOkB (Bridge.extraOf j) j (certOf j).locs (plumbAll j) (fsN j) (lAtoms (coreOf j).body)
+noncomputable def extraOk (exOf : ℕ → List (ℕ × ℕ)) (j : ℕ) : Bool :=
+  extraOkB (exOf j) j (certOf j).locs (plumbAll j) (fsN j) (lAtoms (coreOf j).body)
     (Stmt.usesList (coreOf j).body)
 
-/-- **Every function's hint-only cells are fresh.** -/
-theorem extraOk_all : ∀ j < nFns, extraOk j = true := by decide +kernel
-
-theorem extraOf_zero : Bridge.extraOf 0 = [] := by decide +kernel
+/-- **Every function's hint-only cells are fresh**, `__jump_tables` having none: what the core
+route decides by the kernel of its data. -/
+def ExtraOk (exOf : ℕ → List (ℕ × ℕ)) : Prop := exOf 0 = [] ∧ ∀ j < nFns, extraOk exOf j = true
 
 /-- What `extraOkB` says of a function with hint-only cells. -/
 structure ExtraSpec (ex : List (ℕ × ℕ)) (j : ℕ) (locs plumb : List ℕ) (n : ℕ) (atoms : List Core.Atom)
@@ -153,14 +159,15 @@ theorem cells_static {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids 
   · simp [hj1] at hq
 
 /-- **The deployed guest's hint-only cells are fresh.** -/
-theorem extraFresh_guest (hdr : E × E) (T : Tree) : ExtraFresh coreProgram fs cert H C hdr T refExtra where
+theorem extraFresh_guest {exOf : ℕ → List (ℕ × ℕ)} (hx : ExtraOk exOf) (hdr : E × E) (T : Tree) :
+    ExtraFresh coreProgram fs al cert H C hdr T (refExtra exOf) where
   cell I _ f σ bufs kids hIt p hp := by
     cases hj : idxOf f with
-    | none => simp [refExtra, hj, extraOf_zero] at hp
+    | none => simp [refExtra, hj, hx.1] at hp
     | some j =>
-      have hp' : p ∈ Bridge.extraOf j := by simpa [refExtra, hj] using hp
+      have hp' : p ∈ exOf j := by simpa [refExtra, hj] using hp
       obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -, hlt⟩ := fn_of_idx hj
-      have S := extraOkB_spec (extraOk_all _ hlt) (List.ne_nil_of_mem hp')
+      have S := extraOkB_spec (hx.2 _ hlt) (List.ne_nil_of_mem hp')
       obtain ⟨h2, hn, hloc, hpl⟩ := S.cell p hp'
       refine ⟨h2, by rw [hfs]; exact hn, fun q hq he ↦ ?_, fun t _ he ↦ ?_⟩
       · rcases cells_static hIt hj S.main S.run hq with h | h
@@ -170,12 +177,12 @@ theorem extraFresh_guest (hdr : E × E) (T : Tree) : ExtraFresh coreProgram fs c
         exact hloc (he ▸ getD_mem (he ▸ h2))
   inj f p hp p' hp' he := by
     cases hj : idxOf f with
-    | none => simp [refExtra, hj, extraOf_zero] at hp
+    | none => simp [refExtra, hj, hx.1] at hp
     | some j =>
-      have hpj : p ∈ Bridge.extraOf j := by simpa [refExtra, hj] using hp
-      have hpj' : p' ∈ Bridge.extraOf j := by simpa [refExtra, hj] using hp'
+      have hpj : p ∈ exOf j := by simpa [refExtra, hj] using hp
+      have hpj' : p' ∈ exOf j := by simpa [refExtra, hj] using hp'
       obtain ⟨-, -, -, -, -, -, -, -, -, hlt⟩ := fn_of_idx hj
-      have S := extraOkB_spec (extraOk_all _ hlt) (List.ne_nil_of_mem hpj)
+      have S := extraOkB_spec (hx.2 _ hlt) (List.ne_nil_of_mem hpj)
       exact List.inj_on_of_nodup_map S.nodup hpj hpj' he
 
 /-- A value an instance's path names is one of its function's body. -/
@@ -201,14 +208,14 @@ theorem uses_events {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
     · cases he
 
 /-- **Each value a path names at a hint-only index is the one of that index.** -/
-theorem extraUses_guest : ∀ f σ bufs kids, ∀ v ∈ ((Tree.node f σ bufs kids).events coreProgram).flatMap Ev.uses,
-    ∀ c, (refExtra f).lookup v.idx = some c → v = ⟨[], 0, v.idx⟩ := by
+theorem extraUses_guest {exOf : ℕ → List (ℕ × ℕ)} (hx : ExtraOk exOf) : ∀ f σ bufs kids, ∀ v ∈ ((Tree.node f σ bufs kids).events coreProgram).flatMap Ev.uses,
+    ∀ c, (refExtra exOf f).lookup v.idx = some c → v = ⟨[], 0, v.idx⟩ := by
   intro f σ bufs kids v hv c hc
   obtain ⟨j, hj, hu⟩ := uses_events hv
-  have hc' : (Bridge.extraOf j).lookup v.idx = some c := by simpa [refExtra, hj] using hc
+  have hc' : (exOf j).lookup v.idx = some c := by simpa [refExtra, hj] using hc
   obtain ⟨-, -, -, -, -, -, -, -, -, hlt⟩ := fn_of_idx hj
-  have hne : Bridge.extraOf j ≠ [] := fun h ↦ by rw [h] at hc'; cases hc'
-  exact (extraOkB_spec (extraOk_all _ hlt) hne).uses v hu c hc'
+  have hne : exOf j ≠ [] := fun h ↦ by rw [h] at hc'; cases hc'
+  exact (extraOkB_spec (hx.2 _ hlt) hne).uses v hu c hc'
 
 end
 

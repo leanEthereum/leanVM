@@ -90,6 +90,8 @@ theorem run_eq_withHash {α : Type} (P : VerifierProgram α) : ∀ s : VerifierP
   | fail => intro s; rfl
   | read k ih => intro s; simp only [run, runWithHash, ih]; rfl
   | sample k ih => intro s; simp only [run, runWithHash, ih]
+  | readPacked n k ih => intro s; simp only [run, runWithHash, ih]
+  | samplePacked n k ih => intro s; simp only [run, runWithHash, ih]
   | grind bits k ih => intro s; simp only [run, runWithHash, ih]; rfl
   | commit height width k ih => intro s; simp only [run, runWithHash, ih]; rfl
   | query i ps k ih => intro s; simp only [run, runWithHash, ih, openPhase_eq_withHash]; rfl
@@ -129,8 +131,7 @@ theorem verifyWith_eq_withHash (bytecode : List K) (publicInput : Digest) (π : 
   simp only [verifyWith, verifyWithHash, seedWith_eq_withHash, runProof_eq_withHash]
 
 theorem verifyDeferredWith_eq_withHash (bytecode : List K) (iv publicInput : Digest)
-    (c : BytecodeClaim)
-    (π : Proof) :
+    (c : FreshClaim) (π : Proof) :
     verifyDeferredWith F bytecode iv publicInput c π =
       verifyDeferredWithHash (keccak256With F) F bytecode iv publicInput c π := by
   simp only [verifyDeferredWith, verifyDeferredWithHash, runProof_eq_withHash]
@@ -138,7 +139,7 @@ theorem verifyDeferredWith_eq_withHash (bytecode : List K) (iv publicInput : Dig
 end Hash
 
 /-- The deployed deferring verifier is the form with Keccak-256 and Keccak-f[1600]. -/
-theorem verifyDeferred_eq_withHash (bytecode : List K) (iv publicInput : Digest) (c : BytecodeClaim)
+theorem verifyDeferred_eq_withHash (bytecode : List K) (iv publicInput : Digest) (c : FreshClaim)
     (π : Proof) :
     verifyDeferred bytecode iv publicInput c π =
       Id.run (verifyDeferredWithHash (m := Id) keccak256 keccakF1600 bytecode iv publicInput c π) :=
@@ -190,6 +191,8 @@ theorem runFrom_eq_withHash (fuel : ℕ) {α β : Type} (P : VerifierProgram α)
   | fail => intro S sp cs; rfl
   | read k ih => intro S sp cs; simp only [runFrom, runFromWithHash, ih]
   | sample k ih => intro S sp cs; simp only [runFrom, runFromWithHash, ih]
+  | readPacked n k ih => intro S sp cs; simp only [runFrom, runFromWithHash, ih]
+  | samplePacked n k ih => intro S sp cs; simp only [runFrom, runFromWithHash, ih]
   | grind bits k ih => intro S sp cs; simp only [runFrom, runFromWithHash, ih]; rfl
   | commit ht w k ih =>
     intro S sp cs; simp only [runFrom, runFromWithHash, ih, buildTreeM_eq_withHash]

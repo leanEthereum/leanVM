@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.Defs
 public import LeanVM.Guest.CheckSound
+import all Statement.Data.Bytecode
 
 /-!
 # The frames' cells
@@ -151,15 +152,19 @@ end Lookup
 
 section Cells
 
-/-- Every function's name is shorter than a tail key, in bytes (the kernel reads a string's bytes
-fast, its characters slowly). -/
+/-- Every function's name is shorter than a tail key, in bytes (the kernel's `String.length` of the
+names is costly; their bytes, from the compiled functions' names, are not). -/
 theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.utf8ByteSize 256) = true := by
-  decide +kernel
+  have h : (coreProgram.map Fn.name).all (fun n ↦ Nat.blt n.utf8ByteSize 256) = true := by
+    rw [names_eq]
+    set_option maxRecDepth 100000 in decide +kernel
+  simpa [List.all_map] using h
 
+set_option maxRecDepth 100000 in
 theorem tailKey_size (f : String) : (Memory.tailKey f).utf8ByteSize = 256 + f.utf8ByteSize := by
   unfold Memory.tailKey
-  rw [String.utf8ByteSize_append,
-    show (String.ofList (List.replicate 256 '#')).utf8ByteSize = 256 by decide +kernel]
+  rw [String.utf8ByteSize_append]
+  congr 1
 
 /-- No function is named a tail key. -/
 theorem indexOf_tailKey (f : String) : coreProgram.indexOf? (Memory.tailKey f) = none := by
@@ -213,7 +218,7 @@ theorem param_lt_tailN {j k : ℕ} (hk : k < (coreOf j).params.length) (hn : 2 +
     2 + k < tailN j :=
   lt_min hn (by omega)
 
-theorem two_le_mainFrame : 2 ≤ mainFrame := by decide
+theorem two_le_mainFrame : 2 ≤ mainFrame := by unfold mainFrame; decide +kernel
 
 theorem two_le_fsN (j : ℕ) : 2 ≤ fsN j := by
   unfold fsN
@@ -261,7 +266,7 @@ theorem two_le_tailFs (f : String) : 2 ≤ tailFs f := by
 theorem two_le_fs (f : String) : 2 ≤ fs f := by
   unfold fs
   split
-  · decide
+  · exact two_le_mainFrame
   · omega
   · exact two_le_tailFs f
 

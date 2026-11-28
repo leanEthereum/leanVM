@@ -99,7 +99,7 @@ section
 open LeanVM.Semantics LeanVM.Arithmetization
 /-- The opcode of a code. -/
 def opcodeOf? (c : K) : Option Opcode :=
-  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].find? (·.busCode = c)
+  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].find? (·.code = c)
 
 /-- A flag word. -/
 def flagOf? (c : K) : Option Bool :=
@@ -119,7 +119,7 @@ def outCellsOf? (two all : K) : Option KeccakOutputCells :=
   else if two = 1 ∧ all = 1 then some .all
   else none
 
-/-- The instruction of a bus entry (the inverse of `entry`, where it is one). -/
+/-- The instruction of an entry (the inverse of `instructionEntry`, where it is one). -/
 def instrOf? (e : Array K) : Option LeanIsaInstruction := do
   let op ← opcodeOf? (e.getD 0 0)
   let x (i : ℕ) : K := e.getD i 0

@@ -2,28 +2,16 @@ module
 
 public import LeanVM.Protocol.Extraction.AS.Lite
 import all LeanVM.Protocol.Extraction.AS.Lite
-import all LeanVM.Protocol.EndToEnd.Sound.SkelPairs
-import all LeanVM.Protocol.EndToEnd.Sound.SkelWhir
-import all LeanVM.Protocol.EndToEnd.Sound.SkelFront
-import all LeanVM.Protocol.EndToEnd.Sound.SkelBus
-import all LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
-import all LeanVM.Protocol.EndToEnd.Sound.Avail
+import all LeanVM.Protocol.EndToEnd.Sound.SkelDefs
+import all LeanVM.Protocol.EndToEnd.Sound.Skeleton
 import all Statement.LeanVmVerifier
-import all Statement.Verifier.Transcript
-import all Statement.Verifier.Multilinear
-import all Statement.Verifier.Layout
-import all Statement.Verifier.Bus
-import all Statement.Verifier.Whir
-import all Statement.Verifier.Keccak
-import all Statement.Verifier.RingSwitch
-import all Statement.Verifier.Lib
 
 /-!
 # The replay's roots
 
 The replay of a skeleton records one root per commit, with the commit's height and width
 (`roots_skelReplayP`). The body's skeleton commits the stack and then one word per level after the
-first (`commitsOf_skBodyL`), so at every admissible stack size and rate there are at most six
+first (`commitsOf_skBody`), so at every admissible stack size and rate there are at most six
 roots, each of height at most the stack tree's and width `32` to `64` (`ladderRootsOk`).
 -/
 
@@ -40,6 +28,8 @@ public section
   | .commit h w :: sk => (h, w) :: commitsOf sk
   | .read :: sk => commitsOf sk
   | .sample :: sk => commitsOf sk
+  | .readPacked _ :: sk => commitsOf sk
+  | .samplePacked _ :: sk => commitsOf sk
   | .grind _ :: sk => commitsOf sk
   | .query :: sk => commitsOf sk
 
@@ -83,6 +73,18 @@ theorem roots_skelReplayP (F : Semantics.KeccakState → Option Semantics.Keccak
       obtain ⟨c, -, h⟩ := Option.bind_eq_some_iff.mp h
       obtain ⟨r', h', rfl⟩ := Option.map_eq_some_iff.mp h
       exact (roots_skelReplayP F sk _ r' h').trans (by simp [commitsOf])
+    | readPacked n =>
+      simp only [skelReplayP] at h
+      split at h
+      · obtain ⟨sp, -, h⟩ := Option.bind_eq_some_iff.mp h
+        obtain ⟨r', h', rfl⟩ := Option.map_eq_some_iff.mp h
+        exact (roots_skelReplayP F sk _ r' h').trans (by simp [commitsOf])
+      · simp at h
+    | samplePacked n =>
+      simp only [skelReplayP] at h
+      obtain ⟨c, -, h⟩ := Option.bind_eq_some_iff.mp h
+      obtain ⟨r', h', rfl⟩ := Option.map_eq_some_iff.mp h
+      exact (roots_skelReplayP F sk _ r' h').trans (by simp [commitsOf])
     | grind b =>
       simp only [skelReplayP] at h
       split at h
@@ -120,28 +122,15 @@ theorem not_commit_skRound (c : ℕ) (b : Bool) : Op.commit h w ∉ skRound c b 
 theorem not_commit_skSum (c : ℕ) (eqs : List Bool) : Op.commit h w ∉ skSum c eqs := by
   simp [skSum, not_commit_skRound]
 
-theorem not_commit_skGkrStep (step : ℕ) (last : Bool) (L : ℕ) :
-    Op.commit h w ∉ skGkrStep step last L := by
-  simp [skGkrStep, not_commit_skGrind, not_commit_skSum]
+theorem not_commit_skLink (lay : LayoutLite) : Op.commit h w ∉ skLink lay := by
+  unfold skLink
+  split <;> simp [not_commit_skGrind, not_commit_skSum]
 
-theorem not_commit_skGkrLayers : ∀ (n L : ℕ), Op.commit h w ∉ skGkrLayers n L
-  | 0, _ => by simp [skGkrLayers]
-  | 1, L => by simp [skGkrLayers, not_commit_skGkrStep]
-  | n + 2, L => by
-    unfold skGkrLayers
-    split <;> simp [not_commit_skGkrStep, not_commit_skGkrLayers]
-
-theorem not_commit_skBus (d : ℕ) : Op.commit h w ∉ skBus d := by
-  simp [skBus, skBytecodeShare, not_commit_skGrind, not_commit_skSum, not_commit_skGkrLayers]
-
-theorem not_commit_skTablePhaseL (hs : List ℕ) : Op.commit h w ∉ skTablePhaseL hs := by
-  simp [skTablePhaseL, skTablesL, not_commit_skGrind, not_commit_skSum]
-
-theorem not_commit_skLayer (L : ℕ) : Op.commit h w ∉ skLayer L := by
-  simp [skLayer, not_commit_skGrind, not_commit_skSum]
+theorem not_commit_skKeccakLayer (L : ℕ) : Op.commit h w ∉ skKeccakLayer L := by
+  simp [skKeccakLayer, not_commit_skGrind, not_commit_skSum]
 
 theorem not_commit_skKeccak (L : ℕ) : Op.commit h w ∉ skKeccak L := by
-  simp [skKeccak, skOpen, not_commit_skGrind, not_commit_skSum, not_commit_skLayer]
+  simp [skKeccak, skKeccakOpen, not_commit_skGrind, not_commit_skSum, not_commit_skKeccakLayer]
 
 theorem not_commit_skOod (L : ℕ) : Op.commit h w ∉ skOod L := by
   simp [skOod, not_commit_skGrind]
@@ -186,11 +175,10 @@ theorem commitsOf_skLevels (logN : ℕ) :
     | some cfg => levelCommits logN 0 cfg
     | none => []
 
-theorem commitsOf_skBodyL (lay : LayoutLite) (ρ : ℕ) :
-    commitsOf (skBodyL lay ρ) = bodyCommits lay.stackLog ρ := by
-  simp only [skBodyL, commitsOf_append, bodyCommits]
-  rw [commitsOf_eq_nil _ fun _ _ ↦ not_commit_skOod _, commitsOf_eq_nil _ fun _ _ ↦ not_commit_skBus _,
-    commitsOf_eq_nil _ fun _ _ ↦ not_commit_skTablePhaseL _,
+theorem commitsOf_skBody (lay : LayoutLite) (ρ : ℕ) :
+    commitsOf (skBody lay ρ) = bodyCommits lay.stackLog ρ := by
+  simp only [skBody, skBodyHead, commitsOf_append, bodyCommits]
+  rw [commitsOf_eq_nil _ fun _ _ ↦ not_commit_skOod _, commitsOf_eq_nil _ fun _ _ ↦ not_commit_skLink _,
     commitsOf_eq_nil _ fun _ _ ↦ not_commit_skKeccak _, commitsOf_eq_nil _ fun _ _ ↦ not_commit_skRing]
   simp only [skWhir]
   split <;> rename_i hl <;> simp [hl, commitsOf, commitsOf_skLevels]

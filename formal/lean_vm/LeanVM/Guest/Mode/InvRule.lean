@@ -50,7 +50,7 @@ structure Prem (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (n : �
     RefOk (refMem img) s op
   xo : ∀ s op s1 s', X s → Fine (refMem img) s → OnRef prog img n s → C.ops[s.pc]? = some op →
     ((C.hints[s.pc]?).getD []).foldlM (runHint C) s = .ok s1 → Moves (refMem img) s s1 →
-    runOp C s1 op = .ok s' → X { s' with steps := s'.steps + 1 }
+    OpModed (refMem img) s1 op → runOp C s1 op = .ok s' → X { s' with steps := s'.steps + 1 }
 
 /-- `main`'s entry is the stack of `main`'s activation alone. -/
 theorem start_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert} {E0 : Env}
@@ -92,8 +92,8 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
   intro s op ⟨hX, hI⟩ hs hon hop
   rcases hI with hH | hP | ⟨hjt, a, rest, i, ha, hfpa, hi, hpc, hat, hbel⟩
   · exact absurd hH (onRef_not_halted hon)
-  · refine stepOk_conj s _ s (Moves.refl' hs) (fun s1 s' e1 hm e hf' hI' ↦
-      ⟨R.xo s op s1 s' hX hs hon hop e1 hm e, ?_⟩) (hpro s op hX hP hs hon hop)
+  · refine stepOk_conj s _ s (Moves.refl' hs) (fun s1 s' e1 hm hmo e hf' hI' ↦
+      ⟨R.xo s op s1 s' hX hs hon hop e1 hm hmo e, ?_⟩) (hpro s op hX hP hs hon hop)
     rcases hI' with h | h
     · exact Or.inr (Or.inl h)
     · exact Or.inr (Or.inr (start_stack P (fun h ↦ (hQ Km P.main).entry (by rw [preAt_none hCm]; exact h)
@@ -116,7 +116,7 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
     (fun pre h post hp s1 e hm hin ↦ R.hint s hX hs hon pre h post hp s1 e hm hin)
     (fun s1 hm ↦ R.res a.K ha.mem s i hX hs hon hi hpc s1 hm) (R.ref s _ hX hs hon hop)
     (fun s1 s' e1 hm hmo e hf' hle' hout ↦ ?_)
-  have hX' := R.xo s _ s1 s' hX hs hon hop e1 hm e
+  have hX' := R.xo s _ s1 s' hX hs hon hop e1 hm hmo e
   refine ⟨hX', ?_⟩
   have hle1 := hm.le
   have hfpa1 : a.fp = s1.fp := hfpa.trans hm.fp.symm

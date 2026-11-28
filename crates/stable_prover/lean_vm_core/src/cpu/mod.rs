@@ -1,33 +1,31 @@
 //! The whole program: its run ([`execute`]), its public layout ([`layout_of`]), and [`prove`], which binds the six
-//! instruction tables to one commitment through the state, memory and bytecode buses (`doc/leanvm/main.tex`).
-//! [`verify`] wraps the `verifier` crate.
+//! instruction tables to one commitment through Hotwire's links ([`crate::link`]) (`doc/leanvm/main.tex`). [`verify`]
+//! wraps the `verifier` crate.
 
-use crate::constraints;
-use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
-use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STATE};
-use crate::witness;
-use primitives::field::{F64, F128, g_pow};
+use crate::tables::{self, N_TABLES};
+use primitives::field::F128;
 use primitives::transcript::ProverState;
-use verifier::layout::{
-    BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, NUM_GLOBAL_COLUMNS,
-    TABLE_WIDTHS,
-};
 
 mod execute;
+#[cfg(test)]
+pub(crate) mod fixture;
 mod hints;
 pub mod layout;
 mod trace;
+#[cfg(test)]
+pub(crate) use execute::{ALLOW_CROSSING, cheat};
 pub use execute::{ExecError, Execution, Fault, Memory, execute};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Row, Trace};
+use verifier::layout::{MEMORY_0, MEMORY_1};
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) on the stream, from which the
 /// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not
 /// announced: it seeds the transcript.
-fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
+fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; N_TABLES], log_inv_rate: usize) {
     ps.add_scalar(F128::new(log_mem as u64, 0));
     for n in rows {
         ps.add_scalar(F128::new(n as u64, 0));
@@ -51,6 +49,8 @@ pub enum ProveError {
     /// The committed witness is `2^log_committed` words, outside the
     /// `2^MIN_STACKED_LOG..=2^MAX_STACKED_LOG` every verifier accepts
     WitnessOutOfRange { log_committed: usize },
+    /// A pointer needs more than the [`verifier::MAX_POINTER_WIDTH`] bits one word holds.
+    PointerWidth { width: usize },
 }
 
 impl std::fmt::Display for ProveError {
@@ -65,6 +65,11 @@ impl std::fmt::Display for ProveError {
                 cells.len(),
                 &cells[..cells.len().min(8)]
             ),
+            Self::PointerWidth { width } => write!(
+                f,
+                "a pointer needs {width} bits, more than the {} one word holds",
+                verifier::MAX_POINTER_WIDTH
+            ),
             Self::WitnessOutOfRange { log_committed } => write!(
                 f,
                 "the committed witness would be 2^{log_committed} words, outside the verifiable 2^{}..=2^{}",
@@ -77,65 +82,27 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// The tables' entries in the table sumcheck, in table order: each table's committed columns and its summand (its
-/// identities weighted by its own range of `ξ`-powers, each tree's bus form by the tree's power at
-/// [`xi_form_base`]).
-fn airs<'a>(
-    taus: &[usize; tables::N_TABLES],
-    bus: &leaf::BusProof,
-    cols: &'a [&'a [F64]],
-    xi: F128,
-) -> Vec<constraints::Air<'a>> {
-    let base = xi_form_base();
-    let pows = primitives::field::powers(xi, n_xi_powers());
-    let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
-    tables::tables()
-        .iter()
-        .zip(taus)
-        .enumerate()
-        .map(|(t, (&table, &tau))| {
-            let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
-            let bus_forms = (0..verifier::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
-            constraints::Air {
-                tau,
-                cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
-                form: constraints::Form::sum(bus_forms.chain([identities])),
-            }
-        })
-        .collect()
-}
-
-/// Where the bus forms' `ξ`-powers start: after every table's identities, one power per tree, shared by every table.
-/// Shared, the batch's claim is `Σ_s ξ^{base + s}·rem_s`, which the verifier derives from the leaf claims; a power
-/// per table would not factor through the trees' totals, and nothing would pin the tables' share of the bus.
-pub fn xi_form_base() -> usize {
-    tables::tables().iter().map(|t| t.n_constraints()).sum()
-}
-
-/// The batch's `ξ`-powers: one per identity, then one per bus tree. Its error is their count less one over `|E|`.
-pub fn n_xi_powers() -> usize {
-    xi_form_base() + verifier::N_BUS_TREES
-}
-
-/// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on the permutation's
-/// output: the table sumcheck claims every column of the table at one point.
-fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
-    let claims = &table_claims[verifier::layout::OP_KECCAK];
-    keccak_gkr::OutputClaim {
-        instance: claims.chi.clone(),
-        lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),
-    }
-}
-
 /// Prove the program on `public_input` and `witness` ([`execute`]) at the PCS rate `2^-log_inv_rate`: run it, commit
-/// its witness, and prove, in transcript order, the bus, the table sumcheck, the public input's binding, the Keccak
-/// reduction and the opening. Returns the proof and the run's [`Stats`], or why no proof was made.
+/// its witness, and prove, in transcript order, the link, the public input's binding, the Keccak reduction and the
+/// opening. Returns the proof and the run's [`Stats`], or why no proof was made.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(
     program: &Program,
     witness: &[(String, Vec<Vec<F128>>)],
     public_input: [F128; 2],
     log_inv_rate: usize,
+) -> Result<(Proof, Stats), ProveError> {
+    prove_tampered(program, witness, public_input, log_inv_rate, |_| {})
+}
+
+/// [`prove`], with `tamper` applied to the witness once it is built and before it is committed: what the negative tests
+/// cheat through.
+pub(crate) fn prove_tampered(
+    program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
+    public_input: [F128; 2],
+    log_inv_rate: usize,
+    tamper: impl FnOnce(&mut Witness),
 ) -> Result<(Proof, Stats), ProveError> {
     if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
@@ -159,6 +126,11 @@ pub fn prove(
             log_committed: layout.shape.mu,
         });
     }
+    if layout.pointer_width > crate::link::pointer::MAX_WIDTH {
+        return Err(ProveError::PointerWidth {
+            width: layout.pointer_width,
+        });
+    }
     let stats = Stats {
         cycles: exec.cycles,
         table_heights: layout.rows,
@@ -166,6 +138,7 @@ pub fn prove(
         memory_used: exec.mem_used,
     };
     let mut w = crate::stage!("Build witness", || build(program, &exec, layout));
+    tamper(&mut w);
     drop(exec);
 
     // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
@@ -177,75 +150,53 @@ pub fn prove(
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape.mu, log_inv_rate));
 
-    let (bus, table_claims) = {
-        let l = &w.layout;
-        let cols = w.columns();
-        let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, program.stacked_bytecode(), &mut ps)
-        });
-        let table_claims = crate::stage!("Prove constraints", || {
-            ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
-            let xi = ps.sample();
-            constraints::prove(&airs(&l.taus, &bus, &cols, xi), &bus.point, &mut ps)
-        });
-        (bus, table_claims)
+    // Hotwire (§sec:link): the pointer links, and `JUMP`'s identities with them.
+    let link = {
+        let columns = w.columns();
+        crate::stage!("Prove link", || {
+            crate::link::prove::prove(&mut ps, &w.layout, &columns, program.stacked_bytecode())
+        })
     };
-    // The output lanes' last readers were the bus and the table sumcheck.
-    drop(std::mem::take(&mut w.virt));
+    // The link was the last reader of the output lanes.
+    w.virt = Vec::new();
 
     // The public input's binding (§sec:e2e-pi) sends nothing: its claims are lines in `r_pi` the verifier evaluates
     // itself, numerator one, so no grind.
     let r_pi = ps.sample();
-    let mut slots = finish_claims(&w.layout, bus.claims, &table_claims, r_pi);
-
-    // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
-    // point claim.
-    let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
-    let output = keccak_output_claim(&table_claims);
+    // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening.
     let openings = crate::stage!("Keccak reduction", || {
-        w.keccak_reduction
-            .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
+        let q_keccak = w.layout.placements[QKECCAK].view(&w.q);
+        w.keccak_reduction.prove(&mut ps, q_keccak, &link.output)
     });
-    let (ring, outputs) = openings.into_pcs_claims(offset);
-    slots.extend(outputs);
-    crate::stage!("PCS open", || pcs::open(&mut ps, committed, w.q, &slots, &ring));
+    let (points, ring) = opening_claims(&w.layout, link, r_pi, openings);
+    crate::stage!("PCS open", || pcs::open(&mut ps, committed, w.q, &points, &ring));
     Ok((ps.into_proof(), stats))
 }
 
-/// Everything the PCS has to open, in the order that feeds the batch's weights:
-/// the bus's framework claims, then the table sumcheck's per-table column claims (less the
-/// `KECCAK` output lanes', which go to the reduction), then the two public-input limb
-/// claims, each located in its committed slot. Every verifier assembles the same list in
-/// the same order. The opening needs only each claim's column and point: the values were
-/// sent with the claims, or are the verifier's own.
-fn finish_claims(
-    l: &Layout,
-    bus_claims: Vec<ColumnClaim>,
-    table_claims: &[constraints::Claims],
+/// Everything the opening discharges, in the order every verifier assembles: the ring-switched claims, the Keccak
+/// reduction's then the link's pointer columns', and the point claims: the memory term, the link's column claims (the
+/// output lanes left out, a column `q_keccak` carries at its slot's rows), the public input's two limbs on `MEMORY_0`
+/// and `MEMORY_1` at `(r_pi, 0, …, 0)`, and the Keccak reduction's claim on the output.
+fn opening_claims(
+    layout: &Layout,
+    link: crate::link::prove::LinkEnd,
     r_pi: F128,
-) -> Vec<pcs::StackClaim> {
-    let bus = bus_claims.into_iter().map(|c| (c.col, c.point));
-    let tables = (0..tables::N_TABLES).flat_map(|t| {
-        (GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t])
-            // the Keccak reduction's claim on the output (`keccak_output_claim`)
-            .filter(|&col| !matches!(keccak_value(col), Some(KeccakLane::Output(_))))
-            .map(move |col| (col, table_claims[t].chi.clone()))
-    });
-    let pi = pi_point(r_pi, l);
-    let pi = [MEMORY_0, MEMORY_1].map(|col| (col, pi.clone()));
-    (bus.chain(tables).chain(pi))
-        .map(|(col, point)| slot_claim(l, col, point))
-        .collect()
-}
-
-/// The point of the public-input binding (§sec:e2e-pi): each committed `MEM` limb at
-/// `(r, 0,…,0)` must equal the line through that limb of `pi[0]` and `pi[1]`.
-/// The public input is the statement, so the verifier evaluates the lines itself;
-/// the prover sends nothing.
-fn pi_point(r: F128, l: &Layout) -> Vec<F128> {
-    let mut point = vec![F128::ZERO; l.placements[MEMORY_0].n_vars];
-    point[0] = r;
-    point
+    openings: keccak_gkr::Openings,
+) -> (Vec<pcs::StackClaim>, ::pcs::RingSwitchOpen) {
+    let mut points = vec![link.memory];
+    for claim in link.columns {
+        let n_vars = claim.point.len();
+        points.push(layout.rows_of(claim.col, n_vars).claim(claim.point));
+    }
+    let mut pi_point = vec![F128::ZERO; layout.placements[MEMORY_0].n_vars];
+    pi_point[0] = r_pi;
+    for col in [MEMORY_0, MEMORY_1] {
+        points.push(layout.placements[col].claim(pi_point.clone()));
+    }
+    let (mut ring, output) = openings.into_pcs_claims(layout.placements[QKECCAK].offset);
+    ring.claims.push(link.ring);
+    points.extend(output);
+    (points, ring)
 }
 
 /// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
@@ -273,55 +224,17 @@ pub fn verify(
     verifier::verify_execution(program.bytecode(), &public_input_bytes(public_input), proof)
 }
 
-/// Locate a claim on column `col` at `point`: it lives in the slot at `placements[col].offset`,
-/// with the claim's point as the low point.
-///
-/// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
-/// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
-/// `q_keccak`, which folds into the one opening like every other point claim.
-fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::StackClaim {
-    let offset = match keccak_value(col) {
-        Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),
-        _ => l.placements[col].offset,
-    };
-    pcs::StackClaim {
-        offset,
-        low_point: point,
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use super::fixture::{assemble, set, w};
     use super::*;
-
-    /// `SET` of a prover word.
-    fn set(o: u32, k: F128) -> Op {
-        Op::Set { o, k: to_scalar(&k) }
-    }
-
-    /// A K-embedded immediate (extension limb zero).
-    fn w(x: u64) -> F128 {
-        F128::new(x, 0)
-    }
-
-    /// A hand-assembled program: no hints, no debug information, started at `(pc, fp) = (0, 0)`. Straight-line
-    /// programs that never change the frame pointer and touch only the first `main_frame` cells need no
-    /// allocation. It halts on reaching the final state `(g^{len-1}, g^0)`, the last slot in main's frame
-    /// (§sec:state).
-    fn from_bytecode(prog: Vec<Op>, main_frame: u32) -> Program {
-        Program::from(isa::CompiledProgram {
-            prog,
-            hints: Default::default(),
-            main_frame,
-            fn_ranges: Vec::new(),
-            src_lines: Vec::new(),
-        })
-    }
+    use primitives::field::g_pow;
 
     /// A hand-built straight-line program with two KECCAK rows. The first reads, in the even
     /// layout, two message cells (2, 3) twice as `m`, a four-cell `tail` (4..8), `b8` (8) and a
-    /// zero `cap` (9..13), and writes 13..26 in the odd layout; the second reads that output in
-    /// the odd layout and writes 26..39 in the even one. Two filler SETs step the pc to 15, whose
+    /// zero `cap` (9..13), and writes 16..29 in the odd layout; the second reads that output in
+    /// the odd layout and writes 32..45 in the even one, each block in one window of 16 cells. Two
+    /// filler SETs step the pc to 15, whose
     /// slot is the never-executed sentinel.
     fn keccak_program(a: F128, b: F128, tail: [F128; 4], b8: F128) -> Program {
         let mut prog = vec![set(2, a), set(3, b)];
@@ -337,27 +250,28 @@ mod tests {
             tail: 4,
             b8: 8,
             cap: 9,
-            out: 13,
+            out: 16,
             in_odd: false,
             out_odd: true,
             out_cells: OutCells::All,
         });
+        // Each block in one window of 16 cells.
         prog.push(Op::Keccak {
-            m: [13, 14, 15, 16],
-            tail: 17,
-            b8: 21,
-            cap: 22,
-            out: 26,
+            m: [16, 17, 18, 19],
+            tail: 20,
+            b8: 24,
+            cap: 25,
+            out: 32,
             in_odd: true,
             out_odd: false,
             out_cells: OutCells::All,
         });
         for k in 0..2u32 {
-            prog.push(set(39 + k, F128::ONE));
+            prog.push(set(45 + k, F128::ONE));
         }
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
-        from_bytecode(prog, 64)
+        assemble(prog, 64)
     }
 
     /// Two KECCAK rows over one input that write only part of their output: the first its cell 0 at 13, the
@@ -383,7 +297,7 @@ mod tests {
         prog.push(set(41, F128::ONE));
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
-        from_bytecode(prog, 64)
+        assemble(prog, 64)
     }
 
     /// A KECCAK writes the output cells its bytecode requests and no other, and the proof verifies.
@@ -425,8 +339,8 @@ mod tests {
         input[..9].copy_from_slice(&[a, b, a, b, pad, F128::ZERO, F128::ZERO, F128::ZERO, end]);
         let out = permute_cells(&input, false, true);
         let words = |at: usize| -> Vec<F128> { (at..at + STATE_CELLS).map(|i| exec.mem.word(i)).collect() };
-        assert_eq!(words(13), out);
-        assert_eq!(words(26), permute_cells(&out, true, false));
+        assert_eq!(words(16), out);
+        assert_eq!(words(32), permute_cells(&out, true, false));
 
         let bytes: Vec<u8> = [a, b, a, b]
             .iter()
@@ -444,8 +358,8 @@ mod tests {
 
     /// The last slot in a frame other than main's is an ordinary slot: the machine halts in the
     /// final STATE, so this program reaches the last slot at `fp = g`, executes the JUMP there,
-    /// and halts on landing back in main's frame. Its five rows are exactly the walk the state
-    /// bus balances (§sec:state), so the verifier accepts the run the prover proves.
+    /// and halts on landing back in main's frame. Its five rows are exactly the walk the
+    /// state link chains (§sec:state), so the verifier accepts the run the prover proves.
     #[test]
     fn halts_in_the_final_state() {
         let pi = [w(7), w(11)];
@@ -463,7 +377,7 @@ mod tests {
                 fill,
                 last, // at fp = g it reads cells 2, 3, 2, so -> (g^7, g^0): the final state
             ];
-            from_bytecode(code, 8)
+            assemble(code, 8)
         };
 
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
@@ -481,6 +395,32 @@ mod tests {
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
     }
 
+    /// A `KECCAK` block across an aligned window of 16 cells faults: the capacity at cells `cap..cap + 4`, the output
+    /// at `out..out + 2`.
+    #[test]
+    fn keccak_block_across_its_window_faults() {
+        let run = |cap: u32, out: u32| {
+            let mut prog = vec![set(2, w(3))];
+            prog.extend((cap..cap + 4).map(|c| set(c, F128::ZERO)));
+            prog.push(Op::Keccak {
+                m: [2, 2, 2, 2],
+                tail: cap,
+                b8: 2,
+                cap,
+                out,
+                in_odd: false,
+                out_odd: false,
+                out_cells: OutCells::Two,
+            });
+            // Eight instructions, a power of two, the last the halt slot.
+            prog.extend([set(2, w(3)); 2]);
+            execute(&assemble(prog, 40), &[], [w(1), w(2)]).err().map(|e| e.fault)
+        };
+        assert_eq!(run(12, 20), None);
+        assert_eq!(run(14, 20), Some(Fault::KeccakAcrossWindow { cell: 14, cells: 4 }));
+        assert_eq!(run(12, 31), Some(Fault::KeccakAcrossWindow { cell: 31, cells: 2 }));
+    }
+
     /// A 128-bit-word MUL: the E-product of two full machine words.
     #[test]
     fn mul_128bit_word() {
@@ -492,7 +432,7 @@ mod tests {
             Op::Mul { a: 2, b: 3, c: 4 },
             Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
         ];
-        let program = from_bytecode(prog, 5);
+        let program = assemble(prog, 5);
         let pi = [w(1), w(2)];
         let exec = execute(&program, &[], pi).unwrap();
         assert_eq!(exec.mem.word(4), x * y, "MUL computes the E product");

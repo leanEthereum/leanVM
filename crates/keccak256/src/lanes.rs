@@ -374,31 +374,6 @@ fn lanes_with<S: Lane>() -> usize {
     S::WIDTH
 }
 
-/// Keccak-f\[1600\] of every state in place.
-pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
-    dispatch!(keccak_f_many_with(states: &mut [[u64; STATE_LANES]]))
-}
-
-/// [`keccak_f_many`] on backend `S`, [`Lane::WIDTH`] states at a time and the remainder one at a time.
-#[inline(always)]
-fn keccak_f_many_with<S: Lane>(states: &mut [[u64; STATE_LANES]]) {
-    let mut groups = states.chunks_exact_mut(S::WIDTH);
-    for group in &mut groups {
-        // Register `i` holds lane `i` of every state.
-        let mut st = [S::splat(0); STATE_LANES];
-        for (i, lane) in st.iter_mut().enumerate() {
-            *lane = gather(|l| group[l][i]);
-        }
-        permute(&mut st);
-        for (i, &lane) in st.iter().enumerate() {
-            for (state, word) in group.iter_mut().zip(scatter(lane)) {
-                state[i] = word;
-            }
-        }
-    }
-    groups.into_remainder().iter_mut().for_each(keccak_f);
-}
-
 /// The first of `nonces` that, written into lane `at` of `template`, leaves lane `out` of the permuted state zero under
 /// `mask`.
 pub fn first_nonce(template: &[u64; STATE_LANES], at: usize, nonces: Range<u64>, out: usize, mask: u64) -> Option<u64> {
@@ -463,6 +438,8 @@ pub fn hash_many_from_state_uninit(data: &[u8], len: usize, state: &[u64; STATE_
 
 /// [`hash_many_from_state`] on backend `S`, [`Lane::WIDTH`] inputs at a time and the remainder one at a time.
 #[inline(always)]
+// `as_chunks` cannot take a generic parameter's constant.
+#[allow(clippy::chunks_exact_to_as_chunks)]
 fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
     let n = out.len() / OUT_LEN;
     for (g, digests) in out.chunks_exact_mut(S::WIDTH * OUT_LEN).enumerate() {
@@ -510,6 +487,8 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
 
 /// [`digest_halves_from`] on backend `S`, [`Lane::WIDTH`] values at a time and the remainder one at a time.
 #[inline(always)]
+// `as_chunks` cannot take a generic parameter's constant.
+#[allow(clippy::chunks_exact_to_as_chunks)]
 fn digest_halves_with<S: Lane>(template: &[u64; STATE_LANES], at: usize, values: &[u128], out: &mut [u128]) {
     let groups = values.chunks_exact(S::WIDTH);
     let rest = groups.remainder();
@@ -832,12 +811,6 @@ mod tests {
         let name = core::any::type_name::<S>();
         let w = MAX_WIDTH as u64;
         let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
-
-        let states: Vec<[u64; STATE_LANES]> = (0..2 * w + 1).map(|l| template.map(|x| x ^ (l << 32))).collect();
-        let (mut got, mut want) = (states.clone(), states);
-        keccak_f_many_with::<S>(&mut got);
-        keccak_f_many_with::<u64>(&mut want);
-        assert_eq!(got, want, "{name} keccak_f_many");
 
         for start in 0..2 * w {
             for end in start..start + 3 * w {

@@ -12,7 +12,9 @@ relation determines (a `XOR`'s or a `MUL`'s result, a `MUL`'s one unknown operan
 the unwritten side of a `DEREF`, a `KECCAK`'s outputs), and a `DEREF` between two unwritten cells
 links them, a later write to either reaching both. The hints a `pc` carries (`RHint`,
 `crates/isa/src/lib.rs`) run before its instruction: they allocate (`next_free`, a bump pointer from the end
-of `main`'s frame), pop witness streams, and compute advice the instructions go on to check.
+of `main`'s frame, a frame that holds `KECCAK` blocks from the next multiple of `keccakWindow`), pop
+witness streams, and compute advice the instructions go on to check. A `KECCAK` whose `tail`, `cap`
+or written outputs cross a window of `keccakWindow` cells faults (`Fault::KeccakAcrossWindow`).
 
 Nothing here is trusted for soundness: a run that halts gives a valid execution whatever the
 program, its hints and its streams (`lean_vm`, `LeanVM/Prover/ExecuteSound.lean`). For completeness
@@ -64,9 +66,9 @@ open LeanVM.Parameters LeanVM.Semantics
 /-- `MAX_CELLS` (`cpu/hints.rs`): the cells a run addresses, the most a committed stack holds. -/
 def maxCells : ℕ := 2 ^ 28
 
-/-- `MAX_STEPS` (`execute.rs`): `2^30` committed words over the narrowest table's `7` columns
+/-- `MAX_STEPS` (`execute.rs`): `2^30` committed words over the narrowest table's `5` columns, `SET`'s
 (`MIN_COMMITTED_COLUMNS`, `tables.rs`). -/
-def maxSteps : ℕ := 2 ^ 30 / 7
+def maxSteps : ℕ := 2 ^ 30 / 5
 
 /-! ## Discrete logarithms (`GPow`, `bounded_dlog`, `cpu/hints.rs`) -/
 
@@ -152,21 +154,27 @@ inductive BitsDest where
   /-- Heap cells from the pointer at `fp + ptr`. -/
   | heap (ptr : ℕ)
 
-/-- A hint (`RHint`, `crates/isa/src/lib.rs`), its offsets relative to `fp`. -/
+/-- `KECCAK_WINDOW` (`crates/isa/src/lib.rs`): an aligned region starts at a multiple of this many
+cells, and every `KECCAK` block lies in one window of them. -/
+def keccakWindow : ℕ := 16
+
+/-- A hint (`RHint`, `crates/isa/src/lib.rs`), its offsets relative to `fp`. An `aligned` allocation
+starts at the next multiple of `keccakWindow` cells: a frame that holds `KECCAK` blocks. -/
 inductive Hint where
   /-- Announce `fp + offset`'s address (no effect on the run). -/
   | frameAddress (offset : ℕ)
   /-- Reserve `n` frames of `size` cells and `tail` more, the final, untaken call's frame, of which
   that call writes only the first `tail` cells; `n` the exponent of `[fp + stop] · startInverse`,
-  its base written to `fp + ptr`. -/
-  | allocFrames (ptr size stop : ℕ) (startInverse : K) (tail : ℕ)
+  its base written to `fp + ptr`; `aligned`, `size` a multiple of the window, so each frame starts
+  aligned. -/
+  | allocFrames (ptr size stop : ℕ) (startInverse : K) (tail : ℕ) (aligned : Bool)
   /-- Reserve `size` cells, its base written to `fp + ptr`. -/
-  | alloc (ptr size : ℕ)
+  | alloc (ptr size : ℕ) (aligned : Bool)
   /-- Reserve the exponent of `[fp + size]` cells, its base written to `fp + ptr`. -/
   | allocDyn (ptr size : ℕ)
   /-- Reserve `sizes[k]` cells, `k` the exponent of `[fp + sel]`, its base written to
   `fp + ptr`: a dispatched call's frame, sized by the arm it selects. -/
-  | allocArm (ptr sel : ℕ) (sizes : List ℕ)
+  | allocArm (ptr sel : ℕ) (sizes : List ℕ) (aligned : Bool)
   /-- Write the address of `fp + cell` to `fp + ptr`. -/
   | cellAddress (ptr cell : ℕ)
   /-- Pop `stream`'s next entry, of `len` words, into `fp + base + k`. -/
@@ -215,6 +223,9 @@ inductive Fault where
   | haltOutsideMain (fp : ℕ)
   | stepLimit
   | badInstruction
+  /-- A `KECCAK` block (its `tail`, its `cap`, or the output cells it writes), `cells` from `cell`,
+  not in one window of `keccakWindow` cells (`Fault::KeccakAcrossWindow`, `execute.rs`). -/
+  | keccakAcrossWindow (cell cells : ℕ)
 
 /-! ## The memory -/
 
@@ -424,10 +435,16 @@ def expOf (what : String) (v : E) (nbits : ℕ) : Except Fault ℕ := do
   | some n => pure n
   | none => throw (.notAGPower what x)
 
-/-- Reserve `size` cells, their base written to `fp + ptr` once; the last below `maxCells`. -/
-def allocate (s : St) (ptr size : ℕ) : Except Fault St := do
+/-- Where a region reserved from `nextFree` starts: there, or for an `aligned` region at the next
+multiple of `keccakWindow` (`alloc`, `execute.rs`). -/
+def allocBase (aligned : Bool) (nextFree : ℕ) : ℕ :=
+  if aligned then (nextFree + keccakWindow - 1) / keccakWindow * keccakWindow else nextFree
+
+/-- Reserve `size` cells from `allocBase aligned nextFree`, their base written to `fp + ptr` once;
+the last below `maxCells` (`alloc`, whose first `run_at`, the base's, this one implies). -/
+def allocate (s : St) (ptr size : ℕ) (aligned : Bool) : Except Fault St := do
   let cell ← cellAt s.fp ptr
-  let base := s.nextFree
+  let base := allocBase aligned s.nextFree
   let next := base + size
   if maxCells < next then throw .outOfMemory
   let s ← s.withMem fun m ↦ (if base < next then m.ensure (next - 1) else m).put cell (ofK (g ^ base))
@@ -453,25 +470,25 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let dl := s.dl
     let s := { s with dl := .empty }
     pure { s with dl := dl.note c }
-  | .alloc ptr size => allocate s ptr size
+  | .alloc ptr size aligned => allocate s ptr size aligned
   | .allocDyn ptr size => do
     let sz ← inK "HeapBuf size" (s.mem.peek (← cellAt s.fp size))
     let (n, s) ← s.logOr sz maxCells (.notAGPower "HeapBuf size" sz)
-    allocate s ptr n
-  | .allocArm ptr sel sizes => do
+    allocate s ptr n false
+  | .allocArm ptr sel sizes aligned => do
     let x ← inK "dispatch selector" (s.mem.peek (← cellAt s.fp sel))
     let (k, s) ← s.logOr x maxCells (.notAGPower "dispatch selector" x)
     let some n := sizes[k]? | throw (.notAGPower "dispatch selector" x)
-    allocate s ptr n
+    allocate s ptr n aligned
   | .cellAddress ptr cell => do
     let c ← cellAt s.fp cell
     let p ← cellAt s.fp ptr
     s.withMem (·.put p (ofK (g ^ c)))
-  | .allocFrames ptr size stop startInverse tail => do
+  | .allocFrames ptr size stop startInverse tail aligned => do
     let span := (← inK "loop bound" (s.mem.peek (← cellAt s.fp stop))) * startInverse
     if span = 0 then throw (.notAGPower "loop bound" span)
     let (n, s) ← s.logOr span maxCells (.notAGPower "loop bound" span)
-    allocate s ptr (size * n + tail)
+    allocate s ptr (size * n + tail) aligned
   | .witnessStack name base len => do
     let b ← runAt s.fp base len
     let (v, s) ← pop C s name len
@@ -519,6 +536,22 @@ def runHint (C : Ctx) (s : St) : Hint → Except Fault St
     let v := s.mem.peek (← cellAt s.fp value)
     let d ← cellAt s.fp dst
     s.withMem (·.put d (if v = 0 then 0 else v⁻¹))
+
+/-- The `cells` cells from `fp + off` lie in one window of `keccakWindow` cells, or
+`Fault::KeccakAcrossWindow` (`execute.rs`, `Op::Keccak`). -/
+def inWindow (fp off cells : ℕ) : Except Fault Unit := do
+  let cell ← cellAt fp off
+  if keccakWindow < cell % keccakWindow + cells then throw (.keccakAcrossWindow cell cells)
+  else pure ()
+
+/-- A `KECCAK`'s blocks each in one window (`execute.rs`, `Op::Keccak`), in the Rust's order: its
+`tail` (input cells `4` to `7`), its `cap` (cells `9` to `12`) and the `count` output cells it
+writes from `out`. Its `m` cells and `b8`, addressed one by one, and the outputs it does not write
+are in none. -/
+def keccakWindows (fp : ℕ) (ins : Array ℕ) (out count : ℕ) : Except Fault Unit := do
+  inWindow fp (ins.getD 4 0) 4
+  inWindow fp (ins.getD 9 0) 4
+  inWindow fp out count
 
 /-- Execute an instruction (`execute.rs`'s opcode arms). -/
 def runOp (C : Ctx) (s : St) : Op → Except Fault St
@@ -572,6 +605,7 @@ def runOp (C : Ctx) (s : St) : Op → Except Fault St
     let (fp, s) ← s.logOr vf maxCells (.notAGPower "JUMP fp" vf)
     pure { s with pc, fp }
   | .keccak ins out inOdd outOdd count => do
+    keccakWindows s.fp ins out count
     let cells ← ins.toList.mapM (cellAt s.fp)
     let input ← cells.mapM s.mem.read
     let cellOf (c : Fin 13) : E := input.getD c.val 0

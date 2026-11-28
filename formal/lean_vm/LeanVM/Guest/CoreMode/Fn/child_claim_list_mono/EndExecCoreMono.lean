@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResMR
-public import LeanVM.Guest.EndExecCoreLink
+public import LeanVM.Guest.EndExecCoreLinkA
 import LeanVM.Guest.ValRef
 public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
@@ -23,7 +23,7 @@ import LeanVM.Guest.Data.ValNames.child_claim_list_mono_loop1
 its caller's frame `a` (`monoQ_all`), whose cell `5` holds its parameter `limit = g^L`; with its ghost word the
 caller's cell `2` (`setG σ [M (a + 2)]`), each read of the family (`mlSub`) lies in the caller's table: the record
 gives the entries pointer `M (a + 2) · g^(4 O)` (`RecAt`), the gaps add `4 Σ e_i` (`monoWalk_vals`), and the range
-check of the walk's end bounds `O + Σ e_i + k` below `L` (as `cmRead`). `mlGlF`: its linked cells hold.
+check of the walk's end bounds `O + Σ e_i + k` below `L` (as `mlRead`). `mlGlF`: its linked cells hold.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -64,8 +64,8 @@ theorem setG_ghost0 (σ : Val) (w : E) : setG σ [w] (V.n CoreMode.GB) = w := by
   simpa [CoreMode.ownG, CoreMode.vw] using h
 
 /-- **The ghost family at an honest instance.** -/
-theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
-    (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
+theorem ml_inst {al : String → Bool} {D : Ref → RefD} {r : Ref} (hR : RefH (layB al) (D r) r) (hr : r.Ok)
+    (hO : MonoOk) {I : Inst} (hI : I ∈ instsR al D r) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn)
     {p : ℕ × ℕ × ℕ × ℕ × ℕ × List (ℕ × ℕ × ℕ)} (hk : mlK fn = some p) :
     fn.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")] ∧ ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
@@ -77,7 +77,7 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     rw [hfn, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simpa [mlNames] using hk17)]
     exact List.getElem_mem _
   obtain ⟨aP, L, ⟨hh2, ha5, hm5, hL⟩, hσ3, hσ1, -, O, hOL, h13, h14⟩ :=
-    (monoQ_all hO hr I hI f σ bufs kids ht).2.1 hmem
+    (monoQ_allA hO hR hr I hI f σ bufs kids ht).2.1 hmem
   have hfn' : fn = coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default := by
     rw [hfn] at hf
     exact Option.some.inj (hf.symm.trans (find_of_idx (ml_idx k hk17)))
@@ -85,7 +85,7 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
   clear hfn'
   obtain ⟨hpar, atoms, r0, r1, hbody, hl4, hl5, hrecs, ⟨cm, hac, hcm⟩, tv, htv, hend⟩ := mlOk_parts (by omega) hok
   refine ⟨hpar, aP, hh2, ha5, by rw [hm5, hσ3], ?_⟩
-  obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+  obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_validA hR hI ht
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   rw [hbody] at hw
   have hpath := atoms_on_path' atoms hw
@@ -94,14 +94,14 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
   have h4 : σ (.n 4) = refMem r.img (aP + 3) * gen ^ O := loadHolds_unique (load_sound hl4 hat) h13
   have h5 : σ (.n 5) = refMem r.img (aP + 2) * gen ^ (4 * O) := loadHolds_unique (load_sound hl5 hat) h14
   -- the walk and its bound
-  obtain ⟨es, hes, hvals, hnz⟩ := monoWalk_vals (ref_memOk hr) hrecs hat
+  obtain ⟨es, hes, hvals, hnz⟩ := monoWalk_vals (ref_memOkA hR hr) hrecs hat
   have hreg : refMem r.img (aP + 3) ≠ 0 := fun h0 ↦ hnz (by omega) (by rw [h4, h0, zero_mul])
   have hce : σ (.n (mlEnd k)) = refMem r.img (aP + 3) * gen ^ (O + (gsum es k + k)) := by
     rw [mulOf_sound hac hat, const_sound hcm hat, word_two_pow (by omega), (hvals k le_rfl).1, h4,
       pow_add, pow_add]
     ring
   obtain ⟨y, t1, t2, hy1, hy2, hy3⟩ := rcOf_sound hend hat
-  obtain ⟨e0, e0', he0, he0', hx0, hk0'⟩ := rc_sound (ref_memOk hr) ⟨hy1, hy2, hy3⟩
+  obtain ⟨e0, e0', he0, he0', hx0, hk0'⟩ := rc_sound (ref_memOkA hR hr) ⟨hy1, hy2, hy3⟩
   have hb := endOf_sound htv hat
   rw [hce, hx0, hσ1, mul_comm (gen ^ e0)] at hb
   have hgs := gsum_le (fun i hi ↦ (hes i hi).1) k le_rfl
@@ -150,7 +150,7 @@ theorem ml_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
         ring
       unfold CoreMode.CCell.addrW
       rw [e1, e2, hgl, hpg, hw5, hwg, h5, hfin]
-  | .lt _ _, hx | .nz _, hx | .subR _ _, hx | .under _ _, hx | .subP _ _, hx => simp [mlSub] at hx
+  | .lt _ _, hx | .nz _, hx | .subR _ _, hx | .under _ _, hx | .subP _ _, hx | .eq _ _, hx => simp [mlSub] at hx
 
 /-! ## The frame loops (`cm`) -/
 
@@ -161,8 +161,8 @@ theorem cmK_spec {fn : Fn} {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (h : CoreM
 
 /-- **A frame loop's reads at an honest instance**: the record at offset `O`, the next at `O'`, at most `L`
 (`MonoQ`); claim `jj`'s entry `ent · Π_{i ≤ jj} gap_i^4 · g^(4jj)` lies `4o` words into the caller's table, `o < L`. -/
-theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
-    (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
+theorem cmRead {al : String → Bool} {D : Ref → RefD} {r : Ref} (hR : RefH (layB al) (D r) r) (hr : r.Ok)
+    (hO : MonoOk) {I : Inst} (hI : I ∈ instsR al D r) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {jf m p0 st0 cw ew : ℕ}
     (hfl : f = name% «child_claim_list_mono_loop0» ∨ f = name% «child_claim_list_mono_loop1»)
     (hidx : coreProgram.indexOf? f = some jf) (hok : monoOk (coreProgram.getD jf default) f m p0 st0 cw ew = true)
@@ -172,8 +172,8 @@ theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
         ((List.range (jj + 1)).map fun i ↦ σ (.n (13 + 10 * i)) ^ 4).prod * gen ^ (4 * jj) =
           refMem r.img (aP + 2) * gen ^ (4 * o) := by
   obtain ⟨aP, L, n, qc, ⟨hh2, ha5, hm5, hL⟩, hq0', hqn, hn, hn1, hrec⟩ :=
-    (monoQ_all hO hr I hI f σ bufs kids ht).1 hfl
-  obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_valid' hr hI ht
+    (monoQ_allA hO hR hr I hI f σ bufs kids ht).1 hfl
+  obtain ⟨args, rets, fn', hf', -, es0, vs, hw, -, hh, -⟩ := inst_validA hR hI ht
   obtain rfl : fn' = coreProgram.getD jf default := Option.some.inj (hf'.symm.trans (find_of_idx hidx))
   simp only [monoOk, monoHead, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, -⟩, -⟩, -⟩, -⟩, hm10⟩, hl11⟩, hl12⟩, hoc⟩, -⟩, -⟩, hrecs⟩ := hok
@@ -197,7 +197,7 @@ theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
   have h11 : σ (.n 11) = refMem r.img (aP + 3) * gen ^ O := loadHolds_unique (load_sound hl11 hat) h13
   have h12 : σ (.n 12) = refMem r.img (aP + 2) * gen ^ (4 * O) := loadHolds_unique (load_sound hl12 hat) h14
   -- the walk and the next record
-  obtain ⟨es, hes, hvals, hnz⟩ := monoWalk_vals (ref_memOk hr) hrecs hat
+  obtain ⟨es, hes, hvals, hnz⟩ := monoWalk_vals (ref_memOkA hR hr) hrecs hat
   have hreg : refMem r.img (aP + 3) ≠ 0 := fun h0 ↦ hnz (by omega) (by rw [h11, h0, zero_mul])
   obtain ⟨hlc, hcc⟩ := outOk_sound hoc hat
   obtain ⟨O', hO'L, h13', -⟩ := hrec (qc + 1) (by omega)
@@ -215,8 +215,8 @@ theorem cmRead {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
       show 4 * O + (4 * gsum es (jj + 1) + 4 * jj) = 4 * (O + gsum es (jj + 1) + jj) by ring]
 
 /-- **A frame loop's family at an honest instance** (`cmSub`), its ghost words its caller's entries, bound and frame. -/
-theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
-    (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) {f : String} {σ : Val} {bufs : List ℕ}
+theorem cm_inst {al : String → Bool} {D : Ref → RefD} {r : Ref} (hR : RefH (layB al) (D r) r) (hr : r.Ok)
+    (hO : MonoOk) {I : Inst} (hI : I ∈ instsR al D r) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn)
     {p : ℕ × ℕ × ℕ × ℕ × List ℕ} (hk : CoreMode.cmK fn = some p) :
     ∃ a, I.hdr.2 = ofK (addressOfIndex a) ∧ a + 5 < maxCells ∧
@@ -238,8 +238,8 @@ theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
         ((List.range (jj + 1)).map fun i ↦ σ (.n (13 + 10 * i)) ^ 4).prod * gen ^ (4 * jj) =
           refMem r.img (aP + 2) * gen ^ (4 * o) := by
     rcases hcases with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-    · exact cmRead hr hO hI ht (Or.inl rfl) mono136_idx mono136_ok word_g136 (by norm_num) (by norm_num)
-    · exact cmRead hr hO hI ht (Or.inr rfl) mono17_idx mono17_ok word_g17 (by norm_num) (by norm_num)
+    · exact cmRead hR hr hO hI ht (Or.inl rfl) mono136_idx mono136_ok word_g136 (by norm_num) (by norm_num)
+    · exact cmRead hR hr hO hI ht (Or.inr rfl) mono17_idx mono17_ok word_g17 (by norm_num) (by norm_num)
   refine ⟨aP, hh2, ha5, fun x hx ↦ ?_⟩
   have hO3 := ownG_setG (G := ({ ghosts := 3 } : CoreMode.HSig)) (σ := σ)
     (gw := [refMem r.img (aP + 2), refMem r.img (aP + 5), ofK (Parameters.g ^ aP)]) rfl
@@ -307,7 +307,7 @@ theorem cm_inst {r : Ref} (hr : r.Ok) (hO : MonoOk) {I : Inst}
     obtain ⟨rfl, rfl⟩ := hx
     obtain ⟨o, hoL, -⟩ := hrd 0 (by rcases hcases with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> norm_num)
     exact ⟨0, L, hc0, hlim, by omega⟩
-  | .nz _, hx | .subR _ _, hx | .under _ _, hx | .subP _ _, hx =>
+  | .nz _, hx | .subR _ _, hx | .under _ _, hx | .subP _ _, hx | .eq _ _, hx =>
     simp [CoreMode.cmSub] at hx
 
 /-- **A frame loop's linked cells** at its frame: the caller's cells `2` and `5` its first two ghost words, the

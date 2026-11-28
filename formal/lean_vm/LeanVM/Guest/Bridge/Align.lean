@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.AlignRun
 /-!
 # The alignment check's facts
 
-`alignAt_zero`: on a function passing `alignOk`, the body position at offset `0` is the body, so `refOk_init` applies with the alignment `alignAt` (by name). The pass records each offset it reaches once, at the offset it is at (`stepI_rec`, `alignGo_rec`), so the record of offset `0`, the body's start, is found past the later ones.
+`alignAt_zero`: on a function passing `alignOk`, the body position at offset `0` is the body, so `refOk_init` applies with the alignment `alignAt` (by name). The pass records each offset it reaches once, at the offset it is at (`stepI_rec`, `alignGo_rec`), so the record of offset `0`, the body's start, is found past the later ones. `posOf_nil`: a cursor at the top level names the body's rest.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -20,6 +20,8 @@ open LeanVM.Guest.Core
 open LeanVM.Guest.Exec (natSeq_eq)
 
 public section
+
+theorem posOf_nil (body : List Stmt) (k : ℕ) : posOf body [] k = body.drop k := rfl
 
 /-- A step records at most its own offset. -/
 theorem stepI_rec (X : AlignCtx) (ins : OffsetInstruction) {st : St} {r : St × Option (ℕ × Zip)}

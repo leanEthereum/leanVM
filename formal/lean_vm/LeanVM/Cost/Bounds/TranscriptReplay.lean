@@ -263,7 +263,7 @@ theorem get?_some_mem {m : SortedMap α β} {k : α} {v : β} (h : m.get? k = so
     ∃ l ∈ m.levels, ∃ e ∈ l.entries, e.2 = v := by
   rw [SortedMap.get?_eq] at h
   obtain ⟨l, hl, hv⟩ := List.exists_of_findSome?_eq_some h
-  simp only [lookup, Option.map_eq_some_iff] at hv
+  simp only [Fast.lookup, Option.map_eq_some_iff] at hv
   obtain ⟨e, he, rfl⟩ := hv
   exact ⟨l, hl, e, by simpa using List.mem_of_find?_eq_some he, rfl⟩
 
@@ -306,8 +306,8 @@ the edges, `8` for the capacities), the paths' bytes at most `B`, room for `r` m
 below `2^D`. -/
 @[expose] def ReplayInv (B D : ℕ) (τ : ReplayFast) (r : ℕ) : Prop :=
   smGood τ.fwd ∧ smGood τ.inv ∧ smGood τ.caps ∧
-    KeysIn (ListKey 25) τ.fwd.levels ∧ KeysIn (ListKey 25) τ.inv.levels ∧
-    KeysIn (ListKey 8) τ.caps.levels ∧ (∀ l ∈ τ.caps.levels, ∀ e ∈ l.entries, PathOk B e.2) ∧
+    KeysIn (WordsKey 25) τ.fwd.levels ∧ KeysIn (WordsKey 25) τ.inv.levels ∧
+    KeysIn (WordsKey 8) τ.caps.levels ∧ (∀ l ∈ τ.caps.levels, ∀ e ∈ l.entries, PathOk B e.2) ∧
     (∀ p ∈ τ.paths, PathOk B p) ∧ smWeightSum τ.fwd + r ≤ 2 ^ D ∧ smWeightSum τ.inv + r ≤ 2 ^ D ∧
     smWeightSum τ.caps + r ≤ 2 ^ D
 
@@ -316,7 +316,6 @@ below `2^D`. -/
   (26 * 25 + 37) * potential D τ.fwd.levels + (26 * 25 + 37) * potential D τ.inv.levels +
     (26 * 8 + 37) * potential D τ.caps.levels
 
-open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- **One replay step, amortized** (`replayStepC`). -/
 theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
@@ -334,29 +333,19 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c36.costIdx [encodeValue m, encodeValue k] ≤
         D * (20 + (40 + 26 * 25 + 9 * W) * (D + 2)) + 9 := by
     intro k hk m hl hs
-    have := getList_cost P (compareWords_cost P (by includes) (by includes)) (by includes) _ _ _
-      (SortedMap.get?.c36.costEq P (by includes))
-      (SortedMap.get?.c36.lam0.costEq P (by includes))
-      (fun k l ↦ RunsApp.of_spec (SortedMap.get?.c36.lam0.costSpec P (by includes) k l))
-      (searchIn.c38.costEq P (by includes))
-      m (2 ^ D) W hW (fun l hl' ↦ (hs l hl').1.trans (hs l hl').2) k
+    have := getU_cost P (by includes) m (2 ^ D) W hW (fun l hl' ↦ (hs l hl').1.trans (hs l hl').2) k
     rw [Nat.log2_two_pow, hk] at this
     exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ hl) 9)
   have hC : ∀ k : List UInt64, k.length = 8 →
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.get?.c39.costIdx [encodeValue τ.caps, encodeValue k] ≤
         D * (20 + (40 + 26 * 8 + 9 * W) * (D + 2)) + 9 := by
     intro k hk
-    have := getList_cost P (compareWords_cost P (by includes) (by includes)) (by includes) _ _ _
-      (SortedMap.get?.c39.costEq P (by includes))
-      (SortedMap.get?.c39.lam0.costEq P (by includes))
-      (fun k l ↦ RunsApp.of_spec (SortedMap.get?.c39.lam0.costSpec P (by includes) k l))
-      (searchIn.c41.costEq P (by includes))
-      τ.caps (2 ^ D) W hW
+    have := getC_cost P (by includes) τ.caps (2 ^ D) W hW
       (fun l hl' ↦ (sz3 l hl').1.trans (sz3 l hl').2) k
     rw [Nat.log2_two_pow, hk] at this
     exact this.trans (Nat.add_le_add_right (Nat.mul_le_mul_right _ lv3) 9)
   -- an insertion into an edge map, amortized
-  have hInsU : ∀ (m : SortedMap (List UInt64) Unit), smGood m → KeysIn (ListKey 25) m.levels →
+  have hInsU : ∀ (m : SortedMap (List UInt64) Unit), smGood m → KeysIn (WordsKey 25) m.levels →
       smWeightSum m < 2 ^ D → m.levels.length ≤ D → ∀ k : List UInt64, k.length = 25 →
       machineCost P Auto.LeanVM.Extraction.Fast.SortedMap.insert.c43.costIdx [encodeValue m, encodeValue k, encodeValue ()] +
           (26 * 25 + 37) * potential D (m.insert k ()).levels ≤
@@ -365,11 +354,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
     rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.c43.costEq P (by includes)]
     have hc1 := Nat.mul_le_mul_left (32 + 2 * W) (show m.levels.length + 1 ≤ D + 1 by omega)
     have hc2 : (32 + 2 * W) * (D + 1) = (32 + 2 * W) * D + 32 + 2 * W := by ring
-    have := carryList_amortized P (compareWords_cost P (by includes) (by includes)) _ _ _
-      (carry.c44.costEq_nil P (by includes)) (carry.c44.costEq_cons P (by includes))
-      (Level.merge.c45.costEq P (by includes))
-      ⟨mergeNewer.c46.costEq_nil P (by includes), mergeNewer.c46.costEq_cons P (by includes)⟩
-      25 D W hW m hm hk hN
+    have := carryU_amortized P (by includes) 25 D W hW m hm hk hN
       ⟨1, #[(k, ())], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by
         simp at he; rw [he]; show k.length ≤ 25; omega)
     have hins : (m.insert k ()).levels = carry ⟨1, #[(k, ())], by simp [Ascending]⟩ m.levels := rfl
@@ -383,11 +368,7 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
     rw [Auto.LeanVM.Extraction.Fast.SortedMap.insert.c58.costEq P (by includes)]
     have hc1 := Nat.mul_le_mul_left (32 + 2 * W) (show τ.caps.levels.length + 1 ≤ D + 1 by omega)
     have hc2 : (32 + 2 * W) * (D + 1) = (32 + 2 * W) * D + 32 + 2 * W := by ring
-    have := carryList_amortized P (compareWords_cost P (by includes) (by includes)) _ _ _
-      (carry.c59.costEq_nil P (by includes)) (carry.c59.costEq_cons P (by includes))
-      (Level.merge.c60.costEq P (by includes))
-      ⟨mergeNewer.c61.costEq_nil P (by includes), mergeNewer.c61.costEq_cons P (by includes)⟩
-      8 D W hW τ.caps g3 k3 (by omega)
+    have := carryC_amortized P (by includes) 8 D W hW τ.caps g3 k3 (by omega)
       ⟨1, #[(k, v)], by simp [Ascending]⟩ rfl rfl (fun e he ↦ by
         simp at he; rw [he]; show k.length ≤ 8; omega)
     have hins : (τ.caps.insert k v).levels = carry ⟨1, #[(k, v)], by simp [Ascending]⟩ τ.caps.levels :=
@@ -396,8 +377,8 @@ theorem replayStep_amortized (hP : Includes P replayStepC.costDeps) (B D W : ℕ
     omega
   have hd : ∀ z : KeccakState, machineCost P Auto.List.drop.c42.costIdx [encodeValue 17, encodeValue z.toList] ≤ 260 :=
     fun z ↦ (drop_cost P (by includes) 17 z.toList (by norm_num)).trans (by norm_num)
-  have hk25 : ∀ z : KeccakState, ListKey 25 z.toList := fun z ↦ by simp [ListKey]
-  have hk8 : ∀ z : KeccakState, ListKey 8 (z.toList.drop 17) := fun z ↦ by simp [ListKey]
+  have hk25 : ∀ z : KeccakState, WordsKey 25 z.toList := fun z ↦ by simp [WordsKey]
+  have hk8 : ∀ z : KeccakState, WordsKey 8 (z.toList.drop 17) := fun z ↦ by simp [WordsKey]
   have hl25 : ∀ z : KeccakState, z.toList.length = 25 := fun z ↦ by simp
   have hl8 : ∀ z : KeccakState, (z.toList.drop 17).length = 8 := fun z ↦ by simp
   obtain ⟨fst, y⟩ := q
@@ -514,7 +495,7 @@ theorem replayInv_init (B D N : ℕ) (hN : N + 1 ≤ 2 ^ D) : ReplayInv B D Repl
   refine ⟨smGood_empty, smGood_empty, (smGood_insert smGood_empty _ _).1, fun _ h ↦ by
     simp [ReplayFast.init, SortedMap.empty] at h, fun _ h ↦ by
     simp [ReplayFast.init, SortedMap.empty] at h, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · exact keysIn_insert (fun _ h ↦ by simp [SortedMap.empty] at h) (by simp [ListKey]) _
+  · exact keysIn_insert (fun _ h ↦ by simp [SortedMap.empty] at h) (by simp [WordsKey]) _
   · exact valsIn_insert (fun _ h ↦ by simp [SortedMap.empty] at h) _ (by simp [PathOk])
   · intro p hp; simp [ReplayFast.init] at hp; subst hp; simp [PathOk]
   · simp [ReplayFast.init, smWeightSum_empty]; omega
@@ -681,10 +662,7 @@ theorem transcriptIndex_cost (hP : Includes P transcriptIndexC.costDeps) (D L W 
   have hget : ∀ x : List UInt8, x.length ≤ L →
       machineCost P getBytesC.costIdx [encodeValue (firstAnswers Ev), encodeValue x] ≤ G + 9 := by
     intro x hx
-    have := getList_cost P (compareBytes_cost P (by includes) (by includes)) (by includes) _ _ _
-      (getBytesC.costEq P (by includes)) (getBytesC.lam0.costEq P (by includes))
-      (fun k l ↦ RunsApp.of_spec (getBytesC.lam0.costSpec P (by includes) k l))
-      (Auto.LeanVM.Extraction.Fast.searchIn.c25.costEq P (by includes)) (firstAnswers Ev) (2 ^ D) W hW
+    have := getBytes_cost P (by includes) (firstAnswers Ev) (2 ^ D) W hW
       (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) x
     rw [Nat.log2_two_pow] at this
     have h1 : (firstAnswers Ev).levels.length * (20 + (40 + 26 * x.length + 9 * W) * (D + 2)) ≤ G :=

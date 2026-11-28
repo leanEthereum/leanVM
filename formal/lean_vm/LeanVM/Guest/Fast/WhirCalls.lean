@@ -4,7 +4,6 @@ public import LeanVM.Guest.Fast.WhirTables
 public import LeanVM.Guest.Fast.WhirTemplate
 public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.Whir.Witness
-public import LeanVM.Guest.Memory.GuestCalleesOk
 public import LeanVM.Guest.CoreNames
 
 /-!
@@ -20,7 +19,8 @@ public import LeanVM.Guest.CoreNames
 * `osWordsTab_eq`, `CallsOKN`: the literal tables of `Fast/WhirTables.lean` are the template's at
   every size and rate (`osCfgAt j`: size `j % ligNSizes`, rate index `j / ligNSizes`), by kernel
   evaluation, a configuration at a time (`callsOK_j`, `Fast/WhirCalls/R*.lean`, a module per rate,
-  joined in `Fast/WhirTablesCheck.lean`), the names read off `Data.nameT` (`nameIs`, `callMatchN`)
+  joined in `Fast/WhirTablesCheck.lean`), the names read off `coreNameList` (`nameIs`, `callMatchN`, checked against `coreProgram`,
+  `coreNameList_eq`)
   and the `opening_queries` specialization found by its entry in the table (`oqAt`), not by its
   name, the table's names being distinct (`oqNames_nodup`).
 -/
@@ -68,18 +68,23 @@ noncomputable def callMatch (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × 
       r.N == lv.queries / (1 + lvBase lvl) && r.odd == lv.queries % (1 + lvBase lvl) && r.depth == lv.depth && r.cd == lv.capDepth &&
       r.args == args.map vIdx && r.rets == rets.map vIdx && args.all isN && rets.all isN
 
-/-- `decoderFunctionName j = f`, read off `Data.nameT`. -/
-def nameIs (j : ℕ) (f : String) : Bool := isFunctionIndex j && decide (Data.nameT.find (j - 1) = some f)
+set_option maxRecDepth 100000 in
+/-- **The generated names are the core functions'**, by one kernel evaluation. -/
+theorem coreNameList_eq : coreProgram.map (·.name) = coreNameList := by decide +kernel
+
+/-- `decoderFunctionName j = f`, read off `coreNameList`. -/
+def nameIs (j : ℕ) (f : String) : Bool := isFunctionIndex j && decide (coreNameList[j - 1]? = some f)
 
 theorem nameIs_spec {j : ℕ} {f : String} (h : nameIs j f = true) : decoderFunctionName j = f := by
   simp only [nameIs, Bool.and_eq_true, decide_eq_true_eq] at h
   have hj := h.1
   simp only [isFunctionIndex, Bool.and_eq_true, decide_eq_true_eq] at hj
   have hl : j - 1 < coreProgram.length := by rw [coreProgram_length]; omega
-  have hn := Data.nameT_spec hl h.2
+  have hn := h.2
+  rw [← coreNameList_eq, List.getElem?_map, List.getElem?_eq_getElem hl, Option.map_some,
+    Option.some.injEq] at hn
   unfold decoderFunctionName
   simp only [h.1, ↓reduceIte, List.getD_eq_getElem _ _ hl]
-  rw [List.getElem?_eq_getElem hl, Option.map_some, Option.some.injEq] at hn
   exact hn
 
 /-- Entry `i` of the specializations' table. -/
@@ -115,7 +120,7 @@ theorem oqEntry_of_at {i : ℕ} {n : String} (h : ((oqAt i).map (·.1)) = some n
   subst h
   exact find_fst_of_nodup oqNames_nodup hp
 
-/-- `callMatch`, the names read off `Data.nameT`, the specialization by its entry in the table. -/
+/-- `callMatch`, the names read off `coreNameList`, the specialization by its entry in the table. -/
 noncomputable def callMatchN (c : OsCfg) (r : OsCall) : ℕ × OsLv × List V × List V → Bool
   | (lvl, lv, args, rets) =>
     decide (((oqAt r.sh).map (·.1)) = some (osOqName c lvl lv)) &&
@@ -146,7 +151,7 @@ def CallsOK (j : ℕ) : Prop :=
     ((osCallsTab.getD j []).zip (osQCalls (osCfgAt j))).all
       (fun p ↦ callMatch (osCfgAt j) p.1 p.2) = true
 
-/-- `CallsOK`, the names read off `Data.nameT`. -/
+/-- `CallsOK`, the names read off `coreNameList`. -/
 def CallsOKN (j : ℕ) : Prop :=
   (osCallsTab.getD j []).length = (osQCalls (osCfgAt j)).length ∧
     ((osCallsTab.getD j []).zip (osQCalls (osCfgAt j))).all

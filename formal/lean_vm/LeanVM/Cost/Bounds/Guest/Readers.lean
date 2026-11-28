@@ -80,22 +80,23 @@ theorem digestOfCells_cost (hP : Includes P Decoder.digestOfCellsC.costDeps) (a 
     machineCost P Decoder.digestOfCellsC.costIdx [encodeValue a, encodeValue b] = 26 :=
   Decoder.digestOfCellsC.costEq P hP a b
 
-/-- A deferred claim of its cells (`deferOfCellsC`): at most `820`. -/
+/-- A deferred claim of its cells (`deferOfCellsC`): at most `888`. -/
 theorem deferOfCells_cost (hP : Includes P Decoder.deferOfCellsC.costDeps) (cs : List E) :
-    machineCost P Decoder.deferOfCellsC.costIdx [encodeValue cs] ≤ 820 := by
+    machineCost P Decoder.deferOfCellsC.costIdx [encodeValue cs] ≤ 888 := by
   rw [Decoder.deferOfCellsC.costEq P hP]
   have := take_cost P (by includes) bytecodeVars cs (by norm_num [bytecodeVars])
   have := getD_cost_idx P (by includes) cs bytecodeVars 0 (by norm_num [bytecodeVars])
   simp only [bytecodeVars] at *
   omega
 
-/-- A claim on the bytecode of its cells (`fixedOfCellsC`): at most `820`. -/
-theorem fixedOfCells_cost (hP : Includes P Decoder.fixedOfCellsC.costDeps) (cs : List E) :
-    machineCost P Decoder.fixedOfCellsC.costIdx [encodeValue cs] ≤ 820 := by
-  rw [Decoder.fixedOfCellsC.costEq P hP]
-  have := take_cost P (by includes) bytecodeVars cs (by norm_num [bytecodeVars])
-  have := getD_cost_idx P (by includes) cs bytecodeVars 0 (by norm_num [bytecodeVars])
-  simp only [bytecodeVars] at *
+/-- A fresh claim of its cells (`freshOfCellsC`): at most `1380`. -/
+theorem freshOfCells_cost (hP : Includes P Decoder.freshOfCellsC.costDeps) (cs : List E) :
+    machineCost P Decoder.freshOfCellsC.costIdx [encodeValue cs] ≤ 1380 := by
+  rw [Decoder.freshOfCellsC.costEq P hP]
+  have := take_cost P (by includes) bytecodeLog cs (by norm_num [bytecodeLog])
+  have := drop_cost P (by includes) bytecodeLog cs (by norm_num [bytecodeLog])
+  have := take_cost P (by includes) nSplit (cs.drop bytecodeLog) (by norm_num [nSplit])
+  simp only [bytecodeLog, nSplit] at *
   omega
 
 theorem claimLimbs (c d : E) :

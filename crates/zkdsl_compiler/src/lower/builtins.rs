@@ -394,7 +394,7 @@ impl FnLower<'_> {
         d
     }
 
-    /// Four consecutive frame cells holding `cells`: where they already lie, a window of the
+    /// Four consecutive frame cells holding `cells`: where they already lie, a slice of the
     /// padding run, or a fresh copy.
     fn sponge_run(&mut self, cells: &[SpongeCell]) -> Off {
         let at = |k: usize| match cells[k] {
@@ -525,7 +525,7 @@ impl FnLower<'_> {
                 self.emit(LOp::Jump { oc: zero, od: a, of: b });
             }
             "assert_gpow" => {
-                // One `DEREF` through `x`: the memory bus then proves `x = g^e` with
+                // One `DEREF` through `x`: the memory link then proves `x = g^e` with
                 // `e < 2^h`, the lower half of a range check, its target a touch cell.
                 if args.len() != 1 {
                     self.fail("assert_gpow(x) takes one scalar cell")
@@ -565,7 +565,7 @@ impl FnLower<'_> {
     }
 
     /// The message cells `e` names: a list literal's words (a literal `0` known to be zero,
-    /// which lets a constant window of the padding run stand in for it), or a run of cells, a
+    /// which lets a constant slice of the padding run stand in for it), or a run of cells, a
     /// heap run bridged through the stack since `KECCAK` addresses only frame cells.
     fn sponge_cells(&mut self, e: &Expr) -> Vec<SpongeCell> {
         if let Expr::ListLit(words) = e {

@@ -67,7 +67,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
     {fn : Fn} (hfind : coreProgram.find? (layerName first) = some fn)
     (hbody : fn.body = layerT first)
     (hparams : fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"),
-      .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"), .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")])
+      .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"), .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs")])
     (rd : Reader)
     (hgr : GcSoundOn rd 3)
     (args rets : List E) (h : coreProgram.Rel rd (layerName first) args rets) :
@@ -80,42 +80,42 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   intro htabs y step c w hy1 hy32 hyg hsg hrg hcr hw hiota
   rw [hbody, layerT] at hb
   rw [holdsList_append, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
-    holdsList_append, holdsList_append, holdsList_append, holdsList_append] at hb
+    holdsList_append, holdsList_append, holdsList_append] at hb
   generalize ho : layOff first = o at hb hW
-  have hoff : LayOff o := by
-    subst ho
+  generalize hp : preOff first = p at hb
+  have hpo : o = p + 1 := by rw [← ho, ← hp]; rfl
+  have hoff : LayOff p := by
+    subst hp
     interval_cases first
     · exact Or.inl rfl
     · exact Or.inr rfl
   -- the product, the grind and `s`
   replace hb := layerA_holds hf hcr hw hgr htabs hb
-  rw [ho] at hb
+  rw [hp] at hb
   obtain ⟨hrd, hproj, hnl, hgrind, hsq, hb⟩ := hb
   obtain ⟨hl, -, -, -, -⟩ := prodTab_facts first hf
   -- the instance weights
   obtain ⟨hmuOut, hkapOut⟩ := rmfeBlock_holds hoff hb
-  have hkap := atom_of_block (rmfeBlock_atoms o) hb _ (rmfeBlock_kappa hoff)
+  have hkap := atom_of_block (rmfeBlock_atoms p) hb _ (rmfeBlock_kappa hoff)
   simp only [Atom.Holds] at hkap
-  replace hb := ((holdsList_atoms (allAtoms_of_all (rmfeBlock_atoms o)) _ _).1 hb).2
+  replace hb := ((holdsList_atoms (allAtoms_of_all (rmfeBlock_atoms p)) _ _).1 hb).2
   -- Horner
   replace hb := hornerT_holds (cs := (prodTab first).map fun p ↦ σ (.n p.a))
     (by simp [hl]) (fun k hk ↦ by
       rw [List.getD_eq_getElem ((prodTab first).map _) _ (by simp [hl]; omega), List.getElem_map,
         List.getD_eq_getElem (prodTab first) _ (by omega)]) hb
   obtain ⟨hhor, hb⟩ := hb
-  have e717 : σ (.n (o + 780)) =
-      polyEval ((prodTab first).map fun p ↦ σ (.n p.a)) (σ (.n (o + 531))) := hhor
+  have e717 : σ (.n (p + 780)) =
+      polyEval ((prodTab first).map fun p ↦ σ (.n p.a)) (σ (.n (p + 531))) := hhor
   clear hhor
   have hprodL : ((prodTab first).map fun p ↦ σ (.n p.a)).length = productBits := by simp [hl]; rfl
   generalize (prodTab first).map (fun p ↦ σ (.n p.a)) = prod at hrd hproj hsq e717 hprodL hgrind
   clear hl
   -- the pack rounds
-  replace hb := packSetupT_holds hb
-  obtain ⟨hpp, hrec0, hik, hloopC, e727, hik', hremC, hb⟩ := hb
-  replace hb := lastT_holds hb
-  obtain ⟨e739, hlastR, hb⟩ := hb
+  replace hb := packT_holds hb
+  obtain ⟨hpp, ⟨j1, hj1, hsgj, hc1⟩, ⟨j2, hj2, hrgj, hc2⟩, hcopy, hb⟩ := hb
   -- the local rounds
-  replace hb := localRounds_run (cap := (cap5 (o + 802)).map σ) rfl 11 (by omega) hb
+  replace hb := localRounds_run (cap := (cap5 (o + 804)).map σ) rfl 11 (by omega) hb
   obtain ⟨⟨msgs, hmL, hmR, hlocR, hvR, hcapR⟩, hb⟩ := hb
   simp only [Nat.reduceAdd, Nat.reduceMul, Nat.reduceSub, Nat.add_assoc] at hvR hcapR
   -- `t`
@@ -129,7 +129,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   -- the lane weights of the local point
   replace hb := eqfT_holds (by omega) (by omega) (by decide) (by decide) hb
   obtain ⟨⟨rs, hrsL, hrs, hent⟩, hb⟩ := hb
-  generalize hlp : (localRunF msgs (σ (.n (o + 808))) ⟨(cap5 (o + 802)).map σ, []⟩).1.1 = locPt
+  generalize hlp : (localRunF msgs (σ (.n (o + 803))) ⟨(cap5 (o + 804)).map σ, []⟩).1.1 = locPt
     at hlocR
   have hlocL : locPt.length = 11 := by rw [← hlp, localRunF_length, hmL]
   have hrs6 : rs = locPt.drop 6 := by
@@ -150,9 +150,9 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
   generalize weightVal first o = WV at hb hwv
   replace hb := tailT_holds hlocL hlocR hf' p1 p2 p3 hb
   obtain ⟨hfinal, hbeta, hout0, hout2, hout4, hout3, hlanes, hout5, hflips, hret⟩ := hb
-  have hk625 : σ (.n (o + 688)) = sumE (keccakInstanceWeights (σ (.n (o + 531)))) :=
-    loadHolds_unique hkap hkapOut
-  rw [e739, e727] at hlastR
+  have hk625 : σ (.n (o + 687)) = sumE (keccakInstanceWeights (σ (.n (p + 531)))) := by
+    rw [hpo, show p + 1 + 687 = p + 688 by omega]
+    exact loadHolds_unique hkap hkapOut
   have W : LayerW first rd (σ (.n (valf% «keccak_layer» "fs0"))) (σ (.n (valf% «keccak_layer» "fs1"))) (σ (.n (valf% «keccak_layer» "fs2"))) (σ (.n (valf% «keccak_layer» "fs3"))) (σ (.n (valf% «keccak_layer» "fs4"))) (σ (.n (valf% «keccak_layer» "cursor@1")))
       (σ (.n (valf% «keccak_layer» "step_g"))) (σ (.n (valf% «keccak_layer» "rem_g"))) (σ (.n (valf% «keccak_layer» "claim"))) (σ (.n (valf% «keccak_layer» "out"))) (σ (.n (valf% «keccak_layer» "iota"))) rets c w :=
     { prod := prod
@@ -162,23 +162,40 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
       nonce := σ (.n (nonceV first))
       hnonce := hnl
       hgrind := hgrind
-      sv := σ (.n (o + 531))
-      capS := (cap5 (o + 539)).map σ
+      sv := σ (.n (p + 531))
+      capS := (cap5 (p + 539)).map σ
       hsq := hsq
       hmuOut := hmuOut
       hkapOut := hkapOut
-      rc := σ (.n (o + 783))
-      pt := σ (.n (o + 782))
-      pp := σ (.n (o + 781))
+      pt := σ (.n (p + 782))
+      pp := σ (.n (p + 781))
       hpp := hpp
       tb := σ (.n (valf% «keccak_layer» "tabs"))
-      h0 := by rw [← e717, show productBits + 1 = 48 from rfl]; exact hrec0
-      hloop := ⟨hik, hloopC⟩
-      hrem := ⟨hik', hremC⟩
-      capL := (cap5 (o + 802)).map σ
-      curL := σ (.n (o + 807))
-      vL := σ (.n (o + 808))
-      hlast := hlastR
+      hcapS := rfl
+      j1 := j1
+      hj1 := hj1
+      hsgj := hsgj
+      r1 := (List.range 7).map fun k ↦ σ (.n (p + 785 + k))
+      hr1 := by rw [← e717, show productBits + 1 = 48 from rfl]; exact hc1
+      j2 := j2
+      hj2 := hj2
+      hrgj := hrgj
+      r2 := (List.range 7).map fun k ↦ σ (.n (p + 798 + k))
+      hr2 := hc2
+      capL := (cap5 (o + 804)).map σ
+      curL := σ (.n (o + 802))
+      vL := σ (.n (o + 803))
+      hr2v := by
+        subst hpo
+        have c0 := hcopy 0 (by omega)
+        have c1 := hcopy 1 (by omega)
+        have c2 := hcopy 2 (by omega)
+        have c3 := hcopy 3 (by omega)
+        have c4 := hcopy 4 (by omega)
+        simp only [cap5, List.map_cons, List.map_nil, List.range_succ, List.range_zero,
+          List.nil_append, List.cons_append, Nat.add_zero, Nat.add_assoc,
+          Nat.reduceAdd] at c0 c1 c2 c3 c4 ⊢
+        rw [c0, c1, c2, c3, c4]
       msgs := msgs
       hmsgsL := hmL
       hmsgs := hmR
@@ -204,7 +221,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
       capB := (cap5 (WE + 16)).map σ
       hbeta := hbeta
       hout0 := hout0
-      hout2 := hout2
+      hout2 := by rw [show p + 782 = o + 781 by omega]; exact hout2
       hout4 := hout4
       lo := σ (.n (WE + 25))
       fl := σ (.n (topV WE + 3))

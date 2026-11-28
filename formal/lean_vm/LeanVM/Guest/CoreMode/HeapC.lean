@@ -21,19 +21,19 @@ public import LeanVM.Guest.Memory.SelArm
 
 **Events.** A path's events (`walk`) write (`EvW`): an atom its `Writes`, an entered call its callee's `post` cells and `postR` runs at its words. `WrittenC` is what the own preconditions and the events so far write. A path is sound (`ReadsOkC`): each atom's reads, and each entered call's callee preconditions at its argument words (with the runs' exponents), are written before; and it returns sound (`PostOkC`): the own guarantees at the words it returns are written by its events.
 
-**The pass** (`chkC`). `heapOk`'s state (`HSt`), plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). A run in scope may also be rebased onto the needed run's base, `t` strides back (`shiftR`, `runRunS`: its constant lower bound plus `t` at most the needed one's), its cells from there being its own. Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`).
+**The pass** (`chkC`). `heapOk`'s state (`HSt`), plus a run scope (pass-level runs, `PRun`, bounds as monomials, by run serial: first the own `preR`, then each call's callee `postR`), and serials for calls and returns, which key the certificate's witnesses (`HCert.calls`, `HCert.rets`). A witness of a cell (`ptOk`): a write event, a precondition, or a run in scope holding it (`ptRun`: at its lower bound, the bounds a fact; or at a constant index, the bounds constants or a fact); of a run (`rnOk`): a run in scope containing it (`runRun`, the lower bound equal, a smaller constant, or one less with the bounds a fact; the upper equal, a larger constant, or past a fact's constant). A run in scope may also be rebased onto the needed run's base, `t` strides back (`shiftR`, `runRunS`: its constant lower bound plus `t` at most the needed one's), its cells from there being its own. Facts (`facts`): the own `term` and the residuals a witness lists, as exponents in order (`LtF`, both existing). A call checks its callee's `pre` and `preR` at its arguments and pushes its `post` cells and `postR` runs at its words; a `dispatch` checks every arm's and pushes what every arm guarantees; a `callIf c g args` checks and pushes only the runs whose bounds are the two operands of `c`'s sum (`c = lo + hi`: not entered, `lo = hi` and the run is empty); a `ret` checks the own `post`, `postR` at the parameters and its words. A run in scope asserts only that its cells are written for the exponents its bounds have (`RunF`); the exponents a coverage needs come from the facts and from constants below `2^62`. The parameters are their own bases from the start (`paramEnv`), and an equation residual `⟨[(v, 1)], 0⟩ = m` names the value `v` by `m` (`seedEnv`: a value keeps its first monomial, so the residual's name stands).
 
-**Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns (`retMC`, `RetMOk`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
+**Values.** A call names its returned words by its callee's `retM` (monomials over the arguments; a `dispatch`, those every arm gives), which a `ret` checks of the words it returns by the kept equations (`retMC`, `RetMOk`; the pass starts with the equation residuals kept, `resEqs`); a read whose witness is a load event of its very cell takes the word stored there (`hvDef`: memory is written once, `SvOk`); a `mul d q b` listing `q` (`HCert.divs`) with `b` a constant `g^k` names `q = d / g^k` (`divOf`). A function may name the word stored at a `post` cell (`postV`, `RetVOk`: by the load event its witness is, `retVC`); a call stores it at that cell's point serial (`postVE`), so a read of the cell takes it as from a load event.
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them. An `ite`'s zero branch keeps the equation `a = b` of its guard's sum `c = a + b` (`zeroEq`: characteristic 2), so a run whose bounds are one word by the kept equations has no cell (`emptyE`). The certificate may list `ite`s (`HCert.dups`, by guard) whose continuation the pass checks in each branch (`dupB`): the `ret` after an `ite` that only one branch's writes reach.
 
-**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`), replacing an equal earlier entry (`CSt.addCd`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
+**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
 
-**Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and each callee instance is given those words (`setG`, `CoreGhost.lean`).
+**Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
 
 **Words at cells.** A caller may name a callee's ghost by the word at a cell it never loads (a record's pointer
 field): the certificate lists such cells (`HCert.ders`), value `DB + k` being the word at `ders[k]` (`DerOk`, a
-hypothesis of the instance), and the ghost monomials (`gargs`)
+hypothesis of the instance, set from the memory in the tree, `HeapCTree.lean`), and the ghost monomials (`gargs`)
 name it. At a call naming `DB + k`, the cell `ders[k]` is witnessed written first (`derWs`, `DerW`), then the
 callee's preconditions are checked with `DB + k` loaded from it (`derSt`, `src`), so a pointer fact at the cell
 gives the object's cells; the semantics asks those preconditions where the cells are in memory (`DerDef`,
@@ -218,6 +218,7 @@ def unU (path : List CCond) : CRes → Option CRes
   | .sub c r => some (.sub c r)
   | .subR q r => some (.subR q r)
   | .subP c cs => some (.subP c cs)
+  | .eq a b => some (.eq a b)
 
 /-- The residual `i` at the site. -/
 noncomputable def resAt (X : CX) (i : ℕ) : Option CRes :=
@@ -422,10 +423,105 @@ noncomputable def rnOk (X : CX) (st : CSt) (Q : PRun) : Wit → Bool
 /-- The offsets all among `o`. -/
 def subL (offs o : List ℕ) : Bool := offs.all fun x ↦ o.any (Nat.beq x)
 
-/-- The cells `m·g^o`, `o ∈ offs`, each with a witness: the witnesses left. -/
+/-- Points needed at the cells `b·g^(S·j)`, `n` of them from `j`, one witness each (`pt`): the witnesses
+left. -/
+noncomputable def ptsRunP (pt : CCell → Wit → Bool) (b : CCell) (S : ℕ) :
+    ℕ → ℕ → List Wit → Option (List Wit)
+  | _, 0, ws => some ws
+  | j, n + 1, w :: ws => bif pt (b.shift (S * j)) w then ptsRunP pt b S (j + 1) n ws else none
+  | _, _ + 1, [] => none
+
+/-- A fact `(a, g^h)` with `h ≤ j`, `h < 2^62`: the exponent of `a` below `j`. -/
+def hasFU (F : List (CCell × CCell)) (a : CCell) (j : ℕ) : Bool :=
+  F.any fun p ↦ p.1.beq a && p.2.bases.isEmpty && Nat.ble p.2.off j && Nat.blt p.2.off capE
+
+/-- A run needed, one part: its witness, `pts` and one point witness per cell (constant bounds, `pt`), or `ptsU n res`
+and one point witness per cell below `n` (a constant lower bound, the upper bound's exponent at most `n` by a fact).
+The witnesses left. -/
+noncomputable def runOk1P (pt : CCell → Wit → Bool) (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .pts :: ws => bif constR Q then ptsRunP pt Q.base Q.stride Q.lo.off (Q.hi.off - Q.lo.off) ws else none
+  | .ptsU n res :: ws => bif Q.lo.bases.isEmpty && Nat.blt Q.lo.off capE && hasFU (facts X st.env res) Q.hi (n + 1)
+      then ptsRunP pt Q.base Q.stride Q.lo.off (n - Q.lo.off) ws else none
+  | w :: ws => bif rnOk X st Q w then some ws else none
+  | [] => none
+
+/-- A monomial's `S`-th root, if it is an `S`-th power (`pow` checks back). -/
+def rootC (c : CCell) (S : ℕ) : CCell := ⟨c.bases.map fun b ↦ (b.1, b.2 / S), c.off / S⟩
+
+/-- Residue `r` of a run of stride `S'` split in `S`: `base·g^(S'·r)`, stride `S'·S`, the bounds given. -/
+def mrgPart (Q : PRun) (S r : ℕ) (lo hi : CCell) : PRun := ⟨Q.base.shift (Q.stride * r), Q.stride * S, lo, hi⟩
+
+/-- Residues `r` to `r + n - 1`, one part each: the witnesses left. -/
+noncomputable def mrgWP (pt : CCell → Wit → Bool) (X : CX) (st : CSt) (Q : PRun) (S : ℕ) (lo hi : CCell) :
+    ℕ → ℕ → List Wit → Option (List Wit)
+  | _, 0, ws => some ws
+  | r, n + 1, ws => match runOk1P pt X st (mrgPart Q S r lo hi) ws with
+    | some ws' => mrgWP pt X st Q S lo hi (r + 1) n ws'
+    | none => none
+
+/-- **A run needed, one level**: one part (`runOk1`); `cat k` and the parts below and from the constant index
+`k` (`k < 2^62`); or `mrg S res` and its `S` residues (`mrgW`; a constant lower bound, a multiple of
+`S`, an upper bound an `S`-th power whose root has an exponent), or `mrgE S r res`, the root `r` given (its
+`S`-th power the upper bound's word, `eqV`, or at least the upper bound, a fact `(hi, r^S·g)`). The witnesses
+left. -/
+noncomputable def runOk0P (pt : CCell → Wit → Bool) (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .cat k :: ws => bif Nat.blt k capE then
+      (match runOk1P pt X st ⟨Q.base, Q.stride, Q.lo, ⟨[], k⟩⟩ ws with
+      | some ws' => runOk1P pt X st ⟨Q.base, Q.stride, ⟨[], k⟩, Q.hi⟩ ws'
+      | none => none) else none
+  | .mrg S res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
+        ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S) then
+      mrgWP pt X st Q S ⟨[], Q.lo.off / S⟩ (rootC Q.hi S) 0 S ws else none
+  | .mrgE S r res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 &&
+        Nat.blt Q.lo.off capE && (eqV st.eqs (r.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((r.pow S).shift 1)) &&
+        hasExp (facts X st.env res) r then
+      mrgWP pt X st Q S ⟨[], Q.lo.off / S⟩ r 0 S ws else none
+  | ws => runOk1P pt X st Q ws
+
+/-- **A run needed, split once**: `runOk0`, or `catM k h res` and its parts below and from the index `k`
+(`runOk0` each): `k·h` the upper bound's word (`eqV`), `k`'s and `h`'s exponents existing (constants or sides of
+facts), the part from `k` of base `base·k^stride` from `g^0` to `h`. The witnesses left. -/
+noncomputable def runOkLP (pt : CCell → Wit → Bool) (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
+        hasExp (facts X st.env res) h then
+      (match runOk0P pt X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
+      | some ws' => runOk0P pt X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
+      | none => none) else none
+  | ws => runOk0P pt X st Q ws
+
+/-- **A run needed**: `runOkL`, but the part from `k` of a `catM` may be split again (`runOkL`). The witnesses
+left. -/
+noncomputable def runOkP (pt : CCell → Wit → Bool) (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
+  | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
+        hasExp (facts X st.env res) h then
+      (match runOk0P pt X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
+      | some ws' => runOkLP pt X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
+      | none => none) else none
+  | ws => runOk0P pt X st Q ws
+
+/-- A chain of witnesses as a list. -/
+def Wit.toL : Wit → List Wit
+  | .wcons w ws => w :: ws.toL
+  | _ => []
+
+/-- **A read's witness**: `ptOk`'s, or `der b S lo hi res ws`: the cell in the run `⟨b, S, lo, hi⟩` (`ptRun`, by these
+residuals' facts, or a residual placing it there, `subPt`), the run made up by the chain `ws`, all of it (`runOkP`, its
+points `ptOk`'s). -/
+noncomputable def ptOkD (X : CX) (st : CSt) (c : CCell) : Wit → Bool
+  | .der b S lo hi res ws => (ptRun (facts X st.env res) ⟨b, S, lo, hi⟩ c ||
+      subPt X (facts X st.env res) st.env res ⟨b, S, lo, hi⟩ c) &&
+      match runOkP (ptOk X st) X st ⟨b, S, lo, hi⟩ ws.toL with
+    | some [] => true
+    | _ => false
+  | w => ptOk X st c w
+
+/-- **A run needed** (`runOkP`), its points' witnesses `ptOkD`'s (a `der` run's own, `ptOk`'s). -/
+noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit) := runOkP (ptOkD X st) X st Q
+
+/-- The cells `m·g^o`, `o ∈ offs`, each with a witness (`ptOkD`): the witnesses left. -/
 noncomputable def ptsW (X : CX) (st : CSt) (m : CCell) : List ℕ → List Wit → Option (List Wit)
   | [], ws => some ws
-  | o :: os, w :: ws => bif ptOk X st (m.shift o) w then ptsW X st m os ws else none
+  | o :: os, w :: ws => bif ptOkD X st (m.shift o) w then ptsW X st m os ws else none
   | _ :: _, [] => none
 
 /-- Whether a witness is the marker `pts`. -/
@@ -478,94 +574,14 @@ noncomputable def ptrROk (X : CX) (st : CSt) (Q : PRun) (offs : List ℕ) : List
       then ptrPts X st Q.base Q.stride offs Q.lo.off (Q.hi.off - Q.lo.off) ws else none
   | _ => none
 
-/-- Signature cells at the slots `ms`, each with its witness: the witnesses left. -/
+/-- Signature cells at the slots `ms`, each with its witness (`ptOkD`): the witnesses left. -/
 noncomputable def reqP (X : CX) (st : CSt) (ms : List CCell) : List CCell → List Wit → Option (List Wit)
   | [], ws => some ws
   | c :: cs, w :: ws => match instC ms c with
-    | some c' => bif ptOk X st c' w then reqP X st ms cs ws else none
+    | some c' => bif ptOkD X st c' w then reqP X st ms cs ws else none
     | none => none
   | _ :: _, [] => none
 
-/-- Points needed at the cells `b·g^(S·j)`, `n` of them from `j`, one witness each: the witnesses
-left. -/
-noncomputable def ptsRun (X : CX) (st : CSt) (b : CCell) (S : ℕ) : ℕ → ℕ → List Wit → Option (List Wit)
-  | _, 0, ws => some ws
-  | j, n + 1, w :: ws => bif ptOk X st (b.shift (S * j)) w then ptsRun X st b S (j + 1) n ws else none
-  | _, _ + 1, [] => none
-
-/-- A run needed, one part: its witness, or `pts` and one point witness per cell (constant bounds).
-The witnesses left. -/
-noncomputable def runOk1 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
-  | .pts :: ws => bif constR Q then ptsRun X st Q.base Q.stride Q.lo.off (Q.hi.off - Q.lo.off) ws else none
-  | w :: ws => bif rnOk X st Q w then some ws else none
-  | [] => none
-
-/-- A monomial's `S`-th root, if it is an `S`-th power (`pow` checks back). -/
-def rootC (c : CCell) (S : ℕ) : CCell := ⟨c.bases.map fun b ↦ (b.1, b.2 / S), c.off / S⟩
-
-/-- Residue `r` of a run of stride `S'` split in `S`: `base·g^(S'·r)`, stride `S'·S`, the bounds given. -/
-def mrgPart (Q : PRun) (S r : ℕ) (lo hi : CCell) : PRun := ⟨Q.base.shift (Q.stride * r), Q.stride * S, lo, hi⟩
-
-/-- Residues `r` to `r + n - 1`, one part each: the witnesses left. -/
-noncomputable def mrgW (X : CX) (st : CSt) (Q : PRun) (S : ℕ) (lo hi : CCell) : ℕ → ℕ → List Wit →
-    Option (List Wit)
-  | _, 0, ws => some ws
-  | r, n + 1, ws => match runOk1 X st (mrgPart Q S r lo hi) ws with
-    | some ws' => mrgW X st Q S lo hi (r + 1) n ws'
-    | none => none
-
-/-- **A run needed, one level**: one part (`runOk1`); `cat k` and the parts below and from the constant index
-`k` (`k < 2^62`); or `mrg S res` and its `S` residues (`mrgW`; a constant lower bound, a multiple of
-`S`, an upper bound an `S`-th power whose root has an exponent), or `mrgE S r res`, the root `r` given (its
-`S`-th power the upper bound's word, `eqV`, or at least the upper bound, a fact `(hi, r^S·g)`). The witnesses
-left. -/
-noncomputable def runOk0 (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
-  | .cat k :: ws => bif Nat.blt k capE then
-      (match runOk1 X st ⟨Q.base, Q.stride, Q.lo, ⟨[], k⟩⟩ ws with
-      | some ws' => runOk1 X st ⟨Q.base, Q.stride, ⟨[], k⟩, Q.hi⟩ ws'
-      | none => none) else none
-  | .mrg S res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 && Nat.blt Q.lo.off capE &&
-        ((rootC Q.hi S).pow S).beq Q.hi && hasExp (facts X st.env res) (rootC Q.hi S) then
-      mrgW X st Q S ⟨[], Q.lo.off / S⟩ (rootC Q.hi S) 0 S ws else none
-  | .mrgE S r res :: ws => bif Nat.blt 0 S && Q.lo.bases.isEmpty && Nat.beq (Q.lo.off % S) 0 &&
-        Nat.blt Q.lo.off capE && (eqV st.eqs (r.pow S) Q.hi || hasF (facts X st.env res) Q.hi ((r.pow S).shift 1)) &&
-        hasExp (facts X st.env res) r then
-      mrgW X st Q S ⟨[], Q.lo.off / S⟩ r 0 S ws else none
-  | ws => runOk1 X st Q ws
-
-/-- **A run needed, split once**: `runOk0`, or `catM k h res` and its parts below and from the index `k`
-(`runOk0` each): `k·h` the upper bound's word (`eqV`), `k`'s and `h`'s exponents existing (constants or sides of
-facts), the part from `k` of base `base·k^stride` from `g^0` to `h`. The witnesses left. -/
-noncomputable def runOkL (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
-  | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
-        hasExp (facts X st.env res) h then
-      (match runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
-      | some ws' => runOk0 X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
-      | none => none) else none
-  | ws => runOk0 X st Q ws
-
-/-- **A run needed**: `runOkL`, but the part from `k` of a `catM` may be split again (`runOkL`). The witnesses
-left. -/
-noncomputable def runOk (X : CX) (st : CSt) (Q : PRun) : List Wit → Option (List Wit)
-  | .catM k h res :: ws => bif eqV st.eqs (k.mul h) Q.hi && hasExp (facts X st.env res) k &&
-        hasExp (facts X st.env res) h then
-      (match runOk0 X st ⟨Q.base, Q.stride, Q.lo, k⟩ ws with
-      | some ws' => runOkL X st ⟨Q.base.mul (k.pow Q.stride), Q.stride, ⟨[], 0⟩, h⟩ ws'
-      | none => none) else none
-  | ws => runOk0 X st Q ws
-
-/-- A chain of witnesses as a list. -/
-def Wit.toL : Wit → List Wit
-  | .wcons w ws => w :: ws.toL
-  | _ => []
-
-/-- **A read's witness**: `ptOk`'s, or `der b S lo hi res ws`: the cell in the run `⟨b, S, lo, hi⟩` (`ptRun`, by these
-residuals' facts), the run made up by the chain `ws`, all of it (`runOk`). -/
-noncomputable def ptOkD (X : CX) (st : CSt) (c : CCell) : Wit → Bool
-  | .der b S lo hi res ws => ptRun (facts X st.env res) ⟨b, S, lo, hi⟩ c && match runOk X st ⟨b, S, lo, hi⟩ ws.toL with
-    | some [] => true
-    | _ => false
-  | w => ptOk X st c w
 
 /-- **A run needed, inside one made up** (`drv b S lo hi res` and its witnesses): the run `⟨b, S, lo, hi⟩` by its
 witnesses (`runOk`), `Q` in it (`runRun` by these residuals' facts, or a residual `subR`); else `runOk`. The witnesses
@@ -642,10 +658,6 @@ noncomputable def reqG (X : CX) (st : CSt) (ma : List CCell) (g : String) (args 
     (match derWs X st (derKs (gargsOf X.ga g args)) ws with
     | some ws' => reqS X (derSt X (derKs (gargsOf X.ga g args)) st) (ma ++ gargsOf X.ga g args) (X.sigOf g) ws'
     | none => none) else none
-
-/-- A fact `(a, g^h)` with `h ≤ j`, `h < 2^62`: the exponent of `a` below `j`. -/
-def hasFU (F : List (CCell × CCell)) (a : CCell) (j : ℕ) : Bool :=
-  F.any fun p ↦ p.1.beq a && p.2.bases.isEmpty && Nat.ble p.2.off j && Nat.blt p.2.off capE
 
 /-- **A dispatch arm left out**, arm `j` of the selector `mx`: `skip res` and a fact of `res` putting
 `mx`'s exponent below `j` (`j < 2^62`). The witnesses left. -/
@@ -990,22 +1002,9 @@ def condE (sigOf : String → HSig) (ms : List CCell) : List String → List CdA
     | some cs, some rs, some ps, some prs => ⟨cs, rs, ps, prs⟩
     | _, _, _, _ => ⟨[], [], [], []⟩) :: condE sigOf ms gs
 
-/-- Two lists equal entry by entry. -/
-def listBeq {α : Type} (beq : α → α → Bool) : List α → List α → Bool
-  | [], [] => true
-  | a :: as, b :: bs => beq a b && listBeq beq as bs
-  | _, _ => false
-
-/-- Two entries under a selector are equal. -/
-def CdE.beq (a b : CdE) : Bool :=
-  a.mx.beq b.mx && listBeq (fun p q ↦ listBeq CCell.beq p.cs q.cs && listBeq PRun.beq p.rs q.rs &&
-    listBeq pfBeq p.ps q.ps && listBeq prBeq p.prs q.prs) a.arms b.arms
-
-/-- The guarantees under a selector, added, an equal earlier entry dropped: a later dispatch on the selector
-would push its guarantees twice. -/
+/-- The guarantees under a selector, added. -/
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
-  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt,
-    st.cd.filter (fun e ↦ !l.any e.beq) ++ l, st.eqs, st.dq⟩
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l, st.eqs, st.dq⟩
 
 /-- The word a signature names at return (`postV`) at the cell `c`, its `post` cell at the slots `ms`. -/
 def wordAt (G : HSig) (ms : List CCell) (c : CCell) : Option CCell :=
@@ -1059,10 +1058,10 @@ noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args ret
   | _, _, _ => none
 
 /-- The own `retM` at a return: each returned word's monomial (of `mv`) is its cell at the
-parameters' monomials `mp`. -/
-def retMC (mp mv : List CCell) (l : List (ℕ × CCell)) : Bool :=
+parameters' monomials `mp`, by the kept equations `E` (`eqV`). -/
+def retMC (E : List (CCell × CCell)) (mp mv : List CCell) (l : List (ℕ × CCell)) : Bool :=
   l.all fun p ↦ match nth mv p.1, instC mp p.2 with
-    | some m, some c => m.beq c
+    | some m, some c => eqV E m c
     | _, _ => false
 
 /-- The own words at return: `post` cell `i`'s witness a load event (`ev n`) that stored `m`'s word. -/
@@ -1113,7 +1112,7 @@ noncomputable def retC1 (X : CX) (st : CSt) (vs : List V) : Bool :=
         | some ws3 => match reqPR X st (mp ++ mv) X.sig.postPR ws3 with
           | some ws4 => match reqQ X st (mp ++ mv) X.sig.postQ ws4 with
             | some ws5 => match reqN X st ws5 with
-              | some [] => retMC mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
+              | some [] => retMC st.eqs mp mv X.sig.retM && retVC st (mp ++ mv) X.sig.post ws X.sig.postV &&
                   retEqC st.eqs (mp ++ mv) X.sig.retEq
               | _ => false
             | none => false
@@ -1462,16 +1461,30 @@ def ghostMs (n : ℕ) : List CCell := (List.range n).map fun j ↦ baseC (GB + j
 def dersOk (ders : List CCell) : Bool :=
   Nat.blt ders.length (GB - DB) && ders.all fun c ↦ c.bases.all fun b ↦ Nat.blt b.1 DB || Nat.ble GB b.1
 
-/-- The entry state: each parameter its own base; the own `preP` at the parameters and ghosts, point
-serials from `0`; the own `preR`, then `prePR`, at the parameters and ghosts, run serials from `0`. The
-words at cells checked (`dersOk`). -/
-noncomputable def initC (X : CX) : Option CSt :=
+/-- **The equation residuals**' sides (`CRes.eq`): the pass's first kept equations. -/
+def resEqs (res : List CRes) : List (CCell × CCell) := res.filterMap fun
+  | .eq a b => some (a, b)
+  | _ => none
+
+/-- The environment with each equation `⟨[(v, 1)], 0⟩ = m` of `E` naming the value `v` by `m` (a value's first
+monomial kept, `envPut`). -/
+noncomputable def seedEnv : List (CCell × CCell) → Trie CCell → Trie CCell
+  | [], env => env
+  | p :: l, env => seedEnv l (match p.1.bases with
+      | [(v, e)] => bif Nat.beq e 1 && Nat.beq p.1.off 0 then envPut env v p.2 else env
+      | _ => env)
+
+/-- The entry state: each parameter its own base, then the values the equations `E` name (`seedEnv`); the own `preP`
+at the parameters and ghosts, point serials from `0`; the own `preR`, then `prePR`, at the parameters and ghosts, run
+serials from `0`; the equations `E` kept (the equation residuals, `resEqs`). The words at cells checked (`dersOk`). -/
+noncomputable def initC (X : CX) (E : List (CCell × CCell)) : Option CSt :=
   bif !dersOk X.ders then none else
   (paramEnv X.params.length).seq fun env ↦ match monos env X.params with
   | some mp => match instPP (mp ++ ghostMs X.sig.ghosts) X.sig.preP, instAllR (mp ++ ghostMs X.sig.ghosts) X.sig.preR,
       instPRL (mp ++ ghostMs X.sig.ghosts) X.sig.prePR with
     | some pps, some rs, some prs =>
-      some (pushPRL prs (pushRL rs (pushPL pps ⟨env, .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0, [], [], []⟩)))
+      (seedEnv E env).seq fun env' ↦
+        some (pushPRL prs (pushRL rs (pushPL pps ⟨env', .nil, .nil, .nil, .nil, .nil, .nil, .nil, 0, 0, 0, 0, [], E, []⟩)))
     | _, _, _ => none
   | none => none
 
@@ -1495,24 +1508,24 @@ def topAtoms : List Stmt → List Atom
 /-- The value numbers the atoms define (`atomDst`), as a trie. -/
 noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
 
-/-- A `frameAddr (V.n k) run` atom's `k` and run. -/
-def frOf : Atom → Option (ℕ × List V)
-  | .frameAddr p run => (vnum p).map fun k ↦ (k, run)
-  | _ => none
-
-/-- Cell `i` of a frame run: `run[i]` among the values `D` (by number), or past a nonempty run. -/
-noncomputable def faCell (D : Trie Unit) (i : ℕ) (run : List V) : Bool :=
-  (match run[i]? with
-    | some v => match vnum v with
-      | some k => (getF D k).isSome
-      | none => false
-    | none => false) || (!run.isEmpty && Nat.ble run.length i)
+/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number), or past a
+nonempty run. -/
+noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
+  | .frameAddr p run => (match vnum p with
+      | some k => Nat.beq k kp
+      | none => false) && ((match run[i]? with
+      | some v => match vnum v with
+        | some k => (getF D k).isSome
+        | none => false
+      | none => false) || (!run.isEmpty && Nat.ble run.length i))
+  | _ => false
 
 /-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
-`frameAddr (V.n kp) run` among the atoms `as` (`frOf`, the runs listed once), `run[i]` defined by one of them (`D`,
-`dstKeys as`), or past a nonempty run. -/
-noncomputable def faOk (as : List Atom) (D : Trie Unit) (l : List (ℕ × ℕ)) : Bool :=
-  Exec.listSeq (as.filterMap frOf) fun fr ↦ l.all fun q ↦ fr.any fun r ↦ Nat.beq r.1 q.1 && faCell D q.2 r.2
+`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`), or past a nonempty
+run. -/
+noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
+  | [] => true
+  | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l
 
 /-- `c`'s value number listed. -/
 def dupC (ds : List ℕ) (c : V) : Bool := match vnum c with
@@ -1538,12 +1551,30 @@ noncomputable def heapOkC1 (pows : PowTree) (sigOf : String → HSig) (f : Fn) (
     faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
     H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
       (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
-        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ with
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩
+            (resEqs H.res) with
         | some st0 => match H.sig.term with
           | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩
               (bodyC H.dups f.body) st0).isSome
           | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && H.sig.postQ.isEmpty &&
             loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, [], EQ, H.fas, H.ders⟩ f ei st0
+          | _ => false
+        | none => false
+
+/-- **`heapOkC1` under branch conditions** `path` from the start (a split's arm under its selector, `armPath`). -/
+noncomputable def heapOkC1P (path : List CCond) (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : Bool :=
+  paramsN f.params 0 && preOver f.params.length H.sig.pre &&
+    H.sig.term.all (fun p ↦ idxOver f.params.length p.1 && idxOver f.params.length p.2) && noGhost f &&
+    faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas &&
+    H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ (trieFrom H.calls 0 .nil).seq fun C ↦
+      (trieFrom H.rets 0 .nil).seq fun T ↦ (trieFrom H.res 0 .nil).seq fun RS ↦ (keysT H.divs .nil).seq fun DV ↦ (keysT H.hvs .nil).seq fun HV ↦ (keysT H.eqs .nil).seq fun EQ ↦
+        match initC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, path, EQ, H.fas, H.ders⟩
+            (resEqs H.res) with
+        | some st0 => match H.sig.term with
+          | [] => (chkC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, path, EQ, H.fas, H.ders⟩
+              (bodyC H.dups f.body) st0).isSome
+          | [(.val 0, ei)] => H.sig.retM.isEmpty && H.sig.postV.isEmpty && H.sig.retEq.isEmpty && H.sig.postQ.isEmpty &&
+            loopC ⟨pows, R, P, C, T, RS, DV, HV, H.gargs, sigOf, H.sig, f.params, path, EQ, H.fas, H.ders⟩ f ei st0
           | _ => false
         | none => false
 
@@ -1571,10 +1602,26 @@ noncomputable def splitOk (f : Fn) (H : HCert) : Bool :=
   paramsN f.params 0 && noGhost f && dersOk H.ders && H.sig.term.isEmpty && Nat.blt 0 H.arms.length &&
     Nat.blt H.arms.length capE && armLeL H.sel H.arms.length f.body && H.readT.seq fun R ↦ readsArms R f H 0 H.arms
 
-/-- Each arm's check (`heapOkC1` at the function at its arm), arms from `r`. -/
+/-- **A selection on `V.n x` every returning path reaches**: the first top-level statement but atoms, `call`s and
+`callIf`s a `match` or `dispatch` on it. -/
+def selReach (x : ℕ) : List Stmt → Bool
+  | [] => false
+  | .atom _ :: ss => selReach x ss
+  | .call _ _ _ :: ss => selReach x ss
+  | .callIf _ _ _ :: ss => selReach x ss
+  | .match_ y _ :: _ => selIs x y
+  | .dispatch y _ _ _ :: _ => selIs x y
+  | _ :: _ => false
+
+/-- **The branch conditions arm `r` of a split at `x` starts under**: `x = g^r`, where every returning path reaches a
+selection on `x` (`selReach`). -/
+def armPath (x r : ℕ) (body : List Stmt) : List CCond := bif selReach x body then [.arm x r] else []
+
+/-- Each arm's check (`heapOkC1` at the function at its arm, under its `armPath` or not), arms from `r`. -/
 noncomputable def selArmsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) : ℕ → List HArm → Bool
   | _, [] => true
-  | r, a :: as => heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) && selArmsOk pows sigOf f H (r + 1) as
+  | r, a :: as => (heapOkC1P (armPath H.sel r f.body) pows sigOf (selF H.sel r f) (H.arm a) ||
+      heapOkC1 pows sigOf (selF H.sel r f) (H.arm a)) && selArmsOk pows sigOf f H (r + 1) as
 
 /-- **The heap check with calls and loops**: `heapOkC1`, or, the certificate split at a selector (`HCert.arms`), its
 shared checks (`splitOk`) and each arm's (`selArmsOk`). -/
@@ -1613,6 +1660,11 @@ theorem splitOk_spec {f : Fn} {H : HCert} (h : splitOk f H = true) :
 
 theorem selArmsOk_cons {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} {a : HArm}
     {as : List HArm} (h : heapOkC1 pows sigOf (selF H.sel r f) (H.arm a) = true)
+    (hs : selArmsOk pows sigOf f H (r + 1) as = true) : selArmsOk pows sigOf f H r (a :: as) = true := by
+  simp [selArmsOk, h, hs]
+
+theorem selArmsOk_consP {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} {a : HArm}
+    {as : List HArm} (h : heapOkC1P (armPath H.sel r f.body) pows sigOf (selF H.sel r f) (H.arm a) = true)
     (hs : selArmsOk pows sigOf f H (r + 1) as = true) : selArmsOk pows sigOf f H r (a :: as) = true := by
   simp [selArmsOk, h, hs]
 

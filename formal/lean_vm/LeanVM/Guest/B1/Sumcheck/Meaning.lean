@@ -16,7 +16,7 @@ open LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- `batch_sumcheck__L23`'s core IR is its meaning. -/
+/-- `batch_sumcheck__L25`'s core IR is its meaning. -/
 abbrev batch_sumcheck_Spec : Prop := batch_sumcheck_SpecP coreProgram
 
 end

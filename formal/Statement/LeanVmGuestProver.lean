@@ -17,11 +17,12 @@ run may pass an equal program whose instructions read faster.
 It is the Rust's `aggregate` (`crates/aggregation/src/node.rs`) on its normal form, not all of it.
 What `aggregate` computes from its inputs is given here: the statement `s` (the claims it publishes
 and its deferred claim), the children's fresh claims (`c.freshClaim`, which `aggregate` reads off
-its replay of the child's proof, `verifier::replay_unchecked`, and which this checks in its own
-replay, `childQueries`: a child whose fresh claim or proof the deferring verifier rejects gets no
-query hints), each child's carried claim (`child_defer`: `c.statement.deferredClaim`, which
-`aggregate` rebuilds from the child proof's `bytecode_point` and its `bytecode_sums`), the
-batching's hints (`w.batchingHints`, `aggregate_deferred_claims`), a leaf's deferred value
+the link point of its replay of the child's proof, `verifier::replay_unchecked`, as the split
+columns there, `FreshClaim::at`, and which this checks in its own replay, `childQueries`: a child
+whose fresh claim or proof the deferring verifier rejects gets no query hints), each child's carried
+claim (`child_defer`: `c.statement.deferredClaim`, which `aggregate` rebuilds from the child proof's
+`bytecode_point` and its `bytecode_sums`), the batching's hints (`w.batchingHints`,
+`aggregate_deferred_claims`), a leaf's deferred value
 (`DeferredBytecodeClaim::leaf`), a blob matrix's membership challenge (`da_challenge`: the
 `DaClaim`'s `membershipChallenge`, which `aggregate` computes from the matrix's commitment) and the
 slot of the DA digest the node publishes (`da_pick`: `daPick`, from the statement's DA digest, which
@@ -49,6 +50,8 @@ advice. Choices the witness does not fix are made as the Rust makes them:
   first, in the witness's order, then every child's, child by child, takes its declared slot if
   it is still free, else the next duplicate slot.
 * **A leaf's deferred value** (`leaf_defer`) is the statement's, which the guest does not check.
+* **A child's fresh claim** (`split_values`) is the witness's (`c.freshClaim`), which `aggregate`
+  computes from the link point its replay reads (`FreshClaim::at`).
 -/
 
 @[expose] public section
@@ -56,7 +59,7 @@ advice. Choices the witness does not fix are made as the Rust makes them:
 namespace LeanVM.Guest.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
+open LeanVM.Protocol.Compile LeanVM.Node LeanVM.Protocol.Verifier
 
 /-! ## Streams -/
 
@@ -88,8 +91,9 @@ def lxDigitGroup : ℕ := 4
 /-- `LX_WINDOW` (`hints.rs`): the leaf index bits a leanXMSS path dispatch covers. -/
 def lxWindow : ℕ := 8
 
-/-- `STREAM_CAP` (`child.rs`): a child's proof stream is zero-padded to it. -/
-def streamCap : ℕ := 8192
+/-- `STREAM_CHUNK` (`child.rs`): a child's proof stream rides `stream` in chunks of this many words,
+zero-padded to a whole chunk. -/
+def streamChunk : ℕ := 256
 
 /-- `QUERY_WINDOW_BITS` (`child.rs`): the bits of a query position the guest reads per window. -/
 def queryWindowBits : ℕ := 6
@@ -98,6 +102,9 @@ def queryWindowBits : ℕ := 6
 
 /-- `count(n)`: `g^n`. -/
 def count (n : ℕ) : E := gpow n
+
+/-- A flag as a cell: `1` or `0` (`F128::ONE`, `F128::ZERO`). -/
+def bit (b : Bool) : E := if b then 1 else 0
 
 /-- 16 bytes as a cell, limb `0` the first 8 (`pack_16_bytes`). -/
 def cellOfBytes (b : List UInt8) : E :=
@@ -321,6 +328,8 @@ def recordQueries {α : Type} : VerifierProgram α → VerifierProgram (α × Li
   | .fail => .fail
   | .read k => .read fun x ↦ recordQueries (k x)
   | .sample k => .sample fun x ↦ recordQueries (k x)
+  | .readPacked n k => .readPacked n fun xs ↦ recordQueries (k xs)
+  | .samplePacked n k => .samplePacked n fun xs ↦ recordQueries (k xs)
   | .grind b k => .grind b (recordQueries k)
   | .commit h w k => .commit h w (recordQueries k)
   | .query i ps k => .query i ps fun rows ↦
@@ -391,76 +400,57 @@ def merkleHints (first : Bool) : List (ℕ × List ℕ) → List (List Opening) 
     levelHints first depth positions.length phase ++ merkleHints false rest phases
   | _, _ => []
 
-/-- A side's blocks in the order the stacked leaf cube lays them out, by offset. -/
-def blockOrder (sizes : List ℕ) : List ℕ :=
-  let offsets := (stackOffsets sizes).1
-  (List.range sizes.length).mergeSort fun i j ↦ offsets.getD i 0 ≤ offsets.getD j 0
+/-! ### The stack's witness (`stk_group_order`, `crates/aggregation/src/child.rs`) -/
 
-/-- A list with each run of equal neighbours kept once. -/
-def runHeads : List ℕ → List ℕ
-  | a :: b :: l => if a = b then runHeads (b :: l) else a :: runHeads (b :: l)
-  | l => l
+/-- The first block of each run of consecutive blocks sharing a source and an adjustment
+(`block_groups`, `child.rs`). A run's blocks have one size, so they are consecutive in the stack's
+order. -/
+def stackBlockGroups (blocks : List StackBlock) : List ℕ :=
+  let key := fun (b : StackBlock) ↦ (b.source, b.adj)
+  (List.range blocks.length).filter fun i ↦
+    i = 0 ∨ key (blocks.getD i default) ≠ key (blocks.getD (i - 1) default)
 
-/-- The group of each key of a run, numbered from `next`: a group is a maximal run of one key
-(`block_groups`, `col_groups`). -/
-def runGroups : ℕ → Option ℕ → List ℕ → List ℕ
-  | _, _, [] => []
-  | next, prev, k :: ks =>
-      if prev = some k then (next - 1) :: runGroups next prev ks
-      else next :: runGroups (next + 1) (some k) ks
+/-- **The witness stream `certify_stack` reads** for blocks of log sizes `kappas`, in `stackBlocks`
+order (`stk_group_order`, `child.rs`): the block groups in the stack's order (`stack_offsets`: size
+down, then index). -/
+def stackHints (kappas : List ℕ) : List (String × Entry) :=
+  let starts := stackBlockGroups stackBlocks
+  let start := fun g ↦ starts.getD g 0
+  let size := fun g ↦ kappas.getD (start g) 0
+  let order := (List.range starts.length).mergeSort fun g h ↦
+    decide (size h < size g) || (decide (size g = size h) && decide (start g ≤ start h))
+  [("stk_group_order", order.map count)]
 
-/-- A bus block's kappa source, as a key (`block_kappa_sources`, `layout.rs`): the framework's
-three blocks `0` to `2`, a table's block its table. -/
-def blockKey (b : BusBlock) : ℕ := 3 + b.owner
-
-/-- Every side's block groups in layout order, each as `g` to its index over the three sides,
-once per group, whose blocks are consecutive (`block_group_order`): push and pull after the
-framework's three blocks, then count; a group is a maximal run of blocks of one kappa source
-within a side. -/
-def blockGroupOrder (layout : Layout) : Entry :=
-  let framework := [0, layout.logMemory, layout.logBytecode]
-  let sides := [(framework ++ layout.push.map (·.logRows), [0, 1, 2] ++ layout.push.map blockKey),
-    (framework ++ layout.pull.map (·.logRows), [0, 1, 2] ++ layout.pull.map blockKey),
-    (layout.count.map (·.logRows), layout.count.map blockKey)]
-  (sides.foldl (fun (acc : Entry × ℕ) side ↦
-    let groups := runGroups acc.2 none side.2
-    (acc.1 ++ (runHeads ((blockOrder side.1).map (groups.getD · 0))).map count,
-      acc.2 + (runHeads groups).length)) ([], 0)).1
-
-/-- The committed columns: every global column but the `KECCAK` value lanes. -/
-def committedColumns (layout : Layout) : List ℕ :=
-  (List.range layout.placements.length).filter fun c ↦
-    (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
-
-/-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs`): the memory's two
-columns and `MFCNT` `0`, `BFCNT` `1`, `QKECCAK` `2`, a table's columns their table. -/
-def colKey (c : ℕ) : ℕ :=
-  if c < 3 then 0 else if c < 5 then c - 2 else 3 + (globalColumnBases.filter (· ≤ c)).length
-
-/-- The committed columns' groups in stack order, each as `g` to its index, once per group,
-whose columns are consecutive (`col_group_order`): a group is a maximal run of committed columns,
-in their order, of one kappa source. -/
-def colGroupOrder (layout : Layout) : Entry :=
-  let columns := committedColumns layout
-  let groups := runGroups 0 none (columns.map colKey)
-  let offset := fun i ↦ (layout.placement (columns.getD i 0)).index
-  (runHeads (((List.range columns.length).mergeSort fun i j ↦ offset i ≤ offset j).map
-    (groups.getD · 0))).map count
-
-/-- A child's hints (`gen_verify`): its proof stream zero-padded to `streamCap` (`stream`); the
-tables' rounds (`zc_tau_max`) and log heights (`table_logs`); the two layout orders; and every
-query's leaf and path. Nothing for a proof whose sizes do not read. -/
+/-- A child's hints (`gen_verify`, `child.rs`), at the sizes its proof announces: the proof stream,
+zero-padded to whole chunks of `streamChunk` words, at least one, its chunk count
+(`stream_chunks`) and its chunks (`stream`); every table's log height (`table_logs`); the link's
+shape (`link_shape`: the tallest table's log height, the pointer width, whether the width is the
+cycle count's bit length, and the permutations that draw the link's packed challenges,
+`packed_challenges` eight a permutation); the stack's witness (`stackHints`, its blocks at their
+sources' log sizes plus their adjustments); the split columns at the link point, the child's fresh
+claim (`split_values`); and every query's leaf and path. Nothing for a proof whose sizes do not
+read. -/
 def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String × Entry) :=
   match announcedLayoutAndRate bytecode c.proof.stream with
   | none => []
   | some (layout, _) =>
     let queries := merkleHints true (childQueries bytecode seed c) c.proof.openings
-    let rounds := layout.tableLogHeights.foldl max 0
-    [("stream", c.proof.stream ++ List.replicate (streamCap - c.proof.stream.length) 0),
-      ("zc_tau_max", [count rounds]),
-      ("table_logs", layout.tableLogHeights.map count),
-      ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++
-      queries
+    let heights := layout.tableLogHeights
+    let cycles := layout.tableRows.sum
+    let width := pointerWidth layout.logMemory layout.logBytecode cycles
+    let rows := heights.foldl max 0
+    let kappas := stackBlocks.map fun block ↦
+      (match block.source with
+        | .memory => layout.logMemory
+        | .table t => heights.getD t 0) + block.adj
+    let padded := max ((c.proof.stream.length + streamChunk - 1) / streamChunk) 1
+    let stream := c.proof.stream ++ List.replicate (padded * streamChunk - c.proof.stream.length) 0
+    [("stream_chunks", [count padded])] ++
+      (List.range padded).map (fun i ↦ ("stream", (stream.drop (i * streamChunk)).take streamChunk)) ++
+      [("table_logs", heights.map count),
+        ("link_shape", [count rows, count width, bit (width = bitLength cycles),
+          count ((packedChallenges tables rows width + 7) / 8)])] ++
+      stackHints kappas ++ [("split_values", c.freshClaim.values)] ++ queries
 
 /-! ## The node (`aggregate`, `node.rs`) -/
 

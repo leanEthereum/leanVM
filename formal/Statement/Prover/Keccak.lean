@@ -6,7 +6,7 @@ public import Statement.Prover.KeccakLayer
 # The Keccak prover
 
 The honest prover of `verifyKeccak` (`verify_keccak`, `crates/verifier/src/keccak.rs`) and
-of the Keccak phase of `verify_execution` (`keccakPhase`): the column's `64` slots at the steps'
+of the Keccak phase of `verify_execution` (`keccakValidity`): the column's `64` slots at the steps'
 point (`slotWords`), the twelve layers (`KeccakLayer.lean`), and the openings' sumchecks, sums over
 the remaining cube of products of two folded tables (`openRound`, `openFold`).
 -/
@@ -15,7 +15,8 @@ the remaining cube of products of two folded tables (`openRound`, `openFold`).
 
 namespace LeanVM.Prover.KeccakGkr
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier
 
 /-! ## Sums of products over the cube -/
 
@@ -112,15 +113,16 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
   (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs`):
-the reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of
-log-height `τ`, at its point and output lanes (`evaluations`). -/
-def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :
-    Script Unit :=
+/-- **The honest prover of the Keccak phase** (`keccakValidity`, `crates/verifier/src/lib.rs`):
+the reduction on `q_keccak`'s words (the global column `QKECCAK` of `cols`), the `KECCAK` table of
+log-height `τ`, at its row point and its output lanes' values there, as the link left them
+(`LinkEnd.columns`). -/
+def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (link : LinkEnd) : Script Unit :=
   let qk := cols.getD qkeccak #[]
-  let table := evaluations.getD opKeccak ([], [])
-  keccakProve (fun n ↦ qk.getD n 0) (τ - 4) table.1
-    ((List.range 25).map fun lane ↦ table.2.getD (keccakOut + lane) 0)
+  let (point, values) := link.columns.getD opKeccak ([], [])
+  keccakProve (fun n ↦ qk.getD n 0) (τ - 4) point
+    ((List.range keccakStateLanes).map fun lane ↦
+      ((values.find? (·.1 = keccakOut + lane)).map (·.2)).getD 0)
 
 end LeanVM.Prover.KeccakGkr
 

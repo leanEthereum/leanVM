@@ -5,10 +5,10 @@
 //!
 //! The prover commits a state every `depth` rounds, as lanes: the input of each of the `24 / depth` segments, for
 //! every instance of the batch. The last segment's output is not committed: the caller holds a claim on it
-//! ([`OutputClaim`]), in the VM the memory bus's claim on the `KECCAK` table's output lanes. A random combination of
-//! the segments' outputs goes through `depth` layers, one per round, to a claim on their committed inputs, and both
-//! end as openings of the commitment ([`Openings`]): the protocol of Annex C (`keccak:statement`,
-//! `keccak:segments`), whose soundness is `keccak:soundness`.
+//! ([`OutputClaim`]), in the VM the values the link receives for the `KECCAK` table's output lanes
+//! (§sec:link-terminal). A random combination of the segments' outputs goes through `depth` layers, one per round, to
+//! a claim on their committed inputs, and both end as openings of the commitment ([`Openings`]): the protocol of
+//! Annex C (`keccak:statement`, `keccak:segments`), whose soundness is `keccak:soundness`.
 //!
 //! # Prover
 //!

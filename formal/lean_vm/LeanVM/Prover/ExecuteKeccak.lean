@@ -44,7 +44,7 @@ theorem keccak_spec {C : Ctx} {s s' : St} {om : Fin 4 → K} {otail ob8 ocap : K
     (e : runOp C s (.keccak L.toArray out inOdd outOdd outCells.cellCount) = .ok s') :
     OpSpec (.keccak om otail ob8 ocap (g ^ out) inOdd outOdd outCells) C.ops.size s s' := by
   simp only [runOp, bind_ok] at e
-  obtain ⟨cells, hcells, input, hinput, outs, houts, s1, hs1, e⟩ := e
+  obtain ⟨-, -, cells, hcells, input, hinput, outs, houts, s1, hs1, e⟩ := e
   simp only [pure_ok] at e; subst e
   generalize hO : cellsOfState (keccakF1600 (stateOfCells (fun c : Fin 13 ↦ input.getD c.val 0)
     inOdd)) outOdd = O at hs1

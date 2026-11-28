@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Guest.Fast.PreTable
 public import LeanVM.Guest.Fast.DiscreteLog
+public import LeanVM.Guest.Located.ReplayFast
 public import LeanVM.Guest.Fast.LogG
 
 /-!
@@ -29,6 +30,9 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.Exec LeanVM.Guest.Check
 open LeanVM.Guest.Located LeanVM.Extraction.Fast
 
 @[expose] public section
+
+theorem preTest_eq_discreteLog : preTest = preTestWith discreteLog :=
+  (preTestWith_eq discreteLog_discreteLogSpec).symm
 
 /-! ## The checks, one by one -/
 

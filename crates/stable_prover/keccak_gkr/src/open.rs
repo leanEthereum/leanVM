@@ -8,8 +8,9 @@
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
 use pcs::sumcheck::product_sumcheck;
-use pcs::{RingSwitchOpen, StackClaim};
+use pcs::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
+use primitives::field::lanes::transpose_bits;
 use primitives::field::{F64, F128, dot};
 use primitives::hash::STATE_LANES;
 use primitives::multilinear::{eq_table, mle_eval};
@@ -17,7 +18,7 @@ use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
 use crate::protocol::Claim;
-use crate::witness::{Shape, transpose64};
+use crate::witness::Shape;
 
 /// What the reduction leaves for the commitment to answer, both sent: the committed segment outputs as words at the
 /// point `outputs`, if a segment's output is committed at all, and the inputs' 64 slices (bit `z` of every word, as a
@@ -33,10 +34,9 @@ impl Openings {
     /// inputs' ring-switched, the outputs' a point claim to add to the batch.
     pub fn into_pcs_claims(self, offset: usize) -> (RingSwitchOpen, Option<StackClaim>) {
         let ring = RingSwitchOpen {
-            offset,
-            points: vec![self.inputs],
+            claims: vec![RingSwitchClaim::single(offset, self.inputs)],
         };
-        let outputs = self.outputs.map(|low_point| StackClaim { offset, low_point });
+        let outputs = self.outputs.map(|low_point| StackClaim::Point { offset, low_point });
         (ring, outputs)
     }
 }
@@ -62,8 +62,8 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
 /// claim puts no weight on are evaluated too: the spare ones past [`Shape::slots`] carry other
 /// columns (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
 ///
-/// The words of 64 packs, bit-transposed, give per `z` a row of 64 bits, one per pack, whose weighted sum is a
-/// [`BitFold`] of those packs' weights.
+/// Eight packs' words of an instance, bit-transposed, give per `z` a byte, one bit per pack, and the bytes of 64 packs
+/// a [`BitFold`] of those packs' weights.
 fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let n = shape.n();
     let eq = eq_table(point);
@@ -75,13 +75,19 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let slots: Vec<Vec<F128>> = parallel::map_collect(1 << shape.slot_log(), |slot| {
         let words = &committed[slot * n..][..n];
         let mut out = vec![F128::ZERO; 16 * 64];
-        for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-            for chunk in 0..chunks {
-                let mut rows: [u64; 64] =
-                    std::array::from_fn(|t| words.get(16 * (64 * chunk + t) + i).map_or(0, |w| w.0));
-                transpose64(&mut rows);
-                for (out, row) in out.iter_mut().zip(rows) {
-                    *out += folds[chunk].fold_row(&row.to_le_bytes());
+        for (chunk, fold) in folds.iter().enumerate() {
+            for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
+                // Byte `z` of column `g` holds bit `z` of the eight packs `64 chunk + 8 g ..`.
+                let cols: [[u64; 8]; 8] = std::array::from_fn(|g| {
+                    transpose_bits(std::array::from_fn(|k| {
+                        words.get(16 * (64 * chunk + 8 * g + k) + i).map_or(0, |w| w.0)
+                    }))
+                });
+                let cols: &[[u8; 64]; 8] = primitives::cast_slice(&cols).try_into().expect("eight columns");
+                let mut sums = [F128::ZERO; 64];
+                fold.fold_columns(cols, &mut sums);
+                for (out, sum) in out.iter_mut().zip(sums) {
+                    *out += sum;
                 }
             }
         }

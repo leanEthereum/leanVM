@@ -23,20 +23,19 @@ on that run (`Check.EnteredAt`).
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
   the first takes its memory bounds and semantic tuples from the statements before it, the
   function's cut obligations (`CutsKnown`, `cutsKnown_of`): none for a `Plain` function; in
-  `verify_sub`, whose second window starts at its call of `verify_tables`, the
-  bound of entry `0` of `dims_g` from `VsDimsKnown`, and whose third starts at its call of
-  `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
-  `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks,
+  `verify_sub`, the window table `tabs` it hands `open_stacked` (`VsTabsKnown`, proved here from
+  the window section of the exponent table its precondition carries, `vsTabsKnown_proved`) and,
+  from its call of `check_stack_terminal` on, the bounds of the `52` kappas `kaps` it hands it
+  (`VsKapsKnown`), which `stack_selectors` dispatches on; in the windowed Merkle walks,
   `WalkKnown`.
 * `b2_mainL`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
   written. Its second window starts after `exponent_tables`, whose return it knows to be the
   table (`ExpTablesSound`).
 
-`VsDimsKnown`, `VsKnown` and `ExpTablesSound` are statements about the core IR alone
-(`coreProgram.Rel`), B1's to prove (`verify_sub`'s callees `verify_tables` and
-`certify_placement`, and `exponent_tables`);
-`WalkKnown` is stated at the certificates' cuts, B1's core IR facts on the walks read through
-the certificates' cells. The theorems here take them as hypotheses.
+`VsKapsKnown` and `ExpTablesSound` are statements about the core IR alone (`coreProgram.Rel`),
+B1's to prove (`certify_stack` and the range check of the stack's log in `verify_sub`, and
+`exponent_tables`); `WalkKnown` is stated at the certificates' cuts, B1's core IR facts on the
+walks read through the certificates' cells. The theorems here take them as hypotheses.
 
 Names are unique in `coreProgram` (`coreProgram_find_getElem`), and the jump table the checks
 read is the one `__jump_tables` writes (`JumpTable.jt_of_jumpTables`). The certificates' facts
@@ -52,36 +51,35 @@ open LeanVM.Guest.Exec
 
 /-! ## B1's obligations -/
 
-/-- **`verify_sub`'s obligation** (B1's): on every memory image, over the exponent table at
-`verify_sub`'s argument `4` (`g_squares`), its first `vsKbAt` statements, up to its call of
-`check_opening_terminal`, put entry `c < 8` of `kappa_base` (the value `vsKb`) among the powers
-`g^e`, `e < vsKbBound c`, which `check_opening_terminal` dispatches on. -/
-def VsKbKnown : Prop :=
+/-- **`verify_sub`'s obligation at its call of `check_stack_terminal`** (B1's): on every memory
+image, over the exponent table at `verify_sub`'s argument `4` (`g_squares`), its first `vsKapsAt`
+statements, up to the call, put each of the `52` entries of `kaps` (the value `vsKaps`, the kappas
+`certify_stack` returns, each at most the stack's log, which `verify_sub` range checks below
+`g^31`) among the powers `g^e`, `e < 31`, which `stack_selectors` dispatches on. -/
+def VsKapsKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpTables L.read (σ (.n (val% «verify_sub» "g_squares"))) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKbAt) True (fun _ ↦ True) →
-      ∀ c < 8, ∃ e < vsKbBound c, LoadHolds L.read (σ (.n vsKb)) c (ofK (addressOfIndex e))
-
-/-- **`verify_sub`'s obligation at its dispatch to `open_stacked`** (B1's): over the window section
-of the exponent table at its argument `4`, its first `vsTabsAt` statements, up to the dispatch, put
-the window table at `tabs` (the value `vsTabs`), which `open_stacked` assumes (`tagTabs`). -/
-def VsTabsKnown : Prop :=
-  ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
     B1.ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))) →
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsTabsAt) True (fun _ ↦ True) →
-      B1.WinTabs L.read (σ (.n vsTabs))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKapsAt) True (fun _ ↦ True) →
+      ∀ b < vsKapsBlocks, ∃ e < vsKapsBound, LoadHolds L.read (σ (.n vsKaps)) b (ofK (addressOfIndex e))
 
-/-- **`verify_sub`'s obligations**: `kappa_base`'s bounds and the window table. -/
-def VsKnown : Prop := VsKbKnown ∧ VsTabsKnown
-
-/-- **`verify_sub`'s obligation at its call of `verify_tables`** (B1's; REC-GUEST-IFACE 'tool:
-dims_g known', 'verifysub#7'): on every memory image, its first `vsDimsAt` statements, up to its call
-of `verify_tables`, put entry `0` of `dims_g` (the value `vsDims`, `g^logMem`) among the powers
-`g^e`, `e < 34`, which `verify_tables` dispatches on. -/
-def VsDimsKnown : Prop :=
+/-- **`verify_sub`'s obligation on the stack's log at its call of `check_stack_terminal`** (B1's): on
+every memory image, its first `vsKapsAt` statements, up to the call, put the stack's log it hands
+it (the value `vsGmv`, `certify_stack`'s `gmv`) at `g^(16 + e)`, `e < 15`, which `verify_sub`
+range checks (`size_sel = gmv·g^-16`) and `check_stack_terminal` dispatches on, shifted. -/
+def VsGmvKnown : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ σ : Val,
-    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsDimsAt) True (fun _ ↦ True) →
-      ∃ e < 34, LoadHolds L.read (σ (.n vsDims)) 0 (ofK (addressOfIndex e))
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take vsKapsAt) True (fun _ ↦ True) →
+      ∃ e < vsGmvN, σ (.n vsGmv) = ofK (addressOfIndex (vsGmvD + e))
+
+/-- **`verify_sub`'s window table** at `tabs` (the value `vsTabs`, `g_squares·g^178`), from the
+window section of the exponent table at its argument `4`, once its statements up to `tabs`' hold;
+`open_stacked` assumes it (`tagTabs`). Proved (`vsTabsKnown_proved`). -/
+def VsTabsKnown : Prop :=
+  ∀ {κ : ℕ} (L : MemoryImage κ), ∀ σ : Val,
+    B1.ExpWinTab L.read (σ (.n (val% «verify_sub» "g_squares"))) →
+    Stmt.HoldsList (coreProgram.Rel L.read) L.read σ ((coreOf (fn_idx% «verify_sub»)).body.take (vsTabsAt + 2)) True (fun _ ↦ True) →
+      B1.WinTabs L.read (σ (.n vsTabs))
 
 /-- **`exponent_tables`' relation** (B1's): its returned pointer holds the exponent table and its
 window section. -/
@@ -92,7 +90,7 @@ def ExpTablesSound : Prop :=
 /-- **B1's obligations at function `j`'s cuts**: on every memory image, from the semantic tuples
 and memory bounds of `j`'s entry and the statements before each cut `i > 0` of `j`'s certificate,
 under its frame's valuation, the cut's memory bounds, conditional memory bounds and semantic
-tuples. They are `VsKnown` for `verify_sub`, the walks' (`WalkKnown`) for the windowed Merkle
+tuples. They are `VsTabsKnown` and `VsKapsKnown` for `verify_sub`, the walks' (`WalkKnown`) for the windowed Merkle
 walks, and nothing (`known_of_plain`) for a function whose cuts hand nothing on. -/
 def CutsKnown (j : ℕ) : Prop :=
   ∀ {κ : ℕ} (L : MemoryImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ fp : K,
@@ -115,8 +113,8 @@ theorem vs_take {κ : ℕ} {L : MemoryImage κ} {σ : Val} {m n : ℕ} (hn : m �
   rw [List.take_add, holdsList_append] at hl
   exact holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ trivial) (fun _ h ↦ h) hl
 
-theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage κ}
-    (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {fp : K}
+theorem known_vs (hkaps : VsKapsKnown) (hgmv : VsGmvKnown) (htabs : VsTabsKnown) {κ : ℕ}
+    {L : MemoryImage κ} (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {fp : K}
     (hsem : SemHolds glob L fp (certOf (fn_idx% «verify_sub»)).sem) {i : ℕ}
     (hi : i ≤ (certOf (fn_idx% «verify_sub»)).cuts.length) (h0 : 0 < i)
     (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
@@ -128,41 +126,23 @@ theorem known_vs (hvd : VsDimsKnown) (hvs : VsKnown) {κ : ℕ} {L : MemoryImage
     have := (semRel_exp _ _).mp (hsem (0, [6]) (by rw [vs_sem]; exact List.mem_singleton_self _))
     simp only [valG, vs_cells]
     exact this
-  have hdims (n : ℕ) (hn : vsDimsAt ≤ n)
-      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
-        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
-      MemKnown L fp (vsDimsKnown ((certOf (fn_idx% «verify_sub»)).locs.getD vsDims 0)) := by
-    intro m hm
-    rw [vsDimsKnown, List.mem_singleton] at hm
-    subst hm
-    exact hvd L h16 h32 _ (vs_take hn hl)
-  have htabs (n : ℕ) (hn : vsTabsAt ≤ n)
-      (hl : Stmt.HoldsList (coreProgram.Rel L.read) L.read (valG L fp (certOf (fn_idx% «verify_sub»)))
-        ((coreOf (fn_idx% «verify_sub»)).body.take n) True (fun _ ↦ True)) :
-      SemHolds glob L fp [(tagTabs, [(certOf (fn_idx% «verify_sub»)).locs.getD vsTabs 0])] := by
-    intro t ht'
-    simp only [List.mem_singleton] at ht'
-    subst ht'
-    rw [semRel_tabs]
-    exact hvs.2 L h16 h32 _ ht.2 (vs_take hn hl)
-  rw [vs_cuts] at hi
-  obtain rfl | rfl | rfl : i = 1 ∨ i = 2 ∨ i = 3 := by omega
-  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut1
-    rw [hkn, hki, hsm]
-    rw [hst] at hl
-    exact ⟨hdims vsDimsAt le_rfl hl, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h⟩
-  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cutT
-    rw [hkn, hki, hsm]
-    rw [hst] at hl
-    exact ⟨hdims vsTabsAt (by decide) hl, fun _ h ↦ by simp at h, htabs vsTabsAt le_rfl hl⟩
-  · obtain ⟨hst, hkn, hki, hsm⟩ := vs_cut
-    rw [hkn, hki, hsm]
-    rw [hst] at hl
-    refine ⟨fun m hm ↦ ?_, fun _ h ↦ by simp at h, htabs vsKbAt (by decide) hl⟩
-    rcases List.mem_append.mp hm with hm | hm
-    · exact hdims vsKbAt (by decide) hl m hm
-    obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hm
-    exact hvs.1 L h16 h32 _ ht.1 hl c (List.mem_range.mp hc)
+  obtain ⟨hif, hkn, hkat, hsm⟩ := vs_cutOk hi h0
+  refine ⟨fun m hm ↦ ?_, by rw [hif]; intro _ h; simp at h, fun t ht' ↦ ?_⟩
+  · have hat := hkat ⟨_, hm⟩
+    have hm' := hkn m hm
+    simp only [vsKapsKnown, List.mem_map, List.mem_range] at hm'
+    obtain ⟨b, hb, hmb⟩ := hm'
+    have hk3 := hkaps L h16 h32 (valG L fp (certOf (fn_idx% «verify_sub»))) ht.1 ht.2 (vs_take hat hl) b hb
+    rw [← hmb]
+    obtain ⟨e, he, hl3⟩ := hk3
+    refine ⟨e, he, ?_⟩
+    unfold valG at hl3
+    exact hl3
+  · rcases hsm t ht' with ⟨rfl, hat⟩ | ⟨rfl, hat⟩
+    · rw [semRel_tabs]
+      exact htabs L (valG L fp (certOf (fn_idx% «verify_sub»))) ht.2 (vs_take hat hl)
+    · obtain ⟨e, he, hg⟩ := hgmv L h16 h32 (valG L fp (certOf (fn_idx% «verify_sub»))) (vs_take hat hl)
+      exact (semRel_shift vsGmvD vsGmvN (by decide) (by decide) _ _).mpr ⟨e, he, hg⟩
 
 /-! ## The walks' obligations -/
 
@@ -173,20 +153,20 @@ window bounds of the windowed Merkle walk (`knownIf`: a query's dispatch selecto
 `g^(2^width)`, from the walk along `opening_queries`' loop of the windows `decode_query_windows`'
 range checks in `open_stacked` give, read twice through the window pointers for a level-0
 specialization's odd first query) and the tuples at the calls (`sems`: the walk along the loop,
-keyed by the path depth); B1 proves them on the core IR, as `VsKnown` for `verify_sub`, read off the
-certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`;
-`walkKnown_proved`). -/
+keyed by the path depth); B1 proves them on the core IR, read off the
+certificates' cells (`WalkKnown.lean`'s `loop0_cutsKnown`, `loop1_cutsKnown`, `main_cutsKnown`,
+`WalkLq.lean`, `WalkOs.lean`, and the generated `WalkKnownAll.lean`'s `walkKnown_proved`). -/
 def WalkKnown : Prop :=
   ∀ j ∈ Checked.oblFns, j ≠ 1 → j ≠ fn_idx% «verify_sub» → CutsKnown j
 
-/-- **Every callee's cut obligations**: `verify_sub`'s from `VsDimsKnown` and `VsKnown`, the
+/-- **Every callee's cut obligations**: `verify_sub`'s from `VsKapsKnown`, `VsGmvKnown` and `VsTabsKnown`, the
 walks' from `WalkKnown`, and nothing for the others (`Plain`, `Checked.all_plain`). -/
-theorem cutsKnown_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j)
+theorem cutsKnown_of (hkaps : VsKapsKnown) (hgmv : VsGmvKnown) (htabs : VsTabsKnown) (hwalk : WalkKnown) {j : ℕ} (h2 : 2 ≤ j)
     (hj : j < nFns) : CutsKnown j := by
   intro κ L h16 h32 fp hmem hsem i hi h0 hl
   by_cases h19 : j = fn_idx% «verify_sub»
   · subst h19
-    exact known_vs hvd hvs h16 h32 hsem hi h0 hl
+    exact known_vs hkaps hgmv htabs h16 h32 hsem hi h0 hl
   · by_cases ho : j ∈ Checked.oblFns
     · exact hwalk j ho (by omega) h19 L h16 h32 fp hmem hsem i hi h0 hl
     · exact known_of_plain (Checked.all_plain j (by omega) hj ho) hi h0

@@ -14,6 +14,12 @@ pub struct ProverState<F, S> {
     search: PhantomData<S>,
 }
 
+/// A scalar as the stream carries it: the same limbs in the verifier's field.
+fn wire<F: Scalar>(x: F) -> verifier::E {
+    let [c0, c1] = x.to_limbs();
+    verifier::E::new(c0, c1)
+}
+
 impl<F: Scalar, S: Search> ProverState<F, S> {
     /// `iv` and `public_input` seed the Fiat-Shamir state (see [`FiatShamirState::new`]).
     pub fn new(iv: [u64; 4], public_input: [u64; 4]) -> Self {
@@ -49,6 +55,11 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         self.fs.sample_vec(n)
     }
 
+    /// `n` challenges, eight to a permutation ([`FiatShamirState::sample_packed`]).
+    pub fn sample_packed(&mut self, n: usize) -> Vec<F> {
+        self.fs.sample_packed(n)
+    }
+
     /// Hand the next opening phase's Merkle data to the verifier. Not absorbed:
     /// its binding is the Merkle structure itself.
     pub fn hint_merkle(&mut self, paths: Vec<MerklePath>) {
@@ -60,14 +71,19 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
     #[inline]
     pub fn add_scalar(&mut self, x: F) {
         self.fs.observe(x);
-        let [c0, c1] = x.to_limbs();
-        self.stream.push(verifier::E::new(c0, c1));
+        self.stream.push(wire(x));
     }
 
     pub fn add_scalars(&mut self, xs: &[F]) {
         for &x in xs {
             self.add_scalar(x);
         }
+    }
+
+    /// Transmit `xs` and bind them eight to a permutation ([`FiatShamirState::observe_packed`]).
+    pub fn add_scalars_packed(&mut self, xs: &[F]) {
+        self.fs.observe_packed(xs);
+        self.stream.extend(xs.iter().map(|&x| wire(x)));
     }
 
     /// Transmit a root as its two scalars, not as a byte string, so the recursion guest replays

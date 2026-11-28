@@ -115,15 +115,11 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
     }
 }
 
-/// One position of a block.
-type Word = [u64; BLOCK_WORDS];
-
-/// Run one block of instances, padded with all-zero inputs. Returns its committed lanes, slot `s`
-/// at `s * BLOCK ..` and a word per instance, slot `s` being lane `s % 25` of the state after
-/// `depth * (s / 25)` rounds: every state a segment starts from, the output not being committed.
-/// With `keep`, it also returns its input state and the state each round applies `chi` to, all
-/// sliced, round after round; without, the run ends at the last committed state.
-pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool) -> (Vec<u64>, Vec<u64>) {
+/// Run one block of instances, padded with all-zero inputs. With `keep`, returns its input state and the state each
+/// round applies `chi` to, all sliced, round after round. Without, returns its committed lanes, slot `s` at
+/// `s * BLOCK ..` and a word per instance, slot `s` being lane `s % 25` of the state after `depth * (s / 25)` rounds:
+/// every state a segment starts from, the output not being committed, so the run ends at the last committed state.
+pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool) -> Vec<u64> {
     assert!(inputs.len() <= BLOCK);
     let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
@@ -139,28 +135,25 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
             }
         }
     }
-    let mut lanes = vec![0u64; STATE_LANES * (ROUNDS / depth) * BLOCK];
-    let mut commit = |m: usize, state: &[Word]| {
-        for lane in 0..STATE_LANES {
-            for w in 0..BLOCK_WORDS {
-                for z in 0..64 {
-                    rows[z] = state[64 * lane + z][w];
-                }
-                transpose64(&mut rows);
-                lanes[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
+    let mut out = if keep {
+        let mut rounds = Vec::with_capacity((ROUNDS + 1) * BLOCK_LEN);
+        rounds.extend_from_slice(state.as_flattened());
+        rounds
+    } else {
+        // Segment 0's committed lanes are the inputs.
+        let mut lanes = vec![0u64; STATE_LANES * (ROUNDS / depth) * BLOCK];
+        for (i, input) in inputs.iter().enumerate() {
+            for (lane, &word) in input.iter().enumerate() {
+                lanes[lane * BLOCK + i] = word;
             }
         }
+        lanes
     };
-    let mut rounds = Vec::with_capacity(if keep { (ROUNDS + 1) * BLOCK_LEN } else { 0 });
     let last = if keep { ROUNDS } else { ROUNDS - depth };
-    if keep {
-        rounds.extend_from_slice(state.as_flattened());
-    }
-    commit(0, &state);
     for round in 1..=last {
         linear(&state, &mut u, xor);
         if keep {
-            rounds.extend_from_slice(u.as_flattened());
+            out.extend_from_slice(u.as_flattened());
         }
         for lane in 0..STATE_LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
@@ -175,11 +168,20 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
         for z in (0..64).filter(|&z| iota_bit(round, z)) {
             state[z] = state[z].map(|w| !w);
         }
-        if round.is_multiple_of(depth) && round < ROUNDS {
-            commit(round / depth, &state);
+        if !keep && round.is_multiple_of(depth) {
+            let m = round / depth;
+            for lane in 0..STATE_LANES {
+                for w in 0..BLOCK_WORDS {
+                    for z in 0..64 {
+                        rows[z] = state[64 * lane + z][w];
+                    }
+                    transpose64(&mut rows);
+                    out[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
+                }
+            }
         }
     }
-    (lanes, rounds)
+    out
 }
 
 /// Run every instance of `inputs`, padding the batch with all-zero inputs, and write the committed states into
@@ -195,7 +197,7 @@ pub fn commit_states(shape: Shape, inputs: &[[u64; STATE_LANES]], states: &mut [
         shape.slots() * n,
         "the committed states are the wrong size"
     );
-    let block_lanes = |inputs: &[[u64; STATE_LANES]]| run_block(shape.depth, inputs, false).0;
+    let block_lanes = |inputs: &[[u64; STATE_LANES]]| run_block(shape.depth, inputs, false);
     let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
         block_lanes(&inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
     });
@@ -237,7 +239,7 @@ impl Witness {
             } else {
                 Vec::new()
             };
-            run_block(shape.depth, &inputs, true).1
+            run_block(shape.depth, &inputs, true)
         });
         Self { shape, blocks, written }
     }

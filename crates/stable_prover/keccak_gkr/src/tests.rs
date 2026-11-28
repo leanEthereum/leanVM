@@ -136,7 +136,7 @@ fn dense(shape: Shape, inputs: &[[u64; STATE_LANES]]) -> Witness {
     let blocks = (0..shape.n_blocks())
         .map(|g| {
             let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-            run_block(shape.depth(), inputs, true).1
+            run_block(shape.depth(), inputs, true)
         })
         .collect();
     Witness {

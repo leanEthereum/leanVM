@@ -206,12 +206,10 @@ def ptr_vals(body):
 def route():
     import pair
     S = sigs()
-    global NZR
-    NZR, CALLS = frame_nzr()
+    _, CALLS = frame_nzr()
     P, _ = pair.collect()
     AL = pair.AL
     fns = AL.functions()
-    pows = AL.pow_table()
     out = {}
     for k, pf in sorted(P.items()):
         params, body = heap.CORE[k]

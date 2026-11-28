@@ -7,101 +7,96 @@
 
 module
 
-public import LeanVM.Guest.Child.Merkle
-public import LeanVM.Guest.Child.Accepted
-public import LeanVM.Guest.Child.Range
-public import LeanVM.Guest.Limits
+public import LeanVM.Guest.Child.Stream
+import LeanVM.Protocol.KeccakHash
 
 /-!
 # Disagreeing openings give a Keccak-256 collision
 
 `capsAgree_or_collide`: at every query step of the deferring verifier's run on a child's proof,
 the step's openings agree wherever they meet (`Limits.OpeningsAgree`), or the proof's openings
-exhibit a Keccak-256 collision (`OpeningsCollide`). So a node `NodeRelation` admits has children the
-guest program accepts, or a child's proof exhibits one (`acceptableChildren_or_collide`).
+exhibit a Keccak-256 collision (`OpeningsCollide`).
 
 A query step opens one phase of the proof against a root of the step's height, at positions below
-`2^height` (`queryStepsOf_opened`, from `inRange_deferringProgram`), so each of its openings climbs
-to that root (`openPhase_climbs`). Two openings giving one heap node different digests give it at
-one level (`givesNode_cases`, `heapIndex_level`), as one of the two digests their climbs hash
-there (`climbPair`). Climbing on, the bytes they hash differ at each level until their digests
-agree, which they do at the root at the latest: there the bytes differ and the digests agree
-(`collide_of_pair_ne`).
+`2^height` (`queryStepsOf_opened`: the deferring program is `Wired`, `wired_deferringProgram`, so
+each opening asks positions below its commitment's height: the stack's and the WHIR levels', the
+positions `sampleQueries` draws), so each of its openings climbs to that root (`openPhase_climbs`).
+Two openings giving one heap node different digests give it at one level (`givesNode_cases`,
+`heapIndex_level`), as one of the two digests their climbs hash there (`climbPair`). Climbing on,
+the bytes they hash differ at each level until their digests agree, which they do at the root at
+the latest: there the bytes differ and the digests agree (`collide_of_pair_ne`).
 -/
 
 namespace LeanVM.Guest.Child
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Node
-open LeanVM.Guest.Completeness LeanVM.Guest.B1.VerifySub
+open LeanVM.Guest.Completeness LeanVM.Wire
 
 @[expose] public section
-
-/-! ## The deferring program opens in range -/
-
-theorem noCommit_verifyBusBalance_claimed (c : BytecodeClaim) (layout : Layout) :
-    NoCommit (verifyBusBalance (claimedBytecodeValue c) layout) := by
-  rw [verifyBusBalance_split]
-  exact NoCommit.bind (noCommit_require _) fun _ ↦ NoCommit.bind (noCommit_grind _) fun _ ↦
-    NoCommit.bind (noCommit_sampleN _) fun _ ↦ NoCommit.bind noCommit_sampleE fun _ ↦
-    NoCommit.bind (noCommit_gkrPhase _) fun _ ↦ noCommit_busRest c _ _ _ _ _
-
-/-- **The deferring verifier program opens in range**, from no commitment. -/
-theorem inRange_deferringProgram (c : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    InRange (deferringVerifierProgram c bytecode publicInput) [] fun _ _ ↦ True := by
-  rw [deferredProgram_eq]
-  exact InRange.bind (Q := fun _ _ ↦ True)
-    (inRange_verifyExecutionClaims (noCommit_verifyBusBalance_claimed c) _ _) fun _ _ _ ↦ trivial
 
 /-! ## A query step opens a phase -/
 
 /-- **Every query step opens a phase of the state's openings** against a root of the step's
-height, at positions below `2^` its height, along a program in range from the state's roots'
+height, at positions below `2^` its height, along a wired program from the state's roots'
 heights. -/
-theorem queryStepsOf_opened {α : Type} {Q : α → List ℕ → Prop} :
-    ∀ (p : VerifierProgram α) (hs : List ℕ) (state : VerifierProgramState),
-      InRange p hs Q → ∀ step ∈ Limits.queryStepsOf p state, state.roots.map (·.2.1) = hs →
+theorem queryStepsOf_opened {α : Type} {Q : α → List ℕ → ℕ → Prop} :
+    ∀ (p : VerifierProgram α) (hs : List ℕ) (n c : ℕ) (state : VerifierProgramState),
+      Wired p hs n c Q → ∀ step ∈ Limits.queryStepsOf p state, state.roots.map (·.2.1) = hs →
       ∃ phase ∈ state.openings, ∃ root width ps rows,
         openPhase (m := Id) keccakF1600 root step.1 width ps phase = some rows ∧
         (∀ q ∈ ps, q < 2 ^ step.1) ∧ step.2 = ps.zip phase
-  | .ret _, _, _, _, _, h, _ => by simp [Limits.queryStepsOf] at h
-  | .fail, _, _, _, _, h, _ => by simp [Limits.queryStepsOf] at h
-  | .read k, hs, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hir, step, h, hR => by
+  | .ret _, _, _, _, _, _, _, h, _ => by simp [Limits.queryStepsOf] at h
+  | .fail, _, _, _, _, _, _, h, _ => by simp [Limits.queryStepsOf] at h
+  | .read k, hs, n, c, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hw, step, h, hR => by
     match stream, g, h with
     | [], _, h => simp [Limits.queryStepsOf] at h
     | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
     | x :: xs, none, h =>
-      have h' := queryStepsOf_opened (k x) hs _ (hir x) step h hR
+      have h' := queryStepsOf_opened (k x) hs n (c - 1) _ (hw.2 x) step h hR
       exact h'
-  | .sample k, hs, state, hir, step, h, hR => by
+  | .sample k, hs, n, c, state, hw, step, h, hR => by
     have e : Limits.queryStepsOf (VerifierProgram.sample k) state =
         Limits.queryStepsOf (k (Id.run (squeeze keccakF1600 state.sponge)).1)
           { state with sponge := (Id.run (squeeze keccakF1600 state.sponge)).2 } := rfl
     rw [e] at h
-    have h' := queryStepsOf_opened _ hs _ (hir _) step h hR
+    have h' := queryStepsOf_opened _ hs n c _ (hw _) step h hR
     exact h'
-  | .grind bits k, hs, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hir, step, h, hR => by
+  | .readPacked m k, hs, n, c, state, hw, step, h, hR => by
+    simp only [Limits.queryStepsOf] at h
+    split at h
+    · have h' := queryStepsOf_opened _ hs n (c - m) _ (hw.2 _) step h hR
+      exact h'
+    · simp at h
+  | .samplePacked m k, hs, n, c, state, hw, step, h, hR => by
+    have e : Limits.queryStepsOf (VerifierProgram.samplePacked m k) state =
+        Limits.queryStepsOf (k (Id.run (samplesPacked keccakF1600 state.sponge m)).1)
+          { state with sponge := (Id.run (samplesPacked keccakF1600 state.sponge m)).2 } := rfl
+    rw [e] at h
+    have h' := queryStepsOf_opened _ hs n c _ (hw _) step h hR
+    exact h'
+  | .grind bits k, hs, n, c, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hw, step, h, hR => by
     match stream, g, h with
     | [], _, h => simp [Limits.queryStepsOf] at h
     | _ :: _, some _, h => simp [Limits.queryStepsOf] at h
-    | n :: xs, none, h =>
+    | x :: xs, none, h =>
       simp only [Limits.queryStepsOf] at h
-      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ n = N at h
+      generalize absorbNonce (m := Id) keccakF1600 ⟨S0, P0, none⟩ x = N at h
       obtain ⟨pw, sp'⟩ := N
       change step ∈ (if powOk bits pw = true then _ else _) at h
       split at h
-      · have h' := queryStepsOf_opened k hs _ hir step h hR
+      · have h' := queryStepsOf_opened k hs n (c - 1) _ hw.2 step h hR
         exact h'
       · simp at h
-  | .commit height width k, hs, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hir, step, h, hR => by
+  | .commit height width k, hs, n, c, ⟨⟨S0, P0, g⟩, stream, os, R⟩, hw, step, h, hR => by
     match stream, g, h with
     | [], _, h => simp [Limits.queryStepsOf] at h
     | [_], _, h => simp [Limits.queryStepsOf] at h
     | _ :: _ :: _, some _, h => simp [Limits.queryStepsOf] at h
     | x0 :: x1 :: xs, none, h =>
-      have h' := queryStepsOf_opened k (hs ++ [height]) _ hir step h (by simp [hR])
+      have h' := queryStepsOf_opened k (hs ++ [height]) n (c - 2) _ hw.2 step h (by simp [hR])
       exact h'
-  | .query i ps k, hs, ⟨sp, stream, os, R⟩, hir, step, h, hR => by
+  | .query i ps k, hs, n, c, ⟨sp, stream, os, R⟩, hw, step, h, hR => by
     simp only [Limits.queryStepsOf] at h
     cases hr : R[i]? with
     | none => simp [hr] at h
@@ -122,9 +117,25 @@ theorem queryStepsOf_opened {α : Type} {Q : α → List ℕ → Prop} :
           rcases List.mem_cons.mp h with rfl | h
           · refine ⟨phase, List.mem_cons_self .., root, width, ps, rows, ho, fun q hq ↦ ?_, rfl⟩
             rw [← hgi]
-            exact hir.1 q hq
-          · obtain ⟨phase', hp, h'⟩ := queryStepsOf_opened (k rows) hs _ (hir.2 rows) step h hR
+            exact hw.2.1.2.2.2 q hq
+          · obtain ⟨phase', hp, h'⟩ :=
+              queryStepsOf_opened (k rows) hs (n - 1) c _ (hw.2.2 rows) step h hR
             exact ⟨phase', List.mem_cons_of_mem _ hp, h'⟩
+
+/-- Heap indices `2^a + j` with `j < 2^a` are injective. -/
+theorem heap_inj {a b j j' : ℕ} (hj : j < 2 ^ a) (hj' : j' < 2 ^ b)
+    (h : 2 ^ a + j = 2 ^ b + j') : a = b ∧ j = j' := by
+  have hab : a = b := by
+    rcases lt_trichotomy a b with hlt | heq | hgt
+    · have : 2 ^ (a + 1) ≤ 2 ^ b := Nat.pow_le_pow_right (by norm_num) hlt
+      rw [pow_succ] at this
+      omega
+    · exact heq
+    · have : 2 ^ (b + 1) ≤ 2 ^ a := Nat.pow_le_pow_right (by norm_num) hgt
+      rw [pow_succ] at this
+      omega
+  subst hab
+  exact ⟨rfl, by omega⟩
 
 /-- An opening the verifier accepts climbs to the root. -/
 theorem climbTo_of_openOne {root : Digest} {height width q : ℕ} {o : Opening}
@@ -389,7 +400,7 @@ theorem openingsCollide_of_step {bytecode : List K} {seed : Digest} {child : Chi
         (Coverage.childVerifierStart seed child))
     (hd : ¬ Limits.OpeningsAgree step.1 step.2) : OpeningsCollide child.proof := by
   obtain ⟨phase, hphase, root, width, ps, rows, hop, hps, hstep2⟩ :=
-    queryStepsOf_opened _ [] _ (inRange_deferringProgram _ _ _) step hstep rfl
+    queryStepsOf_opened _ [] _ _ _ (wired_deferringProgram _ _ _) step hstep rfl
   obtain ⟨hlen, rfl, hroot⟩ := openPhase_climbs hop
   rw [hstep2, ← List.map_prod_right_eq_zip] at hd
   obtain ⟨a, ha, b, hb, l, hla, hlb, hne, hk⟩ := climbsCollide_of_not_agree hlen
@@ -398,7 +409,7 @@ theorem openingsCollide_of_step {bytecode : List K} {seed : Digest} {child : Chi
 
 /-- **A child's openings agree in the caps, or its proof exhibits a Keccak-256 collision**: at
 every query step of its deferring verifier's run the step's openings agree wherever they meet, or
-two openings of one phase hash different bytes to one digest. -/
+two openings of one phase hash different bytes to one digest. On every bytecode. -/
 theorem capsAgree_or_collide (bytecode : List K) (seed : Digest) (child : Child) :
     (∀ step ∈ Limits.queryStepsOf
       (deferringVerifierProgram child.freshClaim bytecode (statementDigest seed child.statement))
@@ -409,17 +420,6 @@ theorem capsAgree_or_collide (bytecode : List K) (seed : Digest) (child : Child)
   obtain ⟨step, hs, hd⟩ := h
   exact openingsCollide_of_step hs hd
 
-/-- **The children of a node `NodeRelation` admits are children the guest program accepts, or one
-of their proofs exhibits a Keccak-256 collision**, for a bytecode of `2^23` words. -/
-theorem acceptableChildren_or_collide {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {seed : Digest} {statement : NodeStatement} {witness : NodeWitness}
-    (hrel : NodeRelation bytecode seed statement witness) :
-    ChildrenOk bytecode seed witness ∨ ∃ child ∈ witness.children, OpeningsCollide child.proof := by
-  refine or_iff_not_imp_right.mpr fun hc child hchild ↦ ?_
-  unfold NodeRelation at hrel
-  obtain ⟨hshape, hv⟩ := hrel.2.2.1 child hchild
-  exact acceptableChild_of_accepted hbl hshape hv <|
-    (capsAgree_or_collide bytecode seed child).resolve_right fun h ↦ hc ⟨child, hchild, h⟩
-
 end
+
 end LeanVM.Guest.Child

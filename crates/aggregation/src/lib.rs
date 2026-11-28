@@ -27,19 +27,17 @@
 //! size, and here the inner bytecode is this one. Its digest does not need a
 //! fixed point, riding the statement instead of the code.
 //!
-//! One fixed polynomial, the stacked bytecode, is too
+//! One fixed polynomial, the program split by opcode, is too
 //! big to evaluate in-circuit, so each node exports one deferred claim on it
 //! and batches its children's carried claims with the fresh ones its
-//! verifications raise (`doc/leanvm/main.tex` §Deferred evaluation claims). Only
+//! verifications raise (§sec:deferred-claims). Only
 //! the root's is discharged natively, by [`AggregateProof::verify`].
 //!
-//! `gen_verify` derives the guest's whole witness for a child from the layout
-//! of the inner program (the stable prover's `cpu::layout`) and the summary the `verifier`
-//! crate reads out of the child's proof.
+//! `gen_verify` derives the guest's whole witness for a child from the verifier's layout of the inner program
+//! (`verifier::layout`) and the summary the `verifier` crate reads out of the child's proof.
 
 mod cells;
 mod child;
-mod claim_pool;
 mod coverage;
 mod deferred;
 mod error;
@@ -50,6 +48,7 @@ mod placeholders;
 mod proof;
 #[cfg(any(test, feature = "signers-cache"))]
 pub mod signers_cache;
+mod split;
 mod statement;
 #[cfg(test)]
 mod tests;
@@ -64,6 +63,6 @@ pub use proof::AggregateProof;
 pub const MAX_RECURSIONS: usize = 16;
 
 /// Bumped when old proofs or signatures stop verifying.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

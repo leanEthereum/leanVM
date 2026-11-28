@@ -39,7 +39,7 @@ def lsInB (c : OsCfg) : Bool :=
       (c.levels.getD l default).vanish]
 
 /-- Every arm, every rate, by the kernel. -/
-theorem lsIn_all : ∀ m < 11, ∀ ri < 4, lsInB (osCfgR m ri) = true := by decide +kernel
+theorem lsIn_all : ∀ m < ligNSizes, ∀ ri < 4, lsInB (osCfgR m ri) = true := by decide +kernel
 
 theorem lsIn_of {c : OsCfg} (h : lsInB c = true) {l : ℕ} (hl : l < c.yrLevel) :
     ∃ e ∈ lrsTable, e.1 = osSlowName c (c.levels.getD l default) ∧

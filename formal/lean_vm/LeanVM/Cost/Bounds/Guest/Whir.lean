@@ -40,6 +40,14 @@ public section
 
 variable (P : MachineProgram)
 
+/-- `Nat.testBit` (`testBit.c131`): at most `9`. -/
+theorem testBit_cost (hP : Includes P Auto.Nat.testBit.c131.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
+    (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.c131.costIdx [encodeValue a, encodeValue b] ≤ 9 := by
+  rw [Auto.Nat.testBit.c131.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,
+    limbs_of_lt (lt_of_le_of_lt (Nat.shiftRight_le a b) ha),
+    limbs_of_lt (lt_of_le_of_lt (Nat.and_le_left (n := 1) (m := a >>> b)) (by norm_num))]
+  omega
+
 /-! ## The levels' shapes -/
 
 /-- A level's shape, all small: level 0 (`base = 1`) is never the final level, a deeper level
@@ -53,15 +61,15 @@ instance (s : Oq) : Decidable (OqOK s) := by unfold OqOK; infer_instance
 /-- A `level_queries` dispatch of the table and the `opening_queries` call in its callee: its
 shape's, its loop's and its words' bounds. -/
 @[expose] def CallOK (c : OsCall) : Prop :=
-  OqOK c.shape.oq ∧ c.odd ≤ 1 ∧ c.N ≤ 112 ∧ c.fn < 2 ^ 20 ∧ c.loop < 2 ^ 20 ∧ c.depth ≤ 28 ∧
+  OqOK c.shape.oq ∧ c.odd ≤ 1 ∧ c.N ≤ 115 ∧ c.fn < 2 ^ 20 ∧ c.loop < 2 ^ 20 ∧ c.depth ≤ 28 ∧
     c.args.length ≤ 6 ∧ c.rets.length ≤ 4 ∧ c.cd ≤ 8 ∧ c.sh < 2 ^ 20 ∧ c.lq < 2 ^ 20
 
 instance (c : OsCall) : Decidable (CallOK c) := by unfold CallOK; infer_instance
 
-theorem callOK_osCallsTab : osCallsTab.length = 44 ∧ (∀ cs ∈ osCallsTab, cs.length ≤ 6) ∧
+theorem callOK_osCallsTab : osCallsTab.length = 60 ∧ (∀ cs ∈ osCallsTab, cs.length ≤ 6) ∧
     ∀ cs ∈ osCallsTab, ∀ c ∈ cs, CallOK c := by decide +kernel
 
-theorem osWordsTab_ok : osWordsTab.length = 44 ∧ ∀ x ∈ osWordsTab, x ≤ 206 := by decide +kernel
+theorem osWordsTab_ok : osWordsTab.length = 60 ∧ ∀ x ∈ osWordsTab, x ≤ 206 := by decide +kernel
 
 /-- `open_stacked`'s tables as arrays: the lanes below `2^64`, each size and rate's words at most
 `206`, its dispatches at most `6`, each of the table's shapes (`whirTabs_ok`). -/
@@ -90,17 +98,17 @@ theorem whirTabs_ok : WhirTabsOK whirTabs := by
     rw [List.getD_toArray]
     exact callOK_getD m
 
-/-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `15454`. -/
+/-- **`open_stacked`'s tables, built** (`whirTabsC`): at most `18702`. -/
 theorem whirTabs_cost (hP : Includes P Decoder.whirTabsC.costDeps) :
-    machineCost P Decoder.whirTabsC.costIdx [] ≤ 15454 := by
+    machineCost P Decoder.whirTabsC.costIdx [] ≤ 18702 := by
   rw [Decoder.whirTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
     Decoder.osWordsTabC.costEq P (by includes), Decoder.osCallsTabC.costEq P (by includes),
     osWordsTab_ok.1, callOK_osCallsTab.1]
 
 /-- A call's shape's price: the table of shapes built, its entry looked up. -/
-@[expose] def shapePrice : ℕ := 541 + 21 + (15 * 17 + 9) + 5
+@[expose] def shapePrice : ℕ := 700 + 21 + (15 * 20 + 9) + 5
 
-theorem oqShapeTab_length : Decoder.oqShapeTab.length = 17 := rfl
+theorem oqShapeTab_length : Decoder.oqShapeTab.length = 20 := rfl
 
 /-- **A call's shape** (`OsCallShapeC`): at most `shapePrice`. -/
 theorem osCallShape_cost (hP : Includes P Decoder.OsCallShapeC.costDeps) (c : OsCall)
@@ -267,7 +275,7 @@ theorem oqVal_cost (hP : Includes P Decoder.oqValC.costDeps) (F : ℕ) (hF : F <
   have := oqRK_cost P hs (by includes) F hF (s.folds - 1) (by have := hs.2.1; omega)
   have := oqRK_le hs F (s.folds - 1)
   have := hs.2.1
-  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c409.costEq P (by includes)]
+  rw [Decoder.oqValC.costEq P hP, Auto.LeanVM.Guest.B1.oqAcc.c700.costEq P (by includes)]
   unfold oqRO
   limbs_one; omega
 
@@ -610,7 +618,7 @@ theorem digestOfCells640_cost (hP : Includes P Decoder.digestOfCellsWC.costDeps)
     machineCost P Decoder.digestOfCellsWC.costIdx [encodeValue a, encodeValue b] ≤
       58 := by
   rw [Decoder.digestOfCellsWC.costEq P hP,
-    Extractor.digestOfScalarsC.costEq P (by includes)]
+    LeanVM.Cost.Extractor.digestOfScalarsC.costEq P (by includes)]
   omega
 
 /-! ## A query -/
@@ -769,7 +777,7 @@ variable {Vn : NFrames} {VnV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hVn hF
 
@@ -785,7 +793,7 @@ theorem frameAt_runs (hP : Includes P Decoder.oqItersFromC.lam0.costDeps) (k : �
 omit hrd hR in
 /-- **A frame of the map, read a cell at a time**: at most `F + 10` a cell. -/
 theorem frameAt_cost (hP : Includes P Decoder.oqItersFromC.lam0.costDeps) (k : ℕ) (hk : k < 2 ^ 64)
-    (a r : List E) (ha : a.length + r.length ≤ 16) (v : V) :
+    (a r : List E) (ha : a.length + r.length ≤ 17) (v : V) :
     appCost P (.closure Decoder.oqItersFromC.lam0.costIdx [encodeValue k, VnV, encodeValue a,
       encodeValue r]) [encodeValue v] ≤ F + 10 := by
   rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.cons_append,
@@ -832,13 +840,13 @@ include hσ hS
 
 /-- The queries' price. -/
 @[expose] def oqsPrice (R S F : ℕ) : ℕ :=
-  1 + (S + queryPrice R S + 21) + (9 * S + 1291) + (stepPrice R F * 112 + 5) + 14 + 20
+  1 + (S + queryPrice R S + 21) + (9 * S + 1291) + (stepPrice R F * 115 + 5) + 14 + 20
 
 /-- **The queries of `opening_queries`** (`oqsOfNC`, `oqsOfA`) of a level of cap depth `cd ≤ 8`,
-its odd query and `N ≤ 112` iterations: at most `oqsPrice R S F`. -/
+its odd query and `N ≤ 115` iterations: at most `oqsPrice R S F`. -/
 theorem oqsOfA_cost (hP : Includes P Decoder.oqsOfNC.costDeps) (s : Oq) (hs : OqOK s)
     (lanes : List ℕ) (hl : ∀ x ∈ lanes, x < 2 ^ 64) (cd : ℕ) (hcd : cd ≤ 8)
-    (odd loop N : ℕ) (hodd : odd ≤ 1) (hN : N ≤ 112) (hloop : loop < 2 ^ 64) :
+    (odd loop N : ℕ) (hodd : odd ≤ 1) (hN : N ≤ 115) (hloop : loop < 2 ^ 64) :
     machineCost P Decoder.oqsOfNC.costIdx [encodeValue s, encodeValue lanes, encodeValue cd,
       encodeValue odd, encodeValue loop, encodeValue N, rdV, σV, VnV] ≤ oqsPrice R S F := by
   rw [Decoder.oqsOfNC.costEq P hP s lanes cd odd loop N rd rdV hrd σ σV hσ Vn VnV hVn]
@@ -996,14 +1004,14 @@ variable {σ : Val} {σV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hσ hS hVn hF
 
 /-- A level's price, the `level_queries` callee's frame `fr` (at most `S` a word) and its
 `opening_queries` call's argument words given. -/
 @[expose] def levelAtPrice (R S F : ℕ) : ℕ :=
-  2 * S + shapePrice + 28 + oqsPrice R (F + 10) F + ((openingPrice R + 10 + 13) * 225 + 3) + 57
+  2 * S + shapePrice + 28 + oqsPrice R (F + 10) F + ((openingPrice R + 10 + 13) * 231 + 3) + 57
 
 /-- **A level's openings, the `level_queries` callee's frame `fr` (here `σ`) and its
 `opening_queries` call's words `a` given** (`levelOsAtC`), from a dispatch of the table: at most
@@ -1049,7 +1057,7 @@ theorem levelOsAt_cost (hP : Includes P Decoder.levelOsAtC.costDeps) (lanes : Li
       have := toOpening_cost P hrd hR (by includes) (σ (.n 7)) c.cd c.depth w hccd (by omega)
         (lt_of_lt_of_le hw1 this) (by rw [hw2]; exact h3)
       omega)
-  have := Nat.mul_le_mul_left (openingPrice R + 10 + 13) (hlen.trans (by omega : 1 + 2 * c.N ≤ 225))
+  have := Nat.mul_le_mul_left (openingPrice R + 10 + 13) (hlen.trans (by omega : 1 + 2 * c.N ≤ 231))
   unfold levelAtPrice
   omega
 
@@ -1110,7 +1118,7 @@ variable {σ : Val} {σV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
 include hσ hS hVn hF
 
@@ -1190,7 +1198,7 @@ variable {σ : Val} {σV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
@@ -1207,7 +1215,7 @@ theorem vsOsArgs_cost (hP : Includes P Decoder.vsOsArgsC.costDeps) :
 
 omit hrd hR hVn hF hcl hC hL hL32 in
 theorem vsOsRets_cost (hP : Includes P Decoder.vsOsRetsC.costDeps) :
-    machineCost P Decoder.vsOsRetsC.costIdx [σV] ≤ 5 * S + 61 := by
+    machineCost P Decoder.vsOsRetsC.costIdx [σV] ≤ 6 * S + 73 := by
   rw [Decoder.vsOsRetsC.costEq P hP σ σV hσ]
   cost_facts [hS]
   omega
@@ -1258,7 +1266,7 @@ theorem vsPiOfAt_cost (hP : Includes P Decoder.vsPiOfAtC.costDeps) (T : WhirTabs
 
 /-- A child proof's price, its size and the index of its size and rate given. -/
 @[expose] def vsMPrice (R S F C L : ℕ) : ℕ :=
-  (5 * S + 61) + 1 + (11 * S + 133) + vsAtPrice R S F C L + 19
+  (6 * S + 73) + 1 + (11 * S + 133) + vsAtPrice R S F C L + 19
 
 /-- **A child's proof, its size `m` and the index `j` of its size and rate given**
 (`vsPiOfMC`): the frame of `open_stacked__L{m}`'s call read once: at most
@@ -1303,16 +1311,16 @@ theorem vsPiOfS_cost (hP : Includes P Decoder.vsPiOfSC.costDeps) (T : WhirTabs)
   have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 (by norm_num)
   have hr := logGTWith_le T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4
   have := vsPiOfM_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT m
-    (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m) hm
-  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 < 2 ^ 64),
+    (logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 15 + m) hm
+  rw [limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 15 < 2 ^ 64),
     limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 < 2 ^ 64),
-    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 11 + m < 2 ^ 64),
+    limbs_of_lt (by omega : logGTWith T.lanes (σ (.n (val% «verify_sub» "rate_sel"))) 4 * 15 + m < 2 ^ 64),
     limbs_of_lt (by omega : m < 2 ^ 64)]
   unfold vsSPrice
   omega
 
 /-- A child proof's price. -/
-@[expose] def vsPiPrice (R S F C L : ℕ) : ℕ := S + 347 + vsSPrice R S F C L + 19
+@[expose] def vsPiPrice (R S F C L : ℕ) : ℕ := S + 370 + vsSPrice R S F C L + 19
 
 /-- **A child's proof** (`vsPiOfNC`, `vsPiOfA`) at `verify_sub`'s valuation, off `open_stacked`'s
 tables `T`: its stream (the cursor's length at most `L`), the opening's words, the selected size
@@ -1323,10 +1331,10 @@ theorem vsPiOfN_cost (hP : Includes P Decoder.vsPiOfNC.costDeps) (T : WhirTabs)
       vsPiPrice R S F C L := by
   rw [Decoder.vsPiOfNC.costEq P hP T rd rdV hrd σ σV hσ Vn VnV hVn cl clV hcl]
   have := hS (.n (val% «verify_sub» "size_sel"))
-  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11 (by norm_num)
-  have := logGTWith_le T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11
+  have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (val% «verify_sub» "size_sel"))) 15 (by norm_num)
+  have := logGTWith_le T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 15
   have := vsPiOfS_cost P hrd hR hσ hS hVn hF hcl hC hL hL32 (by includes) T hT
-    (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 11) (by omega)
+    (logGTWith T.lanes (σ (.n (val% «verify_sub» "size_sel"))) 15) (by omega)
   unfold vsPiPrice
   omega
 

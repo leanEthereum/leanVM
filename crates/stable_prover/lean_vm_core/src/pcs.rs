@@ -19,19 +19,3 @@ pub(crate) const LOG_BATCH: usize = verifier::INITIAL_FOLDING_FACTOR;
 pub const TEST_LOG_INV_RATE: usize = 1;
 /// The protocol's bounds on `log_inv_rate` and on the committed stack's log-size.
 pub use verifier::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// What lets all three verifiers check a plain range instead of re-deriving the ladder: every size in the window
-    /// is configurable at every rate.
-    #[test]
-    fn supported_window_is_configurable() {
-        for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-            for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
-                assert!(verifier::derive_config(mu, rate).is_ok(), "mu={mu} rate={rate}");
-            }
-        }
-    }
-}

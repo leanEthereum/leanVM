@@ -72,6 +72,8 @@ def derefMode? (fpc ffp : K) : Option DerefMode :=
   else if fpc = 0 ∧ ffp = 1 then some .fp
   else none
 
+/-! ## The bus entry and the sixteen slots -/
+
 /-! ## The decoder -/
 
 /-- A `KECCAK` layout flag, if the word is `0` or `1`. -/
@@ -80,12 +82,12 @@ def flag? (a : K) : Option Bool :=
 
 /-- The opcode of a code, if it is one of the six. -/
 def opcode? (a : K) : Option Opcode :=
-  if a = Opcode.xor.busCode then some .xor
-  else if a = Opcode.mulNative.busCode then some .mulNative
-  else if a = Opcode.setConstant.busCode then some .setConstant
-  else if a = Opcode.deref.busCode then some .deref
-  else if a = Opcode.jump.busCode then some .jump
-  else if a = Opcode.keccak.busCode then some .keccak
+  if a = Opcode.xor.code then some .xor
+  else if a = Opcode.mulNative.code then some .mulNative
+  else if a = Opcode.setConstant.code then some .setConstant
+  else if a = Opcode.deref.code then some .deref
+  else if a = Opcode.jump.code then some .jump
+  else if a = Opcode.keccak.code then some .keccak
   else none
 
 /-- `KECCAK`'s output cells of a flag pair `(out_two, out_all)`, if it is one of the three. -/
@@ -154,11 +156,11 @@ theorem derefMode?_eq_some_iff {fpc ffp : K} {m : DerefMode} :
       simp [derefMode?]
 
 /-- The code of an opcode decodes to that opcode. -/
-theorem opcode?_code (o : Opcode) : opcode? o.busCode = some o := by
+theorem opcode?_code (o : Opcode) : opcode? o.code = some o := by
   cases o <;> simp [opcode?, Opcode.code_injective.eq_iff]
 
 /-- A word decodes to an opcode exactly when it is that opcode's code. -/
-theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.busCode := by
+theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.code := by
   constructor
   · intro h
     unfold opcode? at h
@@ -167,7 +169,7 @@ theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.
     exact opcode?_code o
 
 /-- Slot 3 is the opcode. -/
-theorem entry_getElem_zero (i : LeanIsaInstruction) : (busEntry i)[0] = i.opcode.busCode := by
+theorem entry_getElem_zero (i : LeanIsaInstruction) : (instructionEntry i)[0] = i.opcode.code := by
   cases i <;> rfl
 
 /-- A flag decodes to itself. -/
@@ -210,17 +212,17 @@ theorem keccakOutputFlags_bits (o : KeccakOutputCells) :
   cases o <;> simp [keccakOutputFlags, layoutFlagWord]
 
 /-- Every instruction's entry decodes to it. -/
-theorem decode_entry (i : LeanIsaInstruction) : decode (busEntry i) = some i := by
+theorem decode_entry (i : LeanIsaInstruction) : decode (instructionEntry i) = some i := by
   cases i with
   | keccak om otail ob8 ocap oout inOdd outOdd outCells =>
     have h := vecCons_apply om
-    simp [decode, busEntry, opcode?_code, h, flag?_flagK, outCells?_flags]
-  | _ => simp [decode, busEntry, opcode?_code, derefMode?_flags, ofLimbs_limb, Spare5]
+    simp [decode, instructionEntry, opcode?_code, h, flag?_flagK, outCells?_flags]
+  | _ => simp [decode, instructionEntry, opcode?_code, derefMode?_flags, ofLimbs_limb, Spare5]
 
 /-- `decode` is the exact inverse of `entry`: a vector decodes to an instruction only when it is
 that instruction's entry. -/
 theorem decode_eq_some_iff {v : Vector K 13} {i : LeanIsaInstruction} : decode v = some i ↔ v =
-    busEntry i := by
+    instructionEntry i := by
   constructor
   · intro h
     unfold decode at h
@@ -241,7 +243,7 @@ theorem decode_eq_some_iff {v : Vector K 13} {i : LeanIsaInstruction} : decode v
           cases h
           obtain ⟨z6, z7, z8, z9, z10, z11, z12⟩ := hz
           refine Vector.ext fun j hj ↦ ?_
-          interval_cases j <;> simp [busEntry, hop, hm.1, hm.2, z6, z7, z8, z9, z10, z11, z12]
+          interval_cases j <;> simp [instructionEntry, hop, hm.1, hm.2, z6, z7, z8, z9, z10, z11, z12]
       case keccak =>
         rcases h9 : flag? v[9] with _ | inOdd <;> rcases h10 : flag? v[10] with _ | outOdd <;>
           rcases h11 : outCells? v[11] v[12] with _ | outCells <;>
@@ -249,24 +251,24 @@ theorem decode_eq_some_iff {v : Vector K 13} {i : LeanIsaInstruction} : decode v
         rw [flag?_eq_some_iff] at h9 h10
         rw [outCells?_eq_some_iff, Prod.mk.injEq] at h11
         refine Vector.ext fun j hj ↦ ?_
-        interval_cases j <;> simp [busEntry, hop, h9, h10, h11.1, h11.2]
+        interval_cases j <;> simp [instructionEntry, hop, h9, h10, h11.1, h11.2]
       all_goals
         split_ifs at h with hz
         cases h
         simp only [Spare5] at hz
         refine Vector.ext fun j hj ↦ ?_
-        interval_cases j <;> simp [busEntry, hop, hz]
+        interval_cases j <;> simp [instructionEntry, hop, hz]
   · rintro rfl
     exact decode_entry i
 
 /-- A vector decodes to nothing exactly when it is no instruction's entry. -/
-theorem decode_eq_none_iff {v : Vector K 13} : decode v = none ↔ ∀ i, v ≠ busEntry i := by
+theorem decode_eq_none_iff {v : Vector K 13} : decode v = none ↔ ∀ i, v ≠ instructionEntry i := by
   simp only [Option.eq_none_iff_forall_ne_some, ne_eq, decode_eq_some_iff]
 
 /-- A `DEREF` tuple with free flags decodes exactly to the `DEREF` with its operands and the store
 mode whose flags it carries; a pair that is no mode's decodes to nothing. -/
 theorem decode_deref_eq_some_iff {o1 o2 o3 fpc ffp : K} {i : LeanIsaInstruction} :
-    decode #v[Opcode.deref.busCode, o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0, 0, 0] = some i ↔
+    decode #v[Opcode.deref.code, o1, o2, o3, fpc, ffp, 0, 0, 0, 0, 0, 0, 0] = some i ↔
       ∃ mode, i = .deref o1 o2 o3 mode ∧ (fpc, ffp) = derefFlags mode := by
   simp only [decode, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
     List.getElem_cons_succ, opcode?_code, and_self, ite_true]
@@ -281,7 +283,7 @@ theorem decode_deref_eq_some_iff {o1 o2 o3 fpc ffp : K} {i : LeanIsaInstruction}
     rw [derefMode?_eq_some_iff.mpr hf]
 
 /-- Distinct instructions have distinct entries. -/
-theorem entry_injective : Function.Injective busEntry := by
+theorem entry_injective : Function.Injective instructionEntry := by
   intro i j h
   have hi := decode_entry i
   rw [h, decode_entry] at hi
@@ -289,7 +291,7 @@ theorem entry_injective : Function.Injective busEntry := by
 
 /-- The sixteen slots: the entry at slots 3 to 15, zero elsewhere (specification §8.1). -/
 theorem encodeSlots_getElem (i : LeanIsaInstruction) (j : ℕ) (hj : j < 16) :
-    (instructionSlots i)[j] = if h : 3 ≤ j ∧ j < 16 then (busEntry i)[j - 3] else 0 := by
+    (instructionSlots i)[j] = if h : 3 ≤ j ∧ j < 16 then (instructionEntry i)[j - 3] else 0 := by
   interval_cases j <;> simp [instructionSlots]
 
 end

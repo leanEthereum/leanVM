@@ -25,7 +25,7 @@ the sums as the soundness proof computes them (`qwLoT`, `qwHiT`), each position'
 
 `qwAK rd Q σ ss`: every atom of the block holds, and is one of the kinds a placed proof needs
 (`QwEnv.Ok`): a load through `positions` or `win_ptrs` below `128 / d`, or through `tabs·g^e`,
-`e < 128`; a `frameAddr` of a run from `.n r`, `5 ≤ r < 41`, at `run·g^(r - 5)`; no `HeapBuf`.
+`e < 128`; a `frameAddr` of a run from `.n r`, `5 ≤ r < 5 + W`, at `run·g^(r - 5)`; no `HeapBuf`.
 
 **`qw_holds`** (generic in the shape, `QwShape`): on a reader defined below `2^7` (the range
 checks), holding the window table at `tabs`, the honest windows at `run` (where it holds a word,
@@ -96,15 +96,17 @@ structure QwEnv where
   run : E
   np : ℕ
   word : E
+  /-- The `wins` run's length. -/
+  W : ℕ
 
 /-- **An atom of a kind a placed proof covers**: its loads through `positions` or `win_ptrs` below
-`np`, or through `tabs·g^e`, `e < 128`; its `frameAddr`s of runs from `.n r`, `5 ≤ r < 41`, at
+`np`, or through `tabs·g^e`, `e < 128`; its `frameAddr`s of runs from `.n r`, `5 ≤ r < 5 + W`, at
 `run·g^(r - 5)`; its hints windows of the word at `.n 0` into frame cells, holding the executor's
 windows of `word` (`Hint.Exact`); no `HeapBuf`. -/
 def QwEnv.Ok (Q : QwEnv) (σ : Val) : Atom → Prop
   | .load _ q off => (σ q = Q.pos ∧ off < Q.np) ∨ (σ q = Q.ptrs ∧ off < Q.np) ∨
       ∃ e < 128, σ q = Q.tabs * gen ^ e ∧ off = 0
-  | .frameAddr q (r :: _) => r = .n r.idx ∧ 5 ≤ r.idx ∧ r.idx < 41 ∧ σ q = Q.run * gen ^ (r.idx - 5)
+  | .frameAddr q (r :: _) => r = .n r.idx ∧ 5 ≤ r.idx ∧ r.idx < 5 + Q.W ∧ σ q = Q.run * gen ^ (r.idx - 5)
   | .frameAddr _ [] => False
   | .hint (.windowsExp v start width count (.stack ds)) => v = .n (valf% «decode_query_windows» "squeezed_word") ∧
       ds.map σ = (List.range count).map fun i ↦
@@ -576,13 +578,13 @@ theorem qwPr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j base cut d :
 address and the words of the run where the memory holds them. -/
 def QwBase (rd : Reader) (Q : QwEnv) (σ : Val) : Prop :=
   σ (.n (valf% «decode_query_windows» "positions_out")) = Q.pos ∧ σ (.n (valf% «decode_query_windows» "win_ptrs_out")) = Q.ptrs ∧ σ (.n (valf% «decode_query_windows» "tabs")) = Q.tabs ∧ σ (.n (valf% «decode_query_windows» "s5#0")) = Q.run ∧ IsInK Q.run ∧
-    ∀ x < 36, ∀ v, rd (Q.run.limb 0 * Parameters.addressOfIndex x) = some v → v = σ (.n ((valf% «decode_query_windows» "wins[0]") + x))
+    ∀ x < Q.W, ∀ v, rd (Q.run.limb 0 * Parameters.addressOfIndex x) = some v → v = σ (.n (5 + x))
 
 omit hT hlow in
 theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (hn : 1 ≤ n)
-    (hjn : j * n + n ≤ 36) (hj : j < Q.np) (hptr : LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * n)))
+    (hjn : j * n + n ≤ Q.W) (hj : j < Q.np) (hptr : LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * n)))
     (hpre : QwStab l (QwBase rd Q)) :
-    QwExt l (qwPtr j n k).2.1 fun σ ↦ qwAK rd Q σ (qwPtr j n k).1 := by
+    QwExt l (qwPtr Q.W j n k).2.1 fun σ ↦ qwAK rd Q σ (qwPtr Q.W j n k).1 := by
   unfold qwPtr
   by_cases hj0 : j = 0
   · subst hj0
@@ -593,7 +595,7 @@ theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (h
     simp only [Nat.zero_mul, pow_zero, mul_one] at hptr
     exact ⟨hptr, by simp [hj]⟩
   · simp only [hj0, ↓reduceIte]
-    obtain ⟨r, hr⟩ : ∃ r, 36 - j * n = r + 1 := ⟨36 - j * n - 1, by omega⟩
+    obtain ⟨r, hr⟩ : ∃ r, Q.W - j * n = r + 1 := ⟨Q.W - j * n - 1, by omega⟩
     refine ⟨[Q.run * gen ^ (j * n)], by simp [hl], fun t ↦ ?_⟩
     obtain ⟨_, h2, _, _, hrun, hfr⟩ := hpre ([Q.run * gen ^ (j * n)] ++ t)
     rw [← List.append_assoc] at h2 hfr
@@ -602,7 +604,7 @@ theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (h
     rw [hr, List.range_succ_eq_map, List.map_cons]
     simp only [qwAK_cons, qwAK_nil, Atom.Holds, QwEnv.Ok, and_true, e, h2]
     refine ⟨⟨⟨isInK_mul hrun (gen_pow_isInK _), fun x hx v hv ↦ ?_⟩, ?_⟩, hptr, by simp [hj]⟩
-    · have hx' : x < 36 - j * n := by simpa [hr] using hx
+    · have hx' : x < Q.W - j * n := by simpa [hr] using hx
       rw [gen_pow_eq_ofK, limb0_mul_ofK, mul_assoc, Parameters.addressOfIndex,
         Parameters.addressOfIndex, ← pow_add, ← Parameters.addressOfIndex] at hv
       rw [hfr (j * n + x) (by omega) v hv]
@@ -615,7 +617,7 @@ theorem qwPtr_complete {l : List E} {k : ℕ} (hl : l.length = k) {j n : ℕ} (h
 
 theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (hs : QwShape d cd)
     {j : ℕ} (hj : j < 128 / d) {recon : Option V} {R : E} (hrec : recon = none → j = 0) {P : ℕ}
-    (hP : P < 2 ^ d) (hPW : P = qwPosOf d Q.word j) (hnp : Q.np = 128 / d) (hpos : LoadHolds rd Q.pos j (eOfNat P))
+    (hP : P < 2 ^ d) (hPW : P = qwPosOf d Q.word j) (hnp : Q.np = 128 / d) (hQW : Q.W = qwW d cd) (hpos : LoadHolds rd Q.pos j (eOfNat P))
     (hptr : LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * qwN d cd)))
     (hpre : QwStab l fun σ ↦ (∀ i < qwN d cd, σ (.n (5 + j * qwN d cd + i)) = gen ^ qwVal d cd P i) ∧
       QwBase rd Q σ ∧ qwOpt σ recon = R) :
@@ -630,11 +632,13 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
     have := Nat.div_mul_le_self 128 d
     have : (j + 1) * d ≤ 128 / d * d := Nat.mul_le_mul_right _ hj
     nlinarith
-  have hjn : j * qwN d cd + qwN d cd ≤ 36 := by
+  have hjn : j * qwN d cd + qwN d cd ≤ Q.W := by
     have := hs.2.2.1
+    rw [hQW]
     have : (j + 1) * qwN d cd ≤ 128 / d * qwN d cd := Nat.mul_le_mul_right _ hj
     nlinarith
   simp only [qwPos]
+  rw [← hQW]
   set cut := 64 - j * d % 64 with hcut
   have hcut64 : cut ≤ 64 := by omega
   have hns : ∀ t < qwN d cd, qwVal d cd P t < 2 ^ (qwWin d cd t).2 := fun t _ ↦ qwVal_lt _ _ _ _
@@ -680,7 +684,7 @@ theorem qwPos_complete {l : List E} {k : ℕ} (hl : l.length = k) {d cd : ℕ} (
 /-! ## The positions -/
 
 theorem qwPositions_complete {d cd : ℕ} (hs : QwShape d cd) {Ps : ℕ → ℕ}
-    (hPs : ∀ j < 128 / d, Ps j < 2 ^ d) (hnp : Q.np = 128 / d)
+    (hPs : ∀ j < 128 / d, Ps j < 2 ^ d) (hnp : Q.np = 128 / d) (hQW : Q.W = qwW d cd)
     (hPsW : ∀ j < 128 / d, Ps j = qwPosOf d Q.word j)
     (hrd : ∀ j < 128 / d, LoadHolds rd Q.pos j (eOfNat (Ps j)) ∧
       LoadHolds rd Q.ptrs j (Q.run * gen ^ (j * qwN d cd))) :
@@ -700,11 +704,11 @@ theorem qwPositions_complete {d cd : ℕ} (hs : QwShape d cd) {Ps : ℕ → ℕ}
       · omega)
   | j, m + 1, l, k, hl, recon, R, hjm, hrec, h => by
     simp only [qwPositions]
-    have h1 := qwPos_complete hT hlow hl hs (j := j) (by omega) hrec (hPs j (by omega)) (hPsW j (by omega)) hnp
+    have h1 := qwPos_complete hT hlow hl hs (j := j) (by omega) hrec (hPs j (by omega)) (hPsW j (by omega)) hnp hQW
       (hrd j (by omega)).1 (hrd j (by omega)).2
       (h.mono fun σ ⟨hc, hb, hR⟩ ↦ ⟨hc j (by omega), hb, hR⟩)
     have e : ∀ t, j + 1 + t = j + (t + 1) := fun t ↦ by omega
-    have h2 := h1.bind fun m1 hm1 hs1 ↦ qwPositions_complete hs hPs hnp hPsW hrd (j + 1) m hm1
+    have h2 := h1.bind fun m1 hm1 hs1 ↦ qwPositions_complete hs hPs hnp hQW hPsW hrd (j + 1) m hm1
       (by omega) (fun h0 ↦ by
         have := (hs1 []).2.2
         rw [h0] at this
@@ -763,16 +767,17 @@ end reads
 
 /-! ## The body -/
 
-/-- The honest frame's first `41` words: the arguments, the `wins` run's address, the run (the
+/-- The honest frame's first `5 + qwW` words: the arguments, the `wins` run's address, the run (the
 honest windows `qwRunW`, then whatever the memory holds there). -/
 noncomputable def qwFrame0 (rd : Reader) (d cd : ℕ) (w pos ptrs tabs run : E) : List E :=
-  [w, pos, ptrs, tabs, run] ++ (List.range 36).map fun x ↦
+  [w, pos, ptrs, tabs, run] ++ (List.range (qwW d cd)).map fun x ↦
     if x < 128 / d * qwN d cd then qwRunW d cd w x
     else (rd (run.limb 0 * Parameters.addressOfIndex x)).getD 0
 
-theorem qwRun_eq : qwRun = .n (valf% «decode_query_windows» "wins[0]") :: (List.range 35).map (fun i ↦ V.n (5 + (i + 1))) := rfl
+theorem qwRun_eq (W : ℕ) : qwRun (W + 1) = .n 5 :: (List.range W).map (fun i ↦ V.n (5 + (i + 1))) := by
+  simp [qwRun, List.range_succ_eq_map]
 
-theorem qwRun_getElem {x : ℕ} (hx : x < qwRun.length) : qwRun[x] = .n (5 + x) := by
+theorem qwRun_getElem {W x : ℕ} (hx : x < (qwRun W).length) : (qwRun W)[x] = .n (5 + x) := by
   simp [qwRun]
 
 /-- **`decode_query_windows` is complete, at a shape of its template**: on a reader defined below
@@ -786,29 +791,30 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
     (hrd : ∀ j < 128 / d, LoadHolds rd pos j (eOfNat (qwPosOf d w j)) ∧
       LoadHolds rd ptrs j (run * gen ^ (j * qwN d cd))) :
     ∃ σ : Val, [V.n (valf% «decode_query_windows» "squeezed_word"), .n (valf% «decode_query_windows» "positions_out"), .n (valf% «decode_query_windows» "win_ptrs_out"), .n (valf% «decode_query_windows» "tabs")].map σ = [w, pos, ptrs, tabs] ∧
-      qwAK rd ⟨pos, ptrs, tabs, run, 128 / d, w⟩ σ (qwBody d cd) ∧
+      qwAK rd ⟨pos, ptrs, tabs, run, 128 / d, w, qwW d cd⟩ σ (qwBody d cd) ∧
       ∀ C : CallRel, Stmt.HoldsList C rd σ (qwBody d cd) False (fun rs ↦ rs = []) := by
-  set Q : QwEnv := ⟨pos, ptrs, tabs, run, 128 / d, w⟩ with hQ
+  set Q : QwEnv := ⟨pos, ptrs, tabs, run, 128 / d, w, qwW d cd⟩ with hQ
   have hT' : WinTabs rd Q.tabs := hT
   have hd14 := hs.1
   have hper : 128 / d * d ≤ 128 := Nat.div_mul_le_self 128 d
   have hper1 : 1 ≤ 128 / d := (Nat.le_div_iff_mul_le (by omega)).mpr (by have := hs.2.1; omega)
-  have hM : 128 / d * qwN d cd ≤ 36 := hs.2.2.1
+  have hM : 128 / d * qwN d cd ≤ qwW d cd := hs.2.2.1
+  have hW1 : 1 ≤ qwW d cd := by simp only [qwW]; split_ifs <;> omega
   set l0 := qwFrame0 rd d cd w pos ptrs tabs run with hl0d
-  have hl0 : l0.length = 41 := by simp [l0, qwFrame0]
+  have hl0 : l0.length = 5 + qwW d cd := by simp [l0, qwFrame0]; omega
   have hl5 : [w, pos, ptrs, tabs, run].length = 5 := rfl
-  have hrl : ((List.range 36).map fun x ↦
+  have hrl : ((List.range (qwW d cd)).map fun x ↦
       if x < 128 / d * qwN d cd then qwRunW d cd w x
-      else (rd (run.limb 0 * Parameters.addressOfIndex x)).getD 0).length = 36 := by simp
+      else (rd (run.limb 0 * Parameters.addressOfIndex x)).getD 0).length = qwW d cd := by simp
   -- the run's words
-  have g : ∀ t x, x < 36 → Val.ofArgs (l0 ++ t) (.n (5 + x)) =
+  have g : ∀ t x, x < qwW d cd → Val.ofArgs (l0 ++ t) (.n (5 + x)) =
       if x < 128 / d * qwN d cd then qwRunW d cd w x
       else (rd (run.limb 0 * Parameters.addressOfIndex x)).getD 0 := fun t x hx ↦ by
     rw [hl0d, qwFrame0, qwOaN hl5 hrl (by omega) (by omega), Nat.add_sub_cancel_left,
       List.getD_eq_getElem _ _ (by simpa using hx)]
     simp
-  have hfr : QwStab l0 fun σ ↦ ∀ x < 36, ∀ v, rd (run.limb 0 * Parameters.addressOfIndex x) = some v →
-      v = σ (.n ((valf% «decode_query_windows» "wins[0]") + x)) := fun t x hx v hv ↦ by
+  have hfr : QwStab l0 fun σ ↦ ∀ x < qwW d cd, ∀ v, rd (run.limb 0 * Parameters.addressOfIndex x) = some v →
+      v = σ (.n (5 + x)) := fun t x hx v hv ↦ by
     rw [g t x hx]
     split_ifs with h
     · exact hrun.2 x h v hv
@@ -822,22 +828,23 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       nlinarith
     rw [Nat.add_assoc, g t _ (by omega), ite_pos' hx, qwRunW_at w hi]
   have hw0 : QwStab l0 fun σ ↦ σ (.n (valf% «decode_query_windows» "squeezed_word")) = w := fun _ ↦ rfl
-  have hFA : QwStab l0 fun σ ↦ qwAK rd Q σ [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] := fun t ↦ by
+  have hFA : QwStab l0 fun σ ↦ qwAK rd Q σ [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) (qwRun (qwW d cd)))] := fun t ↦ by
     obtain ⟨_, _, _, h4, hrK, hf⟩ := hbase t
     rw [qwAK_cons, qwAK_nil, and_true]
     refine ⟨⟨by rw [h4]; exact hrK, fun x hx v hv ↦ ?_⟩, ?_⟩
     · rw [qwRun_getElem hx]
       rw [h4] at hv
       exact hf x (by simpa [qwRun] using hx) v hv
-    · rw [qwRun_eq]
-      exact ⟨rfl, le_rfl, by decide, by rw [h4]; simp⟩
+    · obtain ⟨W', hW'⟩ : ∃ W', qwW d cd = W' + 1 := ⟨qwW d cd - 1, by omega⟩
+      rw [hW', qwRun_eq]
+      exact ⟨rfl, le_rfl, by show 5 < 5 + qwW d cd; omega, by rw [h4]; simp⟩
   -- the positions, the rest
   have hpos := qwPositions_complete (Q := Q) hT' hlow hs (Ps := qwPosOf d w)
-    (fun j _ ↦ qwPosOf_lt d w j) rfl (fun _ _ ↦ rfl) hrd 0 (128 / d) hl0 (recon := none) (R := 0) (by omega)
+    (fun j _ ↦ qwPosOf_lt d w j) rfl rfl (fun _ _ ↦ rfl) hrd 0 (128 / d) hl0 (recon := none) (R := 0) (by omega)
     (fun _ ↦ rfl) ((hcells.and hbase).mono fun σ h ↦ ⟨h.1, h.2, rfl⟩)
   have hall := (hpos.bind fun m1 hm1 hs1 ↦
     qwRest_complete (Q := Q) hT' hlow hs (rs := qwRestOf d w) (fun r _ ↦ qwRestOf_lt d w r) (fun _ _ ↦ rfl) 0
-      (qwRestN d) hm1 (recon := (qwPositions d cd 0 (128 / d) 41 none).2.2) (by omega)
+      (qwRestN d) hm1 (recon := (qwPositions d cd 0 (128 / d) (5 + qwW d cd) none).2.2) (by omega)
       (((hbase.ext m1).and hs1).mono fun σ h ↦ ⟨h.1.2.2.1, h.2.2.1⟩)).and_stab
     ((hFA.and hw0).and hbase)
   obtain ⟨m, -, hst⟩ := hall
@@ -869,8 +876,8 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
       simp only [Vd, qwDigit, show ¬ t < 128 / d from h, ↓reduceIte]
       rw [Nat.add_sub_cancel_left]
       exact qwRestOf_lt d w _
-  have htot : qwOpt σ (qwRest d 0 (qwRestN d) (qwPositions d cd 0 N 41 none).2.1
-      (qwPositions d cd 0 N 41 none).2.2).2.2 = w := by
+  have htot : qwOpt σ (qwRest d 0 (qwRestN d) (qwPositions d cd 0 N (5 + qwW d cd) none).2.1
+      (qwPositions d cd 0 N (5 + qwW d cd) none).2.2).2.2 = w := by
     have hrec : eOfNat128 (tS (qwTop d) Vd (N + qwRestN d)) = w := by
       rw [qw_recon hs w, eOfNat128_eToNat]
     rw [hrv]
@@ -887,8 +894,8 @@ theorem qw_holds {d cd : ℕ} (hs : QwShape d cd) {rd : Reader} {w pos ptrs tabs
         simp only [Vd, qwDigit, show ¬ N + t < 128 / d by omega, ↓reduceIte]
         rw [show N + t - 128 / d = t from Nat.add_sub_cancel_left N t, e1]
   have hsome := hrsome (hpsome (Or.inr hper1))
-  have hassert : σ ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 N 41 none).2.1
-      (qwPositions d cd 0 N 41 none).2.2).2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) + σ (.n (valf% «decode_query_windows» "squeezed_word")) = 0 := by
+  have hassert : σ ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 N (5 + qwW d cd) none).2.1
+      (qwPositions d cd 0 N (5 + qwW d cd) none).2.2).2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) + σ (.n (valf% «decode_query_windows» "squeezed_word")) = 0 := by
     rw [qwOpt_getD (σ := σ) hsome, htot, hσ0]
     exact e_add_eq_zero_iff.mpr rfl
   have hAK : qwAK rd Q σ (qwBody d cd) := by

@@ -1,5 +1,5 @@
-//! A run's reservations in the order of the proof's memory model
-//! (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`): each call instance's frame, then its
+//! A run's reservations in the order of the proof's memory model (`formal/lean_vm/LeanVM/Guest/Memory/Alloc.lean`):
+//! each call instance's frame, then its
 //! `HeapBuf`s in the order it allocates them, then its callees' subtrees. The interpreter
 //! reserves in execution order, so a `HeapBuf` some run allocates after a call would land past
 //! that callee's subtree. Here its hint moves to just before the function's first call, which

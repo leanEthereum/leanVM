@@ -1,6 +1,7 @@
 module
 
 public import Statement.Prover.Ntt
+public import Statement.Prover.Columns
 public import Statement.Prover.Mle
 
 /-!
@@ -12,10 +13,10 @@ The honest prover of ring switching (`ringSwitch`: `ring_switch`,
 `crates/verifier/src/whir.rs`), the prover's side being `recursive_prover_with_prepared_basis`
 (`crates/pcs/src/whir.rs`), on arrays.
 
-The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
-weights are closures the prover does not evaluate on the cube: the starting weight table is built
-by scatter, a column claim's equality kernel on its block of the stack and the ring claim's `Φ` of
-the equality kernel on `q_keccak`'s block (`basisTableA`). The lanes are tables of novel-basis
+The claims are descriptions (`ClaimDesc`) of the verifier's stack claims, whose weights the prover
+does not evaluate on the cube: the starting weight table is built by scatter (`basisTableA`), a
+column claim's equality kernel at its rows' cells, the ring claim's `Φ` of each piece's equality
+kernel on the piece's column, the out-of-domain claim's on the whole stack. The lanes are tables of novel-basis
 coefficients, coefficient `c` of lane `l` at `c·stride + l` (the Rust's `Dense`): a fold round
 sends the table of the half `F` and of `X F` against the weight (`mulXA`, `roundTableA`) and folds
 the lanes to `G + α F + β X F`, one coefficient longer, and the weight by the same `α`. A level's
@@ -28,28 +29,29 @@ depend on the running claim, which it does not track.
 
 namespace LeanVM.Prover
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
+open LeanVM.Parameters LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier
 
 /-! ## Ring switching -/
 
-/-- What ring switching leaves for the opening: the target `Σ_i x^i Φ(s_i)`, the Keccak
-reduction's point on `q_keccak`, and the map's challenges `f` and `g`. -/
+/-- What ring switching draws: the map's challenges `f` and `g`, the claims' merging challenge `ρ`
+(`1` for one claim), and the stacked opening's batching challenge. -/
 structure RingOut where
-  target : E
-  point : List E
   f : List E
   g : List E
+  rho : E
+  batching : E
 
-/-- **The honest prover of ring switching** (`ring_switch`,
-`crates/verifier/src/ring_switch.rs`; the prover's `sample_map_challenges`,
-`crates/pcs/src/ring_switch.rs`): it sends nothing; a grind, then the sixteen challenges,
-`f` then `g`; the target with the point and the challenges. -/
-def ringFast (point slices : List E) : Script RingOut := do
+/-- **The honest prover of ring switching** (`ringSwitch`, `crates/verifier/src/ring_switch.rs`;
+the prover's `ring_switch`, `crates/pcs/src/ring_switch.rs`): it sends nothing; a grind, then one
+packed draw, `f`, `g`, `ρ` when it merges several claims, and the batching challenge. -/
+def ringFast (merging : Bool) : Script RingOut := do
   Script.grindBits Whir.batchGrindingBits
-  let challenges ← Script.sampleN (2 * ringMapWidth)
-  let f := challenges.take ringMapWidth
-  let g := challenges.drop ringMapWidth
-  return ⟨ringTarget slices f g, point, f, g⟩
+  let challenges ← Script.samplePackedS (2 * ringMapWidth + (if merging then 1 else 0) + 1)
+  let rest := challenges.drop (2 * ringMapWidth)
+  let (rho, batching) := if merging then (rest.getD 0 0, rest.getD 1 0) else (1, rest.getD 0 0)
+  return ⟨challenges.take ringMapWidth, (challenges.drop ringMapWidth).take ringMapWidth, rho,
+    batching⟩
 
 /-- `Φ(value) = Σ_p f_p Ψ(value)^(2^(8p))`, `Ψ(v) = Σ_b g_b v^(2^b)`, stage by stage, by squarings
 (`apply_map`, `crates/pcs/src/ring_switch.rs`). -/
@@ -59,29 +61,16 @@ def ringPhi (f g : List E) (value : E) : E :=
 
 /-! ## The claims -/
 
-/-- A claim on the stack, as the opening receives it. -/
+/-- A claim on the stack, as the opening receives it, by its weight on the cube. -/
 inductive ClaimDesc where
-  /-- The ring-switching claim: its target, the Keccak reduction's point and the map's
-  challenges `f`, `g`. -/
-  | ring (layout : Layout) (target : E) (point f g : List E)
-  /-- A column claim. -/
-  | column (layout : Layout) (claim : ColumnClaim)
-  /-- The stack commitment's out-of-domain claim: the stack's multilinear at `z` is `value`. -/
-  | ood (z : List E) (value : E)
-
-/-- **The stack claim a description stands for**: the ring-switching claim with the weight
-`ringWeight point · (ringCoefficients f g)`, the column claim on the stack, or the out-of-domain
-claim. -/
-def ClaimDesc.denote : ClaimDesc → StackClaim
-  | .ring layout target point f g =>
-    ringSwitchClaim layout target fun rPrime ↦ ringWeight point rPrime (ringCoefficients f g)
-  | .column layout c =>
-    (fun x ↦ eqEval ((layout.placement c.column).stackPoint c.point layout.stackLog) x, c.value)
-  | .ood z value => (fun x ↦ eqEval z x, value)
-
-/-- The ring-switching claim of ring switching's result. -/
-def RingOut.claim (r : RingOut) (layout : Layout) : ClaimDesc :=
-  .ring layout r.target r.point r.f r.g
+  /-- The ring-switched claim (`ringMerge`): claim `j`'s pieces, each the weight
+  `Φ(ρ^j·scale·eq(point, ·))` on its block. -/
+  | ring (claims : List RingClaim) (f g : List E) (rho : E)
+  /-- A sum of column claims, `Σ scale·eq(point, u)` at each column's row `u`: a column claim
+  (`ColumnClaim.onStack`) is one, the memory term (`memoryTermClaim`) two. -/
+  | cells (parts : List (Placement × List E × E))
+  /-- The stack commitment's out-of-domain claim at `z`. -/
+  | ood (z : List E)
 
 /-! ## Tables -/
 
@@ -113,61 +102,34 @@ def queryTableA (m : ℕ) (queries : List ℕ) (queryWeights : List E) : Array E
 
 /-! ## The starting claim -/
 
-/-- The cube point of `y` on `m` coordinates, bit `0` first (`boolPoint`). -/
-def cubePoint (m y : ℕ) : List E := (List.range m).map fun i ↦ if y.testBit i then 1 else 0
+/-- Add `s` times a claim's weight on the cube of `2^μ` positions, the stack's order: a column's
+row `u` at its cell `index + u`, a ring piece's `Φ ∘ eq` on its column, the out-of-domain claim's
+equality kernel on the whole stack. -/
+def addClaim (acc : Array E) (s : E) : ClaimDesc → Array E
+  | .cells parts => parts.foldl (fun acc (p, point, scale) ↦
+      let vals := eqTable point
+      Nat.fold vals.size (fun u _ acc ↦
+        acc.modify (p.index + u) (· + s * scale * vals.getD u 0)) acc) acc
+  | .ring claims f g rho => (claims.foldl (fun (state : Array E × E) claim ↦
+      let rhoJ := state.2
+      (claim.pieces.foldl (fun table piece ↦
+        let index := (piece.placement.map (·.index)).getD 0
+        let vals := eqTable piece.point
+        let scale := rhoJ * piece.scale
+        Nat.fold vals.size (fun i _ table ↦
+          table.modify (index + i) (· + s * ringPhi f g (scale * vals.getD i 0))) table)
+        state.1, rhoJ * rho)) (acc, 1)).1
+  | .ood z =>
+    let vals := eqTable z
+    Nat.fold vals.size (fun y _ acc ↦ acc.modify y (· + s * vals.getD y 0)) acc
 
-/-- The block of `2^v` positions a placement at `index` selects on a cube of `2^μ` positions: its
-first position. -/
-def blockOff (μ v index : ℕ) : ℕ := index / 2 ^ v % 2 ^ (μ - v) * 2 ^ v
-
-/-- Add `s·vals[j]` at the positions `off + j`, `j < n`, in place. -/
-def addSlice (off : ℕ) (vals : Array E) (s : E) : ℕ → Array E → Array E
-  | 0, acc => acc
-  | n + 1, acc => addSlice off vals s n (acc.modify (off + n) (· + s * vals.getD n 0))
-
-/-- Add `s·w(y)` at every position `y` (the weight's formula; a claim of no other shape). -/
-def addFull (μ : ℕ) (w : List E → E) (s : E) (acc : Array E) : Array E :=
-  Array.ofFn (n := acc.size) fun y ↦ acc.getD y.val 0 + s * w (cubePoint μ y.val)
-
-/-- Add `s` times a claim's weight on the cube of `2^μ` positions, in the stack's order: a column
-claim's equality kernel on its block, the ring claim's `Φ ∘ eq` on the block of `q_keccak`, the
-out-of-domain claim's equality kernel on the whole stack. -/
-def addClaim (μ : ℕ) (acc : Array E) (s : E) (d : ClaimDesc) : Array E :=
-  match d with
-  | .column layout c =>
-    let pl := layout.placement c.column
-    if c.point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ layout.stackLog = μ then
-      let vals := eqTable c.point
-      addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
-    else addFull μ d.denote.1 s acc
-  | .ring layout _ point f g =>
-    let pl := layout.placement qkeccak
-    if point.length = pl.variableCount ∧ pl.variableCount ≤ μ ∧ f.length = ringMapWidth ∧
-        g.length = ringMapWidth then
-      let vals := (eqTable point).map (ringPhi f g)
-      addSlice (blockOff μ pl.variableCount pl.index) vals s vals.size acc
-    else addFull μ d.denote.1 s acc
-  | .ood z _ =>
-    if z.length = μ then
-      let vals := eqTable z
-      addSlice 0 vals s vals.size acc
-    else addFull μ d.denote.1 s acc
-
-/-- The batched weight `Σ_k s_k·w_k` on the cube, in the stack's order. -/
-def basisNat (μ : ℕ) (scales : List E) (claims : List ClaimDesc) : Array E :=
-  (List.zip scales claims).foldl (fun acc sd ↦ addClaim μ acc sd.1 sd.2)
-    (Array.replicate (2 ^ μ) 0)
-
-/-- **The weight table of the starting claim** (`basisTable`): the batched weight at the rotated
-cube point, entry `i` at the stack position `⌊i / 64⌋ + 2^(μ-6)·(i mod 64)`. -/
+/-- **The weight table of the starting claim** (`basisTable`): the claims batched by the powers
+`scales` on the cube of `2^μ` positions, at the rotated cube point, entry `i` at the stack position
+`⌊i / 64⌋ + 2^(μ-6)·(i mod 64)`. -/
 def basisTableA (μ : ℕ) (scales : List E) (claims : List ClaimDesc) : Array E :=
-  if 6 ≤ μ then
-    let N := basisNat μ scales claims
-    Array.ofFn (n := 2 ^ μ) fun i ↦ N.getD (i.val / 2 ^ 6 + 2 ^ (μ - 6) * (i.val % 2 ^ 6)) 0
-  else
-    Array.ofFn (n := 2 ^ μ) fun i ↦
-      dot scales (claims.map fun c ↦
-        c.denote.1 ((cubePoint μ i.val).drop 6 ++ (cubePoint μ i.val).take 6))
+  let N := (List.zip scales claims).foldl (fun acc (s, d) ↦ addClaim acc s d)
+    (Array.replicate (2 ^ μ) 0)
+  Array.ofFn (n := 2 ^ μ) fun i ↦ N.getD (i.val / 2 ^ 6 + 2 ^ (μ - 6) * (i.val % 2 ^ 6)) 0
 
 /-- The stack in the WHIR variable order (`stackTable`): entry `i` is the cell
 `⌊i / 64⌋ + 2^(μ-6)·(i mod 64)`. -/
@@ -309,14 +271,14 @@ def levelsA : ℕ → List Whir.Level → Array E → Array E → Script Unit
       levelsA mu rest low (glueTablesA lam w [e, queryTableA mu queries (powers lam queries.length)])
 
 /-- **The honest prover of the stacked opening** (`verify_stacked_opening`, then `verify_whir`):
-receive the batching challenge, then run the levels from the stack table and the weight table of
-the claims. -/
-def openingFast (μ R : ℕ) (stack : Array K) (claims : List ClaimDesc) : Script Unit := do
-  let c ← Script.sampleE
-  let scales := powers c claims.length
+the levels from the stack table and the weight table of the claims, batched by the powers of the
+ring switch's batching challenge. -/
+def openingFast (μ R : ℕ) (stack : Array K) (claims : List ClaimDesc) (batching : E) :
+    Script Unit :=
   match Whir.ladder μ R with
   | none => return ()
-  | some config => levelsA μ config (stackTableA μ stack) (basisTableA μ scales claims)
+  | some config =>
+    levelsA μ config (stackTableA μ stack) (basisTableA μ (powers batching claims.length) claims)
 
 end LeanVM.Prover
 

@@ -7,10 +7,9 @@ a pass run `(base, stride, lo, hi)`, bounds cells; a signature run `(base, strid
 (`('num', n)`, `('val', v)`, `('mono', cell)`); residuals `('lt', a, b)`, `('sub', cell, run)`, `('subR', run, run)`;
 witnesses `('ev', n)`, `('pre', k)`, `('run', r, res)`, `('pf', n)`, `('pfr', r, res)`, `('word', m)`, `('pts',)`,
 `('empty',)`, `('skip', res)`, `('cat', k)`, `('mrg', S, res)`, `('perm', k, ns)`, `('evs', n, k, res)`, `('back', r, ns, res)`, `('prep', r, q, res)`,
-`('prep2', r, q, q2, res)`, `('vp', j, offs)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
+`('prep2', r, q, q2, res)`, `('vp', j, offs)`, `('ptsU', n, res)`; residuals also `('subP', cell, cells)`, `('under', conds, r)`. Round 4's last rules (`eqs`/`retEq`,
 `ptBack`, `perm`, `prep`, `vp`, `baseFacts`, `log2Ceil` bits, words at return of a dispatch) included.
 """
-import collections
 
 CAPE = 2 ** 62
 GB = 1 << 20
@@ -563,6 +562,18 @@ def onPath(path, g):
     return all(c in path for c in g)
 
 
+def resEqs(res):
+    """`resEqs`: the equation residuals' sides, the pass's first kept equations."""
+    return tuple((r[1], r[2]) for r in res if r[0] == 'eq')
+
+
+def seedEnv(env, E):
+    """`seedEnv`: an equation `⟨[(v, 1)], 0⟩ = m` names the value `v` by `m` (a value's first monomial kept)."""
+    for a, b in E:
+        if len(a[0]) == 1 and a[0][0][1] == 1 and a[1] == 0:
+            env.setdefault(a[0][0][0], b)
+
+
 def unU(path, r):
     """`under g r` is `r` on a path with `g` (`unU`)."""
     while r[0] == 'under':
@@ -648,11 +659,13 @@ def ptOk(X, st, c, w):
 
 
 def ptOkD(X, st, c, w):
-    """`ptOkD`: `ptOk`, or `der Q res ws`: the cell in the run `Q` (`ptRun`, these residuals' facts), `Q` witnessed by
-    `ws` (`runOk`)."""
+    """`ptOkD`: `ptOk`, or `der Q res ws`: the cell in the run `Q` (`ptRun`, these residuals' facts, or a residual
+    `sub c Q`, `subR q Q`: `subPt`), `Q` witnessed by `ws` (`runOkP` at `ptOk`: its points not `der`)."""
     if w[0] == 'der':
         _, Q, res, ws = w
-        return ptRun(X.facts(st.env, res), Q, c) and runOk(X, st, Q, list(ws), 0) == len(ws)
+        F = X.facts(st.env, res)
+        return (ptRun(F, Q, c) or X.subPt(F, st.env, res, Q, c)) and \
+            runOk(X, st, Q, list(ws), 0, pt=ptOk) == len(ws)
     return ptOk(X, st, c, w)
 
 
@@ -683,7 +696,7 @@ def rnOk(X, st, Q, w):
 
 def ptsW(X, st, m, offs, ws, i):
     for o in offs:
-        if i >= len(ws) or not ptOk(X, st, cshift(m, o), ws[i]):
+        if i >= len(ws) or not ptOkD(X, st, cshift(m, o), ws[i]):
             return None
         i += 1
     return i
@@ -739,35 +752,42 @@ def ptrROk(X, st, Q, offs, ws, i):
 def reqP(X, st, ms, cs, ws, i):
     for c in cs:
         c2 = instC(ms, c)
-        if c2 is None or i >= len(ws) or not ptOk(X, st, c2, ws[i]):
+        if c2 is None or i >= len(ws) or not ptOkD(X, st, c2, ws[i]):
             return None
         i += 1
     return i
 
 
-def ptsRun(X, st, b, S, j, n, ws, i):
+# The run checks take the points' witness check `pt` (`runOkP`): `ptOkD`, but `ptOk` inside a `der`.
+
+def ptsRun(X, st, b, S, j, n, ws, i, pt=None):
+    pt = pt or ptOkD
     for t in range(n):
-        if i >= len(ws) or not ptOk(X, st, cshift(b, S * (j + t)), ws[i]):
+        if i >= len(ws) or not pt(X, st, cshift(b, S * (j + t)), ws[i]):
             return None
         i += 1
     return i
 
 
-def runOk1(X, st, Q, ws, i):
+def runOk1(X, st, Q, ws, i, pt=None):
     if i >= len(ws):
         return None
     if ws[i][0] == 'pts':
-        return ptsRun(X, st, Q[0], Q[1], Q[2][1], tsub(Q[3][1], Q[2][1]), ws, i + 1) if constR(Q) else None
+        return ptsRun(X, st, Q[0], Q[1], Q[2][1], tsub(Q[3][1], Q[2][1]), ws, i + 1, pt) if constR(Q) else None
+    if ws[i][0] == 'ptsU':
+        _, n, res = ws[i]
+        ok = not Q[2][0] and Q[2][1] < CAPE and hasFU(X.facts(st.env, res), Q[3], n + 1)
+        return ptsRun(X, st, Q[0], Q[1], Q[2][1], tsub(n, Q[2][1]), ws, i + 1, pt) if ok else None
     return i + 1 if rnOk(X, st, Q, ws[i]) else None
 
 
-def runOk0(X, st, Q, ws, i):
+def runOk0(X, st, Q, ws, i, pt=None):
     if i < len(ws) and ws[i][0] == 'cat':
         k = ws[i][1]
         if k >= CAPE:
             return None
-        j = runOk1(X, st, (Q[0], Q[1], Q[2], ((), k)), ws, i + 1)
-        return None if j is None else runOk1(X, st, (Q[0], Q[1], ((), k), Q[3]), ws, j)
+        j = runOk1(X, st, (Q[0], Q[1], Q[2], ((), k)), ws, i + 1, pt)
+        return None if j is None else runOk1(X, st, (Q[0], Q[1], ((), k), Q[3]), ws, j, pt)
     if i < len(ws) and ws[i][0] in ('mrg', 'mrgE'):
         S, res = ws[i][1], ws[i][-1]
         lo, hi = Q[2], Q[3]
@@ -782,14 +802,14 @@ def runOk0(X, st, Q, ws, i):
             return None
         j = i + 1
         for r in range(S):
-            j = runOk1(X, st, mrgPart(Q, S, r, ((), lo[1] // S), rt), ws, j)
+            j = runOk1(X, st, mrgPart(Q, S, r, ((), lo[1] // S), rt), ws, j, pt)
             if j is None:
                 return None
         return j
-    return runOk1(X, st, Q, ws, i)
+    return runOk1(X, st, Q, ws, i, pt)
 
 
-def runOk(X, st, Q, ws, i, part=None):
+def runOk(X, st, Q, ws, i, part=None, pt=None):
     """`catM k h res`: the run split at the symbolic index `k` (`k·h` the upper bound by `eqV`), the part from `k`
     split once more (`runOkL`, `part` `runOk0`), else `runOk0`."""
     if i < len(ws) and ws[i][0] == 'catM':
@@ -797,13 +817,14 @@ def runOk(X, st, Q, ws, i, part=None):
         F = X.facts(st.env, res)
         if not (eqV(st.eqs, cmul(k, h), Q[3]) and hasExp(F, k) and hasExp(F, h)):
             return None
-        j = runOk0(X, st, (Q[0], Q[1], Q[2], k), ws, i + 1)
-        return None if j is None else (part or runOkL)(X, st, (cmul(Q[0], cpow(k, Q[1])), Q[1], ((), 0), h), ws, j)
-    return runOk0(X, st, Q, ws, i)
+        j = runOk0(X, st, (Q[0], Q[1], Q[2], k), ws, i + 1, pt)
+        return None if j is None else (part or runOkL)(X, st, (cmul(Q[0], cpow(k, Q[1])), Q[1], ((), 0), h), ws, j,
+                                                       pt=pt)
+    return runOk0(X, st, Q, ws, i, pt)
 
 
-def runOkL(X, st, Q, ws, i):
-    return runOk(X, st, Q, ws, i, runOk0)
+def runOkL(X, st, Q, ws, i, pt=None):
+    return runOk(X, st, Q, ws, i, runOk0, pt)
 
 
 def reqN(X, st, G, ws, i):
@@ -1148,7 +1169,7 @@ class Pass:
         X = self.X
         ma = monos(st.env, args)
         G = X.sigOf(g)
-        ws = self.call_ws(st, ('call', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i), g, args, ma)
+        self.call_ws(st, ('call', g), lambda ws, i: reqG(X, st, ma, g, args, ws, i), g, args, ma)
         st.nc += 1
         retDefs(st, rets, instRM(ma, G.retM))
         ms = ma + monos(st.env, rets)
@@ -1316,8 +1337,7 @@ class Pass:
         for q, a, S, hi, b in abs_:
             st.pushR((abBase(mx, q, a), S, ((), 0), abBase(mx, hi, b)))
         if len(fs) < CAPE:
-            new = tuple(condE(X.sigOf, ms, mx, fs))
-            st.cd = tuple(e for e in st.cd if e not in new) + new
+            st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
 
     def ret(self, st, vs):
         """`retC`: the frame run cells (`fas`) pushed first, into the state the guarantees are checked in only."""
@@ -1354,7 +1374,7 @@ class Pass:
             self.fail('retEq', G.retEq)
         for k, c in G.retM:
             m, c2 = nth(mv, k), instC(mp, c)
-            if m is None or c2 is None or m != c2:
+            if m is None or c2 is None or not eqV(st.eqs, m, c2):
                 self.fail('retM', k, c, m, c2)
         st.nt += 1
 
@@ -1681,7 +1701,7 @@ def atomDst(a):
 
 
 def fa_past_ok(body, kp, i):
-    """`CoreMode.faCell`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
+    """`CoreMode.faAt`'s second case: a top-level `frameAddr kp run`, the run nonempty and `i` past it."""
     for s in body:
         if not noret(s):
             break
@@ -1734,12 +1754,13 @@ def dupB(ds, ss):
     return out
 
 
-def heapOkC(pows, sigOf, name, params, body, H, solver=None):
+def heapOkC(pows, sigOf, name, params, body, H, solver=None, path=()):
     """The check; with a `solver`, the pass finding the witnesses (into `H`). Returns the `Pass` (its `fails`), or
-    raises `Fail` (check mode)."""
+    raises `Fail` (check mode). `path`: the branch conditions it starts under (`heapOkC1P`, a split's arm)."""
     G = H.sig
     m = len(params)
     X_ = X(pows, H, sigOf, params, solver)
+    X_.path = list(path)
     P = Pass(X_, sigOf, body)
     if list(params) != list(range(m)):
         P.fail('params')
@@ -1768,6 +1789,8 @@ def heapOkC(pows, sigOf, name, params, body, H, solver=None):
         st.pushR(r)
     for p in prs:
         st.pushPR(p)
+    st.eqs = resEqs(H.res)
+    seedEnv(st.env, st.eqs)
     if not G.term:
         P.block(dupB(H.dups, body) if H.dups else body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and G.term[0][1][0] in ('val', 'num') and (

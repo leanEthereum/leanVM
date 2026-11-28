@@ -75,6 +75,11 @@ the bound. When `εmax ≥ 1` the bound exceeds one (the verifier queries at lea
 * Keccak-f[1600] is modelled as a random function on states, not a random permutation.
 * Each seeding is hash steps then one permutation (`Seed`): leanVM's
   `F(IV ‖ pi ‖ 0)` with `IV = H(tag ‖ bytecode)` is one hash step and the permutation.
+* Packed messages (`readPacked`, `samplePacked`) are covered: a packed draw is one event whose
+  challenges are cells of the squeezes' states, uniform and independent, and a packed message's
+  chunks are read by the decoder from the program's position, not from their (untagged) inputs.
+  The program's packed messages must have at least one scalar (`PackedPos`, in `RootOk`): one of
+  none takes no permutation and has nothing to decode it from.
 * The statement is the adversary's: one program `P` with one certificate covers every statement
   by its root history, and the family's seeds are told apart by their permutation inputs
   (`Seeds.inj`). A fixed statement is a family of one.

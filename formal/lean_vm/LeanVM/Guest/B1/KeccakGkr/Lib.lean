@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Lib
 
-  The vocabulary of the Keccak GKR proofs: functions found by index, a `KECCAK` atom in the even layouts
+  The vocabulary of B1-d's proofs: functions found by index, a `KECCAK` atom in the even layouts
   as a squeeze of the carried sponge, the rate cells of waiting scalars, and `fs_next`'s cells.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# The Keccak GKR proofs' shared lemmas
+# B1-d: shared lemmas
 
 * `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
   cells it reads (`permOf`), output `k` its cell `k`;
@@ -148,21 +148,9 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-! ## Records and runs -/
+/-! ## Words -/
 
-/-- Five capacity cells `krCap` words apart. -/
-theorem capAt_five {rec : E} {k : ℕ} {c0 c1 c2 c3 c4 : E} (h0 : LoadHolds rd rec k c0)
-    (h1 : LoadHolds rd rec (k + 11) c1) (h2 : LoadHolds rd rec (k + 22) c2)
-    (h3 : LoadHolds rd rec (k + 33) c3) (h4 : LoadHolds rd rec (k + 44) c4) :
-    CapAt rd rec k krCap [c0, c1, c2, c3, c4] := by
-  refine ⟨rfl, fun j hj => ?_⟩
-  simp only [List.length_cons, List.length_nil] at hj
-  interval_cases j
-  · simpa [krCap] using h0
-  · simpa [krCap] using h1
-  · simpa [krCap] using h2
-  · simpa [krCap] using h3
-  · simpa [krCap] using h4
+/-! ## Records and runs -/
 
 /-- Words read at `p·g^a` are words read at `p` from offset `a`. -/
 theorem readsAt_gen_pow_mul {p : E} {a : ℕ} {xs : List E} :
@@ -202,10 +190,13 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
   | i :: l => by
     rw [List.map_cons, List.flatten_cons, noRetList_append, h i, noRetList_flatten_map f h l]; rfl
 
-/-! ## Blocks of atoms, by kernel evaluation
+/-! ## Facts by position
 
 A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
-by kernel evaluation (`stmtEqb`), holds. -/
+by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
+final `ret`. -/
+
+/-! ## Blocks of atoms, by kernel evaluation -/
 
 /-- An atom statement. -/
 def isAtom : Stmt → Bool

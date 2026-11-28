@@ -37,11 +37,10 @@ open HashSig HashSig.OverPermutation
 /-! ## Cells and words -/
 
 theorem spCellOfBytes_cellBytes (x : E) : Hints.cellOfBytes (cellBytes x) = x := by
-  have hl : ∀ a : K, (K.toBytes a).length = 8 := fun a => by
-    simp [K.toBytes, LeanVM.Protocol.KeccakHash.wordBytes]
+  have h : cellBytes x = cellsBytes [x] := by simp [cellsBytes]
   conv_rhs => rw [eq_ofLimbs x]
-  rw [Hints.cellOfBytes, cellBytes, LeanVM.Protocol.Verifier.kOfBytes_kBytes_append, List.drop_left' (hl _),
-    ← List.append_nil (K.toBytes (x.limb 1)), LeanVM.Protocol.Verifier.kOfBytes_kBytes_append]
+  rw [Hints.cellOfBytes, h, leLane_cellsBytes, leLane_cellsBytes]
+  simp
 
 /-- The hint generator's cell of a 128-bit value is the guest's. -/
 theorem spCell128_eq (v : BitVec 128) : Hints.cell128 v = cellOf128 v := by
@@ -74,7 +73,7 @@ theorem messageDigestCall_toNat (R seed root : E) (msg : HashSig.Message) (c : S
 
 /-- **The unused bytes' entry** is `spUnusedN`'s bytes, each in the exponent. -/
 theorem unusedEntry_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) :
-    Hints.sphincsUnusedEntry (spOutputs pk m sig) =
+    Prover.sphincsUnusedEntry (spOutputs pk m sig) =
       (List.range 6).map fun j => ofK (addressOfIndex (spUnusedN pk m sig.randomizer / 256 ^ j % 256)) := by
   have hc : ∀ c : Sphincs.DigestCall, (spOutputs pk m sig c).toNat =
       cellNat (digestHalves (keccak256 (hmsgBytes (cellOf128 sig.randomizer) (cellOf128 pk.publicSeed)
@@ -95,7 +94,7 @@ theorem unusedEntry_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sph
   have h1 := hc 1
   rw [show (0 : Sphincs.DigestCall).val = 0 from rfl] at h0
   rw [show (1 : Sphincs.DigestCall).val = 1 from rfl] at h1
-  unfold Hints.sphincsUnusedEntry
+  unfold Prover.sphincsUnusedEntry
   refine List.map_congr_left fun j hj => ?_
   have hj6 := List.mem_range.mp hj
   rw [spCount_eq (lt_of_lt_of_le (Nat.mod_lt _ (by norm_num)) (by norm_num))]
@@ -198,7 +197,7 @@ theorem forsClimb_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphin
       (fLeafE (cellOf128 pk.publicSeed) (adrsCell0 0 (layerTreeN (digestT pk m sig) 0))
         (adrsCell1 3 (layerLeafN (digestT pk m sig) 0) 0 0) c.val (forsLeafN (digestT pk m sig) c.val)
         (forsSecretCell sig c.val)) =
-    Hints.sphincsForsNodes pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) c
+    Prover.sphincsForsNodes pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) c
       (Sphincs.digestForsLeaves (spDigest pk m sig) c) (sig.forsOpening c) := by
   have hT := digestT_lt pk m sig
   have hD : spDigest pk m sig = digestOf (digestT pk m sig) := by
@@ -221,7 +220,7 @@ theorem forsClimb_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphin
     simp only [show z < Sphincs.forsTreeHeight from hz, ↓reduceDIte]
     exact cellVal_cellOf128 _
   rw [climbPops_eq]
-  unfold Hints.sphincsForsNodes
+  unfold Prover.sphincsForsNodes
   refine List.map_congr_left fun j hj => ?_
   dsimp only
   have hj10 := List.mem_range.mp hj
@@ -254,7 +253,7 @@ theorem forsPops_sameStreams (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig
     SameStreams (forsPops (cellOf128 pk.publicSeed) (adrsCell0 0 (layerTreeN (digestT pk m sig) 0))
         (layerLeafN (digestT pk m sig) 0) (forsLeafN (digestT pk m sig)) (forsSecretCell sig) (forsSibCell sig))
       ((List.finRange Sphincs.forsTreeCount).map (fun c => ("sp_fors_secrets", [Hints.cell128 (sig.forsOpening c).secret])) ++
-        (List.finRange Sphincs.forsTreeCount).flatMap fun c => Hints.sphincsForsNodes pk.publicSeed
+        (List.finRange Sphincs.forsTreeCount).flatMap fun c => Prover.sphincsForsNodes pk.publicSeed
           (Sphincs.digestIndex (spDigest pk m sig)) c (Sphincs.digestForsLeaves (spDigest pk m sig) c)
           (sig.forsOpening c)) := by
   have hs := sameStreams_flatMap_split
@@ -286,9 +285,9 @@ theorem forsPops_sameStreams (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig
 /-! ## A layer -/
 
 theorem counterPop_eq (ctr : Sphincs.EncodingCounter) :
-    counterPop ctr.toNat = ("sp_counter", Hints.sphincsCounterEntry ctr) := by
+    counterPop ctr.toNat = ("sp_counter", Prover.sphincsCounterEntry ctr) := by
   have hl : (Sphincs.bigEndianBytes 4 ctr).length = 4 := length_bigEndianBytes 4 ctr
-  unfold counterPop Hints.sphincsCounterEntry Hints.exponentBytes
+  unfold counterPop Prover.sphincsCounterEntry Hints.exponentBytes
   refine congrArg (fun x => (("sp_counter" : String), x)) (List.ext_getElem
     (by rw [List.length_map, List.length_map, List.length_range, hl]) fun k h1 h2 => ?_)
   have hk : k < 4 := by simpa using h1
@@ -361,8 +360,8 @@ theorem finRange_map_val {α : Type} (n : Nat) (f : Nat → α) :
 /-- The hint generator's layer, its parts named. -/
 theorem sphincsLayer_eq (pp : HashSig.PublicParameter) (idx : Sphincs.Index) (sig : Sphincs.Signature)
     (L : Sphincs.Layer) (signed : HashSig.Digest) :
-    Hints.sphincsLayer pp idx sig L signed =
-      ([("sp_counter", Hints.sphincsCounterEntry (sig.layers L).counter)] ++
+    Prover.sphincsLayer pp idx sig L signed =
+      ([("sp_counter", Prover.sphincsCounterEntry (sig.layers L).counter)] ++
         Hints.digitGroups ((List.finRange Sphincs.chainCount).map fun i =>
           ((Id.run (Sphincs.Verification.encode (m := Id) keccakF1600 pp L (Sphincs.treeOfIndex L idx)
             (Sphincs.leafOfIndex L idx) signed (sig.layers L).counter)).map (· i |>.val)).getD 0) ++
@@ -389,8 +388,8 @@ theorem layerPops_sameStreams (pk : Sphincs.PublicKey) (m : HashSig.Message) (si
       (cellVal (layerEnc pk (digestIdx pk m sig) sig L S)))) :
     SameStreams (layerPops pk m sig L S (spWotsPops (cellVal (layerEnc pk (digestIdx pk m sig) sig L S))
         (sig.layers L).chainValues))
-      (Hints.sphincsLayer pk.publicSeed (digestIdx pk m sig) sig L (cellVal S)).1 ∧
-    (Hints.sphincsLayer pk.publicSeed (digestIdx pk m sig) sig L (cellVal S)).2 =
+      (Prover.sphincsLayer pk.publicSeed (digestIdx pk m sig) sig L (cellVal S)).1 ∧
+    (Prover.sphincsLayer pk.publicSeed (digestIdx pk m sig) sig L (cellVal S)).2 =
       cellVal (layerRootCell pk (digestIdx pk m sig) sig L S) := by
   have ep : cellVal (cellOf128 pk.publicSeed) = pk.publicSeed := cellVal_cellOf128 _
   -- the encoding and the leaf
@@ -493,19 +492,19 @@ abbrev spForsKey (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.S
 
 theorem sphincsHints_eq (pk : Sphincs.PublicKey) (m : HashSig.Message) (sig : Sphincs.Signature) :
     Hints.sphincsHints pk m sig =
-      [("sp_rand", [Hints.cell128 sig.randomizer]), ("sp_unused", Hints.sphincsUnusedEntry (spOutputs pk m sig))] ++
+      [("sp_rand", [Hints.cell128 sig.randomizer]), ("sp_unused", Prover.sphincsUnusedEntry (spOutputs pk m sig))] ++
         (List.finRange Sphincs.forsTreeCount).map (fun c =>
           ("sp_fors_secrets", [Hints.cell128 (sig.forsOpening c).secret])) ++
-        (List.finRange Sphincs.forsTreeCount).flatMap (fun c => Hints.sphincsForsNodes pk.publicSeed
+        (List.finRange Sphincs.forsTreeCount).flatMap (fun c => Prover.sphincsForsNodes pk.publicSeed
           (Sphincs.digestIndex (spDigest pk m sig)) c (Sphincs.digestForsLeaves (spDigest pk m sig) c)
           (sig.forsOpening c)) ++
-        (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩ (spForsKey pk m sig)).1 ++
-        (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨1, by decide⟩
-          (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩
+        (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩ (spForsKey pk m sig)).1 ++
+        (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨1, by decide⟩
+          (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩
             (spForsKey pk m sig)).2).1 ++
-        (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨2, by decide⟩
-          (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨1, by decide⟩
-            (Hints.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩
+        (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨2, by decide⟩
+          (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨1, by decide⟩
+            (Prover.sphincsLayer pk.publicSeed (Sphincs.digestIndex (spDigest pk m sig)) sig ⟨0, by decide⟩
               (spForsKey pk m sig)).2).2).1 :=
   rfl
 
@@ -538,7 +537,7 @@ theorem spSegPops_sameStreams (pk : Sphincs.PublicKey) (m : HashSig.Message) (si
     rw [sDigestOf_eq_outputs]
   have hRU : [(("sp_rand" : String), [cellOf128 sig.randomizer]), ("sp_unused", (List.range 6).map fun j =>
       ofK (addressOfIndex (spUnusedN pk m sig.randomizer / 256 ^ j % 256)))] =
-      [("sp_rand", [Hints.cell128 sig.randomizer]), ("sp_unused", Hints.sphincsUnusedEntry (spOutputs pk m sig))] := by
+      [("sp_rand", [Hints.cell128 sig.randomizer]), ("sp_unused", Prover.sphincsUnusedEntry (spOutputs pk m sig))] := by
     rw [unusedEntry_eq, spCell128_eq sig.randomizer]
   have h := ((SameStreams.of_eq hRU).append (forsPops_sameStreams pk m sig)).append
     (L0.1.append (L1.1.append L2.1))

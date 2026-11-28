@@ -22,9 +22,8 @@ when the entries lie in `[2, 2^κ)`.
 `KFacts`: the certificate's facts the discharge takes of a tree (the checker's). `dischargeAddr`:
 every equation of a tree valid on a memory image and placed at `0` names a word of it, its loads
 and range checks by validity, its `frameAddr` runs by their certificate cells in their frames.
-With them `End.honest_of_main` (`EndComplete.lean`): if `main` holds by a tree placed at `0` of
-`N ≤ 2^30` words on every memory holding a consistent layout `L` in `[2, N)` and the header, an
-honest tree of `N` words exists.
+`honest_of_relAtIn`: if `main` holds by a tree placed at `0` of `N ≤ 2^30` words on every memory
+holding a consistent layout `L` in `[2, N)` and the header, an honest tree of `N` words exists.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -109,24 +108,24 @@ open LeanVM.Guest.B1 (LowDef)
 
 @[expose] public section
 
-variable {P : Core.Program} {fs : String → ℕ} {cert : String → V → ℕ} {H : Inst → ℕ → E × E}
+variable {P : Core.Program} {fs : String → ℕ} {al : String → Bool} {cert : String → V → ℕ} {H : Inst → ℕ → E × E}
   {C : Inst → List (ℕ × E)} {hdr : E × E}
 
-variable (P fs cert H C hdr) in
+variable (P fs al cert H C hdr) in
 /-- **The certificate's facts about a tree** (group K): `DischargeHyps`' fields on the cells. -/
 structure KFacts (T : Tree) : Prop where
-  cells : CellsOk fs C (honestInsts P fs H hdr T)
-  cells' : ∀ ν, CellsOk fs C (honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)))
+  cells : CellsOk fs C (honestInstsA P fs al H hdr T)
+  cells' : ∀ ν, CellsOk fs C (honestInstsA P fs al H hdr (T.retempA P fs al ν (0, T.block fs P.loop)))
   cert_lt : ∀ f, ∀ t ∈ P.temps f, 2 ≤ cert f t ∧ cert f t < fs f
   cert_inj : ∀ f, ∀ t ∈ P.temps f, ∀ t' ∈ P.temps f, cert f t = cert f t' → t = t'
-  run : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+  run : ∀ I ∈ honestInstsA P fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
     ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
       ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
         ∀ t ∈ P.temps f, cert f r + k ≠ cert f t
-  tmp : ∀ ν, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)), ∀ f σ bufs kids,
+  tmp : ∀ ν, ∀ I' ∈ honestInstsA P fs al H hdr (T.retempA P fs al ν (0, T.block fs P.loop)), ∀ f σ bufs kids,
     I'.t = .node f σ bufs kids → ∀ t ∈ P.temps f, ∀ q ∈ C I', q.1 = cert f t → q.2 = σ t
-  keep : ∀ ν, ∀ I ∈ honestInsts P fs H hdr T, ∀ I' ∈ honestInsts P fs H hdr (T.retemp P fs ν (0, T.block fs P.loop)),
-    I'.fp = I.fp → I'.t = I.t.retemp P fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
+  keep : ∀ ν, ∀ I ∈ honestInstsA P fs al H hdr T, ∀ I' ∈ honestInstsA P fs al H hdr (T.retempA P fs al ν (0, T.block fs P.loop)),
+    I'.fp = I.fp → I'.t = I.t.retempA P fs al ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
       ¬ TmpOff P cert I.t q.1 →
       q ∈ I.cells C
 
@@ -136,14 +135,14 @@ theorem read_some_gpow {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {a : K} {
 
 /-- **Every equation names a word of the memory**. -/
 theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree} {args rets : List E}
-    (hv : T.Valid P M.read args rets) (hp : T.Placed P fs cert (0, T.block fs P.loop))
-    (hrun : ∀ I ∈ honestInsts P fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+    (hv : T.Valid P M.read args rets) (hp : T.PlacedA P fs al cert (0, T.block fs P.loop))
+    (hrun : ∀ I ∈ honestInstsA P fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
       ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P →
         ∀ k < (r :: rs).length, I.fp + (cert f r + k) < 2 ^ κ) :
     ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = Parameters.addressOfIndex i := by
   intro q hq
-  obtain ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, a, ha, hqa⟩ := eqns_insts (lp := P.loop) (H := H) T _ hdr q hq
-  have hgood := insts_good (H := H) T _ hdr hv I hI
+  obtain ⟨I, hI, ⟨f, σ, bufs, kids, ht⟩, a, ha, hqa⟩ := eqns_instsA (lp := P.loop) (H := H) T _ hdr q hq
+  have hgood := instsA_good (H := H) T _ hdr hv I hI
   obtain ⟨fn, es, vs, hf, hw, hes⟩ : ∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧
       ∀ e ∈ es, e.Holds M.read σ := by
     rcases hgood with ⟨_, _, hv'⟩ | ⟨_, _, hph⟩
@@ -174,8 +173,8 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
     | r :: rs, hqa, ha =>
       simp only [atomEqns, List.mem_mapIdx] at hqa
       obtain ⟨k, hk, rfl⟩ := hqa
-      have hpl := (Inst.nodeAt (insts_placedAt T _ hdr hp I hI)
-        (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht).2 (p, r)
+      have hpl := (Inst.nodeAtA (insts_placedAtA T _ hdr hp I hI)
+        (instsA_placed T _ hdr (Nat.zero_add _).le I hI) ht).2 (p, r)
         (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
       simp only at hpl
       rw [hpl, addr_ofK]

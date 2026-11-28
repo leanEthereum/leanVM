@@ -19,7 +19,7 @@ After the evaluation point `s`, the packs' states at `s`, `Ŝ_j(z) = Σ_i emb_i(
 
   `g(c) = Σ_j w_j (κ·Ŝ_j(c) + (κ + Ŝ_{j+1}(c))·Ŝ_{j+2}(c))`   (`gt`)
 
-is the summand of the pack rounds (eq. `keccak:eq:after-packs`):
+is the summand of the pack rounds (`doc/leanvm` §`keccak:idea`, step 3):
 
 * `FP r acc = Σ_{z} eq(r_{≥|acc|}, z) · g(acc ++ z)` is an equality-mode family of degree two
   at `r` (`FP_eqFamily`), equal to `G(s)` before any challenge (`FP_nil`) and to `g(c)` after all
@@ -31,7 +31,7 @@ is the summand of the pack rounds (eq. `keccak:eq:after-packs`):
   verifier's `dot(eq[:1600], w)` is `W` (eq. `keccak:eq:terminal`);
 * `batch_eq`: `T_0 + β(T_1 + βT_2)` at the position point is the claim's sum on the states before
   the round, with weights `keccakLinearTranspose` of the verifier's batched weights and instance
-  weights `emb_i(s)` (eq. `keccak:eq:flat` and step 6).
+  weights `emb_i(s)` (§`keccak:layer`, the linear map).
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -238,7 +238,7 @@ theorem batchW_getD (p : List E) (hp : p.length = 11) (beta : E) {j : ℕ} (hj :
   simp only [Option.map_some, Option.getD_some]
   rw [hA 4, hA 3, eqKernel_getD, hp, ite_eq_left (by omega)]
 
-/-- **The batched claim** (eqs. `keccak:eq:flat` and step 6): `T_0 + β(T_1 + βT_2)` at the
+/-- **The batched claim** (§`keccak:layer`, the linear map): `T_0 + β(T_1 + βT_2)` at the
 position point is the claim's sum on the states before the round, at the pack point `c`, with
 instance weights `emb_i(s)` and position weights `Lᵀ` of the batched weights. -/
 theorem batch_eq (c p : List E) (hp : p.length = 11) (beta : E) :

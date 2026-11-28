@@ -14,20 +14,28 @@ pub struct Proof {
     pub merkle_openings: Vec<Vec<MerklePath>>,
 }
 
-const DS_OBSERVE: u64 = 1;
-pub(crate) const DS_POW_NONCE: u64 = 4;
+// Domain tags, among tagged absorptions only: nonzero, so a scalar never reads as the zeroed rate, and distinct.
+pub const DS_OBSERVE: u64 = 1;
+pub const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, its two limbs, a zero lane and a tag.
 pub const RATE_SCALARS: usize = 4;
 
 /// A duplex sponge over Keccak-f\[1600\], in overwrite mode. The rate is lanes 0..16 and the capacity lanes
 /// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
-/// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
+/// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge outside a packed draw takes a
+/// permutation of its own.
+///
+/// A packed message or draw ([`Self::observe_packed`], [`Self::samples_packed`]) takes eight scalars a permutation,
+/// two lanes each and no tag, so it can spell the same permutation input as tagged scalars: it stays apart from
+/// them only because the verifier reads one fixed schedule, each message's kind and length set by the protocol and
+/// the shape before it, not by the tags.
 #[derive(Clone, Debug)]
 pub struct Sponge {
     state: [u64; STATE_LANES],
     pending: [(E, u64); RATE_SCALARS],
     n_pending: usize,
-    /// The challenge a grind's permutation drew, which the next [`Self::sample`] returns.
+    /// The challenge a grind's permutation drew, which the next [`Self::sample`] or [`Self::samples_packed`] returns
+    /// first.
     ground: Option<E>,
 }
 
@@ -77,6 +85,46 @@ impl Sponge {
             self.duplex();
             E::new(self.state[0], self.state[1])
         })
+    }
+
+    /// Absorb `values` eight to a permutation, each over two rate lanes, the last permutation's rate zero past them,
+    /// after a permutation taking whatever waits.
+    pub(crate) fn observe_packed(&mut self, values: &[E]) {
+        assert!(self.ground.is_none(), "a grind is followed by a challenge");
+        if self.n_pending > 0 {
+            self.duplex();
+        }
+        for chunk in values.chunks(8) {
+            self.state[..16].fill(0);
+            for (i, v) in chunk.iter().enumerate() {
+                self.state[2 * i] = v.c0;
+                self.state[2 * i + 1] = v.c1;
+            }
+            keccak_f(&mut self.state);
+        }
+    }
+
+    /// `count` challenges eight to a permutation: each takes whatever waits, and its output's rate, two lanes to a
+    /// challenge, gives the next eight. Right after a grind, its permutation gives the first seven: every cell but the
+    /// second, which holds the proof of work.
+    pub fn samples_packed(&mut self, count: usize) -> Vec<E> {
+        let mut out = Vec::with_capacity(count);
+        if count > 0
+            && let Some(first) = self.ground.take()
+        {
+            out.push(first);
+            out.extend(
+                (2..8)
+                    .take(count - 1)
+                    .map(|i| E::new(self.state[2 * i], self.state[2 * i + 1])),
+            );
+        }
+        while out.len() < count {
+            self.duplex();
+            let take = (count - out.len()).min(8);
+            out.extend((0..take).map(|i| E::new(self.state[2 * i], self.state[2 * i + 1])));
+        }
+        out
     }
 
     /// Absorb a grinding nonce and permute: the output's first two lanes are the next challenge, kept for
@@ -141,6 +189,11 @@ impl<'a> Transcript<'a> {
         (0..count).map(|_| self.sample()).collect()
     }
 
+    /// `count` challenges, eight to a permutation ([`Sponge::samples_packed`]).
+    pub fn samples_packed(&mut self, count: usize) -> Vec<E> {
+        self.sponge.samples_packed(count)
+    }
+
     fn next(&mut self) -> Result<E, VerifierError> {
         require(
             self.stream_offset < self.proof.stream.len(),
@@ -159,6 +212,13 @@ impl<'a> Transcript<'a> {
 
     pub fn next_scalars(&mut self, count: usize) -> Result<Vec<E>, VerifierError> {
         (0..count).map(|_| self.next_scalar()).collect()
+    }
+
+    /// `count` scalars read and absorbed eight to a permutation ([`Sponge::observe_packed`]).
+    pub fn next_scalars_packed(&mut self, count: usize) -> Result<Vec<E>, VerifierError> {
+        let values = (0..count).map(|_| self.next()).collect::<Result<Vec<E>, _>>()?;
+        self.sponge.observe_packed(&values);
+        Ok(values)
     }
 
     /// The nonce is absorbed with its own tag, and the permutation that draws the next challenge must leave its third
@@ -211,7 +271,7 @@ impl<'a> Transcript<'a> {
         Ok(paths.iter().map(|path| &path.leaf[..]).collect())
     }
 
-    /// returns q(X) := c0 + c1X + c2X^2 + ..., after the round's grind: the round's error is the degree of the whole
+    /// Returns q(X) := c0 + c1X + c2X^2 + ..., after the round's grind: the round's error is the degree of the whole
     /// round polynomial, eq factor included, over `|E|`.
     pub fn sumcheck_round_poly(
         &mut self,

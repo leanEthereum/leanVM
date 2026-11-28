@@ -9,12 +9,14 @@ import LeanVM.Facts.Verifier
 import LeanVM.Facts.NodeWith
 import LeanVM.Facts.DaWith
 import LeanVMTests.Spec.NodeVectors
+import LeanVMTests.Spec.Layout
 
 /-!
 # The deferring verifier and the node's statement: inhabitants, known answers and mutations
 
-* `claimedBytecodeValue` answers with the claimed value at the claimed point and rejects
-  elsewhere, and the deferring verifier's seed is the deployed verifier's.
+* `freshSplit` answers with the fresh claim's split columns at the claim's point and rejects
+  elsewhere or on a wrong count of values, and the deferring verifier's seed is the deployed
+  verifier's.
 * The deferring verifier rejects garbage, and so does the deployed one on the same proof.
 * `DeferredBytecodeClaim.HasBytecodeShape` rejects a bytecode point one coordinate short (whose cells, hashed
   unpadded, also change the digest).
@@ -23,17 +25,23 @@ import LeanVMTests.Spec.NodeVectors
   `claim_list_digest` and `FiatShamirState` (`crates/rec_aggregation/src/aggregation.rs`,
   `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`), which the
   field change left as they were.
+* The split program on the 16-instruction program of `Spec/Layout.lean`: `splitValues` is the
+  Rust's `split_values` there, and the split table (`splitTable`) at the point and any column
+  challenges is the values folded at them (`foldColumns`), the batching's fresh claim
+  (`aggregate_deferred_claims`' `debug_assert_eq`); its length and shape.
 * `batch` on no children is inhabited; the outer verifier's membership challenge
   (`membershipChallengeOf`) of a root is not zero.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
-  `crates/aggregation/src/` at the guest's shape, `bytecode_vars = 23`): the
-  statement's encodings and the batching of two children's true claims on the guest's stacked
-  bytecode are the Spec's, with the permutation as a parameter too (`batchWith`); a batching hint off
+  `crates/aggregation/src/` at the guest's shape, `bytecode_vars = 25`): the
+  statement's encodings and the batching of two children's true claims on the guest's split
+  program (fresh claims at points over the instructions, carried claims on the split table) are
+  the Spec's, with the permutation as a parameter too (`batchWith`); a batching hint off
   by one, the children swapped, and another seed or no DA claim in the statement change the
   outcome. What is slow in the
   interpreter, `lake exe node-vectors` (`cli/NodeVectors.lean`) checks compiled: that their seed
-  is `deployedSeed guest` (the Keccak-256 IV of the guest's `2^23` bytecode words), and the DA
-  root's vector digest.
+  is `deployedSeed guest` (the Keccak-256 IV of the guest's `2^23` bytecode words), the DA
+  root's vector digest, and the children's fresh values the split columns at their points
+  (`splitValues`, against `split_values`).
 -/
 
 namespace LeanVMTests.Spec.Node
@@ -49,16 +57,21 @@ def seed0 : Digest := keccak256 (utf8 "seed")
 
 /-! ## The deferring verifier -/
 
-/-- A claim on the fixed polynomial. -/
-def c : BytecodeClaim := ⟨[1, 0], 1⟩
+/-- A fresh claim: a point over two instructions, a value per split column. -/
+def fresh : FreshClaim := ⟨[1], (splitColumns tables).map fun _ ↦ 1⟩
 
-example (words : List K) :
-    claimedBytecodeValue c words c.bytecodePoint c.bytecodeValue = .ret () := by
-  simp [claimedBytecodeValue, VerifierProgram.require]
+/-- Whether a program accepts at once. -/
+def accepts {α : Type} : VerifierProgram α → Bool
+  | .ret _ => true
+  | _ => false
 
--- Mutation: at another point the claimed evaluation rejects.
-example (words : List K) : claimedBytecodeValue c words [0, 0] c.bytecodeValue = .fail := by
-  simp [claimedBytecodeValue, VerifierProgram.require, c]
+#guard accepts (freshSplit fresh [] fresh.point [])
+
+-- Mutation: at another point the fresh claim rejects.
+#guard !accepts (freshSplit fresh [] [0] [])
+
+-- Mutation: a value short, the fresh claim rejects.
+#guard !accepts (freshSplit ⟨fresh.point, fresh.values.drop 1⟩ [] fresh.point [])
 
 /-- The deferring verifier's seed is the deployed verifier's, from the deployed IV. -/
 example (bytecode : List K) (publicInput : Digest) :
@@ -67,19 +80,21 @@ example (bytecode : List K) (publicInput : Digest) :
 /-- A bytecode of 32 words. -/
 def bytecode : List K := (List.range 32).map K.ofBits
 
-#guard verifyDeferred bytecode (fiatShamirIv bytecode) default c ⟨[], []⟩ = false
+#guard verifyDeferred bytecode (fiatShamirIv bytecode) default fresh ⟨[], []⟩ = false
 #guard verify bytecode default ⟨[], []⟩ = false
 
 /-! ## The deferred claim's shape -/
 
-/-- A deferred claim of the bytecode's shape, at zero. -/
-def zeroClaim : DeferredBytecodeClaim := ⟨List.replicate 5 0, 0⟩
+/-- A deferred claim of the split program's shape, at zero: the instruction's coordinate, then
+the columns' six. -/
+def zeroClaim : DeferredBytecodeClaim := ⟨List.replicate 7 0, 0⟩
 
 /-- A deferred claim one coordinate short. -/
-def shortClaim : DeferredBytecodeClaim := ⟨List.replicate 4 0, 0⟩
+def shortClaim : DeferredBytecodeClaim := ⟨List.replicate 6 0, 0⟩
 
 example : zeroClaim.HasBytecodeShape bytecode ∧ zeroClaim.HasZeroPoint bytecode := by
-  simp [DeferredBytecodeClaim.HasBytecodeShape, DeferredBytecodeClaim.HasZeroPoint, zeroClaim, bytecode]
+  simp [DeferredBytecodeClaim.HasBytecodeShape, DeferredBytecodeClaim.HasZeroPoint, zeroClaim, bytecode,
+    deferredVariableCount, instructionVariableCount, splitLog, bytecodeSlotBits]
 
 /-- No claims. -/
 def noClaims : NodeClaims := ⟨[], [], zeroDigest⟩
@@ -89,11 +104,36 @@ def noClaims : NodeClaims := ⟨[], [], zeroDigest⟩
 #guard statementDigest default ⟨noClaims, zeroClaim⟩ ≠ statementDigest default ⟨noClaims, shortClaim⟩
 
 example : ¬ shortClaim.HasBytecodeShape bytecode := by
-  simp [DeferredBytecodeClaim.HasBytecodeShape, shortClaim, bytecode]
+  simp [DeferredBytecodeClaim.HasBytecodeShape, shortClaim, bytecode, deferredVariableCount,
+    instructionVariableCount, splitLog, bytecodeSlotBits]
 
 /-- The digest is Keccak-256 of the preimage the collision candidates name. -/
 example (seed : Digest) (s : NodeStatement) :
     statementDigest seed s = keccak256 (statementPreimage seed s) := rfl
+
+/-! ## The split program on a small program -/
+
+/- `splitValues` is the Rust's `split_values` on `Spec/Layout.lean`'s program. -/
+#guard splitValues Layout.program16 Layout.splitPoint = Layout.splitValues
+
+/-- Column challenges. -/
+def columnChallenges : List E := [3, 5, 7, 11, 13, 17].map fun n ↦ Layout.e n (2 * n + 1)
+
+/-- The split table of the program, as `E` words. -/
+def table16 : List E := (splitTable Layout.program16).map ofK
+
+/- Sixteen instructions, sixty-four columns: `2^(4 + splitLog)` entries, `deferredVariableCount`
+coordinates. -/
+#guard table16.length = 2 ^ 10 ∧ deferredVariableCount Layout.program16 = 10
+
+/- A fresh claim's value on the table at its point and the column challenges is its values folded
+at the challenges. -/
+#guard multilinearEval table16 (Layout.splitPoint ++ columnChallenges) =
+  LeanVM.Guest.Batch.foldColumns columnChallenges Layout.splitValues
+
+-- Mutation: a value off, the fold differs.
+#guard multilinearEval table16 (Layout.splitPoint ++ columnChallenges) ≠
+  LeanVM.Guest.Batch.foldColumns columnChallenges (Layout.splitValues.set 0 0)
 
 /-! ## The statement's encodings: known answers -/
 
@@ -152,7 +192,8 @@ def vectorStatement : NodeStatement :=
 -- Mutation: another seed, another digest.
 #guard statementDigest seed0 vectorStatement ≠ NodeVectors.statementDigest
 
-/- The batching of the two children, with the Rust's hints, defers the Rust's claim. -/
+/- The batching of the two children, with the Rust's hints (after `λ`, the six column challenges),
+defers the Rust's claim. -/
 #guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodePoint) =
   some NodeVectors.batched.bytecodePoint
 #guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodeValue) =

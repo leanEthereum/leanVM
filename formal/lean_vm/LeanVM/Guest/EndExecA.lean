@@ -1,35 +1,36 @@
 /-
   LeanVM.Guest.EndExecA
 
-  The bump pointer's track: past the prologue, the executor's next free cell is the top frame's
-  cursor, and each frame below resumes where the frame above ends.
+  The bump pointer's track, aligned: past the prologue, the executor's next free cell is the top
+  frame's cursor on the aligned layout, and each frame below resumes where the frame above ends.
 -/
 
 module
 
-public import LeanVM.Guest.EndExecCAlign
-public import LeanVM.Guest.Bridge.AllocLink
-public import LeanVM.Guest.Bridge.AllocSound
-public import LeanVM.Guest.Bridge.AllocCur
-public import LeanVM.Guest.Memory.Cursor
+public import LeanVM.Guest.EndExecX
+public import LeanVM.Guest.Bridge.AllocDefs
+public import LeanVM.Guest.Memory.CursorA
+public import LeanVM.Guest.Memory.BumpA
 
 /-!
-# The bump pointer's track
+# The bump pointer's track, aligned
 
-`cursorAt A e off`: frame `e`'s cursor (`Inst.curAt`) at offset `off` of its function, past the
-buffers the function reserves before `off` (`Bridge.nbAt`) and the calls the frame has made, plus
-the next callee's block while its frame is reserved and not entered (`Bridge.pendAt`). `ChainA`:
-each frame below the top resumes, at the return pc the header of the frame above holds, at the
-cursor where that frame's subtree ends (`Inst.endCur`), and a loop iteration past all its calls has
-a phantom last callee (`TailA`). `NcTop A e off`: at an offset at or before a buffer hint the frame has made no call (the
-check puts every call after the buffer hints). `YAlloc A r s`: in the prologue the next
-free cell is past `main`'s frame; past it, a state of the tree track at the state's pc and frame
-whose top frame's cursor is the next free cell, its frames chained, `NcTop` at its offset.
+The bus era's `EndExecA.lean` on Hotwire's aligned allocator (b2c's `Memory/AllocA`, `CursorA`).
 
-Proved here: the track holds initially (`initY_alloc`), and the reference holds a buffer's base at
-its hint's pointer cell (`bufBase_ref`: the `k`-th buffer hint of a function passing the allocation
-check compiles the `k`-th allocation atom of every path, `Bridge.allocShape_walk`, whose pointer the
-placement puts at the instance's cursor past the buffers before it, `Bridge.EntOk.alloc_at`).
+`cursorAt L A e off`: frame `e`'s cursor (`Inst.curA`) at offset `off` of its function, past the
+buffers the function reserves before `off` (`Bridge.nbAt`) and the calls the frame has made, moved
+by the next callee's reservation (its block at `allocBase (al k)` of the cursor) while its frame is
+reserved and not entered (`Bridge.pendAt`). `ChainA`: each frame below the top resumes, at the
+return pc the header of the frame above holds, at the cursor where that frame's subtree ends
+(`Inst.endCurA`), and a loop iteration past all its calls has a phantom last callee (`TailA`).
+`NcTop A e off`: at an offset at or before a buffer hint the frame has made no call. `YAlloc L D A r
+s`: in the prologue the next free cell is past `main`'s frame; past it, a state of the tree track
+at the state's pc and frame whose top frame's cursor is the next free cell, its frames chained,
+`NcTop` at its offset.
+
+`MainA L`: `main` is no loop helper and its frame is the advice's `mainFrame` (the layout's facts
+the prologue's end reads). Proved here: the track holds initially (`initY_alloc`), and at `main`'s
+entry the track's cursor is `main`'s frame's end (`refTrack_mainA`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -42,19 +43,21 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- **Frame `e`'s cursor at offset `off`**: past the buffers its function reserves before `off`
-and its calls made, and the next callee's block while that callee's frame is reserved and not
-entered. -/
-noncomputable def cursorAt (A : String → FnAl) (e : Ent) (off : ℕ) : ℕ :=
-  e.I.curAt B2C.fs coreProgram.loop (nbAt (A e.I.t.name).X (A e.I.t.name).d off) e.nc +
-    bif pendAt (A e.I.t.name).X (A e.I.t.name).code (A e.I.t.name).d off then
-      (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0
-    else 0
+and its calls made, moved by the next callee's reservation while that callee's frame is reserved and
+not entered. -/
+noncomputable def cursorAt (L : Lay) (A : String → FnAl) (e : Ent) (off : ℕ) : ℕ :=
+  bif pendAt (A e.I.t.name).X (A e.I.t.name).code (A e.I.t.name).d off then
+    (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map fun k ↦
+      allocBase (L.al k.name) (e.I.curA L.fs coreProgram.loop L.al (nbAt (A e.I.t.name).X (A e.I.t.name).d off) e.nc)
+        + k.block L.fs coreProgram.loop).getD
+      (e.I.curA L.fs coreProgram.loop L.al (nbAt (A e.I.t.name).X (A e.I.t.name).d off) e.nc)
+  else e.I.curA L.fs coreProgram.loop L.al (nbAt (A e.I.t.name).X (A e.I.t.name).d off) e.nc
 
-/-- **A loop iteration past all its calls ended its loop**: its last callee, past which the frame's
-cursor would go, is a phantom (`total = block`). -/
+/-- **A loop iteration past all its calls ended its loop**: its last callee is a phantom, its tail
+call not taken. -/
 def TailA (e : Ent) : Prop :=
   coreProgram.loop e.I.t.name = true → e.I.t.kids.length ≤ e.nc → ∀ hk : e.I.t.kids ≠ [],
-    (e.I.t.kids.getLast hk).total B2C.fs = (e.I.t.kids.getLast hk).block B2C.fs coreProgram.loop
+    ∃ f σ, e.I.t.kids.getLast hk = .phantom f σ
 
 /-- **No call before the buffers**: at an offset at or before a buffer hint of its function, the
 frame has made no call. -/
@@ -64,128 +67,92 @@ def NcTop (A : String → FnAl) (e : Ent) (off : ℕ) : Prop :=
 /-- **Each frame below resumes where the frame above ends**: at the return pc the header of the
 frame above holds in `M`, its cursor that frame's end, no call made there before the buffers
 (`NcTop`); and each frame `TailA`. -/
-def ChainA (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
+def ChainA (L : Lay) (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
   | [] => True
   | [e] => TailA e
   | e :: e' :: st => TailA e ∧ (∃ r, M (e.I.fp + 0) = ofK (addressOfIndex r) ∧ r < 2 ^ 63 ∧
-      e.I.endCur B2C.fs coreProgram.loop = cursorAt A e' (r - entOf A e'.I.t.name) ∧
-      NcTop A e' (r - entOf A e'.I.t.name)) ∧ ChainA A M (e' :: st)
+      e.I.endCurA L.fs coreProgram.loop L.al = cursorAt L A e' (r - entOf A e'.I.t.name) ∧
+      NcTop A e' (r - entOf A e'.I.t.name)) ∧ ChainA L A M (e' :: st)
 
 /-- **The bump pointer's track**: in the prologue the next free cell is past `main`'s frame; past
 it, a state of the tree track at the state's pc and frame whose top frame's cursor is the next free
 cell, its frames chained. -/
-def YAlloc (A : String → FnAl) (r : Ref) (s : St) : Prop :=
+def YAlloc (L : Lay) (D : Ref → RefD) (A : String → FnAl) (r : Ref) (s : St) : Prop :=
   (s.steps < proLen → s.nextFree = r.adv.mainFrame) ∧
-    (proLen ≤ s.steps → s.steps < r.n → ∃ done e st, RefTrack A r s.pc s.fp (done, e :: st) ∧
-      s.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) ∧ ChainA A (memOf r.img) (e :: st) ∧
+    (proLen ≤ s.steps → s.steps < r.n → ∃ done e st, RefTrack L D A r s.pc s.fp (done, e :: st) ∧
+      s.nextFree = cursorAt L A e (s.pc - entOf A e.I.t.name) ∧ ChainA L A (memOf r.img) (e :: st) ∧
       NcTop A e (s.pc - entOf A e.I.t.name))
+
+/-- **`main`'s frame in the layout**: `main` is no loop helper, its frame the advice's
+`mainFrame`. -/
+structure MainA (L : Lay) : Prop where
+  loop : coreProgram.loop "main" = false
+  frame : L.fs "main" = Data.adviceMainFrame
 
 end
 
 public section
 
+variable {L : Lay} {D : Ref → RefD} {A : String → FnAl}
+
 /-- **The bump pointer's track holds initially.** -/
-theorem initY_alloc (A : String → FnAl) : InitY (YAlloc A) := by
-  intro r hr C m hC hm
+theorem initY_alloc {r : Ref} {C : Ctx} {m : Mem} : YAlloc L D A r (initSt C r.adv m) := by
   refine ⟨fun _ ↦ rfl, fun h ↦ ?_⟩
-  exact absurd h (by show ¬ proLen ≤ 0; rw [proLen_eq]; norm_num)
+  exact absurd h (by show ¬ proLen ≤ 0; have := proLen_pos; omega)
 
-theorem compilesA_ptr {X : AlignCtx} {fs : ℕ} {a : Core.Hint} {h : Prover.Exec.Hint} (hc : compilesA X fs a h = true)
-    {p : ℕ} (hp : allocPtr h = some p) :
-    allocCellOk X fs (allocDstOf a) = true ∧ X.locAt (allocDstOf a).idx = p := by
-  cases a <;> cases h <;> simp_all [compilesA, allocPtr, allocDstOf, Bool.and_eq_true, Nat.beq_eq]
+/-- **The root's block is `main`'s frame.** -/
+theorem block_mainA (hM : MainA L) {r : Ref} (hR : RefH L (D r) r) :
+    (D r).T.block L.fs coreProgram.loop = r.adv.mainFrame := by
+  obtain ⟨rd, hH, -⟩ := hR.honest
+  have hv := hH.valid
+  have hn := hR.name
+  rcases hT : (D r).T with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
+  · rw [hT] at hn
+    simp only [Tree.name] at hn
+    subst hn
+    rw [block_node, nodeBlock, hM.loop, hM.frame]
+    rfl
+  · rw [hT] at hv; exact hv.elim
 
-theorem allocDst_mem {es : List Ev} {d : V} (h : d ∈ allocDsts es) : ∃ a, Ev.atom a ∈ es ∧ d ∈ atomUses a := by
-  obtain ⟨e, he, hd⟩ := List.mem_filterMap.mp h
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | ⟨_ | _ | _ | _ | _ | _ | _ | _⟩ | _⟩ | _ | _ | _ <;>
-    simp only [Ev.allocDst?, reduceCtorEq, Option.some.injEq] at hd <;> subst hd <;>
-    exact ⟨_, he, by simp [atomUses, hintUses]⟩
-
-/-- **A value's cell holds it on the reference**: at a frame of the tree track of function `j`, a
-value an atom of its path uses, whose cell the allocation check admits (`allocCellOk`), is at that
-cell of the frame, below `maxCells`. -/
-theorem cellRef {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
-    (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j) {v : V}
-    (hv : ∃ a, Ev.atom a ∈ e.pre ++ e.es ∧ v ∈ atomUses a) (hcell : allocCellOk (ctxOf j) (B2C.fsN j) v = true) :
-    e.I.fp + (ctxOf j).locAt v.idx < maxCells ∧ refMem r.img (e.I.fp + (ctxOf j).locAt v.idx) = e.σ v := by
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, hFH⟩ :=
-    (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
-  obtain rfl : j = j' := Option.some.inj (hj.symm.trans hj')
-  have hE := hT.track.ents e List.mem_cons_self
-  obtain ⟨at', hat, hdu⟩ := hv
-  have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
-  have hA2 : alignA e.I.t.name = fnAl j := alignA_of hj
-  rcases hx : (ctxOf j).extra.lookup v.idx with _ | c
-  · simp only [allocCellOk, hx, Option.isSome_none, Bool.false_or, Bool.and_eq_true, decide_eq_true_eq] at hcell
-    obtain ⟨-, hlocC⟩ := pairOk_alignA _ _ j hE.find hj
-    have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = none := by rw [hA2]; exact hx
-    have hlc : (ctxOf j).locAt v.idx = (certOf j).locs.getD v.idx 0 := by
-      have := hlocC v.idx hx' hcell.1.1
-      rwa [hA2] at this
-    have hcj : B2C.cellJ j v = (ctxOf j).locAt v.idx := hlc.symm
-    rw [← hcj] at hcell ⊢
-    have hrd := hFH.val v (List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hat, hdu⟩)))
-      hcell.1.2 hcell.2
-    obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
-    have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-      honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
-    have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
-    have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
-    exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd
-  · have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = some c := by rw [hA2]; exact hx
-    obtain ⟨hlt, hrd⟩ := hr.extra e.I hI _ _ bufs kids hIt v (by rw [hevs]; exact List.mem_flatMap.mpr ⟨_, hat, hdu⟩) c hx'
-    have hlc : (ctxOf j).locAt v.idx = c := by
-      unfold Bridge.AlignCtx.locAt; rw [hx]; rfl
-    rw [hlc]
-    have := refRd_img hκ r.img (e.I.fp + c) _ (by omega) hrd
-    exact this
-
-/-- **The reference holds a buffer's base at its hint's pointer cell**: at a frame of the tree track
-whose function passes the allocation check, the `k`-th buffer hint's pointer cell holds
-`g^(cur + bufs[0] + … + bufs[k-1])`, the instance's cursor past the buffers before it. -/
-theorem bufBase_ref {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent}
-    {st : List Ent} (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j)
-    (hA : AllocJ j) {k : ℕ} {h : Prover.Exec.Hint}
-    (hk : (((allocHints (adviceOf j)).filter fun q ↦ isBuf (ctxOf j) q.2).map (·.2))[k]? = some h)
-    {p : ℕ} (hp : allocPtr h = some p) :
-    k < e.I.t.bufs.length ∧ e.I.fp + p < maxCells ∧
-      refMem r.img (e.I.fp + p) = ofK (addressOfIndex (e.I.cur + (e.I.t.bufs.take k).sum)) := by
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, hFH⟩ :=
-    (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
-  obtain rfl : j = j' := Option.some.inj (hj.symm.trans hj')
-  have hE := hT.track.ents e List.mem_cons_self
-  -- the check
-  have hA' := hA
-  simp only [AllocJ, allocChk, allocRest, Bool.and_eq_true] at hA'
-  obtain ⟨⟨hshape, -⟩, hpairs, -⟩ := hA'
-  obtain ⟨a, ha, hca⟩ := pairsA_get hpairs k h hk
-  obtain ⟨hcell, hloc⟩ := compilesA_ptr hca hp
-  -- the path allocates the atoms in order
-  have hw0 := hw
-  rw [← hfn] at hw
-  have hds := allocDsts_of_shape hshape hw
-  have hdk : (allocDsts (e.pre ++ e.es))[k]? = some (allocDstOf a) := by
-    rw [hds, List.getElem?_map, ha]; rfl
-  -- the placement
-  obtain ⟨t, ν, hv, -, hpl, -, -, -, hTt⟩ := hr.tree
-  have hTp : r.T.Placed coreProgram B2C.fs B2C.cert (0, r.T.block B2C.fs coreProgram.loop) := by
-    rw [hTt, block_retemp]
-    exact placed_retemp coreProgram_fresh t _ hv hpl
-  have hI' : e.I ∈ r.T.insts B2C.fs coreProgram.loop B2C.H (0, r.T.block B2C.fs coreProgram.loop) r.hdr := hI
-  have hIp := insts_placedAt r.T _ r.hdr hTp e.I hI'
-  have hIP := insts_placed r.T _ r.hdr (by omega) e.I hI'
-  have hE' : EntOk coreProgram (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) { e with nb := k } :=
-    ⟨hE.mem, hE.node, hE.find, hE.path, hE.kids⟩
-  obtain ⟨hσ, hlt⟩ := hE'.alloc_at (cert := B2C.cert) hIp hIP hdk
-  refine ⟨hlt, ?_⟩
-  -- the pointer's cell
-  have hdmem : allocDstOf a ∈ allocDsts (e.pre ++ e.es) := List.mem_of_getElem? hdk
-  obtain ⟨hc1, hc2⟩ := cellRef hr hT hj (allocDst_mem hdmem) hcell
-  rw [hloc] at hc1 hc2
-  exact ⟨hc1, hc2.trans hσ⟩
+/-- **The track at `main`'s entry, its cursor past `main`'s frame**: `main`'s frame at its body, at
+frame `0`, nothing done, no call made, its offset `0`. -/
+theorem refTrack_mainA (hP : ProgAl guestProgram coreProgram A) (hmain : entOf A "main" = proLen)
+    (hM : MainA L) {r : Ref} (hR : RefH L (D r) r) :
+    ∃ e, RefTrack L D A r proLen 0 ([], [e]) ∧ cursorAt L A e (proLen - entOf A e.I.t.name) = r.adv.mainFrame ∧
+      ChainA L A (memOf r.img) [e] ∧ NcTop A e (proLen - entOf A e.I.t.name) := by
+  obtain ⟨rd, hH, -⟩ := hR.honest
+  obtain ⟨I, rest, he, hIt, hfp, hcur, -⟩ := head_instsA (fs := L.fs) (lp := coreProgram.loop) (al := L.al)
+    (H := L.H) (D r).T (0, (D r).T.block L.fs coreProgram.loop) r.hdr
+  have hI : I ∈ instsOf L (D r) r := by
+    show I ∈ (D r).T.instsA L.fs coreProgram.loop L.al L.H (0, (D r).T.block L.fs coreProgram.loop) r.hdr
+    rw [he]; exact List.mem_cons_self
+  have hv := hH.valid
+  rw [← hIt] at hv
+  obtain ⟨fn, hf⟩ : ∃ fn, coreProgram.find? I.t.name = some fn := by
+    rcases hIt' : I.t with ⟨f, σ, bufs, kids⟩ | ⟨f, σ⟩
+    · rw [hIt'] at hv
+      obtain ⟨fn, hf, -⟩ := hv
+      exact ⟨fn, hf⟩
+    · rw [hIt'] at hv; exact hv.elim
+  have htr := trackOk_init (rd := (D r).rd0) hI hf hv
+  rw [hIt] at htr
+  have hname : I.t.name = "main" := by rw [hIt]; exact hR.name
+  have hal0 : alOf A "main" 0 = some fn.body := by
+    rw [hname] at hf
+    change alignAt (A "main").X (A "main").body (A "main").code (A "main").d 0 = some fn.body
+    rw [alignAt_zero (hP.ok _ _ hf), hP.body _ _ hf]
+  have h0 := refOk_init (M := memOf r.img) (ent := entOf A) (al := alOf A) htr hfp (by rw [hname]; exact hal0)
+  rw [hname, hmain] at h0
+  have hen : entOf A (Ent.enter coreProgram I fn).I.t.name = proLen := by
+    show entOf A I.t.name = proLen
+    rw [hname, hmain]
+  refine ⟨_, h0, ?_, fun _ hl hk ↦ absurd (List.eq_nil_of_length_eq_zero (Nat.le_zero.mp hl)) hk,
+    fun _ ↦ rfl⟩
+  rw [hen, Nat.sub_self, cursorAt]
+  show (bif pendAt (A I.t.name).X (A I.t.name).code (A I.t.name).d 0 then _ else
+    I.curA L.fs coreProgram.loop L.al (nbAt (A I.t.name).X (A I.t.name).d 0) (calls ([] : List Ev)).length) = _
+  rw [pendAt_zero, Bool.cond_false, Inst.curA, hcur, ← block_mainA hM hR]
+  simp [calls, curF_nil, nbAt_zero]
 
 end
 

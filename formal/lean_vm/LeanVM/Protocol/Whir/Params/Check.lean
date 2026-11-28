@@ -32,8 +32,9 @@ fold rounds' own check (`AffineCombiner.levelOK`, which it includes):
   next level's out-of-domain point, `C(L', 2) κ ≤ 2^(countBits o)` (`2^-125` after its grind of
   `o = Whir.oodGrindingBits` bits), with `1 ≤ κ`;
 * level `0`: its rate is the shape's and it folds the `2^6` lanes (`k₀ = 6`), the threshold exceeds the degree (`d₀ < A₀`),
-  its list bound is at most `166`, the stacked opening's batching with the ring's map,
-  `(maxStackedClaims + 1) L₀ ≤ 2^(countBits b)`, `b = Whir.batchGrindingBits`, and the commitment's
+  its list bound is at most `166`, the stacked opening's batching with the ring switch's map and
+  `ρ`, `(maxStackedClaims + 2) L₀ ≤ 2^(countBits b)` (the batching's `J₀ − 1` and the ring switch's
+  `3` per list member, `whir_config.rs`), `b = Whir.batchGrindingBits`, and the commitment's
   out-of-domain sample, `C(L₀, 2) μ ≤ 2^(countBits o)`.
 
 `shapeOK_all`: every admissible shape passes, by kernel evaluation.
@@ -105,7 +106,7 @@ def shapeOK (μ R : ℕ) : Bool :=
   | some cfg, lv :: rest =>
     chainChecks μ (lv :: rest) cfg && decide (lv.2.1 = R) && decide (lv.2.2.1 = 6) &&
       decide (degOf lv < lv.2.2.2.1 - lv.2.2.1) && decide (jlStart lv ≤ 166) &&
-      decide ((LeanVM.Protocol.Verifier.maxStackedClaims + 1) * jlStart lv ≤
+      decide ((LeanVM.Protocol.Verifier.maxStackedClaims + 2) * jlStart lv ≤
         2 ^ countBits Whir.batchGrindingBits) &&
       decide ((jlStart lv).choose 2 * μ ≤ 2 ^ countBits Whir.oodGrindingBits)
   | _, _ => false

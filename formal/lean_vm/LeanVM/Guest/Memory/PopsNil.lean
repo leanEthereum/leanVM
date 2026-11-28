@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.Pops
-public import LeanVM.Guest.Memory.SizeTotal
+public import LeanVM.Guest.Memory.Callees
+public import LeanVM.Guest.Memory.Tree
 
 /-!
 # Subtrees without witness hints

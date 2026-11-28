@@ -13,7 +13,7 @@ impl CompiledProgram {
             BitsDest::Stack(o) => format!("s {o}"),
             BitsDest::Heap(o) => format!("h {o}"),
         };
-        let mut out = format!("leanvm-advice 1\nmain_frame {}\n", self.main_frame);
+        let mut out = format!("leanvm-advice 2\nmain_frame {}\n", self.main_frame);
         let mut pcs: Vec<_> = self.hints.iter().collect();
         pcs.sort_by_key(|(pc, _)| **pc);
         writeln!(out, "hints {}", pcs.len()).unwrap();
@@ -29,14 +29,25 @@ impl CompiledProgram {
                             end,
                             start_inverse,
                             tail,
+                            aligned,
                         } => {
-                            format!("af {ptr} {size} {end} {:x} {tail}", start_inverse.0)
+                            format!(
+                                "af {ptr} {size} {end} {:x} {tail} {}",
+                                start_inverse.0,
+                                u8::from(*aligned)
+                            )
                         }
-                        RHint::Alloc { ptr, size } => format!("al {ptr} {size}"),
+                        RHint::Alloc { ptr, size, aligned } => format!("al {ptr} {size} {}", u8::from(*aligned)),
                         RHint::AllocDyn { ptr, size } => format!("ad {ptr} {size}"),
-                        RHint::AllocArm { ptr, sel, sizes } => {
+                        RHint::AllocArm {
+                            ptr,
+                            sel,
+                            sizes,
+                            aligned,
+                        } => {
                             let sizes: Vec<String> = sizes.iter().map(u32::to_string).collect();
-                            format!("aa {ptr} {sel} {} {}", sizes.len(), sizes.join(" "))
+                            let aligned = u8::from(*aligned);
+                            format!("aa {ptr} {sel} {} {} {aligned}", sizes.len(), sizes.join(" "))
                         }
                         RHint::CellAddress { ptr, cell } => format!("ca {ptr} {cell}"),
                         RHint::WitnessStack { name, base, len } => format!("ws {name} {base} {len}"),

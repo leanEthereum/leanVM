@@ -292,3 +292,13 @@ def packs():
 
 
 def calleesOf(n): return sorted(code()['calls'][n])
+
+
+def sig_pack():
+    """The pack whose `Sig.lean` defines each function's entry pc and index (`Fn.«k».entry`, `Fn.«k».idx`, Hotwire's
+    guest-cert), by stable name: a function's signature pack, not always its bundle's."""
+    out = {}
+    for b in sorted(glob.glob(ROOT + '/Pack/*/Sig.lean')):
+        for k in re.findall(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', open(b, encoding='utf-8').read(), re.M):
+            out[k] = b.split('/')[-2]
+    return out

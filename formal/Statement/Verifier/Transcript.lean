@@ -5,17 +5,22 @@ public import Statement.Field
 /-!
 # The verifier's transcript (`transcript.rs`, `merkle.rs`)
 
-The verifier touches the proof through five operations of its `Transcript`
-(`crates/verifier/src/transcript.rs`): `next_scalar`, `sample`, `grind_check`, a root read
-as two scalars, and `merkle`. It computes everything else from their results; `VerifierProgram α`
-is the free monad over them, run (`run`, `runProof`) as the deployed non-interactive verifier: the
-challenges squeezed out of a duplex sponge and the rows authenticated by Merkle paths.
+The verifier touches the proof through seven operations of its `Transcript`
+(`crates/verifier/src/transcript.rs`): `next_scalar`, `next_scalars_packed`, `sample`,
+`samples_packed`, `grind_check`, a root read as two scalars, and `merkle`. It computes everything
+else from their results; `VerifierProgram α` is the free monad over them, run (`run`, `runProof`)
+as the deployed non-interactive verifier: the challenges squeezed out of a duplex sponge and the
+rows authenticated by Merkle paths.
 
-The sponge is the duplex below (`Sponge`, `absorb`, `squeeze`, `absorbNonce`, `seedInput`),
-which LeanDA's membership challenges use too, over Keccak-f[1600] in the deployed verifier. A proof of work absorbs its nonce with
-the tag `4` and permutes at once; the permutation's third lane is the proof of work, and its first
-two lanes the challenge the next `sample` returns (`ground`). The Rust asserts that nothing is
-absorbed while that challenge waits (`Sponge::absorb`, `transcript.rs`); `run` rejects there.
+The sponge is the duplex below (`Sponge`, `absorb`, `squeeze`, `absorbNonce`, `observePacked`,
+`samplesPacked`, `seedInput`), which LeanDA's membership challenges use too, over Keccak-f[1600] in
+the deployed verifier. A proof of work absorbs its nonce with the tag `4` and permutes at once; the
+permutation's third lane is the proof of work, and its first two lanes the challenge the next
+`sample` returns (`ground`); a packed draw right after it takes that challenge and then the
+permutation's cells `2..8`. A packed message permutes whatever waits, then takes eight untagged
+scalars a permutation, two lanes each, the rate zero past them; a packed draw permutes once per
+eight challenges, its rate two lanes to a challenge. The Rust asserts that nothing is absorbed
+while that challenge waits (`Sponge::absorb`, `transcript.rs`); `run` rejects there.
 Merkle openings come from a separate channel that the sponge does not absorb: each query's
 opening is its position, the leaf's words, hashed as bytes, then one sibling per level, the
 position's bit at the level choosing the side.
@@ -126,6 +131,61 @@ def absorbNonce (sponge : Sponge) (nonce : E) : m (UInt64 × Sponge) := do
   let sponge ← duplex π sponge
   pure (Keccak.lane sponge.state 2, { sponge with ground := some (challengeOf sponge.state) })
 
+/-- Challenge `i` of a packed draw: lanes `2i` and `2i + 1` of the state (`Sponge::samples_packed`,
+`transcript.rs`). -/
+def packedChallengeOf (state : KeccakState) (i : ℕ) : E :=
+  E.ofLimbs (K.ofLane (Keccak.lane state (2 * i))) (K.ofLane (Keccak.lane state (2 * i + 1)))
+
+/-- The input of a packed permutation: the chunk's scalars over the rate, two lanes each, zeros up
+to lane `16`, then the capacity, lanes `16..25` of the state (`Sponge::observe_packed`,
+`transcript.rs`). -/
+def packedInput (state : KeccakState) (chunk : List E) : KeccakState :=
+  Vector.ofFn fun i ↦
+    if i.val < 16 then (chunk.flatMap fun x ↦ [(x.limb 0).lane, (x.limb 1).lane]).getD i 0
+    else Keccak.lane state i
+
+/-- The loop of `observe_packed`: one permutation per chunk of eight scalars. `fuel` bounds the
+recursion; every step drops at least one scalar, so the scalars' count is enough. -/
+def absorbPackedChunks : ℕ → KeccakState → List E → m KeccakState
+  | 0, state, _ => pure state
+  | _ + 1, state, [] => pure state
+  | fuel + 1, state, values@(_ :: _) => do
+    let state ← π (packedInput state (values.take 8))
+    absorbPackedChunks fuel state (values.drop 8)
+
+/-- Absorb scalars eight to a permutation, untagged, after a permutation taking whatever waits
+(`Sponge::observe_packed`, `transcript.rs`). The Rust asserts no ground challenge waits; the
+verifier's runs reject there instead. -/
+def observePacked (sponge : Sponge) (values : List E) : m Sponge := do
+  let sponge ← if sponge.pending.isEmpty then pure sponge else duplex π sponge
+  let state ← absorbPackedChunks π values.length sponge.state values
+  pure { sponge with state := state }
+
+/-- The loop of `samples_packed`: while challenges are missing, a permutation, and its rate's first
+`min(8, missing)` challenges. `fuel` bounds the recursion; every step draws at least one. -/
+def squeezePackedChunks : ℕ → Sponge → ℕ → m (List E × Sponge)
+  | 0, sponge, _ => pure ([], sponge)
+  | _ + 1, sponge, 0 => pure ([], sponge)
+  | fuel + 1, sponge, missing + 1 => do
+    let sponge ← duplex π sponge
+    let take := min 8 (missing + 1)
+    let drawn := (List.range take).map (packedChallengeOf sponge.state)
+    let (rest, sponge) ← squeezePackedChunks fuel sponge (missing + 1 - take)
+    pure (drawn ++ rest, sponge)
+
+/-- Squeeze `count` challenges eight to a permutation (`Sponge::samples_packed`, `transcript.rs`):
+right after a grind, the ground challenge, then up to six more of the grind's permutation, from
+cells `2..8` (cell `1` holds the proof of work); then whole permutations, as `squeeze`'s. -/
+def samplesPacked (sponge : Sponge) (count : ℕ) : m (List E × Sponge) := do
+  let (first, sponge) := match count, sponge.ground with
+    | 0, _ => (([] : List E), sponge)
+    | _ + 1, none => ([], sponge)
+    | c + 1, some ground =>
+      (ground :: ((List.range 6).take c).map (packedChallengeOf sponge.state ∘ (· + 2)),
+        { sponge with ground := none })
+  let (rest, sponge) ← squeezePackedChunks π (count - first.length) sponge (count - first.length)
+  pure (first ++ rest, sponge)
+
 end Duplex
 
 end LeanVM.Protocol.Compile
@@ -145,6 +205,12 @@ inductive VerifierProgram (α : Type) : Type where
   | read (k : E → VerifierProgram α)
   /-- Sample a challenge, squeezed from the sponge (`sample`). -/
   | sample (k : E → VerifierProgram α)
+  /-- Read the next `n` prover scalars, absorbed eight to a permutation, untagged
+  (`next_scalars_packed`, `Sponge::observe_packed`). -/
+  | readPacked (n : ℕ) (k : List E → VerifierProgram α)
+  /-- Sample `n` challenges, squeezed eight to a permutation; right after a grind, the first seven
+  from the grind's permutation (`samples_packed`, `Sponge::samples_packed`). -/
+  | samplePacked (n : ℕ) (k : List E → VerifierProgram α)
   /-- Check a proof of work of `bits` bits, the nonce read, absorbed and permuted (`grind_check`).
   The programs build it with `bits ≥ 1` only (`grindProofOfWork`). -/
   | grind (bits : ℕ) (k : VerifierProgram α)
@@ -165,6 +231,8 @@ def bind : VerifierProgram α → (α → VerifierProgram β) → VerifierProgra
   | fail, _ => fail
   | read k, f => read fun x ↦ (k x).bind f
   | sample k, f => sample fun x ↦ (k x).bind f
+  | readPacked n k, f => readPacked n fun xs ↦ (k xs).bind f
+  | samplePacked n k, f => samplePacked n fun xs ↦ (k xs).bind f
   | grind b k, f => grind b (k.bind f)
   | commit h w k, f => commit h w (k.bind f)
   | query i ps k, f => query i ps fun r ↦ (k r).bind f
@@ -194,6 +262,13 @@ def sampleChallenges : ℕ → VerifierProgram (List E)
     let x ← sampleChallenge
     let xs ← sampleChallenges n
     return x :: xs
+
+/-- Read `n` prover scalars as one packed message (`Transcript::next_scalars_packed`,
+`transcript.rs`). -/
+def readScalarsPacked (n : ℕ) : VerifierProgram (List E) := readPacked n ret
+
+/-- Sample `n` challenges as one packed draw (`Transcript::samples_packed`, `transcript.rs`). -/
+def sampleChallengesPacked (n : ℕ) : VerifierProgram (List E) := samplePacked n ret
 
 /-- Check a proof of work of `bits` bits (`Transcript::grind_check`, `transcript.rs`). A
 grind of zero bits is nothing: no nonce, no permutation, no step of the program. -/
@@ -302,9 +377,11 @@ def openPhase (root : Digest) (height width : ℕ) (positions : List ℕ) (phase
   else pure none
 
 /-- The compiled reading of a program: run it on the state, every challenge squeezed out of the
-sponge and every opening authenticated; `none` on rejection. What absorbs (a read, a commitment's
-two halves, a proof of work's nonce) rejects while a grind's challenge waits, where the Rust's
-`Sponge::absorb` asserts (`transcript.rs`); a sample returns that challenge. A proof of work
+sponge and every opening authenticated; `none` on rejection. What absorbs (a read, a packed read, a
+commitment's two halves, a proof of work's nonce) rejects while a grind's challenge waits, where the
+Rust's `Sponge::absorb` and `Sponge::observe_packed` assert (`transcript.rs`); a sample, or a packed
+draw, returns that challenge first. A packed read takes its `n` scalars only if the stream holds
+them, as `next_scalars_packed` reads them all before it absorbs. A proof of work
 reads its nonce (`next`, unobserved), absorbs it with its tag and permutes (`absorbNonce`), and
 checks the permutation's third lane (`grind_check`, `transcript.rs`). A commitment's root
 is its two halves' digest (`Digest::from_halves`, `crates/verifier/src/hash.rs`). -/
@@ -320,6 +397,15 @@ def run {α : Type} : VerifierProgram α → VerifierProgramState → m (Option 
   | .sample k, s => do
     let (c, sponge) ← squeeze π s.sponge
     run (k c) { s with sponge := sponge }
+  | .readPacked n k, s =>
+    if s.sponge.ground.isNone ∧ n ≤ s.stream.length then do
+      let xs := s.stream.take n
+      let sponge ← observePacked π s.sponge xs
+      run (k xs) { s with sponge := sponge, stream := s.stream.drop n }
+    else pure none
+  | .samplePacked n k, s => do
+    let (cs, sponge) ← samplesPacked π s.sponge n
+    run (k cs) { s with sponge := sponge }
   | .grind bits k, s => match s.stream, s.sponge.ground with
     | n :: xs, none => do
       let (pow, sponge) ← absorbNonce π s.sponge n

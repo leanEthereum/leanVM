@@ -149,6 +149,27 @@ theorem osTail_sound (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpenin
   rw [Nat.zero_add, List.getD_eq_getElem _ _ hi] at this
   exact this
 
+/-- After a closing round the cursor's offset is `0`. -/
+theorem osTailRounds_co_zero (tch : ℕ) : ∀ (j n : ℕ) (s : OsSt), (osTailRounds tch j (n + 1) s).2.co = 0
+  | _, 0, _ => rfl
+  | j, n + 1, _ => osTailRounds_co_zero tch (j + 1) n _
+
+theorem osTail_co_zero (c : OsCfg) (s : OsSt) (h : 1 ≤ c.yrLog) : (osTail c s).2.1.co = 0 := by
+  obtain ⟨n, hn⟩ : ∃ n, c.yrLog = n + 1 := ⟨c.yrLog - 1, by omega⟩
+  show (osTailRounds (s.k + 1) 0 c.yrLog { s with k := s.k + 2 }).2.co = 0
+  rw [hn]; exact osTailRounds_co_zero _ _ _ _
+
+/-- **The closing rounds' cursor**: two words a round past the state's. -/
+theorem osTail_cur (hT : ∀ a r, C "opening_tail_round" a r → MeaningOpeningTailRound rd a r)
+    {c : OsCfg} {s : OsSt} (hfs : s.fs.length = 5) (hco : s.co < u128Bound)
+    (hok : AllOk C rd σ (osTail c s).1) : (osTail c s).2.1.cur σ = s.cur σ * gen ^ (2 * c.yrLog) := by
+  unfold osTail at hok
+  simp only [allOk_append] at hok
+  obtain ⟨⟨-, hR⟩, -⟩ := hok
+  obtain ⟨-, -, -, -, -, -, -, hcur, -⟩ :=
+    osTailRounds_sound hT (s.k + 1) c.yrLog 0 { s with k := s.k + 2 } hfs hco hR
+  exact hcur
+
 /-! ## The final level -/
 
 /-- The final level's facts: its row against the Spec's level, its `opening_queries` shape, the
@@ -215,6 +236,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     (hokT : AllOk C rd σ (osTail c (osLevel c lvl lv st).2).1) (lane : ℕ) :
     ∃ (xs gs fold T : List E),
       xs.length = lvWords c lvl lv + 2 * c.yrLog ∧ ReadsAt rd (st.cur σ) xs ∧
+      (osTail c (osLevel c lvl lv st).2).2.1.cur σ = st.cur σ * gen ^ xs.length ∧
       gs.length = lv.folds ∧ fold.length = c.yrLen + lv.folds ∧ T.length = c.yrLog ∧
       RunsWith ((foldRounds level.fold ws).bind fun p ↦ levelLast logN lane lvl level p.1 p.2)
         (st.F σ) xs
@@ -445,7 +467,7 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
   have hrts' : (osTail c q.2).2.1.rts = st.rts ++ [[st.k + 1 + 2 * 0 + 1, st.k + 1 + 2 * 1 + 1,
       st.k + 1 + 2 * 2 + 1, st.k + 1 + 2 * 3 + 1]] :=
     ((osTail_rts c q.2).trans (hqrts.trans hfrts)).trans (osRates_rts c lvl st)
-  refine ⟨xs0 ++ (fold ++ [nn] ++ tailWords pairs), gs, fold, T, ?_, ?_, hgl, hfl, ?_, ?_, hM.fmsg,
+  refine ⟨xs0 ++ (fold ++ [nn] ++ tailWords pairs), gs, fold, T, ?_, ?_, ?_, hgl, hfl, ?_, ?_, hM.fmsg,
     ?_, ?_, ?_, _, hrts', rtOk_of hrv⟩
   · simp [lvWords, hfin, hx0, hfl, tailWords_length, hpl]; ring
   · refine readsAt_append hrd0 (readsAt_append ?_ ?_)
@@ -453,6 +475,10 @@ theorem osLevelLast_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     · rw [hx0, ← hcur0, show (fold ++ [nn]).length = c.yrLen + lv.folds + 1 by simp [hfl],
         ← hM.cur, show m.2.cur σ = gr.2.cur σ from rfl, ← hSq.cur, ← hqcur]
       exact hrdT
+  · rw [osTail_cur hcal.tail hfsq hcoq hokT, hqcur, hSq.cur, show gr.2.cur σ = m.2.cur σ from rfl, hM.cur,
+      hcur0]
+    simp only [List.length_append, List.length_cons, List.length_nil, hx0, hfl, tailWords_length, hpl]
+    ring
   · rw [hTd, hTl]
   · have h0 := RunsTo.withRoots hrun0 R
     rw [hF.fold]

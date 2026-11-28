@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.Discharge
 
 `cntRetemp`: the counts are per instance (`Tree.weight`), which re-choosing keeps.
 
-`reInst ν I` is `I` with its tree's temporaries re-chosen, at the same frame, header and callee
+`reInst al ν I` is `I` with its tree's temporaries re-chosen, at the same frame, header and callee
 frames. Every instance of a re-chosen tree is the re-chosen instance of the tree's at its frame
 (`reInst_of_honest`), since the headers do not see the temporaries (`H_reInst`: `H` reads the
 path's events, which re-choosing keeps). Its cells (`C_reInst`) are the old ones but at the
@@ -32,6 +32,8 @@ namespace LeanVM.Guest.B2C
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
+
+variable {al : String → Bool}
 
 /-! ## The counts -/
 
@@ -84,28 +86,28 @@ theorem pathCountN_retemp (hfr : coreProgram.Fresh) (ν : ℕ → String → Val
 
 mutual
 theorem weightV_retemp (hfr : coreProgram.Fresh) (ν : ℕ → String → Val → V → E) (op : Opcode) :
-    ∀ (t : Tree) (pos : ℕ × ℕ), weightV (fun f σ ↦ pathCountN f σ op) (t.retemp coreProgram fs ν pos) =
+    ∀ (t : Tree) (pos : ℕ × ℕ), weightV (fun f σ ↦ pathCountN f σ op) (t.retempA coreProgram fs al ν pos) =
       weightV (fun f σ ↦ pathCountN f σ op) t
   | .node f σ bufs kids, pos => by
-      rw [retemp_node, weightV, weightV, pathCountN_retemp hfr, weightVKids_retempKids hfr ν op kids _
-        (by rw [length_kidPos, List.length_map])]
-  | .phantom .., pos => by rw [retemp_phantom]
+      rw [retempA_node, weightV, weightV, pathCountN_retemp hfr, weightVKids_retempKids hfr ν op kids _
+        (by rw [length_kidPosA])]
+  | .phantom .., pos => by rw [retempA_phantom]
 
 theorem weightVKids_retempKids (hfr : coreProgram.Fresh) (ν : ℕ → String → Val → V → E) (op : Opcode) :
     ∀ (ks : List Tree) (ps : List (ℕ × ℕ)), ps.length = ks.length →
-      weightVKids (fun f σ ↦ pathCountN f σ op) (Tree.retempKids coreProgram fs ν ps ks) =
+      weightVKids (fun f σ ↦ pathCountN f σ op) (Tree.retempKidsA coreProgram fs al ν ps ks) =
         weightVKids (fun f σ ↦ pathCountN f σ op) ks
-  | [], _, _ => by rw [retempKids_nil]
+  | [], _, _ => by rw [retempKidsA_nil]
   | _ :: _, [], h => absurd h (by simp)
   | k :: ks, p :: ps, h => by
-      rw [retempKids_cons, weightVKids, weightVKids, weightV_retemp hfr ν op k p,
+      rw [retempKidsA_cons, weightVKids, weightVKids, weightV_retemp hfr ν op k p,
         weightVKids_retempKids hfr ν op ks ps (by simpa using h)]
 end
 
 /-- **The instruction counts do not see the temporaries' values** (`End.CntRetemp`). -/
 theorem cntRetemp (hfr : coreProgram.Fresh) :
     ∀ (ν : ℕ → String → Val → V → E) (t : Tree),
-      cnt (t.retemp coreProgram fs ν (0, t.block fs coreProgram.loop)) = cnt t := by
+      cnt (t.retempA coreProgram fs al ν (0, t.block fs coreProgram.loop)) = cnt t := by
   intro ν t
   funext op
   simp only [cnt, weightV_retemp hfr]
@@ -119,65 +121,65 @@ def ArmsFresh : Prop := (∀ j, ∀ a ∈ (plumbOf j).arms, V.n a.1 ∉ Stmt.tmp
 
 /-- An instance with its tree's temporaries re-chosen, at the same frame, header and callees'
 frames. -/
-noncomputable def reInst (ν : ℕ → String → Val → V → E) (I : Inst) : Inst :=
-  ⟨I.t.retemp coreProgram fs ν (I.fp, I.cur), I.fp, I.cur, I.hdr, I.kidFps, I.bufBases⟩
+noncomputable def reInst (al : String → Bool) (ν : ℕ → String → Val → V → E) (I : Inst) : Inst :=
+  ⟨I.t.retempA coreProgram fs al ν (I.fp, I.cur), I.fp, I.cur, I.hdr, I.kidFps, I.bufBases⟩
 
 variable {ν : ℕ → String → Val → V → E}
 
 /-- The headers do not see the temporaries. -/
-theorem H_reInst (hfr : coreProgram.Fresh) (J : Inst) (i : ℕ) : H (reInst ν J) i = H J i := by
+theorem H_reInst (hfr : coreProgram.Fresh) (J : Inst) (i : ℕ) : H (reInst al ν J) i = H J i := by
   obtain ⟨t, fp, cur, hdr, kf, bb⟩ := J
   cases t with
   | node f σ bufs kids =>
     simp only [reInst]
-    rw [retemp_node]
+    rw [retempA_node]
     unfold H
     simp only [Tree.name]
     rw [events_retemp hfr (bufs' := bufs) (ks' := kids)]
     cases idxOf f <;> rfl
   | phantom f σ =>
     simp only [reInst]
-    rw [retemp_phantom]
+    rw [retempA_phantom]
 
 mutual
 /-- **Every instance of a re-chosen tree is an instance of the tree re-chosen.** -/
 theorem insts_reInst (hfr : coreProgram.Fresh) : ∀ (t : Tree) (pos : ℕ × ℕ) (hdr : E × E),
-    ∀ I' ∈ (t.retemp coreProgram fs ν pos).insts fs coreProgram.loop H pos hdr,
-      ∃ I ∈ t.insts fs coreProgram.loop H pos hdr, I' = reInst ν I
+    ∀ I' ∈ (t.retempA coreProgram fs al ν pos).instsA fs coreProgram.loop al H pos hdr,
+      ∃ I ∈ t.instsA fs coreProgram.loop al H pos hdr, I' = reInst al ν I
   | .node f σ bufs kids, pos, hdr, I', hI' => by
-      rw [retemp_node, insts_node, List.mem_cons] at hI'
-      rw [map_sz_retempKids_kidPos] at hI'
+      rw [retempA_node, instsA_node, List.mem_cons] at hI'
+      rw [kidPosA_retempKidsA] at hI'
       rcases hI' with rfl | hI'
-      · refine ⟨_, by rw [insts_node]; exact List.mem_cons_self, ?_⟩
+      · refine ⟨_, by rw [instsA_node]; exact List.mem_cons_self, ?_⟩
         simp only [reInst]
-        rw [retemp_node]
+        rw [retempA_node]
       · obtain ⟨I, hI, h⟩ := instsKids_reInst hfr kids _
           ⟨.node f σ bufs kids, pos.1, pos.2, hdr,
-            (kidPos fs coreProgram.loop pos f bufs (kids.map (Tree.sz fs coreProgram.loop))).map Prod.fst,
+            (kidPosA fs coreProgram.loop al pos f bufs kids).map Prod.fst,
             bases pos.2 bufs⟩ _ 0
-          (fun i ↦ (congrArg (H · i) (by simp only [reInst]; rw [retemp_node])).trans (H_reInst hfr _ i))
+          (fun i ↦ (congrArg (H · i) (by simp only [reInst]; rw [retempA_node])).trans (H_reInst hfr _ i))
           I' hI'
-        exact ⟨I, by rw [insts_node]; exact List.mem_cons_of_mem _ hI, h⟩
+        exact ⟨I, by rw [instsA_node]; exact List.mem_cons_of_mem _ hI, h⟩
   | .phantom f σ, pos, hdr, I', hI' => by
-      rw [retemp_phantom, insts_phantom, List.mem_singleton] at hI'
+      rw [retempA_phantom, instsA_phantom, List.mem_singleton] at hI'
       subst hI'
-      refine ⟨_, by rw [insts_phantom]; exact List.mem_singleton_self _, ?_⟩
+      refine ⟨_, by rw [instsA_phantom]; exact List.mem_singleton_self _, ?_⟩
       simp only [reInst]
-      rw [retemp_phantom]
+      rw [retempA_phantom]
 
 /-- `insts_reInst` for the callees at `ps`, under headers that agree. -/
 theorem instsKids_reInst (hfr : coreProgram.Fresh) :
     ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (J J' : Inst) (j : ℕ),
     (∀ i, H J' i = H J i) →
-    ∀ I' ∈ Tree.instsKids fs coreProgram.loop H J' j ps (Tree.retempKids coreProgram fs ν ps ks),
-      ∃ I ∈ Tree.instsKids fs coreProgram.loop H J j ps ks, I' = reInst ν I
+    ∀ I' ∈ Tree.instsKidsA fs coreProgram.loop al H J' j ps (Tree.retempKidsA coreProgram fs al ν ps ks),
+      ∃ I ∈ Tree.instsKidsA fs coreProgram.loop al H J j ps ks, I' = reInst al ν I
   | [], _, _, _, _, _, I', hI' => by
-      rw [retempKids_nil, instsKids_nil] at hI'; exact (List.not_mem_nil hI').elim
+      rw [retempKidsA_nil, instsKidsA_nil] at hI'; exact (List.not_mem_nil hI').elim
   | _ :: _, [], _, _, _, _, I', hI' => by
-      rw [instsKids_nil_left] at hI'; exact (List.not_mem_nil hI').elim
+      rw [instsKidsA_nil_left] at hI'; exact (List.not_mem_nil hI').elim
   | k :: ks, p :: ps, J, J', j, hJ, I', hI' => by
-      rw [retempKids_cons, instsKids_cons, List.mem_append, hJ j] at hI'
-      rw [instsKids_cons]
+      rw [retempKidsA_cons, instsKidsA_cons, List.mem_append, hJ j] at hI'
+      rw [instsKidsA_cons]
       rcases hI' with hI' | hI'
       · obtain ⟨I, hI, h⟩ := insts_reInst hfr k p (H J j) I' hI'
         exact ⟨I, List.mem_append_left _ hI, h⟩
@@ -187,9 +189,9 @@ end
 
 /-- **An honest instance of the re-chosen tree is the old one at its frame, re-chosen.** -/
 theorem reInst_of_honest (hfr : coreProgram.Fresh) {hdr : E × E} {T : Tree} {I I' : Inst}
-    (hI : I ∈ honestInsts coreProgram fs H hdr T)
-    (hI' : I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)))
-    (hfp : I'.fp = I.fp) : I' = reInst ν I := by
+    (hI : I ∈ honestInstsA coreProgram fs al H hdr T)
+    (hI' : I' ∈ honestInstsA coreProgram fs al H hdr (T.retempA coreProgram fs al ν (0, T.block fs coreProgram.loop)))
+    (hfp : I'.fp = I.fp) : I' = reInst al ν I := by
   obtain ⟨I0, hI0, rfl⟩ := insts_reInst hfr T _ hdr I' (by rwa [honestInsts_retemp] at hI')
   have hfp0 : I0.fp = I.fp := hfp
   have h2 := two_le_fsz I.t
@@ -255,7 +257,7 @@ private theorem retempVal_of_not {fp : ℕ} {f : String} {σ : Val} {v : V}
 /-- **The candidates after the temporaries' do not see them.** -/
 theorem nodeRest_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) {I : Inst} {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} {j : ℕ} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) :
-    nodeRest j f (retempVal coreProgram ν I.fp f σ) (reInst ν I) = nodeRest j f σ I := by
+    nodeRest j f (retempVal coreProgram ν I.fp f σ) (reInst al ν I) = nodeRest j f σ I := by
   obtain ⟨i, rfl, hi, -, hfind, hcore, -, -, -, -⟩ := fn_of_idx hj
   set fn := coreProgram[i] with hfn
   have hfrn := hfr fn (List.mem_of_find?_eq_some hfind)
@@ -268,12 +270,12 @@ theorem nodeRest_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) {I : Inst} {f
     rcases hv with hv | hv
     · exact (hfrn.2 v ht').2 hv
     · exact (hfrn.2 v ht').1 hv
-  have hrt : (reInst ν I).t = (Memory.Tree.node f σ bufs kids).retemp coreProgram fs ν (I.fp, I.cur) := by
+  have hrt : (reInst al ν I).t = (Memory.Tree.node f σ bufs kids).retempA coreProgram fs al ν (I.fp, I.cur) := by
     simp only [reInst, ht]
-  have hev : (reInst ν I).t.events coreProgram = I.t.events coreProgram := by
-    rw [hrt, retemp_node, ht, events_retemp hfr (bufs' := bufs) (ks' := kids)]
-  have hrets : pathRets (reInst ν I).t = pathRets I.t := by
-    rw [hrt, retemp_node, ht]
+  have hev : (reInst al ν I).t.events coreProgram = I.t.events coreProgram := by
+    rw [hrt, retempA_node, ht, events_retemp hfr (bufs' := bufs) (ks' := kids)]
+  have hrets : pathRets (reInst al ν I).t = pathRets I.t := by
+    rw [hrt, retempA_node, ht]
     unfold pathRets
     simp only [Tree.name, Tree.val, hfind]
     rw [walk_retemp hfr hfind]
@@ -342,27 +344,27 @@ private theorem keys_valE {f : String} (σ σ' : Val) (vs : List V) (p : ℕ × 
     · exact ih
 
 /-- **A re-chosen instance's cells off its temporaries are its old ones.** -/
-theorem C_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) (I : Inst) {q : ℕ × E} (hq : q ∈ C (reInst ν I))
+theorem C_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) (I : Inst) {q : ℕ × E} (hq : q ∈ C (reInst al ν I))
     (hn : ¬ TmpOff coreProgram cert I.t q.1) : q ∈ C I := by
   obtain ⟨t, fp, cur, hdr, kf, bb⟩ := I
   cases t with
   | phantom f σ =>
     simp only [reInst] at hq
-    rw [retemp_phantom] at hq
+    rw [retempA_phantom] at hq
     exact hq
   | node f σ bufs kids =>
     cases hj : idxOf f with
     | none =>
       simp only [reInst] at hq
-      rw [retemp_node] at hq
+      rw [retempA_node] at hq
       simp [C, Tree.name, hj] at hq
     | some j =>
-      have ht' : (reInst ν ⟨.node f σ bufs kids, fp, cur, hdr, kf, bb⟩).t =
+      have ht' : (reInst al ν ⟨.node f σ bufs kids, fp, cur, hdr, kf, bb⟩).t =
           .node f (retempVal coreProgram ν fp f σ) bufs
-            (Tree.retempKids coreProgram fs ν
-              (kidPos fs coreProgram.loop (fp, cur) f bufs (kids.map (Tree.sz fs coreProgram.loop))) kids) := by
+            (Tree.retempKidsA coreProgram fs al ν
+              (kidPosA fs coreProgram.loop al (fp, cur) f bufs kids) kids) := by
         simp only [reInst]
-        rw [retemp_node]
+        rw [retempA_node]
       rw [C_node ht' hj, nodeE_split, nodeRest_reInst hfr (I := ⟨.node f σ bufs kids, fp, cur, hdr, kf, bb⟩) hA rfl hj,
         frameE_append] at hq
       rw [C_node rfl hj, nodeE_split, frameE_append]
@@ -376,9 +378,9 @@ theorem C_reInst (hfr : coreProgram.Fresh) (hA : ArmsFresh) (I : Inst) {q : ℕ 
 /-- **Checker K's `keep`**: the cells of a re-chosen instance off its temporaries are the old
 instance's. -/
 theorem kfacts_keep (hfr : coreProgram.Fresh) (hA : ArmsFresh) (hdr : E × E) (T : Tree) :
-    ∀ ν, ∀ I ∈ honestInsts coreProgram fs H hdr T,
-      ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)),
-        I'.fp = I.fp → I'.t = I.t.retemp coreProgram fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
+    ∀ ν, ∀ I ∈ honestInstsA coreProgram fs al H hdr T,
+      ∀ I' ∈ honestInstsA coreProgram fs al H hdr (T.retempA coreProgram fs al ν (0, T.block fs coreProgram.loop)),
+        I'.fp = I.fp → I'.t = I.t.retempA coreProgram fs al ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
           ¬ TmpOff coreProgram cert I.t q.1 → q ∈ I.cells C := by
   intro ν I hI I' hI' hfp _ q hq hn
   obtain rfl := reInst_of_honest hfr hI hI' hfp

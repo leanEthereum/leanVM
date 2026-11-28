@@ -2,7 +2,7 @@
 
 The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instructions (`XOR`, `MUL`, `SET`, `DEREF`, `JUMP`, `KECCAK`) over the binary field GF(2^128), with write-once memory and all indices carried "in the exponent" as powers of a fixed generator. For the underlying VM and proving system, see [`doc/leanvm/main.tex`](../../doc/leanvm/main.tex).
 
-Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
+Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines the intrinsics (`GEN`, `log`, `const`, `mul_range`, `unroll`, `match`, `inline`, `HeapBuf`, `StackBuf`, `addr`, `assert_in_k`, `assert_gpow`, `keccak`, `keccak_cells` and the `hint_*` builtins), so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
 Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `isa::Program::from` → `cpu::prove` / `verify` in either prover tree.
 
@@ -16,7 +16,7 @@ The fields are
 
 `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*y + 1) = GF(2^128)`, a word `c0 + c1*y` with `c0, c1 ∈ K`.
 
-Machine **words** (the contents of a memory cell, an immediate, a hashed value) are elements of `E`. **Addresses**, the program counter, the frame pointer, the `JUMP` condition, read counters, operands, opcodes, and domain separators live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
+Machine **words** (the contents of a memory cell, an immediate, a hashed value) are elements of `E`. **Addresses**, the program counter, the frame pointer, the `JUMP` condition, operands and opcodes live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
 
 - `+` is field addition = bitwise **XOR** (128-bit on words, so `x + x == 0`),
 - `*` is multiplication in `E`; for g-powers and addresses it stays within `K`,
@@ -380,7 +380,7 @@ A proof-enforced inequality, in **3 instructions and no branch**: `XOR` for `x =
 
 ### Range checks: `assert log x < log Y` and `assert log x < k`
 
-The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included, as long as the run's committed witness fits the `2^30` stack (four memory columns, so a memory of at most about `2^27` cells). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
+The *range check in the exponent*: proves `x ∈ {g^0, g^1, …, g^{k-1}}`, i.e. `log_g(x) < k`. A compile-time bound is either `log GEN ** k` or a plain integer exponent `k`, with `1 ≤ k ≤ 2^30` (the largest memory size). The gadget is sound at every memory size, and complete at the memory an honest prover announces, which holds every cell the run touches, the complement `g^{k-1-e}` included, as long as the memory fits the link's pointers (at most `2^24` cells, `verifier::MAX_POINTER_WIDTH`). `log x` and `log(x)` both parse; the parenthesized form is the valid-Python spelling, and its parentheses must close the side: `log(x) * 2` is rejected, Python reading it as `2·log x`. A bare `assert x < y` is rejected: field elements have no order, only their logs do.
 
 ```python
 assert log(x) < log(GEN ** 8)
@@ -392,7 +392,7 @@ A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is other
 
 Cost: **3 cycles** (leanVM's DEREF range-check trick, in the exponent) plus one amortized `SET` per distinct bound per frame:
 
-1. `DEREF` through `x`: the dereferenced address must be one of the memory's `2^h` g-power addresses, so the memory bus itself proves `x = g^e`, `e < 2^h`;
+1. `DEREF` through `x`: the dereferenced address must be one of the memory's `2^h` g-power addresses, so the memory link itself proves `x = g^e`, `e < 2^h`;
 2. `MUL x·y` into the write-once cell holding `g^{k-1}`: the runner back-solves the complement `y = g^{k-1-e}` (the one unknown operand of a known product), and the double-write asserts `x·y = g^{k-1}`;
 3. `DEREF` through `y`: bounds the complement; a "negative" `k-1-e` would wrap to `≈ 2^64`, far beyond any memory size, so together `e ≤ k-1`.
 
@@ -406,7 +406,7 @@ A runtime bound written `c * GEN ** j` with `j ≥ 1` needs no `g^{-1}`: its tar
 assert_in_k(lo, hi)
 ```
 
-`assert_in_k(a, b)` is the sole packing-related compiler intrinsic. It proves that both source memory words are in the base field GF(2^64) with one untaken `JUMP`: its condition is a known zero, while its destination and frame operands are `a` and `b`. Although neither value affects the successor state, both memory reads carry literal-zero upper limbs, so a source outside GF(2^64) cannot balance the memory permutation.
+`assert_in_k(a, b)` is the sole packing-related compiler intrinsic. It proves that both source memory words are in the base field GF(2^64) with one untaken `JUMP`: its condition is a known zero, while its destination and frame operands are `a` and `b`. Although neither value affects the successor state, both memory reads carry literal-zero upper limbs, so a source outside GF(2^64) fails the memory link's agreement.
 
 Packing is ordinary zkDSL built on that assertion:
 
@@ -467,6 +467,8 @@ Operands:
 - **stack operands** are read in place, at zero copies; a self-hash `keccak(h, h, out)` names one 2-cell pair as both inputs;
 - `tail` is one opcode offset and so must be consecutive: cells that are not are copied into a fresh run, one instruction a cell;
 - **heap slices** are bridged through the stack: +1 `DEREF` per heap cell, a heap `state` and a 13-cell heap `out` included, which is what lets a loop frame carry a hash's state to the next through a heap chain.
+
+**Windows.** Each of an instruction's three runs, `tail`, `cap` and the output cells it writes, must lie in one aligned window of 16 cells (`isa::KECCAK_WINDOW`), its cell indices sharing every bit above the lowest four; both executors fault on a run that crosses one. The compiler sees to it: a frame holding a run starts at a multiple of 16 and lays its runs out to fit, such a loop frame's size rounded up to a multiple of 16. A run no layout fits, a `StackBuf` parameter at a fixed offset, a run in a frame an `addr()` fixes, or overlapping slices of one buffer no offset suits together, is copied into a fresh run first (an output copied back after the instruction): one `SET` per instruction and one `MUL` a cell copied.
 
 If `out` was already written, the statement *asserts* the result equals it, write-once turning the hash into a verification, which is exactly what a signature verifier wants.
 
@@ -529,7 +531,7 @@ Five builtins have the prover compute the values at witness generation instead o
 | function call | ≈ `n_args + n_returns + 4` (0 when the callee is `@inline`) |
 | `mul_range` iteration | body + ≈ 1 `MUL` + 1 `XOR` + call overhead |
 | `unroll` iteration | body only (compile-time replication) |
-| `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +1 `MUL` per runtime slice start |
+| `keccak(a, b, out, ...)` | 1; plus six `SET`s once per frame for the padding run (a fresh block), one `XOR` per nonzero message cell of a later block, one for a padding byte in a program cell, +1 `DEREF` per heap cell, +1 `MUL` per runtime slice start, +1 `SET` per instruction with a copied run and +1 `MUL` per cell copied to fit its window (**Windows**) |
 | `hint_witness(dest, "name")` | 0 (+1 `MUL` for a runtime slice start) |
 
 Every cost above is the FIRST occurrence. Two identical pure operations in one function share one cell and the second is free, so `hb[i]` twice, or `row[i]` where `row = hb * GEN ** 2`, costs one pointer `MUL` between them. The sharing stops at a branch: a cell whose instruction sits inside an `if` is not reused after the join, because the other path leaves it unwritten and therefore prover-chosen.

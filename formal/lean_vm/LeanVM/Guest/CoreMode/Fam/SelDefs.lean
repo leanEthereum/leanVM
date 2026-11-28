@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.StaticSound
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Mode.Step
+public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.CoreMode.Fam.ParamRef
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
@@ -89,9 +90,27 @@ noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
     cellJ j v == o && (ctrOf j == some v || decide (((coreOf j).name, v) ∈ nzs))) ||
     nzs.any fun p ↦ p.1 == (coreOf j).name && cellJ j p.2 == o && topUses p.2 (coreOf j).body)
 
+/-- Cell `o` is inside function `j`'s frame. -/
+noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
+
 /-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`: the word read at
 `[parameter]·g^k`), bound; each function's own (`FnReg.expFacts`, `CoreMode/Fn/<f>/Data.lean`). -/
 abbrev expFacts : List (String × ℕ × Option ℕ × ℕ) := CoreMode.FnReg.expFacts
+
+/-- Parameter `p`'s fact at offset `o` names base `B` of function `j`. -/
+noncomputable def baseAt (j : ℕ) (p : V) : Option ℕ → Mode.Base → Bool
+  | none, .fr c => cellJ j p == c
+  | some k, .hp q k' => cellJ j p == q && k == k'
+  | _, _ => false
+
+/-- **A base's exponent fact**: the parameter and the bound of a listed fact naming it. -/
+noncomputable def expOf (j : ℕ) (B : Mode.Base) : Option (V × ℕ) :=
+  expFacts.findSome? fun c ↦
+    if c.1 == (coreOf j).name then
+      match (coreOf j).params[c.2.1]? with
+      | some p => if baseAt j p c.2.2.1 B then some (p, c.2.2.2) else none
+      | none => none
+    else none
 
 /-! ## Soundness -/
 

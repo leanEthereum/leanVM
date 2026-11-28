@@ -43,7 +43,7 @@ def main():
 
 /// A check whose two touched cells (`m[300]` and the complement's `m[99]`) are
 /// never written by the program: their `DEREF`s only link them to fresh cells,
-/// all of which stay ZERO, and the bus still balances.
+/// all of which stay ZERO, and the memory link still holds.
 #[test]
 fn range_check_unwritten_cells() {
     let src = "\

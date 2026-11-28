@@ -40,7 +40,7 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
   meaning on a memory image).
 * `WinTabs rd tabs` (`ExpTables.lean`): the bit-window table `exponent_tables` writes
   (`[g^n] = E(n)`, `n < 2^11`), what `grind_check` and `query_window` read;
-  `winTabs_of_expWinTab` reads it through `tabs = q·g^236`.
+  `winTabs_of_expWinTab` reads it through `tabs = q·g^178`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -405,7 +405,7 @@ theorem armsEqb_sound : ∀ {s t : List (List Stmt)}, armsEqb s t = true → s =
   | [], _ :: _, h | _ :: _, [], h => by simp [armsEqb] at h
 end
 
-/-- The table's window section, read through `tabs = q·g^236`, is `WinTabs`. -/
+/-- The table's window section, read through `tabs = q·g^178`, is `WinTabs`. -/
 theorem winTabs_of_expWinTab {rd : Reader} {q : E} (h : ExpWinTab rd q) :
     WinTabs rd (q * gen ^ winTabAt) := fun n hn =>
   (loadHolds_mul_gen_pow rd q winTabAt n _).mpr (h n hn)

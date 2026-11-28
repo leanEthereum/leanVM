@@ -30,7 +30,7 @@ The bounds, bottom-up: `readIs_cost` (`20`), `gpowAt_cost` (`17`),
 * **`fnPreTest_cost`**: an entry's test at most `fnPrePrice R B t` (`PreTestDefs.lean`);
 * **`preTestAt_cost`**: function `j`'s test at most `fnPrePrice R B (T.getD j none) + 19`;
 * **`preTestAt_cost_deployed`**: on the deployed table (`preTable`, its shape evaluated in
-  `PreTableShape.lean`: exponents below `2^7`, at most one check of each kind, at most `99`
+  `PreTableShape.lean`: exponents below `2^7`, at most one entry check and two bounds, at most `99`
   bounds and memory cells, their logarithms' bounds at most `34`), at most
   `269R + 99B + 24834` (`99B = 69894` at `B = 706`, `powBelow_cost`);
 * **`genPows_cost`**: the powers table, built once (`genPowsC`: `34` squarings for `gen^(2^j)`,
@@ -49,9 +49,9 @@ variable (P : LeanVM.Cost.MachineProgram)
 /-! ## Powers and the logarithm's bound -/
 
 /-- A power `g^o` by squaring, `o < 2^W`: at most `psAt W`. -/
-theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) {W o : ℕ}
+theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c468.costDeps) {W o : ℕ}
     (hW : 0 < W) (hW64 : W < 64) (ho : o < 2 ^ W) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c468.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
       psAt W := by
   have h64 : 2 ^ W ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hW64.le
   have h1 := powSq_cost P hP LeanVM.Parameters.g o (by omega)

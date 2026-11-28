@@ -201,9 +201,28 @@ theorem bases_zip : ∀ {b : ℕ} {ss : List ℕ} {q : ℕ × ℕ}, q ∈ ss.zip
       · have := bases_zip h
         simp only [List.sum_cons]; omega
 
+/-- The regions placed one after another are disjoint, in order. -/
+theorem bases_pairwise : ∀ {b : ℕ} {ss : List ℕ},
+    (ss.zip (bases b ss)).Pairwise fun q q' => q.2 + q.1 ≤ q'.2
+  | _, [] => List.Pairwise.nil
+  | b, s :: ss => by
+      simp only [bases, List.zip_cons_cons, List.pairwise_cons]
+      exact ⟨fun q hq => (bases_zip hq).1, bases_pairwise⟩
+
 theorem length_bases : ∀ {b : ℕ} {ss : List ℕ}, (bases b ss).length = ss.length
   | _, [] => rfl
   | _, _ :: _ => by simp [bases, length_bases]
+
+/-- The `i`-th region placed from `b` starts after the first `i`. -/
+theorem getElem?_bases : ∀ {b : ℕ} {ss : List ℕ} {i : ℕ}, i < ss.length →
+    (bases b ss)[i]? = some (b + (ss.take i).sum)
+  | _, [], _, h => absurd h (by simp)
+  | b, s :: ss, 0, _ => by simp [bases]
+  | b, s :: ss, i + 1, h => by
+      simp only [bases, List.getElem?_cons_succ, List.take_succ_cons, List.sum_cons]
+      rw [getElem?_bases (by simpa using h)]
+      congr 1
+      omega
 
 theorem length_basesC : ∀ {b : ℕ} {ss : List (ℕ × ℕ)}, (basesC b ss).length = ss.length
   | _, [] => rfl
@@ -708,6 +727,26 @@ theorem totalKids_le {F : ℕ} (hF : ∀ f, fs f ≤ F) :
       have := total_le hF k
       have := totalKids_le hF ks
       omega
+end
+
+mutual
+/-- The allocator places one instance per call instance. -/
+theorem length_insts : ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E), (t.insts fs lp H p hdr).length = t.count
+  | .node f σ bufs kids, p, hdr => by
+      rw [insts_node, Tree.count, List.length_cons,
+        length_instsKids kids _ _ 0 (by rw [length_kidPos, List.length_map])]
+      omega
+  | .phantom f σ, p, hdr => by rw [insts_phantom, Tree.count]; rfl
+
+/-- `length_insts` for the callees. -/
+theorem length_instsKids : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)) (I : Inst) (j : ℕ),
+    ps.length = ks.length →
+    (Tree.instsKids fs lp H I j ps ks).length = Tree.countKids ks
+  | [], _, _, _, _ => by rw [instsKids_nil, Tree.countKids]; rfl
+  | _ :: _, [], _, _, h => absurd h (by simp)
+  | k :: ks, p :: ps, I, j, h => by
+      rw [instsKids_cons, List.length_append, length_insts, Tree.countKids,
+        length_instsKids ks ps I (j + 1) (by simpa using h)]
 end
 
 /-! ## Frame writes -/

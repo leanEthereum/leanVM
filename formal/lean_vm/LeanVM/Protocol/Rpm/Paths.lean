@@ -1,7 +1,7 @@
 /-
   LeanVM.Protocol.Rpm.Paths
 
-  The Keccak-256 evaluations a transcript holds (`keccakEvaluationsOfTranscript`, `Statement/LeanVm.lean`,
+  The Keccak-256 evaluations a transcript holds (`keccakEvaluationsOfTranscript`, `Protocol/Extraction/Extractor.lean`,
   on lane states) are `common`'s (`Common.pathsOf`, on byte states) read on lanes.
 -/
 
@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Extraction.Extractor
 /-!
 # The transcript's paths on lanes and on bytes
 
-`Statement/LeanVm.lean` replays a transcript on lane states (`TranscriptReplay.step`): a chain's state
+The extractor (`Protocol/Extraction/Extractor.lean`) replays a transcript on lane states (`TranscriptReplay.step`): a chain's state
 carries the bytes its path absorbed, a capacity is lanes `17 … 24`, a block the bytes of the
 rates' XOR, a path's message the one Keccak-256's padding (`padded`) takes to its bytes (`unpad`).
 `common` replays it on byte states (`Common.replayStep`: a chain carries its blocks, a capacity

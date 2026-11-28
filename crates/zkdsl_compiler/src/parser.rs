@@ -207,12 +207,8 @@ pub fn parse_with_constants(
     while p.i < p.lines.len() {
         funcs.push(p.func()?);
     }
-    // Two names that used to be accepted and then silently picked a winner.
-    // A repeated `def` lowered both bodies and kept the last, and a name
-    // beginning with `__` can collide with a compiler-generated one: a loop
-    // helper of `f` is `__loopN_f`, and a `Const` specialization of `f` is `f__L1`, so a
-    // user function called `f__L1` took the specialization's place and the call
-    // ran the wrong body.
+    // A repeated `def` would silently keep the last body, and a name with `__` can collide with a compiler-generated
+    // one (a loop helper `__loopN_f`, a `Const` specialization `f__L1`).
     for (i, f) in funcs.iter().enumerate() {
         if funcs[..i].iter().any(|g| g.name == f.name) {
             return Err(format!("function `{}` is defined twice", f.name));
@@ -771,10 +767,8 @@ impl Parser<'_> {
             }
             return Err("tuple assignment requires a call on the right".into());
         }
-        // A bare comparison is not a statement, and `split_assign` used to split
-        // one on its `=` into a binding named `x !`. In a verifier that is an
-        // `assert` compiled to nothing, so name the fix rather than letting the
-        // expression parser fail on an operator it does not have.
+        // A bare comparison is not a statement (in a verifier, an `assert` compiled to nothing): name the fix rather
+        // than let `split_assign` bind `x !` or the expression parser fail on an operator it does not have.
         // `while`/`elif`/`else` reach here as unknown keywords, not comparisons, so
         // suggesting `assert while x < y:` would be worse than the generic error.
         let keyword = ["while ", "elif ", "else", "for ", "def "]

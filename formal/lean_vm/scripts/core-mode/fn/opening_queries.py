@@ -46,3 +46,22 @@ OWN = []
 # `expCarry`, `CoreMode.carryExpB`)
 import fnrules as _R
 EXP_FACTS = _R.lean_def('opening_queries', 'Data', 'expFacts')
+
+
+# ---- contracts of the specializations new to Hotwire's guest: a path of depth `6` has `3` windows a query (`QW`-bit
+# path windows, the cap child bit, the cap index), where its siblings of depth `12` have `4`; their contracts are those
+# siblings' with each query's windows `[0, 3)`
+def _w3(k):
+    t = CONTRACTS[k]
+    assert t.count('[0, 1, 2, 3]') >= 1, k
+    t = t.replace('[0, 1, 2, 3]', '[0, 1, 2]')
+    return t.replace('⟨0, 3, [((.hp 8 0), 1)]⟩, ', '').replace(', ⟨0, 3, [((.hp 8 0), 1)]⟩]', ']')
+
+
+for _a, _b in [('L0_L4_L16_L6_L4_L10_L20_L5_L1', 'L0_L4_L16_L12_L4_L10_L20_L5_L1'),
+               ('L0_L4_L16_L6_L5_L15_L36_L6_L1', 'L0_L4_L16_L12_L5_L15_L36_L6_L1'),
+               ('L0_L4_L16_L6_L4_L10_L20_L5_L1_loop0', 'L0_L4_L16_L12_L4_L10_L20_L5_L1_loop0'),
+               ('L0_L4_L16_L6_L5_L15_L36_L6_L1_loop0', 'L0_L4_L16_L12_L5_L15_L36_L6_L1_loop0'),
+               ('L1_L6_L32_L6_L0_L0_L0_L0_L0', 'L1_L6_L32_L12_L0_L0_L0_L0_L0'),
+               ('L1_L6_L32_L6_L0_L0_L0_L0_L0_loop0', 'L1_L6_L32_L12_L0_L0_L0_L0_L0_loop0')]:
+    CONTRACTS['opening_queries__' + _a] = _w3('opening_queries__' + _b)

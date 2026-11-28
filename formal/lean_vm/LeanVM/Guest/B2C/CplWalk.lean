@@ -988,12 +988,56 @@ theorem noRet_of_shape {s : Stmt} {ss : List Stmt} (hs : ∀ vs, s ≠ .ret vs) 
     exact h.1
   · exact (lastOkC_cons h hs).1
 
+/-- **An arm's end passed to the join** (`passC`): an arrival at the arm's end `J` within `c1` is one at
+the join `J'` within `c1'`, the segment at `J` run to its local jump. -/
+theorem arr_passC (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st' : CW} {J J' : ℕ} {c1 c1' : Cnt}
+    (hpc : passC X st' J J' c1 = some c1') (hok' : CWOk L fp X st')
+    (hnm : ∀ n, st'.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs)
+    {ebef eaft : List Ev} (hes : es = ebef ++ eaft) {W0 : Registers K} {x : Opcode → ℕ}
+    (ha : Arr L fp X wJ wenv ck W0 J c1 (calls ebef).length x) :
+    Arr L fp X wJ wenv ck W0 J' c1' (calls ebef).length x := by
+  unfold passC at hpc
+  cases hJ : Nat.beq J J'
+  · rw [hJ] at hpc
+    simp only [Bool.cond_false] at hpc
+    split at hpc
+    · rename_i s hs
+      split at hpc
+      · rename_i J'' c' u' he
+        cases hJ2 : Nat.beq J'' J'
+        · rw [hJ2] at hpc; cases hpc
+        rw [hJ2] at hpc
+        obtain rfl := Nat.eq_of_beq_eq_true hJ2
+        simp only [Bool.cond_true, Option.some.injEq] at hpc
+        subst hpc
+        obtain ⟨⟨cr, hcr, hcle⟩, henvJ⟩ := ha
+        obtain ⟨hpz, -⟩ := segAtC_posW H (xc := x) (C := c1) (U := s.uq) (n := (calls ebef).length) hs hok'
+          henvJ hcr hcle hnm
+        have hpz' : PosZ H { s with cnt := c1, fresh := none } W0 (calls ebef).length x :=
+          ⟨hpz.seg, ⟨hpz.ok.env, hpz.ok.book, hpz.ok.fr, hpz.ok.tg, hpz.ok.nx⟩, hpz.run, (fun _ h ↦ by cases h), hpz.nm,
+            hpz.ix⟩
+        have hcw : cw X [] { s with cnt := c1, fresh := none } = .join J'' c' u' := by rw [cw_nil]; exact he
+        obtain ⟨h1, -⟩ := walk_nilZ H _ ebef eaft (.fall []) W0 [] x (by rw [walk])
+          (by rw [show (Out.fall []).evs = ([] : List Ev) from rfl, List.append_nil]; exact hes)
+          (by simp) (Or.inl rfl) hpz' (by rw [hcw]; rfl)
+        obtain ⟨es', he', ha'⟩ := h1 J'' c' u' hcw
+        simp only [Out.fall.injEq] at he'
+        subst he'
+        simpa [costW] using ha'
+      · cases hpc
+    · cases hpc
+  · rw [hJ] at hpc
+    simp only [Bool.cond_true, Option.some.injEq] at hpc
+    subst hpc
+    obtain rfl := Nat.eq_of_beq_eq_true hJ
+    exact ha
+
 theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z n ss : List Stmt)
     (st : CW) (ihz : ∀ st, WGood H z st) (ihn : ∀ st, WGood H n st) (ih : ∀ st, WGood H ss st) :
     WGood H (.ite c z n :: ss) st := by
   intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
-  obtain ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, hb, hk, hfr, hod, hof, hsu, hsn, hz, hn,
-    hsj, hcw⟩ := cw_ite hok
+  obtain ⟨st', od, of, x, t, sn, J0, c1, u1, J, c2, u2, c1', sj, hb, hk, hfr, hod, hof, hsu, hsn, hz, hn,
+    hpc, hsj, hcw⟩ := cw_ite hok
   obtain ⟨hseg', hbk', hfr', htg', hnx', huq', hfresh', hx, hok', hfall, htaken⟩ := brAtC_pos H hp hb
   have hnr := noRet_of_shape (fun _ h ↦ by cases h) hshape
   simp only [Stmt.noRet, Bool.and_eq_true] at hnr
@@ -1031,7 +1075,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
   have hn1 : (calls (ebef ++ [Ev.inK c])).length = (calls ebef).length := by
     rw [calls_append_none rfl]
   -- the branch's walk, to its join
-  obtain ⟨cb, hcb, crun⟩ : ∃ cb : Cnt, (cb = c1 ∨ cb = c2) ∧
+  obtain ⟨cb, hcb, crun⟩ : ∃ cb : Cnt, (cb = c1' ∨ cb = c2) ∧
       Arr L fp X wJ wenv ck W0 J cb (calls (ebef ++ [Ev.inK c] ++ eb)).length
         (xc + cost1 X.acs σ (.ite c z n)) := by
     by_cases h0 : σ c = 0
@@ -1044,11 +1088,14 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
         exact hpz
       obtain ⟨h1, -, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] xc hwz
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) hpz' (by rw [hz]; rfl)
-      obtain ⟨es', he', ha⟩ := h1 J c1 u1 hz
+      obtain ⟨es', he', ha⟩ := h1 J0 c1 u1 hz
       simp only [Out.fall.injEq] at he'
       subst he'
       have e : cost1 X.acs σ (.ite c z n) = costW X.acs σ z := by simp only [cost1, h0, ↓reduceIte]
-      exact ⟨c1, Or.inl rfl, by rw [e]; exact ha⟩
+      refine ⟨c1', Or.inl rfl, ?_⟩
+      rw [e]
+      exact arr_passC H hpc hok' (by rw [brAtC_nm hb]; exact hp.nm)
+        (ebef := ebef ++ [Ev.inK c] ++ eb) (eaft := (walk σ ss).evs ++ eaft) (by rw [hes2]; simp) ha
     · have hwn : walk σ n = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
       obtain ⟨cr, hcr, hcle, henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ _ (by rw [hk]; rfl)
       have henvT : EnvAt L fp X wJ wenv t :=
@@ -1070,12 +1117,12 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
   -- the join, then the rest
   obtain ⟨⟨cr, hcr, hcle⟩, henvJ⟩ := crun
   obtain ⟨hpj, -⟩ := segAtC_posW H (xc := xc + cost1 X.acs σ (.ite c z n)) hsj hok' henvJ hcr
-    (C := Cnt.max c1 c2) (U := Nat.lor u1 u2)
+    (C := Cnt.max c1' c2) (U := Nat.lor u1 u2)
     (n := (calls (ebef ++ [Ev.inK c] ++ eb)).length)
     (fun op ↦ by
       have := hcle op
-      have h1 : c1.get op ≤ Nat.max (c1.get op) (c2.get op) := Nat.le_max_left _ _
-      have h2 : c2.get op ≤ Nat.max (c1.get op) (c2.get op) := Nat.le_max_right _ _
+      have h1 : c1'.get op ≤ Nat.max (c1'.get op) (c2.get op) := Nat.le_max_left _ _
+      have h2 : c2.get op ≤ Nat.max (c1'.get op) (c2.get op) := Nat.le_max_right _ _
       rw [Cnt.get_max]
       rcases hcb with rfl | rfl <;> omega)
     (by rw [brAtC_nm hb]; exact hp.nm)

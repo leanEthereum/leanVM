@@ -24,7 +24,7 @@ open LeanVM.Parameters
 
 The relation `KECCAK` checks of its cells is a parameter of the machine here
 (`KeccakSem`): the deployed one, `keccakDeployed`, is `KeccakCellsRelation`; the reduction-blind one,
-`keccakFree`, only asks what the bus enforces of a `KECCAK` row when the proof does not bind the
+`keccakFree`, only asks what the link enforces of a `KECCAK` row when the proof does not bind the
 row to the permutation: the limb of the cells written holding no lane is zero. Every definition below is `Statement/LeanIsa.lean`'s with the
 check replaced, and is that one at `keccakDeployed` (`executeWithB_deployed`, `runB_deployed`,
 `validExecutionB_deployed`). -/

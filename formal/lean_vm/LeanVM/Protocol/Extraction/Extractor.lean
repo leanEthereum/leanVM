@@ -1,6 +1,7 @@
 module
 
 import Statement.LeanVm
+import LeanVM.Protocol.Compile.RunPure
 public import CompPoly.Univariate.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
@@ -30,18 +31,14 @@ deterministic.
 4. **Novel-basis coefficients from evaluations** (`novelInv`): the inverse additive NTT of
    Annex D (`doc/leanvm/body/d-novel-basis.tex`); `stackOf`, the stack of `2^μ` words of `64`
    lanes' low parts.
-5. **The execution** (`candidateExecutionIn`): a stack's memory image run from the initial state
-   for at most as many steps as the announced tables have rows (`stepCap`; a halting run never
-   repeats a state and each of its steps takes a row of its own, so a valid execution a stack
-   represents halts within the cap, proved), kept if it halts with the public input at its
-   boundary.
-6. **The transcript's evaluations** (`keccakEvaluationsOfTranscript`, `lookupEvaluation`): the
+5. **The transcript's evaluations** (`keccakEvaluationsOfTranscript`, `lookupEvaluation`): the
    byte strings whose whole padded sponge path the transcript holds as a chain of forward queries.
 
-**Not the statement.** The end statement takes the extractor as a cost-machine program within a
-size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`). The address
-indices and the public boundary (`powIndex`, `gLogIn`, `boundaryOK`,
-`Statement/Prover/Witness.lean`) are the statement's, for the honest prover.
+**Where it was.** These pieces were the trusted statement's (`Statement/Extractor.lean`,
+`Statement/LeanVm.lean`) until the end statement took the extractor as a cost-machine program
+within a size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`):
+moved here verbatim. Hotwire's extractor reads the execution off the stack without running it
+(`Protocol/Relation/Stack.lean`, `candidate`).
 
 **Credits.** `K` is CompPoly's `BF64` (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, Nicolas Schleicher). The inverse
@@ -167,6 +164,109 @@ def novelInv (κ : ℕ) (y : Array K) : Array K :=
 
 end LeanVM.Extraction
 
+/-! ### Facts about words (theorems only)
+
+`K.ofBits` is injective below `2^64`, turns `xor` into `+`, and the word with bits `v` is
+`Σ_c v_c · x^c`. Every declaration of this section is a theorem: nothing in it changes what the
+extractor computes. Adapted from `lean_vm/LeanVM/Protocol/Whir/Subspace.lean`. -/
+
+namespace LeanVM.Extraction.Words
+
+open LeanVM.Parameters
+
+
+/-- `K.ofBits 0 = 0`. -/
+theorem ofBits_zero : K.ofBits 0 = 0 := rfl
+
+/-- A word below `2^64` is read back exactly. -/
+theorem toNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : (K.ofBits n).toBitVec.toNat = n := by
+  simpa [K.ofBits] using hn
+
+/-- Every element is the word of its bits. -/
+theorem ofBits_toNat (a : K) : K.ofBits a.toBitVec.toNat = a := by
+  apply BF64.ext
+  simp [K.ofBits]
+
+/-- The bits of an element are below `2^64`. -/
+theorem toNat_lt (a : K) : a.toBitVec.toNat < 2 ^ 64 := a.toBitVec.isLt
+
+/-- Words below `2^64` are distinct field elements. -/
+theorem ofBits_injOn : Set.InjOn K.ofBits {n | n < 2 ^ 64} := by
+  intro a ha b hb h
+  rw [← toNat_ofBits ha, ← toNat_ofBits hb, h]
+
+/-- A word below `2^64` is zero only when it is `0`. -/
+theorem ofBits_eq_zero_iff {n : ℕ} (hn : n < 2 ^ 64) : K.ofBits n = 0 ↔ n = 0 :=
+  ⟨fun h ↦ ofBits_injOn (show n < 2 ^ 64 from hn) (show 0 < 2 ^ 64 by norm_num) h,
+    fun h ↦ h ▸ ofBits_zero⟩
+
+/-- Below `2^i`, adding `2^i` sets a bit that is clear: it is the exclusive or. -/
+theorem two_pow_add_eq_xor {i v : ℕ} (hv : v < 2 ^ i) : 2 ^ i + v = 2 ^ i ^^^ v := by
+  have h := Nat.two_pow_add_eq_or_of_lt hv 1
+  rw [mul_one] at h
+  rw [h]
+  apply Nat.eq_of_testBit_eq
+  intro j
+  rw [Nat.testBit_or, Nat.testBit_xor, Nat.testBit_two_pow]
+  by_cases hj : i = j
+  · subst hj
+    simp [Nat.testBit_lt_two_pow hv]
+  · simp [hj]
+
+/-- Sum in `K` is bitwise exclusive or of words. -/
+theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
+  simp only [K.ofBits, BitVec.ofNat_xor]
+  rfl
+
+/-- `x_{2^i + v} = x^i + x_v` for `v < 2^i`. -/
+theorem ofBits_two_pow_add {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits (2 ^ i + v) = K.ofBits (2 ^ i) + K.ofBits v := by
+  rw [two_pow_add_eq_xor hv, ofBits_xor]
+
+/-- The word with bits `v` is `Σ_c v_c · x^c`. -/
+theorem ofBits_eq_sum {i v : ℕ} (hv : v < 2 ^ i) :
+    K.ofBits v = ∑ c ∈ Finset.range i, if v.testBit c then K.ofBits (2 ^ c) else 0 := by
+  induction i generalizing v with
+  | zero =>
+    obtain rfl : v = 0 := by simpa using hv
+    simp [ofBits_zero]
+  | succ i ih =>
+    rw [Finset.sum_range_succ]
+    by_cases hb : v.testBit i
+    · have hlt : v - 2 ^ i < 2 ^ i := by
+        have := Nat.ge_two_pow_of_testBit hb
+        rw [pow_succ] at hv
+        omega
+      have hv' : v = 2 ^ i + (v - 2 ^ i) := by
+        have := Nat.ge_two_pow_of_testBit hb
+        omega
+      have hbits : ∀ c < i, v.testBit c = (v - 2 ^ i).testBit c := by
+        intro c hc
+        conv_lhs => rw [hv']
+        exact Nat.testBit_two_pow_add_gt hc _
+      have hb' : (2 ^ i + (v - 2 ^ i)).testBit i = true := by rw [← hv']; exact hb
+      rw [hv', ofBits_two_pow_add hlt, ih hlt, hb']
+      simp only [ite_true]
+      rw [add_comm]
+      congr 1
+      refine Finset.sum_congr rfl fun c hc ↦ ?_
+      rw [← hv', hbits c (Finset.mem_range.mp hc)]
+    · have hlt : v < 2 ^ i := by
+        by_contra h
+        have h1 : 2 ^ i ≤ v := not_lt.mp h
+        have : v.testBit i = true := by
+          have hv2 : v - 2 ^ i < 2 ^ i := by rw [pow_succ] at hv; omega
+          have := Nat.testBit_two_pow_add_eq (v - 2 ^ i) i
+          rw [Nat.add_sub_cancel' h1, Nat.testBit_lt_two_pow hv2] at this
+          simpa using this
+        exact hb this
+      simp only [Bool.not_eq_true] at hb
+      rw [ih hlt, hb]
+      simp
+
+end LeanVM.Extraction.Words
+
+
 namespace LeanVM.Extraction
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
@@ -178,58 +278,6 @@ open CompPoly
 def stackOf (μ : ℕ) (cs : List (Array K)) : Vector K (2 ^ μ) :=
   Vector.ofFn fun i ↦
     (cs.getD (i.val / 2 ^ (μ - initialFold)) #[]).getD (i.val % 2 ^ (μ - initialFold)) 0
-
-/-! ### 5. The execution -/
-
-/-- **The memory image of a stack**: `2^logMemory` words, word `i` the two limbs at cell `i` of
-the memory columns `MEMORY_0`, `MEMORY_1` (`layout.rs`), each at its placement's offset on the
-stack. -/
-def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemoryImage layout.logMemory :=
-  fun i ↦
-    let limb (column : ℕ) : K := q.getD ((layout.placement column).index + i) 0
-    E.ofLimbs (limb memory0) (limb memory1)
-
-/-- One step (`step`, computed) with the memory index `memIdx` and the bytecode index `codeIdx`:
-fetch the instruction at `pc`, then execute it (`executeWith`), reading the memory through
-`memIdx`. -/
-def stepIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
-    (L : MemoryImage κ) (r : Registers K) : Option (Registers K) :=
-  (gLogIn codeIdx prog.logSize r.pc).map prog.instructions >>=
-    executeWith (fun a ↦ (gLogIn memIdx κ a).map L) r
-
-/-- The halting search from `r`, reached after `n` steps, with at most `fuel` more steps: `some m`
-when the run is in the final state after `m` steps in all; `none` if a step fails or the fuel runs
-out first. -/
-def haltLoop (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
-    (L : MemoryImage κ) : ℕ → ℕ → Registers K → Option ℕ
-  | 0, n, r => if r = Registers.final prog then some n else none
-  | fuel + 1, n, r =>
-    if r = Registers.final prog then some n
-    else
-      match stepIn memIdx codeIdx prog L r with
-      | none => none
-      | some r' => haltLoop memIdx codeIdx prog L fuel (n + 1) r'
-
-/-- The image, run from the initial state `(pcInitial, fpInitial)` for the least number `n ≤ cap`
-of steps after which it is in the final state `(pcFinal, fpFinal)`, if any. -/
-def haltingRunIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) {κ : ℕ}
-    (image : MemoryImage κ) (cap : ℕ) : Option (Execution prog) :=
-  (haltLoop memIdx codeIdx prog image cap 0 Registers.initial).map fun n ↦ ⟨κ, image, n⟩
-
-/-- **The step cap of a layout**: the rows its tables hold, `2^τ_j` for each opcode table's
-log-height `τ_j`, the `2^logMemory` words of the memory and the `2^logBytecode` slots of the
-bytecode. -/
-def stepCap (layout : Layout) : ℕ :=
-  (layout.tableLogHeights.map (2 ^ ·)).sum + 2 ^ layout.logMemory + 2 ^ layout.logBytecode
-
-/-- **The execution of a stack**: the halting run of its memory image within the layout's step
-cap, if it has the public boundary of `input`; `memIdx` and `codeIdx` index the memory's and the
-bytecode's addresses. -/
-def candidateExecutionIn (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram)
-    (input : PublicInput) (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) :
-      Option (Execution prog) :=
-  (haltingRunIn memIdx codeIdx prog (memoryImage layout q) (stepCap layout)).filter
-    (boundaryOK input)
 
 end LeanVM.Extraction
 

@@ -11,7 +11,7 @@ by their `K` bits; `jt`, the jump table's targets by cell. Parsed once and cache
 this tree's `.lake/core-mode-cache.pkl`), with the digest of what the parse reads (`_inputs`): a cache of other inputs
 is parsed again.
 """
-import os, sys, re, pickle, glob, hashlib
+import os, sys, pickle, glob, hashlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import memo  # noqa: E402,F401  (first: it records what the process reads, `memo.py`)

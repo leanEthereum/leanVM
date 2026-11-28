@@ -67,7 +67,7 @@ theorem tbGSquaresBits_eq : tbGSquaresBits.map K.ofBits = tbSquares tbSizeBits g
 
 theorem length_tbGSquaresBits : tbGSquaresBits.length = tbSizeBits := rfl
 
-/-- **The `tbGSquaresBits` constants**: word `j < 34` is `g^(2^j)` in `K`. -/
+/-- **The `g_tbSquares` constants**: word `j < 34` is `g^(2^j)` in `K`. -/
 theorem ofBits_tbGSquaresBits (j : ℕ) (hj : j < tbSizeBits) :
     K.ofBits (tbGSquaresBits.getD j 0) = g ^ 2 ^ j := by
   have h := congrArg (fun l : List K ↦ l[j]?) tbGSquaresBits_eq

@@ -35,14 +35,15 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## What a call establishes, at given words and openings -/
 
-/-- **What a call establishes, at the words `xs` and the openings `os`.** -/
+/-- **What a call establishes, at the words `xs` and the openings `os`.** The sixth return is the
+cursor past the opening, which only the final bound on the stream reads (`verify_sub`). -/
 def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur : E)
     (rets : List E) (xs : List E) (os : List (List Opening)) : Prop :=
   ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
     ReadsAt rd cur xs ∧
     RunsWith (whirOpen μ r target) ⟨fs, []⟩ xs os [(root, stackShape μ r)] w s' roots' ∧
     w.point.length = μ ∧
-    ∃ pt pt1 : E, rets = [w.target, pt, pt1, w.inner, w.residual] ∧
+    ∃ pt pt1 cur' : E, rets = [w.target, pt, pt1, w.inner, w.residual, cur'] ∧
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
 

@@ -344,26 +344,34 @@ pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
 /// register `i` holding column `i`.
 #[inline(always)]
 pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
+    /// Register `i` of a round pairs with register `i ^ stride`: the low halves' unpack for the lower one, the high
+    /// halves' for the upper.
+    #[inline(always)]
+    fn round(a: [V; 16], stride: usize, lo: impl Fn(V, V) -> V, hi: impl Fn(V, V) -> V) -> [V; 16] {
+        core::array::from_fn(|i| match i & stride {
+            0 => lo(a[i], a[i + stride]),
+            _ => hi(a[i - stride], a[i]),
+        })
+    }
+    const REVERSED: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
     let r = rows.map(regs);
-    let mut out = [[[0u128; W]; 16]; Q];
-    for (h, out) in out.iter_mut().enumerate() {
-        let mut a: [V; 16] = core::array::from_fn(|b| r[(b as u8).reverse_bits() as usize >> 4][h]);
-        for stride in [8, 4, 2, 1] {
-            let b = a;
-            for i in (0..16).filter(|i| i & stride == 0) {
-                (a[i], a[i + stride]) = match stride {
-                    8 => (v::unpacklo8(b[i], b[i + 8]), v::unpackhi8(b[i], b[i + 8])),
-                    4 => (v::unpacklo16(b[i], b[i + 4]), v::unpackhi16(b[i], b[i + 4])),
-                    2 => (v::unpacklo32(b[i], b[i + 2]), v::unpackhi32(b[i], b[i + 2])),
-                    _ => (v::unpacklo(b[i], b[i + 1]), v::unpackhi(b[i], b[i + 1])),
-                };
+    let mut out = [0u128; 64];
+    for h in 0..Q {
+        let a: [V; 16] = core::array::from_fn(|b| r[REVERSED[b]][h]);
+        let a = round(a, 8, v::unpacklo8, v::unpackhi8);
+        let a = round(a, 4, v::unpacklo16, v::unpackhi16);
+        let a = round(a, 2, v::unpacklo32, v::unpackhi32);
+        let a = round(a, 1, v::unpacklo, v::unpackhi);
+        // SAFETY: both sides are plain bits of one size.
+        let a = unsafe { transmute::<[V; 16], [[u128; W]; 16]>(a) };
+        // Lane `l` of register `i` of part `h` is column `16 (W h + l) + i`.
+        for (i, lanes) in a.iter().enumerate() {
+            for (l, &column) in lanes.iter().enumerate() {
+                out[16 * (W * h + l) + i] = column;
             }
         }
-        // SAFETY: both sides are plain bits of one size.
-        *out = unsafe { transmute::<[V; 16], [[u128; W]; 16]>(a) };
     }
-    // Lane `l` of register `i` of part `h` is column `16 (W h + l) + i`.
-    core::array::from_fn(|n| out[n / 16 / W][n % 16][n / 16 % W])
+    out
 }
 
 /// `g(spill)` per top nibble `n` of a high word, in every 128-bit lane: `spill = n ^ n>>1 ^ n>>3` are the bits

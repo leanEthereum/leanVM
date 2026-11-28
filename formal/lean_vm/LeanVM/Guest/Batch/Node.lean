@@ -1,27 +1,29 @@
 /-
   LeanVM.Guest.Batch.Node
 
-  A node's batching as the statement states it (`NodeRelation`: the program `nodeBatchingProgram` run on the stream
-  of the children's claims and the hints) is the guest program's transcript `Node.batch`.
+  `NodeRelation` gives the node's deferred claim the split program's shape: the zero point's, or
+  the batching sumcheck's challenges.
 -/
 
 module
 
-public import LeanVM.Guest.Batch.Prog
-public import LeanVM.Protocol.Verifier.DeferredShape
-public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.WithHashBridge
-public import LeanVM.Guest.WithHash
-public import LeanVM.Guest.AcceptableChild
+public import Statement.LeanVmGuest
+public import LeanVM.Protocol.Compile.Prog
+public import LeanVM.Guest.BatchConsts
 
 /-!
-# A node's batching
+# The deferred claim's shape
 
-`batchRun_batchOf_iff`: for a deferred claim `d` of the bytecode's shape, the batching program `nodeBatchingProgram (· = d)` accepts the stream of the children's claims and the
-hints exactly where `Node.batch` defers `d`. The program reads the sumcheck's `log₂ |bytecode|`
-rounds; an accepting run consumes the whole stream, so the hints have that many rounds
-(`rounds_length_of_accepts`), and `batch` defers a claim at a point of as many coordinates as the
-hints have rounds.
+`DeferredClaimBatched` (`Statement/LeanVmGuest.lean`) has a node without children defer the split
+program at the zero point, and a node with children run the batching program
+(`nodeBatchingProgram`) with the check that its outcome is the statement's deferred claim. An
+accepting run returns `true` only past that check, at the sumcheck's `deferredVariableCount`
+challenges (`retsIn_nodeBatching`), so the deferred claim has the split program's shape
+(`NodeRelation.hasBytecodeShape`), which `statementDigestBinds` asks of a decoded statement.
+
+`RetsIn Q p`: every value `p` returns satisfies `Q`. It composes through `bind` (`RetsIn.bind`),
+and a run that returns a value returns one of them (`RetsIn.of_run`), whatever the sponge and the
+proof.
 -/
 
 namespace LeanVM.Guest.Batch
@@ -31,198 +33,163 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
 
-theorem rsRun_length : ∀ (rounds : List (E × E)) (claim : E) (sp : Sponge),
-    (rsRun rounds claim sp).1.1.length = rounds.length
-  | [], _, _ => rfl
-  | _ :: rest, _, _ => by simp [rsRun, rsRun_length rest]
+/-! ## The values a program returns -/
 
-/-- **The rounds read their messages**: a run of `k` rounds, then a continuation, on a stream
-reads `2k` scalars and runs the continuation on the rest. -/
-theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β) :
-    ∀ (k : ℕ) (claim : E) (sp : Sponge) (zs : List E) (os : List (List Opening))
-      (roots : List (Digest × ℕ × ℕ)) {r : β × VerifierProgramState},
-      runD ((sumcheckRoundsProgram claim k).bind f) ⟨sp, zs, os, roots⟩ = some r →
-        2 * k ≤ zs.length ∧ ∃ x sp', runD (f x) ⟨sp', zs.drop (2 * k), os, roots⟩ = some r
-  | 0, claim, sp, zs, os, roots, r, h => ⟨by omega, _, _, h⟩
-  | k + 1, claim, sp, zs, os, roots, r, h => by
-    obtain ⟨st, pe, _ | c⟩ := sp
-    swap
-    · exfalso
-      revert h
-      rcases zs with _ | ⟨_, _⟩ <;> simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
-    rcases zs with _ | ⟨g1, _ | ⟨gInf, zs⟩⟩
-    · exact absurd h (by simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
-    · exact absurd h (by simp [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
-    · simp only [sumcheckRoundsProgram_succ, VerifierProgram.readScalar, VerifierProgram.sampleChallenge, VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc,
-        VerifierProgram.ret_bind] at h
-      have h' : runD ((sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf)
-          (sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1) k).bind
-            fun a ↦ f ((sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1 :: a.1, a.2))
-          ⟨(sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).2, zs, os, roots⟩ = some r := by
-        rw [runD_read_cons _ rfl, runD_read_cons _ ((obs_ground _ _).trans rfl), runD_sample] at h
-        exact h
-      obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h'
-      have e : (g1 :: gInf :: zs).drop (2 * (k + 1)) = zs.drop (2 * k) := by
-        rw [show 2 * (k + 1) = 2 * k + 2 by ring]
-        rfl
-      rw [e]
-      exact ⟨by simp; omega, _, sp', hx⟩
+/-- **Every value `p` returns satisfies `Q`.** -/
+def RetsIn {α : Type} (Q : α → Prop) : VerifierProgram α → Prop
+  | .ret a => Q a
+  | .fail => True
+  | .read k => ∀ x, RetsIn Q (k x)
+  | .sample k => ∀ x, RetsIn Q (k x)
+  | .readPacked _ k => ∀ xs, RetsIn Q (k xs)
+  | .samplePacked _ k => ∀ xs, RetsIn Q (k xs)
+  | .grind _ k => RetsIn Q k
+  | .commit _ _ k => RetsIn Q k
+  | .query _ _ k => ∀ rows, RetsIn Q (k rows)
 
-/-- The stream of the batching, its parts. -/
-theorem batchStream_eq (cs : List ChildClaims) (h : BatchingHints) :
-    batchingStream cs h = cellsBeforeChallenge cs ++
-      (h.lambdaGrindNonce :: (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
-        [h.finalBytecodeValue])) := by
-  simp only [batchingStream, lambdaGrindNonceCells_eq, sumcheckRoundCells_eq, List.append_assoc,
-    List.cons_append, List.nil_append]
+/-- Sequencing: the continuation on every value the first part returns. -/
+theorem RetsIn.bind {α β : Type} {Q : α → Prop} {R : β → Prop} {p : VerifierProgram α}
+    {f : α → VerifierProgram β} (hp : RetsIn Q p) (hf : ∀ a, Q a → RetsIn R (f a)) :
+    RetsIn R (p.bind f) := by
+  induction p with
+  | ret a => exact hf a hp
+  | fail => trivial
+  | read k ih => exact fun x ↦ ih x (hp x)
+  | sample k ih => exact fun x ↦ ih x (hp x)
+  | readPacked n k ih => exact fun xs ↦ ih xs (hp xs)
+  | samplePacked n k ih => exact fun xs ↦ ih xs (hp xs)
+  | grind b k ih => exact ih hp
+  | commit h w k ih => exact ih hp
+  | query i ps k ih => exact fun rows ↦ ih rows (hp rows)
 
-theorem length_rounds_flat (rounds : List (E × E)) :
-    (rounds.flatMap fun g ↦ [g.1, g.2]).length = 2 * rounds.length := by
-  induction rounds with
-  | nil => rfl
-  | cons g rest ih => simp [ih]; ring
+/-- Every program returns values that satisfy `True`. -/
+theorem retsIn_true {α : Type} (p : VerifierProgram α) : RetsIn (fun _ ↦ True) p := by
+  induction p with
+  | ret a => trivial
+  | fail => trivial
+  | read k ih => exact ih
+  | sample k ih => exact ih
+  | readPacked n k ih => exact ih
+  | samplePacked n k ih => exact ih
+  | grind b k ih => exact ih
+  | commit h w k ih => exact ih
+  | query i ps k ih => exact ih
 
-/-- The run of the batching from its seed, with the count's and the children's cells read. -/
-theorem runD_batchOf (check : DeferredBytecodeClaim → Prop) {bytecode : List K} {cs : List ChildClaims}
-    (rest : List E) :
-    runD (nodeBatchingProgram check bytecode cs)
-        ⟨⟨batchSeed, [], none⟩, cellsBeforeChallenge cs ++ rest, [], []⟩ =
-      runD (batchingAfterChildren check bytecode cs) ⟨batchSponge cs, rest, [], []⟩ := by
-  rw [nodeBatchingProgram, runD_bind_of_runsTo (runsTo_readN' rfl (cellsBeforeChallenge cs) rfl),
-    ← List.nil_append rest, runD_bind_of_runsTo (runsTo_require rfl _)]
-  rfl
+theorem id_bind {α β : Type} (x : Id α) (f : α → Id β) : x >>= f = f x := rfl
 
-/-- The tail of the batching: the final value read, the check, acceptance. -/
-theorem runD_tail_accepts {c : E → Prop} {dc : DecidablePred c} {sp : Sponge} {zs : List E}
-    {s : VerifierProgramState} (h : runD (VerifierProgram.readScalar >>= fun bv ↦
-        @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
-      (pure true : VerifierProgram Bool)) ⟨sp, zs, [], []⟩ = some (true, s)) (hs : s.stream = []) :
-    zs.length = 1 := by
-  obtain ⟨st, pe, _ | g⟩ := sp
-  swap
-  · exfalso
-    revert h
-    rcases zs with _ | ⟨_, _⟩ <;> simp [VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash]
-  rcases zs with _ | ⟨v, ws⟩
-  · exact absurd h (by simp [VerifierProgram.readScalar, VerifierProgram.bind_eq, VerifierProgram.bind, runD, Compile.runWithHash])
-  · have e := runD_bind_of_runsTo (f := fun bv ↦ @VerifierProgram.require (c bv) (dc bv) >>= fun _ ↦
-      (pure true : VerifierProgram Bool)) (runsTo_readE (sp := ⟨st, pe, none⟩) rfl v) ws [] []
-    simp only [List.singleton_append] at e
-    rw [e, @runD_require_true (c v) (dc v)] at h
-    split_ifs at h with hc
-    · simp only [Option.some.injEq, Prod.mk.injEq] at h
-      have hw : ws = [] := by rw [← h.2] at hs; exact hs
-      rw [hw]
-      rfl
+/-- **A run returns what the program returns**: over a permutation `π`, deployed or not. -/
+theorem RetsIn.of_run {α : Type} {Q : α → Prop} (π : KeccakState → KeccakState) :
+    ∀ {p : VerifierProgram α} {s : VerifierProgramState} {a : α} {s' : VerifierProgramState},
+      RetsIn Q p → Compile.run (m := Id) π p s = some (a, s') → Q a := by
+  intro p
+  induction p with
+  | ret a =>
+    intro s a' s' hp hr
+    have h : some (a, s) = some (a', s') := hr
+    cases h
+    exact hp
+  | fail => intro s a s' _ hr; simp [Compile.run, pure] at hr
+  | read k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    split at hr
+    · exact ih _ (hp _) hr
+    · simp [pure] at hr
+  | sample k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    exact ih _ (hp _) hr
+  | readPacked n k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    split at hr
+    · exact ih _ (hp _) hr
+    · simp [pure] at hr
+  | samplePacked n k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    exact ih _ (hp _) hr
+  | grind b k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    split at hr
+    · rw [id_bind] at hr
+      split at hr
+      · exact ih hp hr
+      · simp [pure] at hr
+    · simp [pure] at hr
+  | commit h w k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    split at hr
+    · exact ih hp hr
+    · simp [pure] at hr
+  | query i ps k ih =>
+    intro s a s' hp hr
+    simp only [Compile.run] at hr
+    split at hr
+    · rw [id_bind] at hr
+      split at hr
+      · exact ih _ (hp _) hr
+      · simp [pure] at hr
+    · simp [pure] at hr
 
-/-- **An accepting run reads the hints' rounds as the program's**: the hints have
-`log₂ |bytecode|` rounds. -/
-theorem rounds_length_of_accepts {check : DeferredBytecodeClaim → Prop} {bytecode : List K}
-    {cs : List ChildClaims} {h : BatchingHints}
-    (hacc : Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram check bytecode cs)
-      ⟨batchingStream cs h, []⟩) = true) :
-    h.sumcheckMessages.length = Nat.log2 bytecode.length := by
-  change (match runD (nodeBatchingProgram check bytecode cs)
-      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
-    | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
-    | _ => false) = true at hacc
-  rw [batchStream_eq, runD_batchOf check, batchingAfterChildren,
-    runD_grind_bind (by decide) _ (batchSponge_ground cs)] at hacc
-  by_cases hp : powOk batchLambdaGrindBits (powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce).1
-  swap
-  · simp [hp] at hacc
-  simp only [hp, ↓reduceIte] at hacc
-  rw [← List.nil_append (List.flatMap _ _ ++ _), runD_bind_of_runsTo (runsTo_sampleE _)] at hacc
-  generalize hR : runD (sumcheckRoundsProgram _ _ >>= _) _ = R at hacc
-  rcases R with _ | ⟨_ | _, s⟩
-  · simp at hacc
-  · simp at hacc
-  · simp only [Bool.and_eq_true, List.isEmpty_iff] at hacc
-    obtain ⟨hle, x, sp', hx⟩ := runD_roundsProg_bind _ _ _ _ _ _ _ hR
-    have h1 := runD_tail_accepts hx hacc.1
-    simp only [List.length_drop, List.length_append, length_rounds_flat, List.length_singleton]
-      at h1 hle
-    omega
+/-! ## The batching's returns -/
 
-/-- **With the program's rounds, a node's batching is `Node.batch`**: for hints of
-`log₂ |bytecode|` rounds, the program accepts the stream exactly where `batch`
-defers `d`. -/
-theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredBytecodeClaim}
-    (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
-    Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
-  change (match runD (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
-    | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
-    | _ => false) = true ↔ _
-  rw [batchStream_eq, runD_batchOf _, batchingAfterChildren,
-    runD_grind_bind (by decide) _ (batchSponge_ground cs), batch_eq']
-  rw [show powStep keccakF1600 (batchSponge cs) h.lambdaGrindNonce = powB cs h from rfl]
-  by_cases hp : powOk batchLambdaGrindBits (powB cs h).1
-  · simp only [hp, ↓reduceIte]
-    rw [← List.nil_append (List.flatMap _ _ ++ _),
-      runD_bind_of_runsTo (runsTo_sampleE _),
-      runD_bind_of_runsTo (runsTo_roundsProg h.sumcheckMessages _ (sq_ground _) hr),
-      ← List.append_nil [h.finalBytecodeValue],
-      runD_bind_of_runsTo (runsTo_readE (rsRun_ground _ _ (sq_ground _)) _), runD_require_true]
-    simp only [lambdasB, claimB, spB, sqL]
-    split_ifs <;> simp_all
-  · simp only [hp, Bool.false_eq_true, ↓reduceIte, reduceCtorEq]
+theorem retsIn_ret {α : Type} {Q : α → Prop} {a : α} (h : Q a) : RetsIn Q (VerifierProgram.ret a) :=
+  h
 
-/-- `batch` defers a claim at a point of as many coordinates as the hints have rounds. -/
-theorem batch_point_length {cs : List ChildClaims} {h : BatchingHints} {d : DeferredBytecodeClaim}
-    (hb : batch cs h = some d) : d.bytecodePoint.length = h.sumcheckMessages.length := by
-  have e := hb
-  rw [batch_eq'] at e
-  split_ifs at e
-  have := congrArg (fun c : DeferredBytecodeClaim ↦ c.bytecodePoint.length) (Option.some.inj e)
-  simp only [rsRun_length] at this
-  exact this.symm
+theorem retsIn_require (q : Prop) (inst : Decidable q) :
+    RetsIn (fun _ ↦ q) (@VerifierProgram.require q inst) := by
+  unfold VerifierProgram.require
+  split
+  · assumption
+  · trivial
 
-/-- **An accepting batching defers a claim of the bytecode's shape**: the sumcheck's
-`log₂ |bytecode|` challenges. -/
-theorem shape_of_batchRun {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredBytecodeClaim}
-    (hacc : Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600
-      (nodeBatchingProgram (· = d) bytecode cs) ⟨batchingStream cs h, []⟩) = true) :
-    d.HasBytecodeShape bytecode := by
-  have hr := rounds_length_of_accepts hacc
-  rw [DeferredBytecodeClaim.HasBytecodeShape, batch_point_length ((batchRun_iff_of_rounds hr).mp hacc), hr]
+/-- The rounds return their challenges, one per round. -/
+theorem retsIn_roundsProg : ∀ (k : ℕ) (claim : E),
+    RetsIn (fun r ↦ r.1.length = k) (sumcheckRoundsProgram claim k)
+  | 0, _ => rfl
+  | k + 1, _ => by
+    rw [sumcheckRoundsProgram_succ]
+    exact fun _ _ _ ↦ (retsIn_roundsProg k _).bind fun r hr ↦ retsIn_ret (by
+      show (_ :: r.1).length = k + 1
+      rw [List.length_cons, hr])
 
-/-- **A node's batching is `Node.batch`**: for a deferred claim of the bytecode's shape, the
-program accepts the stream exactly where `batch` defers that claim. -/
-theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredBytecodeClaim} (hd : d.HasBytecodeShape bytecode) :
-    Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
-  constructor
-  · intro hacc
-    exact (batchRun_iff_of_rounds (rounds_length_of_accepts hacc)).mp hacc
-  · intro hb
-    have hr : h.sumcheckMessages.length = Nat.log2 bytecode.length := by
-      rw [← batch_point_length hb]
-      exact hd
-    exact (batchRun_iff_of_rounds hr).mpr hb
+/-- **The batching returns `true` only past its check**, at the sumcheck's challenges. -/
+theorem retsIn_batchingAfterChildren (check : DeferredBytecodeClaim → Prop) (bytecode : List K)
+    (cs : List ChildClaims) :
+    RetsIn (fun b ↦ b = true → ∃ d : DeferredBytecodeClaim, check d ∧
+        d.bytecodePoint.length = deferredVariableCount bytecode)
+      (batchingAfterChildren check bytecode cs) := by
+  unfold batchingAfterChildren
+  refine (retsIn_true _).bind fun _ _ ↦ (retsIn_true _).bind fun _ _ ↦ (retsIn_true _).bind
+    fun _ _ ↦ (retsIn_roundsProg _ _).bind fun r hr ↦ (retsIn_true _).bind fun fv _ ↦
+      (retsIn_require _ _).bind fun _ hq ↦ retsIn_ret fun _ ↦ ⟨⟨r.1, fv⟩, hq.2, hr⟩
 
-/-! ## `NodeRelation` with the guest program's transcript -/
+theorem retsIn_nodeBatching (check : DeferredBytecodeClaim → Prop) (bytecode : List K)
+    (cs : List ChildClaims) :
+    RetsIn (fun b ↦ b = true → ∃ d : DeferredBytecodeClaim, check d ∧
+        d.bytecodePoint.length = deferredVariableCount bytecode)
+      (nodeBatchingProgram check bytecode cs) := by
+  unfold nodeBatchingProgram
+  exact (retsIn_true _).bind fun _ _ ↦ (retsIn_require _ _).bind fun _ _ ↦
+    retsIn_batchingAfterChildren check bytecode cs
 
-/-- `NodeRelation` with the batching as the guest program's transcript (`Node.batch`). -/
-def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeStatement)
-    (w : NodeWitness) : Prop :=
-  s.deferredClaim.HasBytecodeShape bytecode ∧
-  (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
-    verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
-  SignatureClaimsHeld s w ∧
-  (match w.daMatrix with
-    | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipChallenge
-    | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
-  if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
-  else batch (w.children.map fun c ↦
-    ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩) w.batchingHints = some s.deferredClaim
+/-! ## The deferred claim's shape -/
 
-/-- **The batched deferred claim has the bytecode's shape**: the zero point's, or the batching
-sumcheck's challenges. -/
+/-- The batching transcript run over `π`, in `Id`: the program from the label's seed. -/
+theorem runBatching_id (π : KeccakState → KeccakState) (program : VerifierProgram Bool)
+    (proof : Proof) :
+    runBatching (m := Id) π program proof =
+      match Compile.run (m := Id) π program
+          ⟨⟨π (seedInput (keccak256With (m := Id) π batchingLabel) (Vector.replicate 4 0)), [], none⟩,
+            proof.stream, proof.openings, []⟩ with
+      | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
+      | _ => false := rfl
+
+/-- **The batched deferred claim has the split program's shape**: the zero point's, or the
+batching sumcheck's challenges. -/
 theorem _root_.LeanVM.Node.DeferredClaimBatched.hasBytecodeShape {bytecode : List K}
     {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hb : DeferredClaimBatched bytecode seed s w) : s.deferredClaim.HasBytecodeShape bytecode := by
@@ -231,48 +198,18 @@ theorem _root_.LeanVM.Node.DeferredClaimBatched.hasBytecodeShape {bytecode : Lis
   · unfold DeferredBytecodeClaim.HasZeroPoint at hb
     rw [DeferredBytecodeClaim.HasBytecodeShape, hb, List.length_replicate]
   · dsimp only at hb
-    rw [LeanVM.Guest.Batch.runBatching_deployed] at hb
-    exact shape_of_batchRun hb
+    rw [runBatching_id] at hb
+    split at hb
+    · rename_i r st hr
+      obtain ⟨d, rfl, hd⟩ := RetsIn.of_run keccakF1600 (retsIn_nodeBatching _ _ _) hr rfl
+      exact hd
+    · simp at hb
 
-/-- **A node's deferred claim has the bytecode's shape**, under `NodeRelation`. -/
+/-- **A node's deferred claim has the split program's shape**, under `NodeRelation`. -/
 theorem _root_.LeanVM.Node.NodeRelation.hasBytecodeShape {bytecode : List K} {seed : Digest}
     {s : NodeStatement} {w : NodeWitness} (h : NodeRelation bytecode seed s w) :
     s.deferredClaim.HasBytecodeShape bytecode :=
   DeferredClaimBatched.hasBytecodeShape h.2.2.2
-
-/-- A deferred claim that holds of the bytecode has its shape. -/
-theorem _root_.LeanVM.Node.DeferredBytecodeClaim.HoldsWithShape.hasBytecodeShape
-    {bytecode : List K} {claim : DeferredBytecodeClaim} (h : claim.HoldsWithShape bytecode) :
-    claim.HasBytecodeShape bytecode := by
-  rw [DeferredBytecodeClaim.HasBytecodeShape, ← h.1, Nat.log2_two_pow]
-
-/-- **`NodeRelation` is `NodeRelB`**: the statement's batching program accepts the node's stream
-exactly where the guest program's transcript defers the node's claim. -/
-theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}
-    {w : NodeWitness} : NodeRelation bytecode seed s w ↔ NodeRelB bytecode seed s w := by
-  have key : s.deferredClaim.HasBytecodeShape bytecode →
-      (DeferredClaimBatched bytecode seed s w ↔
-        if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
-        else batch (w.children.map fun c ↦
-          ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩)
-            w.batchingHints = some s.deferredClaim) := by
-    intro h1
-    unfold DeferredClaimBatched
-    split
-    · exact Iff.rfl
-    · dsimp only
-      rw [LeanVM.Guest.Batch.runBatching_deployed]
-      exact batchRun_batchOf_iff (h := w.batchingHints) h1
-  constructor
-  · intro h
-    have h1 := h.hasBytecodeShape
-    unfold NodeRelation DaDigestHeld at h
-    unfold NodeRelB
-    obtain ⟨hsig, hda, h2, hb⟩ := h
-    exact ⟨h1, h2, hsig, hda, (key h1).mp hb⟩
-  · unfold NodeRelation NodeRelB DaDigestHeld
-    rintro ⟨h1, h2, hsig, hda, hb⟩
-    exact ⟨hsig, hda, h2, (key h1).mpr hb⟩
 
 end
 end LeanVM.Guest.Batch

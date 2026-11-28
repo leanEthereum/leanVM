@@ -6,7 +6,8 @@
 
 module
 
-public import LeanVM.Guest.Memory.Uniform
+public import LeanVM.Guest.Memory.Placed
+public import LeanVM.Guest.Complete.NameEnc
 
 namespace LeanVM.Guest.B1.Tables
 
@@ -68,7 +69,7 @@ theorem memEnc_eq (S : List String) (f : String) :
   · intro h
     obtain ⟨x, hx, hb⟩ := List.any_eq_true.mp h
     obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hx
-    rwa [encS_inj (Nat.eq_of_beq_eq_true hb)] at hg
+    rwa [Complete.encS_injective (Nat.eq_of_beq_eq_true hb)] at hg
   · exact fun h ↦ List.any_eq_true.mpr ⟨encS f, List.mem_map_of_mem h, Nat.beq_refl _⟩
 
 /-- `Program.find?` by the names' encodings. -/
@@ -78,7 +79,7 @@ theorem findEnc_eq (P : Core.Program) (g : String) :
   congr 1
   funext fn
   rw [Bool.eq_iff_iff, beq_iff_eq]
-  exact ⟨fun h ↦ encS_inj (Nat.eq_of_beq_eq_true h), fun h ↦ h ▸ Nat.beq_refl _⟩
+  exact ⟨fun h ↦ Complete.encS_injective (Nat.eq_of_beq_eq_true h), fun h ↦ h ▸ Nat.beq_refl _⟩
 
 /-- `Program.PureIn`, as a check: names compared by their encodings (`encS`), numbers where the kernel
 would decode strings. -/

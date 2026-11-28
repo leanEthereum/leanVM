@@ -101,8 +101,18 @@ theorem pair_callLC {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
     refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-    exact written_flowC (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
-      (by simpa [List.append_assoc] using hrw) hq hbs hx
+    have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
+      intro a ha hn
+      rcases List.mem_append.mp ha with ha | ha
+      · cases hfa : flowAtom a
+        · exact hq a ha hfa
+        · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
+      · exact hbs a ha
+    rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
+        (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
+    · exact Or.inl h
+    · rw [List.mem_filter] at ha
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
 
 end
 

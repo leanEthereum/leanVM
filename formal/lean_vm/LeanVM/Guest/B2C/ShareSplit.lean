@@ -57,7 +57,8 @@ theorem nameAll_congr (sh : ℕ) (kc : ℕ → Option (ℕ × ℕ)) :
     ∀ (st : SSt) (vs : List V), (∀ v ∈ vs, A v.idx) → nameAll L sh kc st vs = nameAll L' sh kc st vs
   | _, [], _ => rfl
   | st, v :: vs, h => by
-    rw [nameAll_cons, nameAll_cons, nameV_congr hA sh kc st (h v List.mem_cons_self),
+    simp only [nameAll, SSt.seq_eq]
+    rw [nameV_congr hA sh kc st (h v List.mem_cons_self),
       nameAll_congr sh kc _ vs (fun w hw ↦ h w (List.mem_cons_of_mem _ hw))]
 
 /-- A pending value's facts name values of `A` only. -/
@@ -136,7 +137,7 @@ theorem nameAll_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {kc : ℕ → Opt
     ∀ {st : SSt} {vs : List V}, PendIn A st → (∀ v ∈ vs, A v.idx) → PendIn A (nameAll L sh kc st vs)
   | _, [], h, _ => h
   | _, v :: vs, h, hv => by
-    rw [nameAll_cons]
+    simp only [nameAll, SSt.seq_eq]
     exact nameAll_pendIn (nameV_pendIn h (hv v List.mem_cons_self))
       (fun w hw ↦ hv w (List.mem_cons_of_mem _ hw))
 

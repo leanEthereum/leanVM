@@ -20,8 +20,8 @@ import LeanVM.Guest.Data.ValNames.«main»
 * `daDigestAt_of_loads`: a DA digest slot of `da_digests` of two loads, its bytes theirs;
 * `statementDigest_parts`: a statement's digest from the bytes of its header cells and deferred
   cells (`stmtBytes`);
-* `deferOfCells_cells`, `fixedOfCells_cells`, `readCells_of_readsAt`: the deferred claims of
-  `24` cells.
+* `deferOfCells_cells`, `freshOfCells_cells`, `readCells_of_readsAt`: the deferred claims of
+  `26` cells, the fresh claims of `55`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -130,7 +130,7 @@ theorem cellsBytes_eight (a b c d e f g h : E) :
       cellsBytes [a, b] ++ cellsBytes [c, d] ++ cellsBytes [e, f] ++ cellsBytes [g, h] := by
   simp [cellsBytes]
 
-/-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
+/-- **A statement's digest from its parts**: the header cells' bytes and the 26 deferred cells. -/
 theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y0 y1 d0 d1 : E}
     {defer : List E} (hseed : digestBytes seed = cellsBytes [s0, s1])
     (hx : digestBytes (claimListDigest xmssPublicKeyBytes s.claims.xmss) = cellsBytes [x0, x1])
@@ -141,31 +141,36 @@ theorem statementDigest_parts {seed : Digest} {s : NodeStatement} {s0 s1 x0 x1 y
   unfold statementDigest statementPreimage stmtBytes
   rw [hseed, hx, hs, hda, hdef, cellsBytes_eight]
 
-/-! ## Deferred claims of 24 cells -/
+/-! ## Deferred claims of 26 cells, fresh claims of 55 -/
 
-theorem readCells_of_readsAt {p : E} {cells : List E} (h : ReadsAt rd p cells) (hl : cells.length = 24) :
-    readCells rd p 24 = cells := by
+theorem readCells_of_readsAt {p : E} {cells : List E} {n : ℕ} (h : ReadsAt rd p cells)
+    (hl : cells.length = n) : readCells rd p n = cells := by
   rw [readCells_eq_memRun, ← hl, ← readsAt_memRun h]
 
-theorem deferOfCells_cells {cells : List E} (hl : cells.length = 24) :
+theorem deferOfCells_cells {cells : List E} (hl : cells.length = 26) :
     (deferOfCells cells).cells = cells := by
-  have hb : bytecodeVars = 23 := rfl
+  have hb : bytecodeVars = 25 := rfl
   unfold deferOfCells DeferredBytecodeClaim.cells
   rw [hb, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
   simp only
   rw [← List.take_succ_eq_append_getElem (by omega), List.take_of_length_le (by omega)]
 
-theorem deferOfCells_point {cells : List E} (hl : cells.length = 24) :
+theorem deferOfCells_point {cells : List E} (hl : cells.length = 26) :
     (deferOfCells cells).bytecodePoint.length = bytecodeVars := by
   simp [deferOfCells, hl, bytecodeVars]
 
-theorem fixedOfCells_cells {f : BytecodeClaim} (hl : f.bytecodePoint.length = bytecodeVars) :
-    fixedOfCells (DeferredBytecodeClaim.cells f) = f := by
-  have hb : bytecodeVars = 23 := rfl
-  unfold fixedOfCells DeferredBytecodeClaim.cells
+theorem freshOfCells_cells {f : FreshClaim} (hp : f.point.length = bytecodeLog)
+    (hv : f.values.length = nSplit) : freshOfCells f.cells = f := by
+  have hb : bytecodeLog = 19 := rfl
+  have hn : nSplit = 36 := rfl
+  unfold freshOfCells FreshClaim.cells
   rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
-    List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl]
-  simp
+    List.drop_append_of_le_length (by omega), List.drop_of_length_le (by omega), List.nil_append,
+    List.take_of_length_le (by omega)]
+
+theorem length_freshCells {f : FreshClaim} (hp : f.point.length = bytecodeLog)
+    (hv : f.values.length = nSplit) : f.cells.length = 55 := by
+  simp [FreshClaim.cells, hp, hv, bytecodeLog, nSplit]
 
 end
 end LeanVM.Guest.B1.Main

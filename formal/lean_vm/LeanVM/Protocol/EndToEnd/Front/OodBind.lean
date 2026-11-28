@@ -9,7 +9,7 @@
 module
 
 import LeanVM.Protocol.EndToEnd.Candidates
-import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.Protocol.ToCompPoly.Multilinear
 import LeanVM.Protocol.ToArkLib.Whir.Ood
 import LeanVM.Protocol.Whir.Sound.Prob
 public import LeanVM.Protocol.EndToEnd.Claims
@@ -27,8 +27,8 @@ pairwise distinct at `z_0` except with probability at most `C(L_0, 2)·ν/|E|` (
 `b_ood` grinds. Then at most one member answers the OOD claim, so the commitment is binding, and
 every challenge drawn after it and before the opening faces a single candidate."
 
-* `stackAt q z`: the stack's multilinear extension at `z`, what the OOD claim reads;
-  `stackAt_eq_evalMle`: CompPoly's `evalMle` of the stack's table in `E`.
+* `stackAt q z`: the stack's multilinear extension at `z`, what the OOD claim reads
+  (`holds_oodClaim`); `stackAt_eq_evalMle`: CompPoly's `evalMle` of the stack's table in `E`.
 * `OodSep S z`: distinct members of `S` have distinct extensions at `z`;
   `card_not_oodSep_le`: for a finite `S` of at most `L` stacks, at most `C(L, 2)·μ·|E|^(μ-1)` of the
   `|E|^μ` points are not separating (`card_ood_collision_image_le`, Schwartz-Zippel for
@@ -65,9 +65,30 @@ theorem readOod_eq (μ : ℕ) :
 
 variable {μ : ℕ}
 
+/-- **`eq_eval` at a cube point is the Lagrange basis**: `eq_eval(z, x)`, `x` the cube point of
+index `x`, is the Lagrange basis of `z` at `x`. -/
+theorem eqEval_boolPoint {n : ℕ} (z : Vector E n) (x : Fin (2 ^ n)) :
+    eqEval z.toList (boolPoint n x) = (lagrangeBasis z)[x] := by
+  rw [eqEval, ← List.prod_eq_foldl, Fin.getElem_fin, LeanVM.Protocol.lagrangeBasis_getElem_nat]
+  have hl : List.zipWith (fun x z ↦ 1 + x + z) z.toList (boolPoint n x) =
+      List.ofFn fun b : Fin n ↦ if x.val.testBit b then z[b] else 1 - z[b] := by
+    apply List.ext_getElem (by simp [boolPoint])
+    intro i h1 h2
+    simp only [List.getElem_zipWith, Vector.getElem_toList, boolPoint, List.getElem_map,
+      List.getElem_range, List.getElem_ofFn]
+    simp only [Fin.getElem_fin]
+    split_ifs
+    · linear_combination CharTwo.add_self_eq_zero (1 : E)
+    · rw [add_zero, CharTwo.sub_eq_add, add_comm]
+  rw [hl, List.prod_ofFn]
+
 /-- The stack's multilinear extension at `z`, with the verifier's `eq_eval`. -/
 def stackAt (q : Column μ) (z : List E) : E :=
   ∑ x : Fin (2 ^ μ), eqEval z (boolPoint μ x) * ofK (q.values.getD x 0)
+
+/-- **The OOD claim holds of a stack** exactly when its extension at `z` is `y`. -/
+theorem holds_oodClaim (q : Column μ) (z : List E) (y : E) :
+    StackClaim.Holds μ (oodClaim z y) q ↔ stackAt q z = y := Iff.rfl
 
 /-- A stack's table in `E`. -/
 def tableE (q : Column μ) : CMlPolynomialEval E μ := Vector.map ofK q.values

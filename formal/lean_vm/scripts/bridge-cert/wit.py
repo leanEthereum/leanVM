@@ -3,8 +3,10 @@
 Per module of alignment checks `align.py` writes, each function's `Bridge.witChk` over its alignment context
 (`alignCtx`; one whose cells its windows pack ahead, with those, `alignCtxP`), by `decide +kernel`; per link module
 of `Guest/Checked`, each function's `Bridge.WitJ` (`Bridge.witJ_of`, reusing the `Checked` and `ProgAl` link
-equations); and the assembly over every function (`WitChk/All.lean`). `checks.py` writes them, a hash pack's and a link
-module's checks in one module with the other checks' (`Bridge/Chk/`).
+equations); and the assembly over every function
+(`WitChk/All.lean`). Run after `progal.py`; `--check` writes nothing and fails when a file is stale.
+
+    python3 -I scripts/bridge-cert/wit.py [--check]
 """
 import os, re, sys, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,8 +26,7 @@ def check_module(ctx_mod):
     return pair.check_module(ctx_mod).replace('.PairChk.', '.WitChk.')
 
 
-def gen():
-    """The files, and the paths this check owns on disk."""
+def run(check):
     ctxs, lk = progal.contexts(), progal.links()
     n = max(lk) + 1
     files = {}
@@ -103,5 +104,11 @@ end
 
 end LeanVM.Guest.Bridge.WitChk
 ''')
+    existing = set(glob.glob(os.path.join(OUT, '*.lean')))
+    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the witness hints of {len(lk)} functions over {len(groups)} link modules')
-    return data.quiet(files), set(glob.glob(os.path.join(OUT, '*.lean')))
+    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
+
+
+if __name__ == '__main__':
+    run('--check' in sys.argv[1:])

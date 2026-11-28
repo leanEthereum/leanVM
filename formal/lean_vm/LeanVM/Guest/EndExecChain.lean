@@ -6,15 +6,14 @@
 
 module
 
-public import LeanVM.Guest.EndExecXTrace
-public import LeanVM.Guest.Bridge.JumpCellsDeployed
+public import LeanVM.Guest.Bridge.JumpCells
 public import LeanVM.Guest.B2C.B2Final
 import LeanVM.Guest.B2C.ArmsFresh
 
 /-!
 # The chained `match`es' arms, one target cell per chain
 
-`ChainArmAt`: the chained `match`es' arms (`Bridge.ChainArm`) on every node's reference run, only `main_loop2`'s. `ChainArm` asks, at a state of the track whose top frame is at a jump reading a chained target cell `od`, that the arm the previous selector took jump through `od`. The track does not know which arm a code offset belongs to: every arm's closing jump has one aligned position, the chain's next `match`. So it holds at every state of the track only when each chain's arms jump through one cell (`chainOneB`): then any arm the path takes will do. `chainArm_of_one`: from that check, `ChainArm`, the arm being the one the selector picks (the chained `match` a top-level statement of a body without an early `ret`, `lastBody`, so the path's walk passes it, `walkArms_sel`). The compiler gives each chained `match` one target cell for all its arms, so the check holds (`chainOneB_true`, by the kernel over `Data.plumbs`), and with it `ChainArmAt` (`chainArmAt`).
+`ChainArm` asks, at a state of the track whose top frame is at a jump reading a chained target cell `od`, that the arm the previous selector took jump through `od`. The track does not know which arm a code offset belongs to: every arm's closing jump has one aligned position, the chain's next `match`. So it holds at every state of the track only when each chain's arms jump through one cell (`chainOneB`): then any arm the path takes will do. `chainArm_of_one`: from that check, `ChainArm`, the arm being the one the selector picks (the chained `match` a top-level statement of a body without an early `ret`, `lastBody`, so the path's walk passes it, `walkArms_sel`). The compiler gives each chained `match` one target cell for all its arms, so the check holds (`chainOneB_true`, by the kernel over `Data.plumbs`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -23,10 +22,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.B2C
 
 public section
-
-/-- **The chained `match`es' arms on every node's reference run.** -/
-@[expose] def ChainArmAt : Prop :=
-  ∀ r : Ref, r.Ok → ChainArm r.rd0 (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) r.T (memOf r.img) alignA
 
 /-- **Each chain's arms jump through one target cell.** -/
 @[expose] noncomputable def chainOneB : Bool :=
@@ -84,13 +79,6 @@ theorem chainArm_of_one (h1 : chainOneB = true) {rd : Reader} {Is : List Inst} {
     rw [List.getElem?_eq_getElem hkt, beq_iff_eq.mp (hch' _ (List.getElem_mem hkt)),
       beq_iff_eq.mp (hch' od hod)]
   · cases hm
-
-/-- **The chained `match`es' arms on every node's reference run**, each chain's arms jumping
-through one target cell. -/
-theorem chainArmAt_of_one (h1 : chainOneB = true) : ChainArmAt := fun _ _ ↦ chainArm_of_one h1
-
-/-- **The chained `match`es' arms on every node's reference run.** -/
-theorem chainArmAt : ChainArmAt := chainArmAt_of_one chainOneB_true
 
 end
 

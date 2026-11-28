@@ -264,13 +264,6 @@ pub fn fold_pairs8_ext(x0: &[F128; 8], x1: &[F128; 8], r: F128) -> [F128; 8] {
     (a + F128x8::splat(r) * (a + F128x8::from_array(x1))).to_array()
 }
 
-/// `x0 + r * x0`, elementwise.
-#[inline(always)]
-pub fn fold_lones8_ext(x0: &[F128; 8], r: F128) -> [F128; 8] {
-    let a = F128x8::from_array(x0);
-    (a + F128x8::splat(r) * a).to_array()
-}
-
 /// `(sum x0*y0, sum (x0+x1)*(y0+y1))` over eight terms.
 #[inline(always)]
 pub fn msg_terms8_ext(x0: &[F128; 8], x1: &[F128; 8], y0: &[F128; 8], y1: &[F128; 8]) -> (Acc8, Acc8) {
@@ -316,6 +309,53 @@ pub fn xor_into8(out: &mut [F128; 8], add: &[F128; 8]) {
     for (o, a) in out.iter_mut().zip(add) {
         *o += *a;
     }
+}
+
+/// `out[i] = x[2i] + r·(x[2i] + x[2i + 1])`: the adjacent pairs of `x` folded at `r`.
+#[inline]
+pub fn fold_adjacent<'o>(out: &'o mut [core::mem::MaybeUninit<F128>], x: &[F128], r: F128) -> &'o mut [F128] {
+    assert_eq!(x.len(), 2 * out.len(), "a pair per output");
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    let (out8, x16) = {
+        let ((o8, o_r), (x16, x_r)) = (out.as_chunks_mut::<8>(), x.as_chunks::<16>());
+        for (o, x) in o8.iter_mut().zip(x16) {
+            avx512::fold_pairs(x, r, o);
+        }
+        (o_r, x_r)
+    };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    let (out8, x16) = (&mut out[..], x);
+    for (o, p) in out8.iter_mut().zip(x16.as_chunks::<2>().0) {
+        o.write(p[0] + r * (p[0] + p[1]));
+    }
+    // SAFETY: every output was written.
+    unsafe { out.assume_init_mut() }
+}
+
+/// `[Σ x0·y0, Σ x1·y1, Σ (x0 + x1)·(y0 + y1)]` over the adjacent pairs `(x[2i], x[2i + 1])` and `(y[2i], y[2i + 1])`
+/// of two slices of one even length, unreduced.
+#[inline]
+pub fn adjacent_products(x: &[F128], y: &[F128]) -> [F128Unreduced; 3] {
+    assert!(x.len() == y.len() && x.len().is_multiple_of(2), "pairs of one length");
+    let mut sums = [F128Unreduced::ZERO; 3];
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    let (x, y) = {
+        let ((x16, x_r), (y16, y_r)) = (x.as_chunks::<16>(), y.as_chunks::<16>());
+        if !x16.is_empty() {
+            let mut acc = [Acc8::ZERO; 3];
+            for (x, y) in x16.iter().zip(y16) {
+                avx512::pair_products(x, y, &mut acc);
+            }
+            sums = acc.map(|a| F128Unreduced::from(a.reduce()));
+        }
+        (x_r, y_r)
+    };
+    for (p, q) in x.as_chunks::<2>().0.iter().zip(y.as_chunks::<2>().0) {
+        sums[0] ^= p[0].mul_unreduced(q[0]);
+        sums[1] ^= p[1].mul_unreduced(q[1]);
+        sums[2] ^= (p[0] + p[1]).mul_unreduced(q[0] + q[1]);
+    }
+    sums
 }
 
 /// The eight-lane types with VPCLMULQDQ but no AVX-512: two halves of four lanes, each the `x4` form, a
@@ -408,47 +448,6 @@ mod avx2 {
             };
             let ((ae, ao), (be, bo)) = (split(a), split(b));
             (Self([ae, be]), Self([ao, bo]))
-        }
-
-        /// Eight runs of eight consecutive elements, transposed: `out[j]` lane `p` is `src[8p + j]`.
-        #[inline(always)]
-        pub fn load_runs(src: &[F128; 64]) -> [Self; 8] {
-            let at = |p: usize, j: usize| src[8 * p + j..].as_ptr().cast::<__m128i>();
-            std::array::from_fn(|j| {
-                Self(std::array::from_fn(|h| {
-                    // Runs `4h + i` and `4h + i + 2` in one register; the unpacks then put lane `i` in qword `i`.
-                    // SAFETY: the module's cfg enables avx2; each address is one element, 16 readable bytes.
-                    let pair = |i: usize| unsafe { _mm256_loadu2_m128i(at(4 * h + i + 2, j), at(4 * h + i, j)) };
-                    let (a, b) = (pair(0), pair(1));
-                    // SAFETY: the module's cfg enables avx2.
-                    F128x4(unsafe { [_mm256_unpacklo_epi64(a, b), _mm256_unpackhi_epi64(a, b)] })
-                }))
-            })
-        }
-
-        /// Stores the lanes `a0 b0 a1 b1 … a7 b7`.
-        #[inline(always)]
-        pub fn store_interleaved(a: Self, b: Self, dst: &mut [core::mem::MaybeUninit<F128>; 16]) {
-            let q = dst.as_mut_ptr().cast::<__m256i>();
-            for h in 0..2 {
-                let ([a0, a1], [b0, b1]) = (a.0[h].0, b.0[h].0);
-                // SAFETY: the module's cfg enables avx2; `dst` is eight writable 32-byte pairs of elements.
-                unsafe {
-                    // Elements `[x0, x2]` and `[x1, x3]` of each.
-                    let (al, ah) = (_mm256_unpacklo_epi64(a0, a1), _mm256_unpackhi_epi64(a0, a1));
-                    let (bl, bh) = (_mm256_unpacklo_epi64(b0, b1), _mm256_unpackhi_epi64(b0, b1));
-                    _mm256_storeu_si256(q.add(4 * h), _mm256_permute2x128_si256::<0x20>(al, bl));
-                    _mm256_storeu_si256(q.add(4 * h + 1), _mm256_permute2x128_si256::<0x20>(ah, bh));
-                    _mm256_storeu_si256(q.add(4 * h + 2), _mm256_permute2x128_si256::<0x31>(al, bl));
-                    _mm256_storeu_si256(q.add(4 * h + 3), _mm256_permute2x128_si256::<0x31>(ah, bh));
-                }
-            }
-        }
-
-        /// Lanes `0..4` and `4..8`.
-        #[inline(always)]
-        pub fn halves(self) -> [F128x4; 2] {
-            self.0
         }
     }
 
@@ -818,6 +817,58 @@ mod avx512 {
             hi: red(d0o, d1o),
         }
     }
+
+    /// The firsts and the seconds of eight adjacent pairs `(x[2i], x[2i + 1])`: four loads, four 128-bit lane
+    /// shuffles. Plane `lo` holds pairs `0..4` in lane order and `hi` pairs `4..8`, so the lanes are not in
+    /// [`F128x8`]'s element order: only lane-wise work and [`store_pairs`] read them.
+    #[inline]
+    #[target_feature(enable = "avx512f")]
+    fn load_pairs(x: &[F128; 16]) -> (F128x8, F128x8) {
+        // Register `i` holds pairs `2i` and `2i + 1`, one element per 128-bit lane.
+        let [z0, z1, z2, z3] = [0, 1, 2, 3].map(|i| load(x, i));
+        (
+            F128x8 {
+                lo: _mm512_shuffle_i64x2::<0x88>(z0, z1),
+                hi: _mm512_shuffle_i64x2::<0x88>(z2, z3),
+            },
+            F128x8 {
+                lo: _mm512_shuffle_i64x2::<0xDD>(z0, z1),
+                hi: _mm512_shuffle_i64x2::<0xDD>(z2, z3),
+            },
+        )
+    }
+
+    /// The lanes of [`load_pairs`]' order as eight consecutive elements.
+    #[inline]
+    #[target_feature(enable = "avx512f")]
+    fn store_pairs(p: F128x8, out: &mut [core::mem::MaybeUninit<F128>; 8]) {
+        let q = out.as_mut_ptr().cast::<__m512i>();
+        // SAFETY: `out` is two writable 64-byte registers.
+        unsafe {
+            _mm512_storeu_si512(q, p.lo);
+            _mm512_storeu_si512(q.add(1), p.hi);
+        }
+    }
+
+    /// `out[i] = x[2i] + r·(x[2i] + x[2i + 1])`.
+    #[inline(always)]
+    pub fn fold_pairs(x: &[F128; 16], r: F128, out: &mut [core::mem::MaybeUninit<F128>; 8]) {
+        // SAFETY: the module is compiled only with the features enabled.
+        unsafe {
+            let (first, second) = load_pairs(x);
+            store_pairs(first + F128x8::splat(r) * (first + second), out);
+        }
+    }
+
+    /// Add `x0·y0`, `x1·y1` and `(x0 + x1)·(y0 + y1)` over eight adjacent pairs into `acc`.
+    #[inline(always)]
+    pub fn pair_products(x: &[F128; 16], y: &[F128; 16], acc: &mut [Acc8; 3]) {
+        // SAFETY: the module is compiled only with the features enabled.
+        let ((x0, x1), (y0, y1)) = unsafe { (load_pairs(x), load_pairs(y)) };
+        acc[0] ^= x0.mul_unreduced(y0);
+        acc[1] ^= x1.mul_unreduced(y1);
+        acc[2] ^= (x0 + x1).mul_unreduced(y0 + y1);
+    }
 }
 
 #[cfg(test)]
@@ -841,7 +892,6 @@ mod tests {
                 fold_pairs8_ext(&x0, &x1, r),
                 core::array::from_fn(|j| crate::multilinear::interp(x0[j], x1[j], r))
             );
-            assert_eq!(fold_lones8_ext(&x0, r), core::array::from_fn(|j| x0[j] + r * x0[j]));
 
             let dot = |x: &[F128; 8], y: &[F128; 8]| (0..8).map(|j| x[j] * y[j]).sum();
             let (u0, u2) = msg_terms8_ext(&x0, &x1, &y0, &y1);
@@ -882,28 +932,6 @@ mod tests {
                 odd.to_array(),
                 core::array::from_fn(|j| if j < 4 { x0[2 * j + 1] } else { x1[2 * (j - 4) + 1] })
             );
-            #[cfg(all(
-                target_arch = "x86_64",
-                target_feature = "vpclmulqdq",
-                target_feature = "avx2",
-                not(target_feature = "avx512f")
-            ))]
-            {
-                let mut stored = [core::mem::MaybeUninit::uninit(); 16];
-                F128x8::store_interleaved(even, odd, &mut stored);
-                // SAFETY: `store_interleaved` writes all sixteen.
-                let stored = unsafe { stored.assume_init_ref() };
-                assert_eq!(
-                    stored,
-                    core::array::from_fn::<_, 16, _>(|i| if i < 8 { x0[i] } else { x1[i - 8] })
-                );
-                let [lo, hi] = xa.halves();
-                assert_eq!([lo.to_array(), hi.to_array()].concat(), x0);
-                let runs: [F128; 64] = core::array::from_fn(|_| rng.ext());
-                for (j, run) in F128x8::load_runs(&runs).iter().enumerate() {
-                    assert_eq!(run.to_array(), core::array::from_fn(|p| runs[8 * p + j]));
-                }
-            }
 
             let (ka, kb) = (F64x8::from_array(&k0), F64x8::from_array(&k1));
             assert_eq!(
@@ -921,6 +949,31 @@ mod tests {
             acc ^= msg_lone8_ext(&x0, &y0);
             acc ^= msg_lone8_ext(&x1, &y1);
             assert_eq!(acc.reduce(), x0[0] * y1[0] + dot(&x0, &y0) + dot(&x1, &y1));
+        }
+    }
+
+    #[test]
+    fn adjacent_kernels_match_the_scalar_forms() {
+        let mut rng = Rng::new(0xAD1);
+        for len in [0usize, 2, 14, 16, 18, 48, 62] {
+            let (x, y): (Vec<F128>, Vec<F128>) = (0..len).map(|_| (rng.ext(), rng.ext())).unzip();
+            let r = rng.ext();
+            let mut out = vec![core::mem::MaybeUninit::uninit(); len / 2];
+            let folded = fold_adjacent(&mut out, &x, r);
+            let pairs = |v: &[F128]| v.chunks(2).map(|p| (p[0], p[1])).collect::<Vec<_>>();
+            let (px, py) = (pairs(&x), pairs(&y));
+            assert_eq!(
+                folded,
+                &px.iter().map(|&(a, b)| a + r * (a + b)).collect::<Vec<_>>()[..]
+            );
+            let want = px.iter().zip(&py).fold([F128::ZERO; 3], |s, (&(a0, a1), &(b0, b1))| {
+                [s[0] + a0 * b0, s[1] + a1 * b1, s[2] + (a0 + a1) * (b0 + b1)]
+            });
+            assert_eq!(
+                adjacent_products(&x, &y).map(F128Unreduced::reduce),
+                want,
+                "length {len}"
+            );
         }
     }
 }

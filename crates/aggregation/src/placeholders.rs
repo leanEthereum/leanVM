@@ -2,10 +2,7 @@
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
-};
-use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
+use super::child::{QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, STREAM_CHUNK, merkle_cap_depth, whir_levels};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
@@ -13,20 +10,12 @@ use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, grinding_bits};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
-use lean_vm_core::constraints::xi_offsets;
-use lean_vm_core::cpu::{
-    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, layout_of, n_xi_powers, to_scalar,
-    xi_form_base,
-};
-use lean_vm_core::gkr::{ROUND_GRIND, y_grind};
+use lean_vm_core::cpu::{from_scalar, to_scalar};
 use lean_vm_core::keccak::{MIN_SHAPE as KECCAK_MIN_SHAPE, SLOT_LOG};
-use lean_vm_core::leaf::{self, Block, Coord};
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::{F64, F128, g_pow};
 use std::collections::BTreeMap;
-use verifier::bus_grinding_bits;
-use verifier::layout::BUS_BITS;
-use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};
+use verifier::layout::{BYTECODE_SLOT_BITS, N_TABLES, TABLE_LOG_FLOORS};
 use verifier::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 
 /// A value as the guest's literal for it: an integer in decimal, a field element as the integer its limbs spell, a
@@ -90,24 +79,6 @@ impl Placeholders {
         self.set(name, values.into_iter().collect::<Vec<_>>());
     }
 }
-
-struct ClaimDescriptor {
-    buffer: usize,
-    column: usize,
-    qkeccak_slot: usize,
-    /// The kappa source `(src, adj)` of the claim's low dimension.
-    source: (usize, usize),
-}
-
-// The guest's `POINT_BUF_*`, the point a pooled claim is made at: the bus's `zeta`, the table
-// sumcheck's point, the public input's, that point on a slot of `q_keccak`, and none for an
-// output lane's, which the Keccak reduction takes as its claim on the permutation's output and
-// the opening never sees.
-const POINT_BUF_ZETA: usize = 0;
-const POINT_BUF_RHO: usize = 1;
-const POINT_BUF_PI: usize = 2;
-const POINT_BUF_QKECCAK_RHO: usize = 3;
-const POINT_BUF_KECCAK_OUT: usize = 4;
 
 /// A greedy (Paar) straight-line program computing each row's sum, or product where a row repeats an input:
 /// value `inputs + k` is op `k`, the sum or product of two earlier values, the pair most rows share first.
@@ -190,27 +161,16 @@ fn poly_factors(mut p: u64) -> Vec<u64> {
 /// The recursion program's placeholder map depends on table structure and bytecode
 /// size, so one compiled guest serves every proof layout.
 pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
-    // Only block and coordinate structure is used here; stand-in sizes let us derive it before the guest's
-    // bytecode exists.
-    let layout = layout_of(kbc, 20, [1 << 10; N_TABLES]);
-    let sides = [layout.push, layout.pull, layout.count];
     let mut ph = Placeholders::default();
     constants(&mut ph);
-    let (pool, coord_claims) = claim_pool(&sides, kbc);
-    bus_placeholders(&mut ph, &sides, kbc, &coord_claims);
-    claim_placeholders(&mut ph, &pool, kbc);
     keccak_placeholders(&mut ph);
-    // The bus's least push depth over every execution of this bytecode: the least memory, every table at its floor.
-    // The bus grind sends a nonce at every depth the guest admits, which it absorbs with the OOD sample's value, and
-    // the root-most layer is binary and never the last.
-    let bus_min_mu = leaf::layout(&layout_of(kbc, verifier::MIN_LOG_MEMORY, [0; N_TABLES]).push).mu;
-    assert!(bus_grinding_bits(bus_min_mu) > 0 && bus_min_mu > 2);
-    ph.set("BUS_MIN_MU", bus_min_mu);
     field_placeholders(&mut ph);
     opening_placeholders(&mut ph, kbc);
-    bytecode_placeholders(&mut ph, &sides, kbc);
+    bytecode_placeholders(&mut ph, kbc);
     da_placeholders(&mut ph);
     signature_placeholders(&mut ph);
+    stack_placeholders(&mut ph);
+    link_placeholders(&mut ph, kbc);
     ph.0
 }
 
@@ -220,49 +180,32 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
 fn constants(ph: &mut Placeholders) {
     use lean_sphincs::internals as sp;
     use lean_xmss::internals as lx;
-    use verifier::N_BUS_TREES;
-    use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS};
+    use verifier::keccak::{PACK, PRODUCT_BITS};
     let nonces = |bits: u32| usize::from(bits > 0);
-    // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y for AIR lane reassembly; Y_INV = Y + x splits a word
-    // into its two K limbs.
+    // The guest takes the ring switch's packed draw from a grind's permutation: every cell but the proof of work's.
+    const { assert!(BATCH_GRINDING_BITS > 0, "the ring switch grinds") };
+    // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y to reassemble a word `lo + hi·Y`; Y_INV = Y + x splits
+    // a word into its two K limbs.
     let y_tower = F128::new(0, 1);
     let shape = KECCAK_MIN_SHAPE;
     let constants: &[(&str, &dyn Literal)] = &[
         // Buffer caps and memory bounds.
         ("STREAM_CAP", &STREAM_CAP),
+        ("STREAM_CHUNK", &STREAM_CHUNK),
         ("QW", &QUERY_WINDOW_BITS),
         ("QUERY_WINDOWS_CAP", &QUERY_WINDOWS_CAP),
-        ("MU_CAP", &MU_CAP),
         ("MIN_LOG_MEM", &verifier::MIN_LOG_MEMORY),
         ("MAX_LOG_MEM", &verifier::MAX_LOG_MEMORY),
         ("INV_GEN", &F128::from(F64::G.inv())),
         ("Y_TOWER", &y_tower),
         ("Y_INV", &y_tower.inv()),
-        // The tables, and the table sumcheck's xi layout from the native verifier's own numbers: a disjoint range of
-        // identities per table, then one power per bus tree (verifier::N_BUS_TREES), shared by every table. Sharing
-        // is what lets the target be derived from the trees' leaf claims instead of trusted (xi_form_base).
+        // The tables.
         ("N_TABLES", &N_TABLES),
-        ("NO_TABLE", &N_TABLES),
         ("FLOORS", &TABLE_LOG_FLOORS),
-        ("ETA_OFFSET", &xi_offsets(tables().iter().map(|t| t.n_constraints()))),
-        ("ETA_FORM_BASE", &xi_form_base()),
-        ("N_ETA_POWS", &n_xi_powers()),
-        ("N_TABLE_COLS", &TABLE_WIDTHS),
-        ("TABLE_COL_BASE", &xi_offsets(TABLE_WIDTHS.iter().copied())),
-        ("N_COL_EVALS", &TABLE_WIDTHS.iter().sum::<usize>()),
-        ("TABLE_COLS_CAP", &(TABLE_WIDTHS.iter().max().unwrap() + 1)),
-        // The grinds: the bus's by the push depth, a sumcheck round of degree `d`, eq factor included, then each
-        // other challenge the guest grinds for.
-        ("BUS_GRIND_BITS", &(0..64).map(bus_grinding_bits).collect::<Vec<_>>()),
+        // The grinds: a sumcheck round of degree `d`, eq factor included, then each other challenge the guest
+        // grinds for.
         ("ROUND2_GRIND_BITS", &grinding_bits(2)),
         ("ROUND3_GRIND_BITS", &grinding_bits(3)),
-        ("ROUND5_GRIND_BITS", &ROUND_GRIND),
-        ("GKR_COMBINER_GRIND_BITS", &grinding_bits(N_BUS_TREES as u128 - 1)),
-        // y: a binary layer's (only ever the root-most, never the last), a radix-four one's, the last layer's doubled.
-        ("GKR_Y1_GRIND_BITS", &y_grind(1, false)),
-        ("GKR_Y_GRIND_BITS", &y_grind(2, false)),
-        ("GKR_Y_LAST_GRIND_BITS", &y_grind(2, true)),
-        ("XI_GRIND_BITS", &grinding_bits(n_xi_powers() as u128 - 1)),
         // The Keccak segment then the lane, 25 lanes in five coordinates.
         ("KECCAK_SEG_GRIND_BITS", &grinding_bits((shape.seg_log() + 5) as u128)),
         ("KECCAK_S_GRIND_BITS", &grinding_bits(PRODUCT_BITS as u128 - 1)),
@@ -280,7 +223,6 @@ fn constants(ph: &mut Placeholders) {
         ("KECCAK_SEGMENTS", &shape.segments()),
         ("KECCAK_SEG_LOG", &shape.seg_log()),
         ("KECCAK_PACK", &PACK),
-        ("KECCAK_EMBED_BITS", &EMBED_BITS),
         ("KECCAK_PROD_BITS", &PRODUCT_BITS),
         ("KECCAK_PI", &keccak256::PI),
         ("KECCAK_RHO", &keccak256::RHO),
@@ -289,9 +231,8 @@ fn constants(ph: &mut Placeholders) {
         ("QKECCAK_VARS_CAP", &(33 + SLOT_LOG)),
         // The stacked opening and the statement.
         ("N_COLUMN_LOGS", &(verifier::MAX_STACKED_LOG + 1)),
-        ("PCS_MIN_MU", &verifier::MIN_STACKED_LOG),
         ("LIG_N_RATES", &(MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1)),
-        ("LOG2_BYTECODE_COLS", &BUS_BITS),
+        ("LOG2_BYTECODE_COLS", &BYTECODE_SLOT_BITS),
         ("STMT_HEADER", &STATEMENT_HEADER),
         // LeanDA (`doc/leanvm` §sec:leanda).
         ("LOG_BLOB_SYMBOLS", &LOG_BLOB_SYMBOLS),
@@ -320,170 +261,14 @@ fn constants(ph: &mut Placeholders) {
     }
 }
 
-/// The bus blocks and their coordinates and terms, given each coordinate's `(fresh, slot)` in the claim pool.
-fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, coord_claims: &[(usize, usize)]) {
-    let bks = block_kappa_sources(kbc);
-    // Each side's first block, then the end.
-    let sblk = xi_offsets(sides.iter().map(Vec::len).chain([0]));
-    assert_eq!(bks.len(), sblk[3], "a kappa source per block");
-    // A TABLE block's coordinates, flattened into terms: the guest rebuilds each as
-    // `Σ_terms`, so a derived value (an XOR/MUL result, a DEREF store, a JUMP
-    // successor) costs terms rather than columns. A framework coordinate has none:
-    // it decomposes into pooled claims instead.
-    // Per coordinate: its kind, its constant, its value on its table's padding row (zero for a framework
-    // coordinate) and its terms.
-    let (mut block_coords, mut coordinates, mut terms) = (Vec::new(), Vec::new(), Vec::new());
-    for (blk, &(source, _)) in sides.iter().flatten().zip(&bks) {
-        block_coords.push(coordinates.len()..coordinates.len() + blk.coords.len());
-        for (i, c) in blk.coords.iter().enumerate() {
-            let start = terms.len();
-            if let Some(t) = source.checked_sub(2) {
-                push_coord_terms(c, GLOBAL_COLUMN_BASES[t], &mut terms);
-            }
-            let padding = blk.padding.get(i).map_or(0, |v| v.0);
-            coordinates.push((coord_kind(c), u128::from(coord_scale(c)), padding, start..terms.len()));
-        }
-    }
-    ph.set("SIDE_BLOCK_START", &sblk);
-    ph.set("N_BLOCKS", sblk[3]);
-    ph.set("N_COORDS", coordinates.len());
-    // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
-    // segments are identical; the guest computes only push's side total and
-    // aliases pull's mu to push's on this basis.
-    assert_eq!(
-        bks[sblk[0]..sblk[1]],
-        bks[sblk[1]..sblk[2]],
-        "push/pull kappa sources must match"
-    );
-    // The guest also reuses push's padding term for pull, which needs the same padding
-    // tuples (a padding row's counts are zero, so a count's `g·` changes nothing).
-    assert!(
-        sides[0].iter().zip(&sides[1]).all(|(a, b)| a.padding == b.padding),
-        "push/pull padding tuples must match"
-    );
-    let bgroups = block_groups(&bks, &sblk);
-    ph.set("N_BLOCK_GROUPS", bgroups.len());
-    ph.list("BLOCK_GROUP_START", bgroups.iter().copied().chain([bks.len()]));
-    ph.list(
-        "SIDE_GROUP_START",
-        sblk.iter().map(|&b| bgroups.partition_point(|&start| start < b)),
-    );
-    ph.list("BLOCK_KAPPA_SRC", bks.iter().map(|&(s, _)| s));
-    ph.list("BLOCK_KAPPA_ADJ", bks.iter().map(|&(_, a)| a));
-    ph.list(
-        "BLOCK_TABLE",
-        bks.iter().map(|&(s, _)| s.checked_sub(2).unwrap_or(N_TABLES)),
-    );
-    ph.list(
-        "BLOCK_SIDE",
-        sides
-            .iter()
-            .enumerate()
-            .flat_map(|(s, blocks)| std::iter::repeat_n(s, blocks.len())),
-    );
-    ph.list("BLOCK_COORD_OFF", block_coords.iter().map(|r| r.start));
-    ph.list("BLOCK_COORD_COUNT", block_coords.iter().map(|r| r.len()));
-    ph.list("COORD_TYPE", coordinates.iter().map(|c| c.0));
-    ph.list("COORD_CONST", coordinates.iter().map(|c| c.1));
-    ph.list("COORD_PADDING", coordinates.iter().map(|c| c.2));
-    ph.list("COORD_TERM_OFF", coordinates.iter().map(|c| c.3.start));
-    ph.list("COORD_TERM_COUNT", coordinates.iter().map(|c| c.3.len()));
-    let fresh = coord_claims.iter().map(|c| c.0);
-    ph.list("COORD_FRESH", fresh.clone());
-    // A fresh coordinate's place in the run of words the decomposition absorbs, which
-    // decides where it waits in the Fiat-Shamir sponge.
-    ph.list("COORD_FRESH_POS", xi_offsets(fresh.clone()));
-    ph.set("N_FRESH", fresh.clone().sum::<usize>());
-    ph.set("N_BUS_CLAIMS", fresh.sum::<usize>());
-    ph.list("COORD_CLAIM_SLOT", coord_claims.iter().map(|c| c.1));
-    // A pull table-block coordinate's difference from its push twin's, as merged terms
-    // appended after every coordinate's own: the guest counts a pull block's form as
-    // push's plus these, the two blocks sharing eq_hi. A pull block also reads its `Index` coordinates off its push
-    // twin's, at the same places.
-    let index = coord_kind(&Coord::Index);
-    let (mut diff_off, mut diff_count) = (vec![0usize; coordinates.len()], vec![0usize; coordinates.len()]);
-    for b in sblk[1]..sblk[2] {
-        let (pull, push) = (block_coords[b].clone(), block_coords[b - sblk[1]].clone());
-        assert!(
-            bks[b] == bks[b - sblk[1]] && pull.len() == push.len(),
-            "pull block {b} must mirror its push twin"
-        );
-        for (p, q) in pull.zip(push) {
-            assert_eq!(
-                coordinates[p].0 == index,
-                coordinates[q].0 == index,
-                "pull block {b}'s Index coordinates must sit where its push twin's do"
-            );
-            let merged = coord_difference(&terms[coordinates[p].3.clone()], &terms[coordinates[q].3.clone()]);
-            diff_off[p] = terms.len();
-            diff_count[p] = merged.len();
-            terms.extend(merged);
-        }
-    }
-    ph.set("COORD_DIFF_OFF", diff_off);
-    ph.set("COORD_DIFF_COUNT", diff_count);
-    ph.list("TERM_TYPE", terms.iter().map(|t| t.kind));
-    ph.list("TERM_CONST", terms.iter().map(|t| t.constant));
-    ph.list("TERM_COL_A", terms.iter().map(|t| t.column_a));
-    ph.list("TERM_COL_B", terms.iter().map(|t| t.column_b));
-    // 1 + g^(2^i).
-    let g_squarings = std::iter::successors(Some(F128::from(F64::G)), |g| Some(*g * *g));
-    ph.list("INDEX_MLE_FACTORS", g_squarings.take(34).map(|g| F128::ONE + g));
-}
-
-/// The claim pool's descriptors.
-fn claim_placeholders(ph: &mut Placeholders, pool: &[ClaimSite], kbc: usize) {
-    // Each column's index among the committed ones.
-    let mut committed = 0..;
-    let compact: Vec<Option<usize>> = (col_kappa_sources(kbc).iter())
-        .map(|source| source.map(|_| committed.next().unwrap()))
-        .collect();
-    let compact_col = |column: usize| compact[column].expect("a claim targets a committed column");
-    let qkeccak = compact_col(QKECCAK);
-    let claims: Vec<ClaimDescriptor> = (pool.iter())
-        .map(|site| match *site {
-            ClaimSite::Framework { column, source } => (POINT_BUF_ZETA, compact_col(column), 0, source),
-            // A table column's claim is at its table's chi[..tau].
-            ClaimSite::TableColumn { column, table } => match keccak_value(column) {
-                None => (POINT_BUF_RHO, compact_col(column), 0, (2 + table, 0)),
-                Some(KeccakLane::Slot(slot)) => (POINT_BUF_QKECCAK_RHO, qkeccak, slot, (2 + table, 0)),
-                Some(KeccakLane::Output(_)) => (POINT_BUF_KECCAK_OUT, qkeccak, 0, (2 + table, 0)),
-            },
-            ClaimSite::MemoryLimb { column } => (POINT_BUF_PI, compact_col(column), 0, (1, 0)),
-        })
-        .map(|(buffer, column, qkeccak_slot, source)| ClaimDescriptor {
-            buffer,
-            column,
-            qkeccak_slot,
-            source,
-        })
-        .collect();
-    ph.set("N_CLAIMS", claims.len());
-    ph.list("CLAIM_POINT_BUF", claims.iter().map(|c| c.buffer));
-    ph.list("CLAIM_COMMITTED_COL", claims.iter().map(|c| c.column));
-    ph.list("CLAIM_KAPPA_SRC", claims.iter().map(|c| c.source.0));
-    ph.list("CLAIM_KAPPA_ADJ", claims.iter().map(|c| c.source.1));
-    ph.list(
-        "CLAIM_QKECCAK_SLOT_BITS",
-        claims
-            .iter()
-            .flat_map(|c| (0..SLOT_LOG).map(move |k| (c.qkeccak_slot >> k) & 1)),
-    );
-    // The output lanes' claims, consecutive in the pool: the reduction's claim on the output.
-    let out_pool = claims
-        .iter()
-        .position(|c| c.buffer == POINT_BUF_KECCAK_OUT)
-        .expect("the output lanes' claims");
-    assert!(
-        (0..claims.len()).all(|j| (claims[j].buffer == POINT_BUF_KECCAK_OUT)
-            == (out_pool..out_pool + keccak256::STATE_LANES).contains(&j))
-    );
-    ph.set("KECCAK_OUT_POOL", out_pool);
-    // The stacked opening batches the ring-switched claim, the pool's on-stack claims and the
-    // Keccak reduction's claim on its output word and level 0's OOD claim; the batching is accounted for up to a cap.
-    let stacked = 2 + claims.iter().filter(|c| c.buffer != POINT_BUF_KECCAK_OUT).count() + 1;
-    assert!(stacked <= verifier::MAX_STACKED_CLAIMS, "too many stacked claims");
-    ph.set("QKECCAK_COMMITTED_COL", qkeccak);
+/// Where each of the lists of these lengths starts in their concatenation.
+fn prefix_sums(lens: impl Iterator<Item = usize>) -> Vec<usize> {
+    lens.scan(0, |at, len| {
+        let start = *at;
+        *at += len;
+        Some(start)
+    })
+    .collect()
 }
 
 /// The Keccak reduction's RMFE projection and embedding as straight-line programs, and its iota and linear layer, as
@@ -495,7 +280,7 @@ fn keccak_placeholders(ph: &mut Placeholders) {
     // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's
     // offset, then the end.
     let mut lists = |starts: &str, entries: &str, rows: Vec<Vec<usize>>| {
-        ph.set(starts, xi_offsets(rows.iter().map(Vec::len).chain([0])));
+        ph.set(starts, prefix_sums(rows.iter().map(Vec::len).chain([0])));
         ph.set(entries, rows.concat());
     };
     let bits = |word: u64, n: usize| (0..n).filter(|b| word >> b & 1 == 1).collect::<Vec<_>>();
@@ -571,6 +356,9 @@ fn keccak_placeholders(ph: &mut Placeholders) {
 
 /// The F128 coordinate basis and the ring switch's points.
 fn field_placeholders(ph: &mut Placeholders) {
+    // 1 + g^(2^i).
+    let g_squarings = std::iter::successors(Some(F128::from(F64::G)), |g| Some(*g * *g));
+    ph.list("INDEX_MLE_FACTORS", g_squarings.take(34).map(|g| F128::ONE + g));
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
     // reconstruct a word from its 128 coordinate bits.
@@ -665,7 +453,10 @@ impl OpeningShape {
 /// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
 /// an execution of the guest's bytecode, `min_execution_stacked_log(kbc)..=MAX_STACKED_LOG`.
 fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
-    let (minm, maxm) = (verifier::min_execution_stacked_log(kbc), verifier::MAX_STACKED_LOG);
+    let (minm, maxm) = (
+        verifier::layout::min_execution_stacked_log(kbc),
+        verifier::MAX_STACKED_LOG,
+    );
     let n_log_sizes = maxm - minm + 1;
     // The guest's rate selector is `g^rate / g`.
     const _: () = assert!(MIN_LOG_INV_RATE == 1);
@@ -768,13 +559,6 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.set("LIG_MIN_LOG_SIZE", minm);
     ph.set("LIG_N_LOG_SIZES", n_log_sizes);
     ph.set("LIG_MIN_SHIFT_INV", F128::from(g_pow(minm).inv()));
-    let cks: Vec<(usize, usize)> = col_kappa_sources(kbc).into_iter().flatten().collect();
-    ph.set("N_COMMITTED_COLS", cks.len());
-    ph.list("COL_KAPPA_SRC", cks.iter().map(|&(s, _)| s));
-    ph.list("COL_KAPPA_ADJ", cks.iter().map(|&(_, a)| a));
-    let groups = col_groups(&cks);
-    ph.set("N_COL_GROUPS", groups.len());
-    ph.list("COL_GROUP_START", groups.iter().copied().chain([cks.len()]));
     // The subspace-vanishing values of a level's message columns and their inverses, by the column count: block `n`
     // at n(n+1)/2.
     let by_cols: Vec<F64> = (0..=max_cols)
@@ -788,27 +572,47 @@ fn opening_placeholders(ph: &mut Placeholders, kbc: usize) {
     ph.list("VANISH_INVS_BY_COLS", by_cols.iter().map(|v| F128::from(v.inv())));
 }
 
-/// The stacked bytecode's claim, the batch's seed, and the statement's layout.
-fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize) {
+/// The stack's blocks and their groups, as `certify_stack` reads them.
+fn stack_placeholders(ph: &mut Placeholders) {
+    let blocks = verifier::layout::stack_blocks();
+    let starts = super::child::block_groups(&blocks);
+    ph.set("N_STK_BLOCKS", blocks.len());
+    ph.list(
+        "STK_SRC",
+        blocks.iter().map(|block| super::child::source_index(block.source)),
+    );
+    ph.list("STK_ADJ", blocks.iter().map(|block| block.adj));
+    ph.set("N_STK_GROUPS", starts.len());
+    ph.list("STK_GROUP_START", starts.iter().copied().chain([blocks.len()]));
+    ph.set("STK_STRIDE", blocks.len() + 1);
+    ph.set("STK_MIN_LOG", verifier::layout::MIN_STACKED_LOG);
+}
+
+/// The deferred claim on the split program, the batch's seed, and the statement's layout.
+fn bytecode_placeholders(ph: &mut Placeholders, kbc: usize) {
+    use super::split::{KIND_ADDR, KIND_BC, KIND_WORD, SPLIT_LOG, split_terms};
     ph.set("BYTECODE_LOG", kbc);
-    // The stacked bytecode: an encoding column per side for each two public coordinates, aligned with the bus
-    // tuple, so their slots span the fingerprint's own bits. The defer region is
-    // the claim's point (row, then slot) and its value.
-    let public = sides
-        .iter()
-        .flatten()
-        .flat_map(|b| &b.coords)
-        .filter(|c| matches!(c, Coord::Public(_)));
-    ph.set("BYTECODE_COLS", public.count() / 2);
-    let defer_size = kbc + BUS_BITS + 1;
+    let (columns, terms) = split_terms();
+    // A fresh claim is the link point's instruction coordinates and the split columns' values there; a carried one,
+    // the point (instructions, then columns) and its value.
+    let defer_size = kbc + columns.len();
     ph.set("DEFER_SIZE", defer_size);
-    ph.set("BYTECODE_VARS", kbc + BUS_BITS);
+    ph.set("N_SPLIT", columns.len());
+    ph.set("SPLIT_LOG", SPLIT_LOG);
+    ph.set("BYTECODE_VARS", kbc + SPLIT_LOG);
+    ph.set("N_SPLIT_TERMS", terms.len());
+    ph.list("PW_COL", terms.iter().map(|t| t.column));
+    ph.list("PW_FRAME", terms.iter().map(|t| usize::from(t.frame)));
+    ph.list("PW_KIND", terms.iter().map(|t| t.kind));
+    ph.list("PW_ARG", terms.iter().map(|t| t.arg));
+    ph.list("PW_COEF", terms.iter().map(|t| from_scalar(t.coef)));
+    assert_eq!([KIND_BC, KIND_ADDR, KIND_WORD], [0, 1, 2], "the guest's term kinds");
     let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ph.set(&format!("AGG_SEED_{c}"), cell);
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
-    let child_words = 2 + 2 * defer_size;
+    let child_words = 2 + defer_size + kbc + SPLIT_LOG + 1;
     ph.set(
         "AGG_CHILD_PAD",
         child_words.next_multiple_of(RATE_SCALARS) - child_words,
@@ -928,4 +732,240 @@ fn signature_placeholders(ph: &mut Placeholders) {
     ] {
         ph.set(name, cell(at.with_type(t), 1));
     }
+}
+
+/// A form term's missing column, and an output lane's claim target: it reaches no stack block.
+const NO_POS: usize = 1000;
+
+/// The link's table structure, from `verifier::layout::tables()`, as `verify_link` reads it.
+///
+/// The non-pointer columns' values arrive in one run, table by table in local column order (`SENT_*`), so every
+/// column a form names is a position in that run. Forms are lists of terms `TERM_COEF * a * b`, a missing factor
+/// `NO_POS`. A sent column's claim lands on its own stack block, on a slot of q_keccak (`N_STK_BLOCKS + slot`), or
+/// nowhere (an output lane, `NO_POS`).
+fn link_placeholders(ph: &mut Placeholders, kbc: usize) {
+    use verifier::layout::{
+        GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, OP_JUMP, OP_KECCAK, QKECCAK, qkeccak_slot, stack_blocks,
+        tables,
+    };
+    let tables = tables();
+    let blocks = stack_blocks();
+    let block_of = |column: usize| blocks.iter().position(|b| b.column == column);
+    assert_eq!(
+        [MEMORY_0, MEMORY_1, QKECCAK].map(&block_of),
+        [Some(0), Some(1), Some(2)],
+        "the framework blocks lead the stack"
+    );
+    // The guest reads q_keccak's claims at h5 + QKECCAK_SLOT_LOG coordinates, its block's size.
+    assert_eq!(
+        (blocks[2].source, blocks[2].adj),
+        (verifier::layout::SizeSource::Table(OP_KECCAK), SLOT_LOG)
+    );
+    let outputs = KECCAK_OUT..KECCAK_OUT + keccak256::STATE_LANES;
+
+    // The sent run: each table's non-pointer columns.
+    let mut sent_pos: Vec<Vec<usize>> = Vec::new();
+    let mut sent_target = Vec::new();
+    for table in &tables {
+        let pointers = table.links.pointers();
+        let base = GLOBAL_COLUMN_BASES[table.opcode];
+        let mut pos = vec![NO_POS; table.width()];
+        for (c, slot) in pos.iter_mut().enumerate().filter(|(c, _)| !pointers.contains(c)) {
+            *slot = sent_target.len();
+            let column = base + c;
+            sent_target.push(match qkeccak_slot(column) {
+                _ if table.opcode == OP_KECCAK && outputs.contains(&c) => NO_POS,
+                Some(s) => blocks.len() + s,
+                None => block_of(column).expect("a sent column is committed"),
+            });
+        }
+        sent_pos.push(pos);
+    }
+    let n_sent = sent_target.len();
+
+    // Forms over the sent run.
+    let (mut form_start, mut coef, mut term_a, mut term_b) = (vec![0], Vec::new(), Vec::new(), Vec::new());
+    let mut form = |t: usize, f: &verifier::layout::Form| {
+        for (monomial, c) in f.terms() {
+            let at = |i: usize| {
+                monomial.get(i).map_or(NO_POS, |&local| {
+                    let p = sent_pos[t][local];
+                    assert_ne!(p, NO_POS, "a form reads a pointer column");
+                    p
+                })
+            };
+            assert!(monomial.len() <= 2);
+            coef.push(from_scalar(c));
+            term_a.push(at(0));
+            term_b.push(at(1));
+        }
+        form_start.push(coef.len());
+        form_start.len() - 2
+    };
+    let pos = |t: usize, local: usize| {
+        let p = sent_pos[t][local];
+        assert_ne!(p, NO_POS);
+        p
+    };
+    let (mut next0, mut next1, mut pc, mut fp) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let (mut op_start, mut op_form, mut op_slot) = (Vec::new(), Vec::new(), Vec::new());
+    let (mut acc_start, mut acc_addr, mut acc_value, mut acc_gate, mut acc_shift, mut acc_ptr) =
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    // The word reads: the pointer whose word they weigh, their access, and their scale.
+    let (mut wr_ptr, mut wr_acc, mut wr_scale) = (Vec::new(), Vec::new(), Vec::new());
+    let (mut ptr_start, mut ptr_block) = (Vec::new(), Vec::new());
+    for (t, table) in tables.iter().enumerate() {
+        assert_eq!(table.opcode, t);
+        let links = &table.links;
+        let state = links.state();
+        let bc = links.bytecode_link();
+        assert_eq!(bc.pc, state.pc, "the program is read at the row's pc");
+        pc.push(pos(t, state.pc));
+        fp.push(pos(t, state.fp));
+        next0.push(form(t, &state.next[0]));
+        next1.push(form(t, &state.next[1]));
+        op_start.push(op_form.len());
+        for (slots, operand) in &bc.operands {
+            let f = form(t, operand);
+            op_form.push(f);
+            op_slot.push(slots[0]);
+        }
+        let pointers = links.pointers();
+        ptr_start.push(ptr_block.len());
+        acc_start.push(acc_addr.len());
+        for access in &links.memory {
+            for read in &access.reads {
+                if let verifier::layout::Read::Word { pointer, scale } = read {
+                    wr_ptr.push(ptr_start[t] + pointers.iter().position(|p| p == pointer).unwrap());
+                    wr_acc.push(acc_addr.len());
+                    wr_scale.push(form(t, scale));
+                }
+            }
+            acc_addr.push(form(t, &access.address));
+            acc_value.push(form(t, &access.value));
+            acc_gate.push(access.gate.map_or(NO_POS, |g| pos(t, g)));
+            acc_shift.push(access.shift);
+            let k = pointers.iter().position(|&p| p == access.pointer).unwrap();
+            assert!(k >= 2, "an access reads its own pointer");
+            acc_ptr.push(ptr_start[t] + k);
+        }
+        // A pointer column on a q_keccak slot is `N_STK_BLOCKS + slot`, as a sent one is.
+        for &p in &pointers {
+            let column = GLOBAL_COLUMN_BASES[t] + p;
+            ptr_block.push(match qkeccak_slot(column) {
+                Some(s) => blocks.len() + s,
+                None => block_of(column).expect("a pointer column has a block or a slot"),
+            });
+        }
+        assert_eq!(table.n_constraints() > 0, t == OP_JUMP, "only JUMP has identities");
+    }
+    op_start.push(op_form.len());
+    acc_start.push(acc_addr.len());
+    ptr_start.push(ptr_block.len());
+    let n_pointers = ptr_block.len();
+    // The guest weighs a table's pointer columns with one row, at the table's height: each is a block of the table's
+    // height, or a q_keccak slot of KECCAK's.
+    for (t, w) in ptr_start.windows(2).enumerate() {
+        assert!(
+            ptr_block[w[0]..w[1]].iter().all(|&b| match blocks.get(b) {
+                Some(block) => block.source == verifier::layout::SizeSource::Table(t) && block.adj == 0,
+                None => t == OP_KECCAK,
+            }),
+            "a table's pointer columns share its height"
+        );
+    }
+    let max_shift = tables.iter().map(|t| t.links.max_shift()).max().unwrap();
+
+    // The columns of JUMP's identities, (b + v_cond w, v_cond (b + 1), pc' + b v_pc + (b + 1) g pc,
+    // fp' + b v_fp + (b + 1) fp), the successor being the state link's (`guest_jump_identities_match_native`).
+    let jump = &tables[OP_JUMP];
+    let named = |name: &str| jump.columns.iter().position(|c| c == name).unwrap();
+    let [cond, inv, flag, dest, frame] = ["v_cond", "w", "b", "v_pc", "v_fp"].map(named);
+
+    // Pointer chunks by width: the guest's `match` reads row `w`. Its eq tables sit at chunk 0's stride, the widest
+    // chunk's from the program's width on, and a shift stays in chunk 0.
+    const CHUNK_CAP: usize = 9;
+    let (mut d, mut widths, mut idx, mut word) = (vec![0], vec![0; CHUNK_CAP], vec![0; CHUNK_CAP], vec![0; CHUNK_CAP]);
+    assert!(max_shift < 1 << verifier::WINDOW_BITS);
+    for width in 1..=verifier::MAX_POINTER_WIDTH {
+        let chunks = verifier::Chunks::new(width).unwrap();
+        let ws = &chunks.widths;
+        assert!(ws.len() <= CHUNK_CAP);
+        assert!(width < kbc || ws.iter().all(|&w| w <= ws[0]));
+        d.push(ws.len());
+        let (mut at_idx, mut at_word) = (0usize, 0usize);
+        for i in 0..CHUNK_CAP {
+            let w = ws.get(i).copied().unwrap_or(0);
+            widths.push(w);
+            idx.push(at_idx);
+            word.push(at_word);
+            at_idx += w;
+            at_word += if i < ws.len() { 1 << w } else { 0 };
+        }
+    }
+    // The link's grind is one count at every tallest table (at most the width) and every width from the program's
+    // on, for a bytecode of at least 2^16 instructions.
+    assert!(
+        kbc >= 16,
+        "the link grind is fixed for programs of 2^16 instructions or more"
+    );
+    let link_grind = verifier::link_grind_bits(verifier::MAX_POINTER_WIDTH, verifier::MAX_POINTER_WIDTH);
+    // The guest always reads the link's nonce after the OOD value, its permutation drawing `θ_0`.
+    assert!(link_grind > 0, "the link grinds");
+    assert!(
+        (kbc..=verifier::MAX_POINTER_WIDTH)
+            .all(|w| (0..=verifier::MAX_POINTER_WIDTH).all(|n| verifier::link_grind_bits(n, w) == link_grind))
+    );
+    let q_vars = n_pointers.next_power_of_two().trailing_zeros() as usize;
+
+    ph.set("LINK_N_SENT", n_sent);
+    ph.set("LINK_NO_POS", NO_POS);
+    ph.list("SENT_TARGET", sent_target);
+    ph.set("SENT_OUT_LANES", sent_pos[OP_KECCAK][KECCAK_OUT]);
+    ph.list("FORM_START", form_start);
+    ph.list("TERM_COEF", coef);
+    ph.list("TERM_A", term_a);
+    ph.list("TERM_B", term_b);
+    ph.list("STATE_PC", pc);
+    ph.list("STATE_FP", fp);
+    ph.list("STATE_NEXT0", next0);
+    ph.list("STATE_NEXT1", next1);
+    ph.list("BC_OP_START", op_start);
+    ph.list("BC_OP_FORM", op_form);
+    ph.list("BC_OP_SLOT", op_slot);
+    ph.list("ACC_START", acc_start);
+    ph.list("ACC_ADDR", acc_addr);
+    ph.list("ACC_VALUE", acc_value);
+    ph.set("N_WORD_READS", wr_ptr.len());
+    ph.list("WR_PTR", wr_ptr);
+    ph.list("WR_ACC", wr_acc);
+    ph.list("WR_SCALE", wr_scale);
+    ph.list("ACC_GATE", acc_gate);
+    ph.list("ACC_SHIFT", acc_shift);
+    ph.set("N_ACCESSES", acc_ptr.len());
+    ph.list("ACC_PTR", acc_ptr);
+    ph.list("PTR_START", ptr_start);
+    ph.list("PTR_BLOCK", ptr_block);
+    ph.set("N_POINTERS", n_pointers);
+    ph.set("LINK_Q_VARS", q_vars);
+    ph.set("LINK_MAX_SHIFT", max_shift);
+    ph.set("LINK_GRIND_BITS", link_grind);
+    ph.list("JUMP_IDS", [cond, inv, flag, dest, frame].map(|c| sent_pos[OP_JUMP][c]));
+    ph.set("MAX_PTR_WIDTH", verifier::MAX_POINTER_WIDTH);
+    ph.set("CHUNK_CAP", CHUNK_CAP);
+    ph.list("CHUNK_D", d.clone());
+    ph.list("CHUNK_WIDTH", widths);
+    ph.list("CHUNK_IDX", idx);
+    ph.list("CHUNK_WORD", word);
+    // The row and pointer rounds' grinds (link::round_coefficients), by the chunks d of the pointer width.
+    ph.list(
+        "LINK_ROW_GRIND",
+        (0..=CHUNK_CAP).map(|d| grinding_bits((d + 2).max(4) as u128) as usize),
+    );
+    ph.list(
+        "LINK_PTR_GRIND",
+        (0..=CHUNK_CAP).map(|d| grinding_bits((d + 1).max(3) as u128) as usize),
+    );
+    ph.set("LINK_D_MIN", d[kbc]);
+    ph.set("LINK_JUMP_TABLE", OP_JUMP);
 }

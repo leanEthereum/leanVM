@@ -6,7 +6,6 @@
 
 module
 
-public import LeanVM.Guest.End
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.Located.Basic
@@ -25,7 +24,7 @@ that run, holding for runs of any length (`globSpec`: `funSpecReached_induction`
 
 `B2SoundL` states B2 as `Sound.lean` proves it (`b2_step`, `b2_mainL`), so that this module and
 the assembly above it do not import the certificates; `EndSound.lean` proves it, from B1's
-statements about the core IR there (`VsDimsKnown`, `VsKnown`, `ExpTablesSound`, `WalkKnown`).
+statements about the core IR there (`VsKapsKnown`, `ExpTablesSound`, `WalkKnown`).
 -/
 
 namespace LeanVM.Guest.End
@@ -68,21 +67,11 @@ theorem globSpec (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ} (h16 : minLogM
 theorem mainBodyL_of_safe (hb2 : B2SoundL) {κ : ℕ} {L : MemoryImage κ}
     (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem) {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex
         0, 1⟩) :
-    Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) Data.core0.body False
+    Stmt.HoldsList (Located.RLg L) L.read (valG L 1 (certOf 1)) (coreOf 1).body False
       (fun rs ↦ rs = []) := by
   obtain ⟨hjt, k', hk'⟩ := safe_jumpTables hs
   exact hb2.mainL L h16 h32 hjt k' (fun j ↦ (globSpec hb2 h16 h32 j).lt k')
     ⟨hk', reach_jumpTables hjt⟩
-
-/-- **B2 at `main`, located, for a valid execution**: `main`'s body under its frame's valuation,
-its calls located, and the public input's cells at `g^0`, `g^1`. -/
-theorem mainBodyL_of (hb2 : B2SoundL) {input : PublicInput}
-    {t : Execution guestProgram} (hv : ValidExecution guestProgram input t) :
-    Stmt.HoldsList (Located.RLg t.memory) t.memory.read (valG t.memory 1 (certOf 1)) Data.core0.body
-      False (fun rs ↦ rs = []) ∧
-    LoadHolds t.memory.read 1 0 (digestHalves (publicInputDigest input)).1 ∧
-    LoadHolds t.memory.read 1 1 (digestHalves (publicInputDigest input)).2 :=
-  ⟨mainBodyL_of_safe hb2 hv.1.1 hv.1.2.1 (safe_of_validExecution hv), pub_loads hv⟩
 
 end
 end LeanVM.Guest.End

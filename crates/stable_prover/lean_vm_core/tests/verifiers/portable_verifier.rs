@@ -40,8 +40,7 @@ fn verifies_at_every_rate() {
 }
 
 /// A tampered scalar fails the check that reads it: a high limb on an announced size, an OOD sample value at the first
-/// grind after it, the bus's bytecode share and the evaluation its sumcheck ends on at that sumcheck's terminal check,
-/// each check of the Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar,
+/// grind after it, each check of the Keccak reduction tripped by the scalar it reads last, and in the WHIR opening a fold-table scalar,
 /// a high-part scalar and a grinding nonce, each caught by the grind that follows it, and the last tail scalar by the
 /// terminal check.
 #[test]
@@ -86,22 +85,11 @@ fn tampers_fail_their_check() {
     let final_coefficients = (1 << mu) + k;
     let final_level = 5 * k + final_coefficients + 1 + tail;
     // After the announced sizes (the memory, six tables and the rate), the root and the OOD sample's nonce: its value,
-    // which the transcript binds, so the first grind after it, the bus's, already fails.
+    // which the transcript binds, so the first grind after it, the link's, already fails.
     let ood_value = 1 + 6 + 1 + 2 + 1;
-    // The bytecode sumcheck ends on the stacked bytecode at the summary's point, the scalar the stream holds; its
-    // degree-two rounds over the four slot bits follow the share.
-    let bytecode_value = fixture
-        .program
-        .bytecode()
-        .evaluate(&fixture.summary.bytecode_point)
-        .unwrap();
-    let bytecode_value = stream.iter().position(|&s| s == bytecode_value).unwrap();
-    let bytecode_share = bytecode_value - 4 * round - 1;
     let cases = [
         (0, VerifierError::AnnouncedHighLimb),
         (ood_value, VerifierError::GrindingNonce),
-        (bytecode_share, VerifierError::BytecodeShare),
-        (bytecode_value, VerifierError::BytecodeShare),
         (end - tail - final_coefficients - 3, VerifierError::GrindingNonce),
         (end - final_level - 4, VerifierError::GrindingNonce),
         (end - tail - 1, VerifierError::GrindingNonce),
@@ -123,5 +111,24 @@ fn tampers_fail_their_check() {
             verify_execution(fixture.program.bytecode(), &fixture.public_input_bytes, &proof) == Err(error)
         });
         assert!(found, "no tamper of scalar {position} fails with {error}");
+    }
+}
+
+/// The index side's value at `r` (the memory term) and each of the pointer columns' bit-slices, tampered, fails the
+/// link's terminal check.
+#[test]
+fn tampered_link_values_fail_the_link() {
+    let fixture = fixture();
+    let summary = &fixture.summary;
+    assert_eq!(summary.values_at_r.len(), 1);
+    assert_eq!(summary.bit_slices.len(), 64);
+    for position in summary.values_at_r.clone().chain(summary.bit_slices.clone()) {
+        let mut proof = fixture.proof.clone();
+        proof.stream[position] += E::new(0, 1);
+        assert_eq!(
+            verify_execution(fixture.program.bytecode(), &fixture.public_input_bytes, &proof).map(|_| ()),
+            Err(VerifierError::LinkTerminal),
+            "scalar {position}"
+        );
     }
 }

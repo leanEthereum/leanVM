@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.B1.Opening.QueriesT
-public import LeanVM.Guest.Pow
 
 /-!
 # The walks' certificates, checked
@@ -75,25 +74,17 @@ def mainSem (C : Cert) (s : Oq) : List (ℕ × List ℕ) :=
 def mainOk (C : Cert) (s : Oq) : Bool :=
   C.sem == mainSem C s && C.cuts.all (mainCutOk C s)
 
-/-- The word `l` is `g^e` for `e < 2^20`, on words in `ℕ` (`Pow.gpowN`). -/
-def isGPow (l e : ℕ) : Bool := Nat.blt e 1048576 && Nat.beq l (Pow.gpowN e)
-
-theorem isGPow_sound {l e : ℕ} (h : isGPow l e = true) : K.ofBits l = gpowK e := by
-  simp only [isGPow, Bool.and_eq_true, Nat.blt_eq] at h
-  rw [Nat.eq_of_beq_eq_true h.2, Pow.ofBits_gpowN, Pow.gpowW_eq h.1,
-    gpowK_eq (lt_trans h.1 (by unfold u128Bound; norm_num))]
-
 /-- A cut of `level_queries`: no bound, its tuples those of its call of `opening_queries` on the
 window pointers' cell `7`: the specialization's walk for `odd`, conditional on `n_iters_g`'s cell
 holding the one-limb word `g^n`; at level 0 also `OqStartP` for the other `odd`, conditional on
 `odd_g`'s holding `g^odd` (vacuous), and `odd_g ∈ {1, g}` on the same condition. -/
 def lqCutOk (n odd base pd : ℕ) (c : Cut) : Bool :=
   c.known.isEmpty && c.knownIf.isEmpty && c.sems.all fun t ↦
-    (t.1 == impTag (oqTag (2 + base) odd pd) 1 (impImm t.1) && isGPow (impImm t.1) n &&
+    (t.1 == impTag (oqTag (2 + base) odd pd) 1 (impImm t.1) && decide (K.ofBits (impImm t.1) = gpowK n) &&
       t.2.length == (if base = 1 then 3 else 2) && t.2.getD 0 0 == 7) ||
     (base == 1 && t.1 == impTag (oqTag 3 (1 - odd) pd) 2 (impImm t.1) &&
-      isGPow (impImm t.1) odd && t.2.length == 3 && t.2.getD 0 0 == 7) ||
-    (base == 1 && t.1 == impTag tagOdd 0 (impImm t.1) && isGPow (impImm t.1) odd &&
+      decide (K.ofBits (impImm t.1) = gpowK odd) && t.2.length == 3 && t.2.getD 0 0 == 7) ||
+    (base == 1 && t.1 == impTag tagOdd 0 (impImm t.1) && decide (K.ofBits (impImm t.1) = gpowK odd) &&
       t.2.length == 1)
 
 /-- `level_queries`' certificate: its windows (`lqTag`) on `win_ptrs` (cell `7`) assumed, a query

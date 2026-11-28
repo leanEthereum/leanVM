@@ -60,9 +60,8 @@ def carried : List (String × ℕ × Kd) :=
   [(name% «main_loop0», 2, .inK), (name% «main_loop0», 3, .inK),
     (name% «main_loop1», 2, .inK), (name% «main_loop1», 3, .inK),
     (name% «main_loop4», 9, .inK), (name% «main_loop4», 14, .tab), (name% «verify_sub», 4, .tab),
-    (name% «log2_ceil_in_the_exponent__L0_L34», 1, .tab),
-    (name% «log2_ceil_in_the_exponent__L16_L34», 1, .tab), (name% «certify_placement», 1, .tab),
-    (name% «verify_tables», 12, .tab)]
+    (name% «certify_stack», 1, .tab), (name% «log2_ceil_in_the_exponent__L16_L34», 1, .tab),
+    (name% «hint_stream», 0, .inK), (name% «hint_stream_loop0», 2, .inK)]
 
 /-- A function's carried values of a fact, and its loop counter for `K`. -/
 def cvars (fn : Fn) (kd : Kd) : List V :=
@@ -93,12 +92,15 @@ def scanCall (p : String → List V → List V → Bool) : List Stmt → Bool
   | s :: ss => (match s with | .call f args rets => p f args rets | _ => false) ||
       (Memory.Stmt.noRet s && scanCall p ss)
 
-/-- The depth `kOf` searches. -/
+/-- The depth `kIn` searches. -/
 abbrev kDepth : ℕ := 8
+
+/-- The depth `kOf` searches: `hint_stream_loop0`'s chunk pointer `stream·xc^256` is `9` products deep. -/
+abbrev pinDepth : ℕ := 9
 
 /-- **A value of `fn` pinned for a fact.** -/
 noncomputable def pin (fn : Fn) : Kd → V → Bool
-  | .inK, v => kOf (cvars fn .inK) (spine fn.body) kDepth v
+  | .inK, v => kOf (cvars fn .inK) (spine fn.body) pinDepth v
   | .tab, v => (cvars fn .tab).contains v ||
       scanCall (fun f args rets => f == "exponent_tables" && args.isEmpty && rets == [v]) fn.body
 
@@ -111,7 +113,7 @@ noncomputable def siteC (fn : Fn) (f : String) (args _rets : List V) : Bool :=
 /-- A heap witness pointer: pinned by the spine, or in `K` by `kOf` and written from offset `0`. -/
 noncomputable def witAtomC (fn : Fn) (sp : List Atom) : Atom → Bool
   | .hint (.witness _ (.heap p off len)) =>
-      ptrOk sp p || (kOf (cvars fn .inK) sp kDepth p && off == 0 && Nat.blt 0 len)
+      ptrOk sp p || (kOf (cvars fn .inK) sp pinDepth p && off == 0 && Nat.blt 0 len)
   | _ => true
 
 /-- **The carried facts' check of one function.** -/

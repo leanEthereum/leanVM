@@ -25,7 +25,7 @@ whose error is `N / |E|` grinds `grindingBits N` bits, and `grindingBits_discoun
 that grind (`Spec.grindP`'s side condition, the follower's lead `N / |E|`).
 
 `q.StartsSample R`: `q` starts with a challenge, or returns at once a value satisfying `R`, what
-the follower of a program that may end on a grind must do (`EndToEnd.Sound.Moves`).
+the follower of a program that may end on a grind must do (`Compile.Moves`).
 -/
 
 namespace LeanVM.Protocol.Compile
@@ -85,15 +85,18 @@ theorem grindingBits_eq_zero_of_le {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0
 
 namespace VerifierProgram
 
-/-- `q` starts with a challenge, or returns at once a value satisfying `R`. -/
+/-- `q` starts with a challenge, or a packed draw of at least one, or returns at once a value
+satisfying `R`. -/
 def StartsSample (R : α → Prop) : VerifierProgram α → Prop
   | sample _ => True
+  | samplePacked n _ => 0 < n
   | ret a => R a
   | _ => False
 
 theorem StartsSample.mono {R R' : α → Prop} (hR : ∀ a, R a → R' a) :
     ∀ {q : VerifierProgram α}, q.StartsSample R → q.StartsSample R'
   | sample _, _ => trivial
+  | samplePacked _ _, h => h
   | ret a, h => hR a h
 
 end VerifierProgram

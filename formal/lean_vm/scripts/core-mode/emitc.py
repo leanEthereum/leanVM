@@ -15,8 +15,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I
 import heapc as C
+import subrs
 
 PTSMAX = 4096
+PTSU_FACT = 256   # `ptsU`: the bounds `fact` is asked for, past a run's lower bound
 # a pointer fact at a word whose cells one run in scope holds: that run's witness after `pts` (`ptsWR`), not a point
 # witness per offset; the core route's certificates (`callc.py`) only
 WORD_RUN = False
@@ -201,6 +203,28 @@ def conds_of(paths):
 
 # `callcres`: the residuals its families take (`None`: any)
 RES_FILTER = [None]
+# functions whose runs needed may also be made up (`drv`) without the `der` feature (`callcres.cs_reads`' stream runs)
+DRV_ALSO = [None]
+
+
+def ghosts_used(G, np):
+    """The ghost slots `j` (slot `np + j`) a callee's preconditions are over (`preR`, `preP`, `prePR`)."""
+    def cb(c):
+        return {b for b, _ in c[0]}
+
+    def ib(x):
+        return set() if x[0] == 'num' else {x[1]} if x[0] == 'val' else cb(x[1])
+
+    def rb(r):
+        return cb(r[0]) | ib(r[2]) | ib(r[3])
+    s = set()
+    for r in G.preR:
+        s |= rb(r)
+    for c, _ in G.preP:
+        s |= cb(c)
+    for r, _ in G.prePR:
+        s |= rb(r)
+    return {b - np for b in s if np <= b < np + G.ghosts}
 
 
 class Solver:
@@ -578,6 +602,8 @@ class Solver:
         if w is not None:
             return w
         w = self.cursor(st, c)
+        if w is None:
+            w = self.sympt(st, c)
         if w is not None or depth or 'der' not in I.F:
             return w
         # a run in scope made up for the read (`ptOkD`)
@@ -869,6 +895,9 @@ class Solver:
                 ws.append(w)
             else:
                 return ws
+        w = self.pts_upto(st, Q)
+        if w is not None:
+            return w
         # last, a run in scope rebased onto this base (`runRunS`)
         for r in sorted(st.rs, reverse=True):
             R2 = C.shiftR(Q, st.rs[r])
@@ -876,7 +905,89 @@ class Solver:
             if f is not None:
                 self.stats['shift'] += 1
                 return [('run', r, f)]
+        return self.symsub(st, Q)
+
+    # the bounds a fact `e(v) < n` is asked at, least first (`symsub`)
+    SYM_NS = tuple(range(1, 65)) + tuple(2 ** k for k in range(7, 34))
+
+    def symfact(self, st, v):
+        """The least `n` of a fact `e(v) < n` the solver gives (`fact`), and its residuals."""
+        for n in self.SYM_NS:
+            f = self.fact(st, (((v, 1),), 0), ((), n))
+            if f is not None:
+                return n, f
         return None
+
+    def sympt(self, st, c):
+        """`c` the one cell of the run `⟨c, 1, 0, 1⟩`, inside a constant run in scope by `symsub`."""
+        ws = self.symsub(st, (c, 1, ((), 0), ((), 1)))
+        return ws[0] if ws else None
+
+    def symsub(self, st, Q):
+        """`Q = ⟨[b·Π vᵢ^aᵢ]·g^o, S, lo, hi⟩` inside a constant run `⟨[b]·g^o', 1, l, N⟩` in scope, the exponents of the
+        `vᵢ` and of `hi` below the bounds of facts (`subRS`): the residual `subR Q R` stated with those facts (under the
+        site's path)."""
+        base, S, lo, hi = Q
+        if not base[0]:
+            return None
+        g = tuple(dict.fromkeys(self.X.path))
+        q = (base, S, self.idx(st, lo), self.idx(st, hi))
+        if C.runF(st.env, q) != Q:
+            return None
+        for r in sorted(st.rs, reverse=True):
+            R = st.rs[r]
+            (rb, ro), S2, rl, rh = R
+            if S2 != 1 or rl[0] or rh[0] or not rb or tuple(base[0][:len(rb)]) != tuple(rb) or ro > base[1]:
+                continue
+            Rr = (R[0], 1, ('num', rl[1]), ('num', rh[1]))
+            if C.runF(st.env, Rr) != R:
+                continue
+            vs = [v for v, _ in base[0][len(rb):]]
+            if q[3][0] == 'val':
+                vs.append(q[3][1])
+            elif q[3][0] == 'mono':
+                vs += [v for v, _ in q[3][1][0]]
+            uses, L = [], []
+            for v in dict.fromkeys(vs):
+                nf = self.symfact(st, v)
+                if nf is None:
+                    break
+                uses += nf[1]
+                L += [self.H.res[i] for i in nf[1]]
+            else:
+                res = ('subR', q, Rr)
+                wr = ('under', g, res) if g else res
+                if not subrs.sub_rs(L, wr):
+                    continue
+                self.stats['symsub'] += 1
+                return [('run', r, sorted(set(uses + [self.use(('symsub', q, Rr, g), wr)])))]
+        return None
+
+    def pts_upto(self, st, Q):
+        """`ptsU n res`: a constant lower bound, a fact `(hi, g^(n + 1))` (the least in scope, else the least of `fact`'s
+        within `PTSU_FACT` past the lower bound), a point witness at each cell from the lower bound to `n`."""
+        base, S, lo, hi = Q
+        if lo[0] or lo[1] >= C.CAPE or not hi[0]:
+            return None
+        fs = sorted((b[1], self.src(x)) for b, x in self.fidx(st)[0].get(hi, ()) if not b[0] and 0 < b[1] < C.CAPE)
+        if not fs:
+            for h in range(lo[1] + 1, lo[1] + PTSU_FACT):
+                f = self.fact(st, hi, ((), h))
+                if f is not None:
+                    fs = [(h, f)]
+                    break
+        if not fs or fs[0][0] - 1 - lo[1] > PTSMAX:
+            return None
+        n, f = fs[0][0] - 1, fs[0][1]
+        ws = [None]
+        for j in range(lo[1], n):
+            w = self.pt(st, C.cshift(base, S * j))
+            if w is None:
+                return None
+            ws.append(w)
+        ws[0] = ('ptsU', n, f)
+        self.stats['ptsU'] += 1
+        return ws
 
     def negshift(self, st, Q):
         """`Q = ⟨B, 1, g^k, X⟩` and a run `⟨B·g^k, 1, g^0, X·v⟩` in scope, `v` a constant `g^-k` (`infer.assemble`):
@@ -1038,6 +1149,11 @@ class Solver:
                     all(e % S0 == 0 for _, e in R[3][0]):
                 # a stride-1 run whose bound is an `S0`-th power: its residue `0` (`coarse`) ends at the root
                 ks.append((tuple((b, e // S0) for b, e in R[3][0]), R[3][1] // S0))
+        for R in st.rs.values():
+            if R[0][0] == base[0] and S0 and R[1] % S0 == 0 and R[1] > S0 and R[0][1] > base[1] and \
+                    (R[0][1] - base[1]) % S0 == 0 and R[2] == ((), 0) and hi[0]:
+                # a coarser run starting a constant index in: the points before it, split at `g^t`
+                ks.append(((), (R[0][1] - base[1]) // S0))
         neg = I.neg_pows(self.P)
         for R in st.rs.values():
             if neg and R[0][0] == base[0] and R[1] == S0 == 1 and R[2] == ((), 0) and R[0][1] > base[1]:
@@ -1201,8 +1317,12 @@ class Solver:
             ws.append(w)
         for r in G.preR:
             t = C.instR(ms, r)
-            w = self.run(st, t) if t is not None else None
-            if w is None and t is not None and ('der' in I.F or 'chain' in I.F):
+            # a run over a merged run's base (`callcres.cs_reads`) made up first: the point-by-point witnesses of `run`
+            # (`pts_upto`) would search each of its cells
+            w = self.drv_merged(st, t) if t is not None and hasattr(self, 'drv_merged') else None
+            if w is None:
+                w = self.run(st, t) if t is not None else None
+            if w is None and t is not None and ('der' in I.F or 'chain' in I.F or (DRV_ALSO[0] and DRV_ALSO[0](self.k))):
                 w = self.drv(st, t)
             if w is None:
                 self.miss.append((where, 'preR', t))
@@ -1584,7 +1704,6 @@ class Solver:
 
     def tail(self, pas, st, mp, mx, ex, ei):
         G = self.X.sig
-        X = self.X
         ws = []
         for c in G.post:
             w = None
@@ -1658,9 +1777,13 @@ def solve(k, P, sigs, sigOf, fa_extra=()):
     H = C.HCert(sigs[k])
     H.fas = C.fa_pairs(I.CORE[k][1]) + list(fa_extra)
     H.dups = sorted(getattr(P, 'dups', ()))
+    # the function's equation residuals (its rule file's `RES_EQ`), kept from the start
+    import fnrules
+    H.res = [('eq', a, b) for a, b in (fnrules.table('RES_EQ') or {}).get(k, ())]
     S = Solver(k, P, H, sigs)
     S.miss = []
     X_ = C.X(dict(I.POWS), H, sigOf, params, S)
+    X_.path = I.arm_path(k)
     S.X = X_
     # `heapc.heapOkC` builds its own `X`: run the pass on ours
     pas = run_pass(X_, params, body)
@@ -1691,6 +1814,8 @@ def wit_res(w, f):
         return (k, w[1], w[2], [f(i) for i in w[3]])
     if k == 'drv':
         return (k, w[1], [f(i) for i in w[2]])
+    if k == 'ptsU':
+        return (k, w[1], [f(i) for i in w[2]])
     if k == 'der':
         return (k, w[1], [f(i) for i in w[2]], tuple(wit_res(x, f) for x in w[3]))
     return w
@@ -1705,6 +1830,7 @@ def compact(H):
         return i
     for w in list(H.reads.values()) + [w for ws in H.calls + H.rets for w in ws]:
         wit_res(w, see)
+    used |= {i for i, r in enumerate(H.res) if r[0] == 'eq'}
     new = {i: n for n, i in enumerate(sorted(used))}
     H.res = [H.res[i] for i in sorted(used)]
     H.reads = {k: wit_res(w, new.__getitem__) for k, w in H.reads.items()}
@@ -1737,6 +1863,8 @@ def run_pass(X_, params, body):
         st.pushR(r)
     for p in prs:
         st.pushPR(p)
+    st.eqs = C.resEqs(X_.H.res)
+    C.seedEnv(st.env, st.eqs)
     if not G.term:
         P.block(C.dupB(X_.H.dups, body) if X_.H.dups else body, st)
     elif len(G.term) == 1 and G.term[0][0] == ('val', 0) and (G.term[0][1] == ('val', 1) or G.term[0][1][0] == 'num'):
@@ -1758,7 +1886,7 @@ def run_pass(X_, params, body):
 def check(k, H, sigOf):
     params, body = I.CORE[k][0], I.arm_body(k)
     try:
-        C.heapOkC(dict(I.POWS), sigOf, k, params, body, H)
+        C.heapOkC(dict(I.POWS), sigOf, k, params, body, H, path=I.arm_path(k))
         return None
     except C.Fail as e:
         return e.args[0]
@@ -1793,6 +1921,8 @@ def lres(r):
         return f'.sub {lcell(r[1])} {lrun(r[2])}'
     if r[0] == 'subP':
         return f'.subP {lcell(r[1])} [{", ".join(map(lcell, r[2]))}]'
+    if r[0] == 'eq':
+        return f'.eq {lcell(r[1])} {lcell(r[2])}'
     return f'.subR {lrun(r[1])} {lrun(r[2])}'
 
 
@@ -1812,6 +1942,8 @@ def lwit(w):
         return f'.mrg {w[1]} {lnums(w[2])}'
     if k in ('pts', 'empty'):
         return f'.{k}'
+    if k == 'ptsU':
+        return f'.ptsU {w[1]} {lnums(w[2])}'
     if k == 'perm':
         return f'.perm {w[1]} {lnums(w[2])}'
     if k == 'evs':

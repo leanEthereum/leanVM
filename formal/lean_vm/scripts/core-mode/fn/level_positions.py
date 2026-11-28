@@ -54,6 +54,55 @@ def fam(k, r):
     """`e(squeezes_g) > 1` (`CoreMode.Own.level_positions.fams`, carried down with its lower bound `2`): its loop writes
     the rows from `2`."""
     import fnrules, infer
+    if r[0] != 'lt':
+        return False
     p = fnrules.param('level_positions', 'squeezes_g')
-    return k in _R.lean_def('level_positions', 'Data', 'names') and r == ('lt', ('num', 1), ('val', p)) and \
-        infer.CORE[k][0][p:p + 1] == [p]
+    if '_names' not in _FAM:
+        _FAM['_names'] = set(_R.lean_def('level_positions', 'Data', 'names'))
+    return k in _FAM['_names'] and r == ('lt', ('num', 1), ('val', p)) and infer.CORE[k][0][p:p + 1] == [p]
+
+
+_FAM = {}
+
+
+# ---- contracts of the specializations new to Hotwire's guest, in the bus era's shape (`level_positions__L12_L6`'s):
+# the positions and window pointers of the first word, `[0, pw)`, and of the loop's words, `pw` apart from `1` to
+# `e(squeezes_g)`, each pointer at its query's `n_win` windows; the tables' runs as `decode_query_windows` reads them
+from fnrules import guest_const as _gc
+from sigseed import sig as _sig, cell as _cell, num as _num, ex as _ex, run as _run, ptrs as _ptrs, lt_fact as _lt
+
+_F, _QW = _gc('FIELD_BITS'), _gc('QW')
+
+
+def _r(o, lo, hi, S=1, d=0):
+    return _run(_cell(0, [(o, 1)]), lo, hi, S, d)
+
+
+def _shape(d, c):
+    return _F // d, (d - c + _QW - 1) // _QW + 2
+
+
+def _body(d, c):
+    pw, nw = _shape(d, c)
+    tabs = [_r(10, _num(0), _num(n)) for n in (2, 64, 128)]
+    later = lambda o: [_r(o, _num(1), _ex(11), pw, j) for j in range(pw)]
+    wins = [_r(9, _num(0), _num(pw))] + later(9)
+    return _sig(range(12), None, [12, 13, 14, 15, 16], preR=tabs,
+                postR=[_r(8, _num(0), _num(pw))] + later(8) + wins + tabs, postP=[_ptrs(w, range(nw)) for w in wins])
+
+
+def _loop(d, c):
+    pw, nw = _shape(d, c)
+    row = [('⟨0, %d, [((.fr 2), %d), ((.fr 4), 1)]⟩' % (i, _gc('FS_CELLS'))) for i in range(_gc('FS_CELLS'))]
+    it = lambda o, S, j: _r(o, _ex(2), _ex(3), S, j)
+    wins = [it(6, pw, j) for j in range(pw)]
+    return _sig(range(8), 8, [], pre=row, preR=[_r(7, _num(0), _num(n)) for n in (2, 64, 128)],
+                term=[_lt(_ex(2), _ex(3))],
+                postL=[it(4, 5, 5 + i) for i in range(5)] + [it(5, pw, j) for j in range(pw)] + wins,
+                postLP=[_ptrs(w, range(nw)) for w in wins])
+
+
+# and `(14, 2)`, whose bus era contract gave each query `9` windows (Hotwire's give it `4`)
+NEW = [(9, 3), (10, 4), (11, 5), (14, 8), (14, 2)]
+CONTRACTS.update({'level_positions__L%d_L%d' % dc: _body(*dc) for dc in NEW})
+CONTRACTS.update({'level_positions__L%d_L%d_loop0' % dc: _loop(*dc) for dc in NEW})

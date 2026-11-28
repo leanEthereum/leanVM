@@ -2,20 +2,22 @@
   LeanVM.Guest.EndExecCoreSplit
 
   The `split` family (`CoreMode.splitRes`) sound: a function's `g`-power split from its hinted bits on every
-  returning path (`SplitW`, each function's own: `CoreMode/Fn/<f>/Sound.lean`), and the residuals a split gives.
+  returning path (`SplitW`, each function's own: `CoreMode/Fn/<f>/SoundA.lean`), and the residuals a split gives, at the honest
+  instances of b2c's aligned tree (`splitRes_instA`).
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.HeapCSound
+public import LeanVM.Guest.EndExecInstA
 
 /-!
 # Split `g`-powers
 
 A function hints the bits of its `n = g^c` and asserts `n = q^S·r`, `q` and `r` the products of the high and the low
 bits' factors; booleanity pins each bit, so `q = g^a`, `r = g^b`, `a < A`, `b < S` and `c = S·a + b` (`SplitW`, each
-function's own: `rs_eq_run`'s, `shared_selector_tables`'). The monomials the heap certificate names `q` and `r` by are
+function's own: `rs_eq_run`'s, `ring_rows`'). The monomials the heap certificate names `q` and `r` by are
 the products of the factors' values (`SplitC.q`, `SplitC.r`).
 
 `splitRes_sound`: at such a valuation, a split's residuals hold: exponent bounds from `a < A`, `b < S`; under the arm
@@ -90,6 +92,16 @@ theorem splitRes_sound {sp : SplitC} {σ : Val} {a b : ℕ} (hs : SplitV sp σ a
       exact ⟨sp.S * a + off, N, split_rep hq (by omega), CoreMode.rep_const hN, by omega⟩
     · have := hs.hb
       exact ⟨b + off, N, split_rep hs.hr (by omega), CoreMode.rep_const hN, by omega⟩
+  | .lt (.val v) (.num N), cs, _, h => by
+    simp only [splitRes, Bool.and_eq_true, decide_eq_true_eq] at h
+    obtain ⟨⟨rfl, hN⟩, hSA⟩ := h
+    have ha := hs.ha
+    have hb := hs.hb
+    have h1 : sp.S * (a + 1) ≤ sp.S * sp.A := Nat.mul_le_mul_left _ (by omega)
+    rw [Nat.mul_add, mul_one] at h1
+    refine ⟨sp.S * a + b, N, ?_, CoreMode.rep_const hN, by omega⟩
+    simp only [idxC, CoreMode.valW_baseC, vw, hs.hn, Value.gen_pow_eq_ofK]
+    exact rep_of hs.hcap
   | .lt (.mono ⟨bs, off⟩) (.val n), cs, hcs, h => by
     simp only [splitRes, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
     obtain ⟨⟨rfl, rfl⟩, c, hc, hcx⟩ := h
@@ -131,8 +143,19 @@ theorem splitRes_sound {sp : SplitC} {σ : Val} {a b : ℕ} (hs : SplitV sp σ a
   | .under cs' r, cs, hcs, h => fun hcs' ↦ by
     simp only [splitRes] at h
     exact splitRes_sound hs r (cs ++ cs') (fun c hc ↦ (List.mem_append.mp hc).elim (hcs c) (hcs' c)) h
-  | .lt (.val _) _, _, _, h | .lt (.num _) _, _, _, h | .lt (.mono _) (.mono _), _, _, h | .nz _, _, _, h
-  | .sub _ _, _, _, h | .subP _ _, _, _, h => by simp [splitRes] at h
+  | .lt (.val _) (.val _), _, _, h | .lt (.val _) (.mono _), _, _, h | .lt (.num _) _, _, _, h | .lt (.mono _) (.mono _), _, _, h | .nz _, _, _, h
+  | .sub _ _, _, _, h | .subP _ _, _, _, h | .eq _ _, _, _, h => by simp [splitRes] at h
+
+/-- **A split's residuals hold** at an honest instance of b2c's aligned tree of a function with that split
+(`SplitW`, `splitRes_sound` on its path). -/
+theorem splitRes_instA {al : String → Bool} {D : Ref → RefD} {r : Ref} (hR : RefH (layB al) (D r) r) {I : Inst}
+    (hI : I ∈ instsR al D r) {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    (ht : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn) {sp : CoreMode.SplitC}
+    (hs : SplitW fn sp) {x : CRes} (h : CoreMode.splitRes sp [] x = true) : x.Holds σ := by
+  obtain ⟨args, rets, fn', hf', -, es, vs, hw, -, hh, -⟩ := inst_validA hR hI ht
+  obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
+  obtain ⟨a, b, hv⟩ := hs r.img.read σ es vs hw hh
+  exact splitRes_sound hv x [] (by simp) h
 
 end
 

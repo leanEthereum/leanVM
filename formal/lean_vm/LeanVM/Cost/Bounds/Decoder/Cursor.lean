@@ -2,6 +2,7 @@ module
 
 public import LeanVM.Cost.Bounds.Decoder.PreTest
 public import LeanVM.Cost.Decoder.Memory
+public import LeanVM.Cost.Bounds.FieldLib
 
 /-!
 # Bound: the cursor's length, compiled
@@ -11,7 +12,8 @@ quotient `q / p` limb by limb (`limbQuotC`, an inverse in `GF(2^64)`), its logar
 at most `2^32` and `q = p · a`.
 
 **`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
-word-sized: at most `Lg + 3214`.
+word-sized: at most `Lg + 3214`. The inverse's price is the extractor's library's (`invK_cost`,
+`Bounds/FieldLib.lean`).
 -/
 
 namespace LeanVM.Cost.Bounds

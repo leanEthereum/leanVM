@@ -25,8 +25,8 @@
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E`.
 
-use crate::transcript::ProverState;
 use primitives::field::F64;
+use primitives::transcript::ProverState;
 
 use ::pcs::ood::ood_sample;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
@@ -70,7 +70,7 @@ fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
 pub struct Committed {
     /// Codeword + Merkle tree retained for opening. Public so the single stacked
     /// WHIR opening (which also discharges the Keccak reduction's claims on
-    /// this same commitment, §keccak) can reuse it.
+    /// this same commitment, [`crate::keccak`]) can reuse it.
     pub prover_data: ProverData,
     /// `log2` of the witness length in F64 words.
     pub mu: usize,
@@ -117,12 +117,12 @@ pub fn commit(
 
 // The batching challenges are just `sample()`d inside the stacked opener: every
 // claim they combine is already bound: the values rode the stream
-// (`add_scalar`) during the bus / constraint sub-protocols or, for the
+// (`add_scalar`) during the link or, for the
 // public-input claims, are functions of the seeded statement and a prior
 // challenge, the points are prior challenges, and the offsets are public
 // (reconstructed identically from the announced layout).
 
-/// Open the committed witness: discharge the `points` (leanVM's bus / constraint /
+/// Open the committed witness: discharge the `points` (leanVM's link and
 /// public-input claims and the Keccak reduction's point claim, as block-sparse
 /// slot evaluations) AND the reduction's ring-switched claim (`ring`) in ONE stacked WHIR.
 /// The points become the opener's `point_claims`; the opening's Merkle data
@@ -132,7 +132,7 @@ pub fn commit(
 /// is bound here.
 ///
 /// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
-/// sub-block (§cpu), so every opening is stacked.
+/// sub-block ([`crate::cpu`]), so every opening is stacked.
 ///
 /// The OOD sample's claim follows `points`. The opening consumes the commitment: it frees the codeword and tree once
 /// the L0 queries are answered.

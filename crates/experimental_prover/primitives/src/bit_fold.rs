@@ -76,6 +76,87 @@ impl BitFold {
     }
 }
 
+/// The most set bits a word may average for [`fold_set_bits`] to beat [`BitFold::fold_columns`] and its transpose.
+/// The GFNI fold costs a few instructions per 64 rows whatever the bits, so there it never does.
+pub const SPARSE_BITS: usize = if cfg!(all(
+    target_arch = "x86_64",
+    target_feature = "gfni",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi"
+)) {
+    0
+} else if cfg!(target_arch = "aarch64") {
+    4
+} else {
+    12
+};
+
+/// [`BitFold::fold_columns`] of `words` before their transpose, with `weights` the fold's weights: `out[p]` sums the
+/// weights of the words whose bit `p` is set, one addition per set bit. Cheaper than the byte tables when the words
+/// have few bits set, as one-hot words do.
+pub fn fold_set_bits(weights: &[F128], words: &[u64], out: &mut [F128; BLOCK]) {
+    assert_eq!(weights.len(), words.len(), "a weight per word");
+    add_set_bits(words.iter().copied().zip(weights.iter().copied()), out);
+}
+
+/// [`fold_set_bits`] from the suffix sums of the weights, `suffix[x] = sum_{y >= x} weights[y]`. Bit `p` of word `x`
+/// is the sum of bit `p` of the differences `words[y] + words[y - 1]` for `y <= x` (with `words[-1] = 0`), so
+/// `out[p]` sums `suffix[y]` over the differences whose bit `p` is set: one addition per bit that differs from the word
+/// before. Cheaper than [`fold_set_bits`] for words that change slowly, such as counters.
+pub fn fold_changed_bits(suffix: &[F128], words: &[u64], out: &mut [F128; BLOCK]) {
+    assert_eq!(suffix.len(), words.len(), "a weight per word");
+    let diffs = words.iter().scan(0, |prev, &w| Some(w ^ std::mem::replace(prev, w)));
+    add_set_bits(diffs.zip(suffix.iter().copied()), out);
+}
+
+/// [`fold_set_bits`] by whichever of set bits and changed bits the words have fewer of, the suffix sums for the
+/// changed bits summed as it goes.
+pub fn fold_sparse_bits(weights: &[F128], words: &[u64], out: &mut [F128; BLOCK]) {
+    assert_eq!(weights.len(), words.len(), "a weight per word");
+    let (set, changed) = bit_counts(words);
+    if set <= changed {
+        return add_set_bits(words.iter().copied().zip(weights.iter().copied()), out);
+    }
+    // From the last word down, so the running sum of the weights is the suffix sum.
+    let diffs = (0..words.len())
+        .rev()
+        .map(|x| words[x] ^ x.checked_sub(1).map_or(0, |y| words[y]));
+    let suffix = weights.iter().rev().scan(F128::ZERO, |sum, &w| {
+        *sum += w;
+        Some(*sum)
+    });
+    add_set_bits(diffs.zip(suffix), out);
+}
+
+/// The words' set bits and the bits each changes from the word before (the first from zero), each summed.
+pub fn bit_counts(words: &[u64]) -> (usize, usize) {
+    let (mut set, mut changed, mut prev) = (0, 0, 0);
+    for &w in words {
+        set += w.count_ones() as usize;
+        changed += (w ^ prev).count_ones() as usize;
+        prev = w;
+    }
+    (set, changed)
+}
+
+/// `out[p]` sums the weights of the words whose bit `p` is set, over the `(word, weight)` pairs.
+#[inline(always)]
+fn add_set_bits(words: impl Iterator<Item = (u64, F128)>, out: &mut [F128; BLOCK]) {
+    // Two banks, so neighbouring words that set the same bit do not wait on each other's addition.
+    let mut banks = [[F128::ZERO; BLOCK]; 2];
+    for (x, (word, w)) in words.enumerate() {
+        let bank = &mut banks[x & 1];
+        let mut bits = word;
+        while bits != 0 {
+            bank[bits.trailing_zeros() as usize] += w;
+            bits &= bits - 1;
+        }
+    }
+    for ((o, &a), &b) in out.iter_mut().zip(&banks[0]).zip(&banks[1]) {
+        *o = a + b;
+    }
+}
+
 #[cfg(any(
     test,
     not(all(
@@ -874,6 +955,53 @@ mod tests {
         check::<32>(&mut rng);
         check::<64>(&mut rng);
         check::<128>(&mut rng);
+    }
+
+    /// The set-bit fold of words against the table fold of their transpose, for sparse and dense words.
+    #[test]
+    fn fold_set_bits_matches_fold_columns() {
+        let mut rng = Rng::new(0x5E7_B175);
+        let weights: Vec<F128> = (0..1024).map(|_| rng.ext()).collect();
+        let fold = BitFold::new(&weights);
+        for dense in [false, true] {
+            let words: Vec<u64> = (0..1024)
+                .map(|_| match dense {
+                    true => rng.next_u64(),
+                    false => (0..7).fold(0, |w, i| w | 1 << (8 * i + rng.next_u32() % 8)),
+                })
+                .collect();
+            let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+            let cols: [[u8; BLOCK]; 128] = std::array::from_fn(|j| {
+                let mut col = [0u8; BLOCK];
+                crate::bits::bit_transpose_64bytes(bytes[64 * j..][..64].try_into().unwrap(), &mut col);
+                col
+            });
+            let (mut want, mut got) = ([F128::ZERO; BLOCK], [F128::ZERO; BLOCK]);
+            fold.fold_columns(&cols, &mut want);
+            fold_set_bits(&weights, &words, &mut got);
+            assert_eq!(got, want, "dense {dense}");
+            let suffix: Vec<F128> = weights
+                .iter()
+                .rev()
+                .scan(F128::ZERO, |sum, &w| {
+                    *sum += w;
+                    Some(*sum)
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            fold_changed_bits(&suffix, &words, &mut got);
+            assert_eq!(got, want, "changed bits, dense {dense}");
+            fold_sparse_bits(&weights, &words, &mut got);
+            assert_eq!(got, want, "sparse bits, dense {dense}");
+            // A counter changes few bits per word, so the changed bits win.
+            let counter: Vec<u64> = (0..1024u64).map(|x| x + 77).collect();
+            assert!(bit_counts(&counter).1 < bit_counts(&counter).0);
+            fold_set_bits(&weights, &counter, &mut want);
+            fold_sparse_bits(&weights, &counter, &mut got);
+            assert_eq!(got, want, "sparse bits of a counter");
+        }
     }
 
     /// Rows of 16 bytes against the byte-table fold, full and short blocks.

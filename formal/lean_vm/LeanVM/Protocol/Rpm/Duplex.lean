@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.Verifier.Cost
-public import LeanVM.Protocol.Compile.Rom.Complete
+public import LeanVM.Protocol.Compile.Rom.Bridge
 public import LeanVM.Protocol.WithHash
 
 @[expose] public section
@@ -262,6 +261,53 @@ theorem duplexP_absorbNonce {h : List KeccakState} {sp : Sponge} (hs : sp.state 
   exact (duplexP_absorb hs _ _).bind fun sp' h' hsp ↦ (duplexP_duplex hsp).bind
     fun sp'' h'' hsp' ↦ hsp'
 
+/-- A packed permutation keeps lanes `16..24` of its state. -/
+theorem admissibleVm_packedInput {h : List KeccakState} {state : KeccakState} (hs : state ∈ h)
+    (chunk : List E) : AdmissibleVm h (packedInput state chunk) := by
+  refine Or.inr ⟨state, hs, fun i hi ↦ ?_⟩
+  have : ¬ (i.val < 16) := by omega
+  simp [packedInput, lane_eq_getElem_fin, this]
+
+theorem duplexP_absorbPackedChunks : ∀ (fuel : ℕ) {h : List KeccakState} {state : KeccakState}
+    (_ : state ∈ h) (values : List E),
+    DuplexP (absorbPackedChunks callKeccakF1600 fuel state values) h fun st h' ↦ st ∈ h'
+  | 0, _, _, hs, _ => hs
+  | _ + 1, _, _, hs, [] => hs
+  | fuel + 1, _, _, hs, _ :: _ => by
+    simp only [absorbPackedChunks]
+    exact (duplexP_queryF_bind _ _ _ _).mpr
+      ⟨admissibleVm_packedInput hs _, fun y ↦ duplexP_absorbPackedChunks fuel List.mem_cons_self _⟩
+
+/-- A packed message: a permutation of what waits, then one permutation per chunk. -/
+theorem duplexP_observePacked {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h)
+    (values : List E) :
+    DuplexP (observePacked callKeccakF1600 sp values) h fun sp' h' ↦ sp'.state ∈ h' := by
+  simp only [observePacked]
+  split
+  · simp only [pure_bind]
+    exact (duplexP_absorbPackedChunks _ hs _).bind fun _ _ hst ↦ hst
+  · exact (duplexP_duplex hs).bind fun _ _ hsp ↦
+      (duplexP_absorbPackedChunks _ hsp _).bind fun _ _ hst ↦ hst
+
+theorem duplexP_squeezePackedChunks : ∀ (fuel : ℕ) {h : List KeccakState} {sp : Sponge}
+    (_ : sp.state ∈ h) (missing : ℕ),
+    DuplexP (squeezePackedChunks callKeccakF1600 fuel sp missing) h fun r h' ↦ r.2.state ∈ h'
+  | 0, _, _, hs, _ => hs
+  | _ + 1, _, _, hs, 0 => hs
+  | fuel + 1, _, _, hs, _ + 1 => by
+    simp only [squeezePackedChunks]
+    exact (duplexP_duplex hs).bind fun sp' h' hsp ↦
+      (duplexP_squeezePackedChunks fuel hsp _).bind fun r h'' hr ↦ hr
+
+/-- A packed draw: the ground challenge and its permutation's cells, then one permutation per
+eight challenges. -/
+theorem duplexP_samplesPacked {h : List KeccakState} {sp : Sponge} (hs : sp.state ∈ h)
+    (count : ℕ) :
+    DuplexP (samplesPacked callKeccakF1600 sp count) h fun r h' ↦ r.2.state ∈ h' := by
+  simp only [samplesPacked]
+  refine (duplexP_squeezePackedChunks _ ?_ _).bind fun r h' hr ↦ hr
+  split <;> exact hs
+
 /-! ## The verifier -/
 
 theorem hOnly_climb : ∀ (node : Digest) (q : ℕ) (path : List Digest),
@@ -313,6 +359,16 @@ theorem duplexP_run {α : Type} (P : VerifierProgram α) :
     intro s h hs
     simp only [Compile.runWithHash]
     exact (duplexP_squeeze hs).bind fun r h' hr ↦ ih _ _ _ hr
+  | readPacked n k ih =>
+    intro s h hs
+    simp only [Compile.runWithHash]
+    split
+    · exact (duplexP_observePacked hs _).bind fun sp h' hsp ↦ ih _ _ _ hsp
+    · trivial
+  | samplePacked n k ih =>
+    intro s h hs
+    simp only [Compile.runWithHash]
+    exact (duplexP_samplesPacked hs _).bind fun r h' hr ↦ ih _ _ _ hr
   | grind bits k ih =>
     intro s h hs
     simp only [Compile.runWithHash]
@@ -375,90 +431,6 @@ theorem duplexVm_verifier (prog : LeanIsaProgram) (input : PublicInput) (proof :
   change DuplexP (verifyWithHash callKeccak256 callKeccakF1600 (bytecodeWords prog) (publicInputDigest input) proof) [] _
   simp only [verifyWithHash]
   exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦ duplexP_runProof _ hs _
-
-/-! ## The honest prover -/
-
-theorem hOnly_arrayMapM {β γ : Type} (f : γ → OracleComp KeccakCalls β) (hf : ∀ c, HOnly (f c))
-    (xs : Array γ) : HOnly (xs.mapM f) := by
-  rw [Array.mapM_eq_mapM_toList, map_eq_bind_pure_comp]
-  exact (hOnly_mapM f hf _).bind fun _ ↦ trivial
-
-theorem hOnly_parentsM (level : Array Digest) (n : ℕ) : HOnly (parentsWithHash callKeccak256 level n) :=
-  hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _
-
-theorem hOnly_levelsM : ∀ (k : ℕ) (level : Array Digest), HOnly (levelsWithHash callKeccak256 k level)
-  | 0, _ => trivial
-  | k + 1, _ => (hOnly_parentsM _ _).bind fun _ ↦ (hOnly_levelsM k _).bind fun _ ↦ trivial
-
-theorem hOnly_buildTreeM (height : ℕ) (word : Word) : HOnly (buildTreeWithHash callKeccak256 height word) :=
-  (hOnly_arrayMapM _ (fun _ ↦ hOnly_queryH _) _).bind fun _ ↦
-    (hOnly_levelsM _ _).bind fun _ ↦ trivial
-
-/-- The nonce search keeps the discipline, and the sponge it searches at. -/
-theorem duplexP_searchM (bits : ℕ) (o : Bool) {h : List KeccakState} {sp : Sponge}
-    (hs : sp.state ∈ h) :
-    ∀ (count n : ℕ), DuplexP (searchM callKeccakF1600 bits o sp n count) h fun _ h' ↦ sp.state ∈ h'
-  | 0, _ => hs
-  | count + 1, n => by
-    simp only [searchM]
-    refine (duplexP_absorbNonce hs _).grow.bind fun r h' hr ↦ ?_
-    split
-    · exact hr.2 hs
-    · exact duplexP_searchM bits o (hr.2 hs) count (n + 1)
-
-theorem duplexP_findNonceM (bits : ℕ) (o : Bool) {h : List KeccakState} {sp : Sponge}
-    (hs : sp.state ∈ h) (fuel : ℕ) :
-    DuplexP (findNonceM callKeccakF1600 bits o sp fuel) h fun _ h' ↦ sp.state ∈ h' := by
-  simp only [findNonceM]
-  exact duplexP_searchM bits o hs _ _
-
-/-- **The honest prover keeps the discipline**, from a sponge whose state is an earlier answer. -/
-theorem duplexP_proveFromM (S : Strategy) (fuel : ℕ) {α : Type} (P : VerifierProgram α) :
-    ∀ (sp : Sponge) (ev : List Ev) (cs : List Tree) (h : List KeccakState), sp.state ∈ h →
-      DuplexP (proveFromM callKeccak256 callKeccakF1600 S fuel P sp ev cs) h fun _ _ ↦ True := by
-  induction P with
-  | ret a => intro sp ev cs h _; trivial
-  | fail => intro sp ev cs h _; trivial
-  | read k ih =>
-    intro sp ev cs h hs
-    simp only [proveFromM]
-    exact (duplexP_absorb hs _ _).bind fun sp' h' hsp ↦
-      (ih _ _ _ _ _ hsp).bind fun _ _ _ ↦ trivial
-  | sample k ih =>
-    intro sp ev cs h hs
-    simp only [proveFromM]
-    exact (duplexP_squeeze hs).bind fun r h' hr ↦ ih _ _ _ _ _ hr
-  | grind bits k ih =>
-    intro sp ev cs h hs
-    simp only [proveFromM]
-    refine (duplexP_findNonceM bits _ hs fuel).bind fun r h' hr ↦ ?_
-    split
-    · trivial
-    · exact (duplexP_absorbNonce hr _).bind fun r' h'' hr' ↦
-        (ih _ _ _ _ hr').bind fun _ _ _ ↦ trivial
-  | commit height width k ih =>
-    intro sp ev cs h hs
-    simp only [proveFromM]
-    refine ((hOnly_buildTreeM _ _).duplexP h).bind fun tree h' hh ↦ ?_
-    subst hh
-    exact (duplexP_absorb hs _ _).bind fun sp0 h0 hs0 ↦ (duplexP_absorb hs0 _ _).bind
-      fun sp1 h1 hs1 ↦ (ih _ _ _ _ hs1).bind fun _ _ _ ↦ trivial
-  | query i ps k ih =>
-    intro sp ev cs h hs
-    simp only [proveFromM]
-    split
-    · trivial
-    · exact (ih _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
-
-/-- **The specification's honest prover of any strategy follows the duplex discipline.** -/
-theorem duplexVm_romHonestComp (prog : LeanIsaProgram) (input : PublicInput) (S : Strategy)
-    (fuel : ℕ) :
-    DuplexVm (Rom.honestComp (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) S fuel) [] := by
-  rw [duplexVm_iff_duplexP]
-  simp only [Rom.honestComp, seedRun_leanVmSeed, proveM, bind_assoc]
-  exact (duplexP_seedWith _ _ []).bind fun seed h' hs ↦
-    (duplexP_proveFromM _ _ _ _ _ _ _ hs).bind fun _ _ _ ↦ trivial
 
 end LeanVM.Rpm
 

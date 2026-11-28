@@ -18,14 +18,28 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
+/-- A column's log-size grows with the memory's, the tables' heights fixed: only the memory's two
+columns depend on it. -/
+theorem columnKappas_getD_mono {tables : List Protocol.Verifier.Table} {κ κ' : ℕ}
+    (heights : List ℕ) (hκ : κ ≤ κ') (column : ℕ) :
+    (Protocol.Verifier.columnKappas tables κ heights).getD column 0 ≤
+      (Protocol.Verifier.columnKappas tables κ' heights).getD column 0 := by
+  unfold Protocol.Verifier.columnKappas
+  rcases column with _ | _ | column
+  · simpa using hκ
+  · simpa using hκ
+  · simp
+
 /-- The committed size grows with the memory, the counts equal. -/
 theorem committedSize_mono {prog : LeanIsaProgram} {e e' : Execution prog}
     (hκ : e.logMemorySize ≤ e'.logMemorySize) (hc : ∀ op, e.opcodeCount op = e'.opcodeCount op) :
     e.committedSize ≤ e'.committedSize := by
+  have hh : e.tableLogHeights = e'.tableLogHeights := by
+    simp only [Execution.tableLogHeights, Execution.tableRows, funext hc]
   unfold Execution.committedSize
-  simp only [hc]
-  have := Nat.pow_le_pow_right (by norm_num : 0 < 2) hκ
-  omega
+  rw [hh]
+  refine List.sum_le_sum fun b _ ↦ Nat.pow_le_pow_right (by norm_num) ?_
+  exact columnKappas_getD_mono _ hκ _
 
 /-- **The executor is complete, within the reference's committed size**: under
 `execute_complete`'s hypotheses, and an invariant keeping `used` within `2^κ`, the executor returns

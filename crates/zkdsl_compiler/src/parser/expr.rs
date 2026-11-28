@@ -191,9 +191,7 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
 /// Combine one tier's operands left-associatively: `node` builds the AST node
 /// for each operator (as [`split_add`] / [`split_mul`] tag it).
 fn fold_ops(segs: &[&str], ops: &[u8], node: impl Fn(u8, Arc<Expr>, Arc<Expr>) -> Expr) -> Result<Expr, String> {
-    // An empty operand is an operator missing a side: a leading `-`, a trailing
-    // operator, or two in a row. Naming it beats letting `parse_expr("")` report
-    // an empty backtick, which is what every one of these used to say.
+    // An empty operand is an operator missing a side: a leading `-`, a trailing operator, or two in a row.
     if let Some(i) = segs.iter().position(|seg| seg.trim().is_empty()) {
         let (op, side) = if i == 0 {
             (ops[0], "left")
@@ -350,9 +348,8 @@ pub(super) fn split_assign(s: &str) -> Option<(&str, &str)> {
 /// The operator's `=` must sit at depth 0 and be immediately preceded by
 /// exactly the operator characters.
 ///
-/// The unsupported spellings must be REJECTED rather than declined: falling
-/// through left [`split_assign`] to split the bare `=`, so `x /= 2` became a
-/// binding named `x /` and the program silently kept the old `x`.
+/// The unsupported spellings are rejected rather than declined, so that [`split_assign`] never binds `x /` from
+/// `x /= 2`.
 pub(super) fn split_aug(s: &str) -> Result<Aug<'_>, String> {
     let b = s.as_bytes();
     for (i, c) in depth0(s) {

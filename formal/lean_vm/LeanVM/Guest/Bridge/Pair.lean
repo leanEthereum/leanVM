@@ -234,8 +234,8 @@ theorem allocDsts_of_mem {es : List Ev} {a : Atom} {p : V} (ha : Ev.atom a ∈ e
 
 /-- **What the data check gives of a computed hint on a path**: its frame values at their
 certificate cells in the frame or at hint-only cells in it, its buffer from offset `0`, of length in `(0, 2^30)`, its pointer at
-its certificate cell or a hint-only cell, allocated on the path and written whole by a heap hint on
-it. -/
+its certificate cell or a hint-only cell, allocated or loaded through on the path, and written whole
+by a heap hint on it. -/
 theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {body : List Stmt}
     (hc : pairChk extra locs n body = true) {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs)
     {h : Core.Hint} (hh : Ev.atom (.hint h) ∈ es) (hcomp : compHint h = true) :
@@ -244,7 +244,8 @@ theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {b
     ∀ p off len, hintBuf h = some (p, off, len) → off = 0 ∧ 0 < len ∧ len < 2 ^ 30 ∧
       ((extra.lookup p.idx = none ∧ p.idx < 2 ^ 30 ∧ 2 ≤ locs.getD p.idx 0 ∧ locs.getD p.idx 0 < n) ∨
         (extra.lookup p.idx).isSome) ∧
-      p ∈ allocDsts es ∧ ∃ a, Ev.atom a ∈ es ∧ atomHeapDest? a = some (p, off, len) := by
+      (p ∈ allocDsts es ∨ ∃ d off', Ev.atom (.load d p off') ∈ es) ∧
+        ∃ a, Ev.atom a ∈ es ∧ atomHeapDest? a = some (p, off, len) := by
   have hcell : ∀ v, cellOk extra locs n v = true →
       extra.lookup v.idx = none ∧ v.idx < 2 ^ 30 ∧ 2 ≤ locs.getD v.idx 0 ∧ locs.getD v.idx 0 < n := fun v hv ↦ by
     simp only [cellOk, Bool.and_eq_true, Option.isNone_iff_eq_none, Nat.ble_eq, Nat.blt_eq] at hv
@@ -263,9 +264,16 @@ theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {b
   rw [hb] at h2
   simp only [bufOk, Bool.and_eq_true, Nat.beq_eq, Nat.blt_eq, Bool.or_eq_true, List.any_eq_true,
     beq_iff_eq] at h2
-  obtain ⟨⟨⟨⟨⟨h0, hl1⟩, hl2⟩, hcl⟩, ⟨a1, ha1, hal⟩⟩, ⟨a2, ha2, had⟩⟩ := h2
-  exact ⟨h0, hl1, hl2, hcl.imp (hcell p) id,
-    allocDsts_of_mem (spine_on_path body hw a1 ha1) hal, a2, spine_on_path body hw a2 ha2, had⟩
+  obtain ⟨⟨⟨⟨⟨h0, hl1⟩, hl2⟩, hcl⟩, hin⟩, ⟨a2, ha2, had⟩⟩ := h2
+  refine ⟨h0, hl1, hl2, hcl.imp (hcell p) id, ?_, a2, spine_on_path body hw a2 ha2, had⟩
+  rcases hin with ⟨a1, ha1, hal⟩ | ⟨a1, ha1, hl⟩
+  · exact Or.inl (allocDsts_of_mem (spine_on_path body hw a1 ha1) hal)
+  · cases a1 with
+    | load d q off' =>
+      simp only [loadPtr, Option.some.injEq] at hl
+      subst hl
+      exact Or.inr ⟨d, off', spine_on_path body hw _ ha1⟩
+    | _ => simp [loadPtr] at hl
 
 end
 

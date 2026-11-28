@@ -67,16 +67,21 @@ def main(check=False):
         if name.get(k) in adv and k in bpack:
             packs.setdefault(pack, []).append(k)
     want = {}
+    import compiled
+    SP = compiled.sig_pack()
     for pack, ks in sorted(packs.items()):
         ks = sorted(ks)
         a = [header(f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', 'The advice of the pack\'s functions, by stable key.'),
-             'public import Statement.Data.AdviceHints\n\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
+             'public import Statement.Data.AdviceHints\n' +
+             # Hotwire's guest-cert writes each function's index (`Fn.«k».idx`) in its pack's `Sig.lean`
+             ''.join(f'public import LeanVM.Guest.Pack.«{q}».Sig\n' for q in sorted({SP[k] for k in ks})) +
+             '\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
         c = [header(f'LeanVM.Guest.CoreMode.GlueC.«{pack}»', 'The code of the pack\'s functions, the program\'s.'),
              f'public import LeanVM.Guest.SoundFacts\npublic import LeanVM.Guest.CoreMode.GlueA.«{pack}»\n',
              ''.join(f'public import {m}\n' for m in sorted({link[adv[name[k]]] for k in ks if adv[name[k]] in link} |
                                                              {m for k in ks if tied(adv[name[k]])
                                                               for m in (tab[adv[name[k]]][0], plumb[adv[name[k]]][1])})),
-             ''.join(f'public import LeanVM.Guest.Pack.«{q}».Bundle\n' for q in sorted({bpack[k] for k in ks})),
+             ''.join(f'public import LeanVM.Guest.Pack.«{q}».B2CData\n' for q in sorted({bpack[k] for k in ks})),
              '\nset_option linter.all false\nset_option linter.style.nameCheck false\n']
         a.append('\n/-! Each function\'s entry, length and hints by pc (`advice`) and its index in the program (`idx`). -/\n\n'
                  'namespace LeanVM.Guest\n\n@[expose] public section\n\n')
@@ -84,7 +89,7 @@ def main(check=False):
                  '(`tie`). -/\n\nnamespace LeanVM.Guest\n\npublic section\n\n')
         for k in ks:
             j = adv[name[k]]
-            a.append(f'abbrev Fn.«{k}».advice := Data.adviceFn{j}\nabbrev Fn.«{k}».idx : ℕ := {j}\n')
+            a.append(f'abbrev Fn.«{k}».advice := Data.adviceFn{j}\n')
             if k in jt0:
                 a.append(f'abbrev Fn.«{k}».jt0 : ℕ := {jt0[k]}\n')
             if j in link:

@@ -120,7 +120,7 @@ theorem asg_holds_iff (C : CallRel) (rd : Reader) (σ : Val) (kret : List E → 
 theorem asg_load {rd : Reader} {q : E} (ht : ExpTables rd q) {j n : ℕ} (hj : j < 9) (hn : n < 16) :
     LoadHolds rd (q * gen ^ n) (34 + 16 * j) (gen ^ (n * 16 ^ j)) := by
   rw [loadHolds_mul_gen_pow]
-  have := ht.2.1 j hj n hn
+  have := ht.2 j hj n hn
   rwa [show sizeBits + 16 * j + n = n + (34 + 16 * j) by simp only [sizeBits]; omega] at this
 
 /-- The share of digit `j` read through `q·g^n` at `34 + 16 j`: `g^(n·16^j)`. -/

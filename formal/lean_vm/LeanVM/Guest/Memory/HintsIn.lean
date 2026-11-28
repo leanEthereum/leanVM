@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Memory.Regions
+public import LeanVM.Guest.Memory.RegionsA
+public import LeanVM.Guest.Memory.MemoryA
 public import LeanVM.Guest.Memory
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.HintsCheck
@@ -16,7 +17,7 @@ public import LeanVM.Guest.Memory.HintsCheck
 # Hint regions
 
 A hint with a heap destination (`Dest.heap p off len`; a witness entry, or a computed decomposition) writes the words `σ p · g^(off + k)`,
-`k < len`, read later or not (`heapHintAddrs`). `Tree.HintsIn P fs cert R p t`: every such word
+`k < len`, read later or not (`heapHintAddrs`). `Tree.HintsIn P fs al cert R p t`: every such word
 of an instance is in its subtree's data or the region `R` its caller hands it, a callee getting
 its caller's subtree's data and `R`, as `Tree.LoadsIn`. At the root (`hints_insts`), every heap
 hint word of a node instance is in the tree's data or `R`. `hintWords` lists them over the
@@ -39,16 +40,16 @@ def Ev.hintAddrs (σ : Val) : Ev → List K
 /-- The words a path's hints write to the heap. -/
 def heapHintAddrs (σ : Val) (es : List Ev) : List K := es.flatMap (Ev.hintAddrs σ)
 
-variable (P : Core.Program) (fs : String → ℕ) (cert : String → V → ℕ)
+variable (P : Core.Program) (fs : String → ℕ) (al : String → Bool) (cert : String → V → ℕ)
 
 mutual
 /-- **Heap hints in a region**: every heap word a hint of an instance of `t` placed from `p` writes
 is in its subtree's data or `R`; a callee's region is its caller's subtree's data and `R`. -/
 def Tree.HintsIn : (ℕ → Prop) → ℕ × ℕ → Tree → Prop
   | R, p, t@(.node f σ bufs kids) =>
-      (∀ A ∈ heapHintAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert p i ∨ R i)) ∧
-        Tree.HintsInKids (fun i => t.Data P fs cert p i ∨ R i)
-          (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids
+      (∀ A ∈ heapHintAddrs σ (t.events P), ∃ i, A = addressOfIndex i ∧ (t.DataA P fs al cert p i ∨ R i)) ∧
+        Tree.HintsInKids (fun i => t.DataA P fs al cert p i ∨ R i)
+          (kidPosA fs P.loop al p f bufs kids) kids
   | _, _, .phantom .. => True
 
 /-- `Tree.HintsIn` of the callees `ks` at `ps`. -/
@@ -66,37 +67,37 @@ noncomputable def Inst.hintAddrs (I : Inst) : List K :=
 
 /-- **The heap words the hints of a placed tree write**, over its instances. -/
 noncomputable def hintWords (H : Inst → ℕ → E × E) (hdr : E × E) (T : Tree) : List K :=
-  (honestInsts P fs H hdr T).flatMap (Inst.hintAddrs P)
+  (honestInstsA P fs al H hdr T).flatMap (Inst.hintAddrs P)
 
-variable {P fs cert}
+variable {P fs al cert}
 
 theorem hintsIn_node {R : ℕ → Prop} {p : ℕ × ℕ} {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} :
-    (Tree.node f σ bufs kids).HintsIn P fs cert R p ↔
+    (Tree.node f σ bufs kids).HintsIn P fs al cert R p ↔
       (∀ A ∈ heapHintAddrs σ ((Tree.node f σ bufs kids).events P), ∃ i, A = addressOfIndex i ∧
-        ((Tree.node f σ bufs kids).Data P fs cert p i ∨ R i)) ∧
-      Tree.HintsInKids P fs cert (fun i => (Tree.node f σ bufs kids).Data P fs cert p i ∨ R i)
-        (kidPos fs P.loop p f bufs (kids.map (Tree.sz fs P.loop))) kids := by
+        ((Tree.node f σ bufs kids).DataA P fs al cert p i ∨ R i)) ∧
+      Tree.HintsInKids P fs al cert (fun i => (Tree.node f σ bufs kids).DataA P fs al cert p i ∨ R i)
+        (kidPosA fs P.loop al p f bufs kids) kids := by
   rw [Tree.HintsIn]
 
 theorem hintsIn_phantom {R : ℕ → Prop} {p : ℕ × ℕ} {f : String} {σ : Val} :
-    (Tree.phantom f σ).HintsIn P fs cert R p := by
+    (Tree.phantom f σ).HintsIn P fs al cert R p := by
   rw [Tree.HintsIn]; trivial
 
 theorem hintsInKids_cons {R : ℕ → Prop} {p : ℕ × ℕ} {ps : List (ℕ × ℕ)} {k : Tree}
     {ks : List Tree} :
-    Tree.HintsInKids P fs cert R (p :: ps) (k :: ks) ↔
-      k.HintsIn P fs cert R p ∧ Tree.HintsInKids P fs cert R ps ks := by
+    Tree.HintsInKids P fs al cert R (p :: ps) (k :: ks) ↔
+      k.HintsIn P fs al cert R p ∧ Tree.HintsInKids P fs al cert R ps ks := by
   rw [Tree.HintsInKids]
 
 theorem hintsInKids_nil {R : ℕ → Prop} {ps : List (ℕ × ℕ)} :
-    Tree.HintsInKids P fs cert R ps [] := by
+    Tree.HintsInKids P fs al cert R ps [] := by
   cases ps <;> (rw [Tree.HintsInKids]; trivial)
 
 mutual
 /-- A larger region keeps the hints in. -/
 theorem hintsIn_mono : ∀ (t : Tree) {R R' : ℕ → Prop} (p : ℕ × ℕ), (∀ i, R i → R' i) →
-    t.HintsIn P fs cert R p → t.HintsIn P fs cert R' p
+    t.HintsIn P fs al cert R p → t.HintsIn P fs al cert R' p
   | .node f σ bufs kids, R, R', p, hR, h => by
       rw [hintsIn_node] at h ⊢
       exact ⟨fun A hA => let ⟨i, hi, h'⟩ := h.1 A hA; ⟨i, hi, h'.imp_right (hR i)⟩,
@@ -105,7 +106,7 @@ theorem hintsIn_mono : ∀ (t : Tree) {R R' : ℕ → Prop} (p : ℕ × ℕ), (�
 
 /-- `hintsIn_mono` for the callees. -/
 theorem hintsInKids_mono : ∀ (ks : List Tree) {R R' : ℕ → Prop} (ps : List (ℕ × ℕ)),
-    (∀ i, R i → R' i) → Tree.HintsInKids P fs cert R ps ks → Tree.HintsInKids P fs cert R' ps ks
+    (∀ i, R i → R' i) → Tree.HintsInKids P fs al cert R ps ks → Tree.HintsInKids P fs al cert R' ps ks
   | [], _, _, _, _, _ => hintsInKids_nil
   | _ :: _, _, _, [], _, _ => by rw [Tree.HintsInKids]; trivial
   | k :: ks, R, R', p :: ps, hR, h => by
@@ -120,39 +121,39 @@ variable {H : Inst → ℕ → E × E}
 mutual
 /-- **Every heap hint word of a node instance is in its tree's data or its region.** -/
 theorem hints_insts : ∀ (t : Tree) (R : ℕ → Prop) (p : ℕ × ℕ) (hdr : E × E),
-    t.HintsIn P fs cert R p → ∀ I ∈ t.insts fs P.loop H p hdr, ∀ A ∈ I.hintAddrs P,
-      ∃ i, A = addressOfIndex i ∧ (t.Data P fs cert p i ∨ R i)
+    t.HintsIn P fs al cert R p → ∀ I ∈ t.instsA fs P.loop al H p hdr, ∀ A ∈ I.hintAddrs P,
+      ∃ i, A = addressOfIndex i ∧ (t.DataA P fs al cert p i ∨ R i)
   | .node f σ bufs kids, R, p, hdr, h, I, hI, A, hA => by
       rw [hintsIn_node] at h
-      rw [insts_node, List.mem_cons] at hI
+      rw [instsA_node, List.mem_cons] at hI
       rcases hI with rfl | hI
       · exact h.1 A hA
       · obtain ⟨i, hi, h'⟩ := hintsKids_insts kids _ _ _ 0 h.2 I hI A hA
         refine ⟨i, hi, ?_⟩
         rcases h' with h' | h'
-        · exact Or.inl (data_node.mpr (Or.inr h'))
+        · exact Or.inl (dataA_node.mpr (Or.inr h'))
         · exact h'
   | .phantom f σ, _, p, hdr, _, I, hI, _, hA => by
-      rw [insts_phantom, List.mem_singleton] at hI
+      rw [instsA_phantom, List.mem_singleton] at hI
       subst hI
       exact (List.not_mem_nil hA).elim
 
 /-- `hints_insts` for the callees. -/
 theorem hintsKids_insts : ∀ (ks : List Tree) (R : ℕ → Prop) (ps : List (ℕ × ℕ)) (J : Inst) (j : ℕ),
-    Tree.HintsInKids P fs cert R ps ks → ∀ I ∈ Tree.instsKids fs P.loop H J j ps ks,
-      ∀ A ∈ I.hintAddrs P, ∃ i, A = addressOfIndex i ∧ (Tree.DataKids P fs cert ps ks i ∨ R i)
+    Tree.HintsInKids P fs al cert R ps ks → ∀ I ∈ Tree.instsKidsA fs P.loop al H J j ps ks,
+      ∀ A ∈ I.hintAddrs P, ∃ i, A = addressOfIndex i ∧ (Tree.DataKidsA P fs al cert ps ks i ∨ R i)
   | [], _, _, _, _, _, I, hI, _, _ => by
-      rw [instsKids_nil] at hI; exact (List.not_mem_nil hI).elim
+      rw [instsKidsA_nil] at hI; exact (List.not_mem_nil hI).elim
   | _ :: _, _, [], _, _, _, I, hI, _, _ => by
-      rw [instsKids_nil_left] at hI; exact (List.not_mem_nil hI).elim
+      rw [instsKidsA_nil_left] at hI; exact (List.not_mem_nil hI).elim
   | k :: ks, R, p :: ps, J, j, h, I, hI, A, hA => by
       rw [hintsInKids_cons] at h
-      rw [instsKids_cons, List.mem_append] at hI
+      rw [instsKidsA_cons, List.mem_append] at hI
       rcases hI with hI | hI
       · obtain ⟨i, hi, h'⟩ := hints_insts k R p _ h.1 I hI A hA
-        exact ⟨i, hi, h'.imp_left fun h => dataKids_cons.mpr (Or.inl h)⟩
+        exact ⟨i, hi, h'.imp_left fun h => dataKidsA_cons.mpr (Or.inl h)⟩
       · obtain ⟨i, hi, h'⟩ := hintsKids_insts ks R ps J (j + 1) h.2 I hI A hA
-        exact ⟨i, hi, h'.imp_left fun h => dataKids_cons.mpr (Or.inr h)⟩
+        exact ⟨i, hi, h'.imp_left fun h => dataKidsA_cons.mpr (Or.inr h)⟩
 end
 
 end Root

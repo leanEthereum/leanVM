@@ -337,9 +337,8 @@ ns, imports = AL.ns, AL.imports
 
 
 def data_mod(pack, f):
-    """The module of the function's heap certificate: the check without calls' (with its check), or the check with
-    calls'."""
-    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'lc': 'DataLC'}.get(f.get('kind'), 'Ok')
+    """The module of the function's heap certificate: the check without calls', or the check with calls'."""
+    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
 
 
 def render_pack(pack, fs):
@@ -441,24 +440,118 @@ theorem pair_ok : CoreMode.pairOk {args(k, f)} = true :=
 ''' if packed else ''}
 end
 '''))
+    # the alignment pass (the hint bridge's `Bridge.alignOk`), in windows from the same states normalized as it holds
+    # them (`CoreMode.alignKOf`), the first the pass's start
+    al = lambda n: 'pairK0' if n == 0 else f'(CoreMode.alignKOf {wctx} Fn.«{k}».core.body pairK{n})'
+    aargs = f'{wctx} Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
+    for n in range(len(ks) - 1):
+        files[os.path.join(GEN, pack, k, f'AW{n}.lean')] = (
+            HEADER(mod=f'{base}.AW{n}', what=f"`{k}`'s alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}.")
+            + imports([f'{base}.Ctx', 'LeanVM.Guest.CoreMode.AlignK']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass from offset {ks[n][0]} to {ks[n + 1][0]}. -/
+theorem alignWin{n} : Bridge.winOk {aargs} {al(n)} {al(n + 1)} = true := by
+  decide +kernel
+
+end
+'''))
+    achain = 'alignEndOk'
+    for n in reversed(range(len(ks) - 1)):
+        achain = f'(And.intro alignWin{n} {achain})'
+    files[os.path.join(GUEST, 'CoreMode', 'AlignOk', f'{k}.lean')] = (
+        HEADER(mod=f'LeanVM.Guest.CoreMode.AlignOk.«{k}»', what=f"`{k}` aligns with its body (the hint bridge's "
+                      "check), by windows from its pairing's states.")
+        + imports(['LeanVM.Guest.Bridge.AlignRun', 'LeanVM.Guest.CoreMode.AlignK', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
+                  + [f'{base}.AW{n}' for n in range(len(ks) - 1)])
+        + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass's last state is at the end. -/
+theorem alignEndOk : Bridge.chainEnd Fn.«{k}».code.code {al(len(ks) - 1)} = true := by
+  decide +kernel
+
+/-- `{k}` aligns with its body{" (its context " + wctx + ")" if packed else ""}. -/
+theorem alignOk{"P" if packed else ""} : Bridge.alignOk {aargs} = true :=
+  Bridge.alignOk_of_chain alignPreOk (ks := [{', '.join(al(n) for n in range(1, len(ks)))}])
+    {achain}
+{f'''
+/-- `{k}` aligns with its body. -/
+theorem alignOk : Bridge.alignOk alignCtx Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice = true :=
+  alignCtxEq ▸ alignOkP
+''' if packed else ''}
+end
+'''))
     return files
 
 
-def render_align(name, fs):
-    """The alignment checks (`Bridge.alignOk`) of the functions `fs` from their pairings (`CoreMode.alignOk_of_pairOk`),
-    each body below the normalization's fuel by the kernel."""
-    mods = ['LeanVM.Guest.CoreMode.PairAlign'] + [
-        f'LeanVM.Guest.CoreMode.Gen.«{p}».«{k}».Ok' if w else f'LeanVM.Guest.CoreMode.Gen.«{p}».Pair' for k, p, w in fs]
-    thms = ''.join(f'theorem Fn.«{k}».alignOk :\n    Bridge.alignOk Fn.«{k}».alignCtx Fn.«{k}».core.body Fn.«{k}».code.code '
-                   f'Fn.«{k}».advice = true :=\n  CoreMode.alignOk_of_pairOk (by decide +kernel) Fn.«{k}».pair_ok\n'
-                   for k, _, _ in fs)
-    return {os.path.join(GUEST, 'CoreMode', 'AlignOk', f'{name}.lean'): ''.join([
-        HEADER(mod=f'LeanVM.Guest.CoreMode.AlignOk.«{name}»',
-               what=(f"`{fs[0][0]}` and {len(fs) - 1} more align with their bodies" if len(fs) > 1 else
-                     f"`{fs[0][0]}` aligns with its body") + " (the hint bridge's check), from the pairing."),
-        ''.join(f'public import {m}\n' for m in sorted(set(mods))),
-        '\nset_option Elab.async false\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n'
-        'public section\n\n', thms, '\nend\n\nend LeanVM.Guest\n'])}
+def align_only(out):
+    """A long function the pairing does not take (off the core route), whose alignment `align.py` windows: its pass is
+    checked in windows from the pass's own states (`CoreMode/AlignOk/<fn>.lean`, its states in `<fn>/K.lean`)."""
+    ctxd = os.path.join(GUEST, 'Bridge', 'AlignCtx')
+    todo = sorted(k for k in (os.listdir(ctxd) if os.path.isdir(ctxd) else ())
+                  if not (k in out and out[k]['states']))
+    if not todo:
+        return {}
+    texts, bundles, advice, fns = data.core_texts(), data.bundles(), data.advice(), AL.functions()
+    pows = AL.pow_table()
+    jt = AL.jump_table(pows)
+    entry_by_name = {F['name']: F['entry'] for F in fns.values()}
+    files = {}
+    for k in todo:
+        assert not packed_ctx(k), f'pair: {k} has its cells packed but no pairing states'
+        F, B = fns[k], bundles[k]
+        A = advice[F['entry']]
+        body = AL.body_of(texts[k])
+        callees = sorted({s[1] if s[0] == 'call' else s[2] for s in AL.walk_stmts(body) if s[0] in ('call', 'callIf')} |
+                         {g for s in AL.walk_stmts(body) if s[0] == 'dispatch' for g in s[2]})
+        ents = {n: entry_by_name[n] for n in callees if n in entry_by_name}
+        n = len(F['code'])
+        cuts = list(range(0, n, WIN)) + [n]
+        _, states = AL.align(F, body, A, B['locs'], B['plumb'], pows, jt, ents, cuts)
+        f = dict(jt0=jt0_of(F))
+        ks = [states[c] for c in cuts]
+        base = f'LeanVM.Guest.CoreMode.AlignOk.«{k}»'
+        aargs = f'alignCtx Fn.«{k}».core.body Fn.«{k}».code.code Fn.«{k}».advice'
+        defs = ''.join(f"/-- `{k}`: the alignment pass's state at offset {K[0]}. -/\ndef alignK{i} : Bridge.KSt :=\n"
+                       f"  {kst(k, f, K)}\n\n" for i, K in enumerate(ks))
+        files[os.path.join(GUEST, 'CoreMode', 'AlignOk', k, 'K.lean')] = (
+            HEADER(mod=f'{base}.K', what=f"`{k}`'s alignment pass's states at its windows' ends.")
+            + imports([f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx']) + ns(k, f'''@[expose] public section
+
+{defs}end
+'''))
+        for i in range(len(ks) - 1):
+            files[os.path.join(GUEST, 'CoreMode', 'AlignOk', k, f'W{i}.lean')] = (
+                HEADER(mod=f'{base}.W{i}', what=f"`{k}`'s alignment pass from offset {ks[i][0]} to {ks[i + 1][0]}.")
+                + imports([f'{base}.K']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass from offset {ks[i][0]} to {ks[i + 1][0]}. -/
+theorem alignWin{i} : Bridge.winOk {aargs} alignK{i} alignK{i + 1} = true := by
+  decide +kernel
+
+end
+'''))
+        chain = 'alignEndOk'
+        for i in reversed(range(len(ks) - 1)):
+            chain = f'(And.intro alignWin{i} {chain})'
+        files[os.path.join(GUEST, 'CoreMode', 'AlignOk', f'{k}.lean')] = (
+            HEADER(mod=base, what=f"`{k}` aligns with its body (the hint bridge's check), by windows from the pass's "
+                                  "own states.")
+            + imports(['LeanVM.Guest.Bridge.AlignRun', f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok']
+                      + [f'{base}.W{i}' for i in range(len(ks) - 1)])
+            + ns(k, f'''public section
+
+/-- `{k}`: the alignment pass's last state is at the end. -/
+theorem alignEndOk : Bridge.chainEnd Fn.«{k}».code.code alignK{len(ks) - 1} = true := by
+  decide +kernel
+
+/-- `{k}` aligns with its body. -/
+theorem alignOk : Bridge.alignOk {aargs} = true :=
+  Bridge.alignOk_of_chain alignPreOk (ks := [{', '.join(f'alignK{i}' for i in range(1, len(ks)))}])
+    {chain}
+
+end
+'''))
+    return files
 
 
 def emit(out, check):
@@ -473,16 +566,10 @@ def emit(out, check):
             packs[po[k][0]].append(f)
     for pack, fs in sorted(packs.items()):
         files.update(render_pack(pack, fs))
-    # the hint bridge's alignment checks from the pairings: by the bridge's pack, a function with a context of its own
-    # (`Bridge/AlignCtx/<k>/`) apart
-    aligns = collections.defaultdict(list)
-    for k in sorted(out):
-        own = os.path.isdir(os.path.join(GUEST, 'Bridge', 'AlignCtx', k))
-        aligns[k if own else out[k]['bpack']].append((k, po[k][0], bool(out[k]['states'])))
-    for name, fs in sorted(aligns.items()):
-        files.update(render_align(name, fs))
+    files.update(align_only(out))
     existing = set(glob.glob(os.path.join(GEN, '*', 'Pair.lean'))) | set(glob.glob(os.path.join(GEN, '*', '*', '*.lean'))) | \
-        set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*.lean')))
+        set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*.lean'))) | \
+        set(glob.glob(os.path.join(GUEST, 'CoreMode', 'AlignOk', '*', '*.lean')))
     stale = genfiles.sync(files, existing, check)
     lines = sum(t.count('\n') for t in files.values())
     print(f'pair: {len(files)} modules, {lines} lines' + (f'; {len(stale)} stale' if check else ''))

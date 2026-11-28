@@ -7,10 +7,12 @@ public import Statement.Verifier.Lib
 
 The run of a trace through the address indices (`powIndex`, `gLogIn`: a word's index looked up in a
 hash map), recording each state stepped from, its bytecode slot and the instruction fetched there
-(`runSteps`); then the six opcode tables' rows in one pass over the steps, each read carrying its
-cell's count so far, the counters stepping by `g` in place (`rowsOf`). The address indices and the
-public boundary are the knowledge extractor's too (`lean_vm`,
-`LeanVM/Protocol/Extraction/Fast/Address.lean`, `candidateExecutionTable_eq`).
+(`runSteps`); then the six instruction tables' rows in one pass over the steps (`rowsOf`), as the
+Rust's `Table::fill` writes them (`crates/lean_vm_core/src/tables.rs`): each row's `pc` and `fp` as
+`K` words, the words it commits, and its pointers as one-hot words (`Chunks.encode`): the cycle
+pointer names the step, the bytecode pointer the instruction, and a memory pointer its cell (a block's
+pointer its first cell). The address indices and the public boundary are the knowledge extractor's
+too (`lean_vm`, `LeanVM/Protocol/Extraction/Fast/Address.lean`).
 -/
 
 @[expose] public section
@@ -46,6 +48,40 @@ def boundaryOK {prog : LeanIsaProgram} (input : PublicInput) (t : Execution prog
   else false
 
 end LeanVM.Extraction
+
+namespace LeanVM.Protocol.Verifier
+
+open LeanVM.Parameters
+
+/-! ## One-hot pointer words (`crates/lean_vm_core/src/link/pointer.rs`) -/
+
+/-- `Chunks::digit(sigma, i)`: chunk `i`'s value in the index `σ`. -/
+def Chunks.digit (chunks : Chunks) (sigma i : ℕ) : ℕ :=
+  (sigma >>> chunks.indexShifts.getD i 0) % 2 ^ chunks.widths.getD i 0
+
+/-- `Chunks::encode(sigma)`: the one-hot word of the index `σ`, chunk `i`'s value `v` the bit
+`word_shifts[i] + v`. -/
+def Chunks.encode (chunks : Chunks) (sigma : ℕ) : ℕ :=
+  ((List.range chunks.d).map fun i ↦ 2 ^ (chunks.wordShifts.getD i 0 + chunks.digit sigma i)).sum
+
+/-- `Chunks::bits(word, i)`: chunk `i`'s indicator bits of a word, at bit `0`. -/
+def Chunks.bits (chunks : Chunks) (word : ℕ) (i : ℕ) : ℕ :=
+  (word >>> chunks.wordShifts.getD i 0) % 2 ^ 2 ^ chunks.widths.getD i 0
+
+/-- `Chunks::indices(word, f)`: every index of a word, one per choice of a set bit in each chunk, the
+lowest chunk's choice varying slowest (the Rust's walk); none when a chunk has no bit set. -/
+def Chunks.indices (chunks : Chunks) (word : ℕ) : List ℕ :=
+  (List.range chunks.d).foldl (fun sigmas i ↦
+    let bits := chunks.bits word i
+    sigmas.flatMap fun sigma ↦ ((List.range (2 ^ chunks.widths.getD i 0)).filter
+      fun v ↦ (bits >>> v) % 2 = 1).map fun v ↦ sigma + v <<< chunks.indexShifts.getD i 0) [0]
+
+/-- `Chunks::shifted(sigma, s)`: the index `s` cells past `σ`, `none` past its window. -/
+def Chunks.shifted (chunks : Chunks) (sigma s : ℕ) : Option ℕ :=
+  if sigma % 2 ^ chunks.widths.getD 0 0 + s < 2 ^ chunks.widths.getD 0 0 then some (sigma + s)
+  else none
+
+end LeanVM.Protocol.Verifier
 
 namespace LeanVM.Prover
 
@@ -98,52 +134,26 @@ def runSteps (memIdx codeIdx : Std.HashMap UInt64 ℕ) (prog : LeanIsaProgram) (
   | some (acc, r) => if r = Registers.final prog then some acc else none
   | none => none
 
-/-- The number of steps of opcode `op` (`Execution.opcodeCount`, computed). -/
-def opCount (steps : Array Step) (op : Opcode) : ℕ :=
-  steps.countP fun st ↦ decide (st.ins.opcode = op)
+/-- The table of an opcode, in the tables' order (`OP_XOR` … `OP_KECCAK`, `layout.rs`). -/
+def opTableIdx : Opcode → ℕ
+  | .xor => opXor
+  | .mulNative => opMul
+  | .setConstant => opSet
+  | .deref => opDeref
+  | .jump => opJump
+  | .keccak => opKeccak
 
-/-- The committed size of an execution from its memory log-size and its counts
-(`Execution.committedSize`, with `log2Ceil` for `Nat.clog 2`). -/
-def committedSizeOf (logSize κ : ℕ) (count : Opcode → ℕ) : ℕ :=
-  let height (op : Opcode) : ℕ := 2 ^ log2Ceil (count op)
-  let keccakHeight : ℕ := 2 ^ max (log2Ceil (count .keccak)) 9
-  3 * 2 ^ κ + 2 ^ logSize +
-    13 * height .xor + 13 * height .mulNative + 7 * height .setConstant + 14 * height .deref +
-    14 * height .jump + 28 * keccakHeight + 2 ^ 6 * keccakHeight
+/-- The rows of each table a run executes (`Trace::row_counts`). -/
+def rowCounts (steps : Array Step) : List ℕ :=
+  (List.range nTables).map fun t ↦ steps.countP fun st ↦ decide (opTableIdx st.ins.opcode = t)
 
-/-- The greatest committed size the verifier admits, `2^30` (`MAX_STACKED_LOG`,
-`crates/verifier/src/layout.rs`). -/
-def maxCommitted : ℕ := 2 ^ 30
-
-/-! ## The rows -/
+/-! ## The rows (`Table::fill`, `crates/lean_vm_core/src/tables.rs`) -/
 
 /-- The limbs of the word at `a`, zero when there is none (`MemoryImage.limbsAt`, computed). -/
 def limbsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (a : K) : Vector K 2 :=
   match readIn memIdx img a with
   | some v => #v[v.limb 0, v.limb 1]
   | none => #v[0, 0]
-
-/-- The cells an instruction reads, in the order its row's reads carry them (`readAddrs`,
-computed): a `KECCAK`'s thirteen cells read, then the output cells it writes, the first
-`outCells.cellCount` (a cell it does not write keeps its count, `execute.rs`). -/
-def addrsIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (fp : K) :
-    LeanIsaInstruction → List K
-  | .xor oA oB oC | .mulNative oA oB oC | .jump oA oB oC => [fp * oA, fp * oB, fp * oC]
-  | .setConstant o _ => [fp * o]
-  | .deref o1 o2 o3 _ => [fp * o1, (limbsIn memIdx img (fp * o1))[0] * o2, fp * o3]
-  | .keccak om otail ob8 ocap oout _ _ outCells =>
-      (List.finRange 13).map (fun c ↦ fp * keccakInputCellOffset om otail ob8 ocap c) ++
-        (List.range outCells.cellCount).map fun k ↦ fp * (g ^ k * oout)
-
-/-- The counts of a sequence of reads: each read gets its cell's counter, which then steps by
-`g`, in place; the counts are pushed on `cs`. -/
-def countReads (memIdx : Std.HashMap UInt64 ℕ) (κ : ℕ) :
-    List K → Array K → Array K → Array K × Array K
-  | [], cs, ctr => (cs, ctr)
-  | a :: rest, cs, ctr =>
-    match gLogIn memIdx κ a with
-    | some i => countReads memIdx κ rest (cs.push (ctr.getD i.val 1)) (ctr.modify i.val (g * ·))
-    | none => countReads memIdx κ rest (cs.push 1) ctr
 
 /-- The cells a `KECCAK` with these operands reads at `fp`, the zero word where a read fails
 (`keccakInputCells`, computed). -/
@@ -154,68 +164,70 @@ def keccakInputIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImag
 /-- The lane `l` of a state, as a `K` word. -/
 def laneK (S : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane S l)
 
-/-- The raw row of an instruction executed from `(pc, fp)` (`rowOf`, computed): the typed row of
-its table as an array, with the read counts `c 0, c 1, …` and the bytecode count `rbc`. -/
-def rowIn (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (pc fp : K) (c : ℕ → K)
-    (rbc : K) : LeanIsaInstruction → Array K
-  | .xor oA oB oC | .mulNative oA oB oC =>
-    let vA := limbsIn memIdx img (fp * oA)
-    let vB := limbsIn memIdx img (fp * oB)
-    #[pc, fp, oA, oB, oC, vA[0], vA[1], vB[0], vB[1], c 0, c 1, c 2, rbc]
-  | .setConstant o k => #[pc, fp, o, k.limb 0, k.limb 1, c 0, rbc]
+/-- What a table's fill reads: the memory index and image, and the pointers' chunks. -/
+structure FillCtx (κ : ℕ) where
+  /-- The memory's address index. -/
+  memIdx : Std.HashMap UInt64 ℕ
+  /-- The memory image. -/
+  img : MemoryImage κ
+  /-- The pointers' chunks. -/
+  chunks : Chunks
+
+/-- `FillCtx::ptr(sigma)`: the one-hot word of the index `σ`. -/
+def FillCtx.ptr {κ : ℕ} (ctx : FillCtx κ) (sigma : ℕ) : K := K.ofBits (ctx.chunks.encode sigma)
+
+/-- The one-hot word of the cell at address `a` (`ctx.ptr(fp + o)`): its index's, `0` for an
+address outside the memory, which no valid run reads. -/
+def FillCtx.cell {κ : ℕ} (ctx : FillCtx κ) (a : K) : K :=
+  ctx.ptr ((gLogIn ctx.memIdx κ a).map (·.val) |>.getD 0)
+
+/-- The two `K` lanes of the word at `a`. -/
+def FillCtx.limbs {κ : ℕ} (ctx : FillCtx κ) (a : K) : Vector K 2 := limbsIn ctx.memIdx ctx.img a
+
+/-- **The row of step `cycle`**, of its instruction's table, the columns in the verifier's order
+(`xorColumns` … `keccakColumns`, `layout.rs`), as `Table::fill` writes it: `pc` and `fp` as words,
+the words a row commits, and its pointers, the cells' (`fp·o`), the instruction's (`ix_bc`, the
+slot) and the cycle's (`ix_cycle`, the step). `DEREF`'s target is the cell `ptr·o2`; `JUMP`'s
+successor is the jump's when `v_cond ≠ 0`, `(g·pc, fp)` otherwise, with `w = v_cond⁻¹`, zero when
+`v_cond` is, and `b = [v_cond ≠ 0]`; `KECCAK`'s input lanes are the state its thirteen cells hold
+in its input layout, its output lanes their permutation, and each operand's pointer names its
+first cell. -/
+def rowOf {κ : ℕ} (ctx : FillCtx κ) (cycle : ℕ) (st : Step) : Array K :=
+  let (pc, fp) := (st.pc, st.fp)
+  let (bc, cyc) := (ctx.ptr st.slot, ctx.ptr cycle)
+  match st.ins with
+  | .xor oA oB oC => #[pc, fp, ctx.cell (fp * oA), ctx.cell (fp * oB), ctx.cell (fp * oC), bc, cyc]
+  | .mulNative oA oB oC =>
+    let a := ctx.limbs (fp * oA)
+    #[pc, fp, a[0], a[1], ctx.cell (fp * oA), ctx.cell (fp * oB), ctx.cell (fp * oC), bc, cyc]
+  | .setConstant o _ => #[pc, fp, ctx.cell (fp * o), bc, cyc]
   | .deref o1 o2 o3 mode =>
-    let v3 := limbsIn memIdx img (fp * o3)
-    #[pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
-      (limbsIn memIdx img (fp * o1))[0], v3[0], v3[1], c 0, c 1, c 2, rbc]
+    let ptr := (ctx.limbs (fp * o1))[0]
+    let s : K := match mode with | .cell => 0 | _ => 1
+    #[pc, fp, ptr, o2, s, ctx.cell (fp * o1), ctx.cell (ptr * o2), ctx.cell (fp * o3), bc, cyc]
   | .jump oc od of =>
-    let vc := (limbsIn memIdx img (fp * oc))[0]
-    #[pc, fp, oc, od, of, vc, (limbsIn memIdx img (fp * od))[0],
-      (limbsIn memIdx img (fp * of))[0], c 0, c 1, c 2, rbc,
-      if vc = 0 then 0 else vc⁻¹, if vc = 0 then 0 else 1]
+    let (cond, dest, frame) := ((ctx.limbs (fp * oc))[0], (ctx.limbs (fp * od))[0],
+      (ctx.limbs (fp * of))[0])
+    let taken := cond ≠ 0
+    let (pcNext, fpNext) := if taken then (dest, frame) else (pc * g, fp)
+    #[pc, fp, cond, dest, frame, pcNext, fpNext, if taken then cond⁻¹ else 0,
+      if taken then 1 else 0, ctx.cell (fp * oc), ctx.cell (fp * od), ctx.cell (fp * of), bc, cyc]
   | .keccak om otail ob8 ocap oout inOdd outOdd outCells =>
-    let input := keccakInputIn memIdx img fp om otail ob8 ocap
+    let input := keccakInputIn ctx.memIdx ctx.img fp om otail ob8 ocap
     let S := stateOfCells input inOdd
     let out := keccakF1600 S
-    #[pc, fp, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout, layoutFlagWord inOdd,
-        layoutFlagWord outOdd, (keccakOutputFlags outCells).1, (keccakOutputFlags outCells).2,
-        if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
+    let offsets := [om 0, om 1, om 2, om 3, otail, ob8, ocap, oout]
+    #[pc, fp, oout, layoutFlagWord inOdd, layoutFlagWord outOdd, (keccakOutputFlags outCells).1,
+        (keccakOutputFlags outCells).2, if inOdd then (input 0).limb 0 else (input 8).limb 1] ++
       Array.ofFn (fun l : Fin 25 ↦ laneK S l) ++ Array.ofFn (fun l : Fin 25 ↦ laneK out l) ++
-      Array.ofFn (fun j : Fin 26 ↦ c j) ++ #[rbc]
+      (offsets.map fun o ↦ ctx.cell (fp * o)).toArray ++ #[bc, cyc]
 
-/-- The table of an opcode, in the ensemble's order. -/
-def opTableIdx : Opcode → ℕ
-  | .xor => 0
-  | .mulNative => 1
-  | .setConstant => 2
-  | .deref => 3
-  | .jump => 4
-  | .keccak => 5
-
-/-- The rows built so far: the six tables' rows, the memory cells' and the bytecode slots'
-counters (`g^n` after `n` reads). -/
-structure Rows where
-  /-- The six opcode tables' rows, in the ensemble's order. -/
-  tabs : Array (Array (Array K))
-  /-- The memory cells' counters, by index. -/
-  mem : Array K
-  /-- The bytecode slots' counters, by index. -/
-  bc : Array K
-
-/-- The rows of one more step: its reads take their cells' counts, its bytecode read its slot's,
-and its row is pushed on its table. -/
-def stepRows (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (acc : Rows)
-    (st : Step) : Rows :=
-  -- the fields taken out first, so that each counter array is updated in place
-  let ⟨tabs, mem, bc⟩ := acc
-  let (cs, mem) := countReads memIdx κ (addrsIn memIdx img st.fp st.ins) #[] mem
-  let row := rowIn memIdx img st.pc st.fp (fun j ↦ cs.getD j 1) (bc.getD st.slot 1) st.ins
-  ⟨tabs.modify (opTableIdx st.ins.opcode) (·.push row), mem, bc.modify st.slot (g * ·)⟩
-
-/-- **The rows of a run**: one pass over its steps, from empty tables and every counter `1`. -/
-def rowsOf (memIdx : Std.HashMap UInt64 ℕ) {κ : ℕ} (img : MemoryImage κ) (logSize : ℕ)
-    (steps : Array Step) : Rows :=
-  steps.foldl (stepRows memIdx img)
-    ⟨Array.replicate 6 #[], Array.replicate (2 ^ κ) 1, Array.replicate (2 ^ logSize) 1⟩
+/-- **The rows of a run**: each table's executed rows, in the order its steps ran (the Rust's
+trace, `crates/lean_vm_core/src/cpu/trace.rs`), the tables in opcode order. -/
+def rowsOf {κ : ℕ} (ctx : FillCtx κ) (steps : Array Step) : Array (Array (Array K)) :=
+  (steps.zipIdx.foldl (fun tabs (st, cycle) ↦
+    tabs.modify (opTableIdx st.ins.opcode) (·.push (rowOf ctx cycle st)))
+    (Array.replicate nTables #[]))
 
 end LeanVM.Prover
 

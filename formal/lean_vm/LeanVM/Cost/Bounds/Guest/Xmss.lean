@@ -138,7 +138,7 @@ theorem lxLeafOf_cost (hP : Includes P Decoder.lxLeafOfC.costDeps) (kw : List �
     (hkw : kw.length ≤ 4) (hk : ∀ x ∈ kw, x ≤ 256) :
     machineCost P Decoder.lxLeafOfC.costIdx [encodeValue kw] ≤ 400 := by
   have hg (w : ℕ) (hw : w < 4) : kw.getD w 0 ≤ 256 ∧
-      machineCost P Auto.List.getD.c126.costIdx [encodeValue kw, encodeValue w, encodeValue 0] ≤ 69 := by
+      machineCost P Auto.List.getD.c116.costIdx [encodeValue kw, encodeValue w, encodeValue 0] ≤ 69 := by
     refine ⟨?_, ?_⟩
     · rw [List.getD_eq_getElem?_getD]
       cases h : kw[w]? with

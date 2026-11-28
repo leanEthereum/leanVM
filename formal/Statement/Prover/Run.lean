@@ -8,7 +8,9 @@ public import Statement.Prover.Script
 `runFrom F fuel P S sp cs` runs the script `S` against the verifier's program `P` through the
 Fiat-Shamir sponge `sp`, over the permutation `F` (Keccak-256 the sponge over `F`), and returns the
 proof's scalars and Merkle openings: a script's scalar is absorbed at each `read` of `P`, a
-challenge squeezed at each `sample`; a `grind` takes the smallest nonce below `fuel` that passes
+challenge squeezed at each `sample`, a script's packed message absorbed eight to a permutation at
+each `readPacked` (`observePacked`, as `add_scalars_packed`) and a packed draw squeezed at each
+`samplePacked` (`samplesPacked`, as `sample_packed`); a `grind` takes the smallest nonce below `fuel` that passes
 (`grind`, `crates/fiat_shamir_prover/src/lib.rs`), and whose challenge lies outside `K` where the
 script asks it (`grind_sample`), the proof failing if none does, absorbs it and permutes
 (`absorbNonce`), the permutation's challenge kept for the next `sample`; a `commit`
@@ -124,9 +126,24 @@ def afterSend : Option (Script β) → Option (Script β)
   | some (.send _ k) => some k
   | _ => none
 
+/-- The `n` scalars of the packed message a script sends, `0` where it sends fewer, or none. -/
+def packedOf (n : ℕ) : Option (Script β) → List E
+  | some (.sendPacked xs _) => (List.range n).map (xs.getD · 0)
+  | _ => List.replicate n 0
+
+/-- The script after sending a packed message. -/
+def afterSendPacked : Option (Script β) → Option (Script β)
+  | some (.sendPacked _ k) => some k
+  | _ => none
+
 /-- The script after receiving the challenge `c`. -/
 def afterSample (c : E) : Option (Script β) → Option (Script β)
   | some (.sample k) => some (k c)
+  | _ => none
+
+/-- The script after receiving the packed draw `cs`. -/
+def afterSamplePacked (cs : List E) : Option (Script β) → Option (Script β)
+  | some (.samplePacked _ k) => some (k cs)
   | _ => none
 
 /-- Whether a script's proof of work asks for a challenge outside `K`, `false` if it does not
@@ -179,6 +196,14 @@ def runFrom (fuel : ℕ) {α β : Type} :
   | .sample k, S, sp, cs => do
     let r ← squeeze F sp
     runFrom fuel (k r.1) (Script.afterSample r.1 S) r.2 cs
+  | .readPacked n k, S, sp, cs => do
+    let xs := Script.packedOf n S
+    let sp' ← observePacked F sp xs
+    let r ← runFrom fuel (k xs) (Script.afterSendPacked S) sp' cs
+    pure (r.map fun t ↦ (xs ++ t.1, t.2))
+  | .samplePacked n k, S, sp, cs => do
+    let r ← samplesPacked F sp n
+    runFrom fuel (k r.1) (Script.afterSamplePacked r.1 S) r.2 cs
   | .grind bits k, S, sp, cs => do
     match ← findNonceM F bits (Script.outsideKOf S) sp fuel with
     | none => pure none

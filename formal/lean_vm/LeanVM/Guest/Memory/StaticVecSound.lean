@@ -259,13 +259,13 @@ theorem atomB_false (ks : List (V × ℕ)) (ρ : Env × BEnv) (a : Atom) :
   cases a with
   | const v w =>
       simp only [atomB, envAtom]
-      rcases lookupV v ks with _ | e
+      rcases vlookup v ks with _ | e
       · rfl
       · dsimp only
         split_ifs <;> rfl
   | copy d s =>
       simp only [atomB, envAtom, cls]
-      rcases lookupV s ρ.1 with _ | e
+      rcases vlookup s ρ.1 with _ | e
       · dsimp only
         split
         · rename_i heq; split at heq <;> cases heq

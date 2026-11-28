@@ -15,7 +15,7 @@ public import LeanVM.Guest.GuestConst
 # The `LIG_*` tables and a size's configuration (TRIAGE G #42)
 
 `open_stacked(m_idx, rate_sel, …)` (`lean_ethereum.py`, `open_stacked`) is specialized on the
-committed log-size alone, `m_idx = μ - 20`, and reads the rate `g^rate_sel` at runtime. At compile
+committed log-size alone, `m_idx = μ - 16`, and reads the rate `g^rate_sel` at runtime. At compile
 time it reads the row `m_idx` of the per-size tables (`LIG_N_LEVELS`, `LIG_YR_LEVEL`, …), the rows
 `ml = m_idx · LIG_MAX_LEVELS + lvl` of the per-level ones that no rate changes (`LIG_FOLDS`,
 `LIG_LOG_MSG_COLS`, …), and, through a `match` on the rate, the rows
@@ -110,7 +110,7 @@ abbrev osLv (m lvl : Nat) : OsLv := osLvR m 0 lvl
 
 /-- A size's configuration. -/
 structure OsCfg where
-  /-- The size, `μ - 20`, `minOpenLog` in `Interface`. -/
+  /-- The size, `μ - 16`, `minOpenLog` in `Split`. -/
   m : Nat
   /-- Its levels, at the first rate: the columns no rate changes, which the body reads. -/
   levels : List OsLv

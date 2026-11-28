@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Protocol.ExperimentBridge
 public import LeanVM.Guest.WithHash
-import LeanVM.Prover.Refine
 
 @[expose] public section
 
@@ -94,23 +93,6 @@ theorem batchingSound_of_withHash (h : BatchingSoundWithHash) : BatchingSound :=
   exact h M bytecode hb hM A QA hA hQV
 
 end Batch
-
-namespace Budget
-
-/-- The honest proof over the deployed Keccak-f[1600] is the two-call prover's with the deployed
-Keccak-256 and Keccak-f[1600]. -/
-theorem honestProofWithDeployedKeccak_eq_withHash (prog : LeanIsaProgram) (input : PublicInput)
-    (t : Execution prog) (ρ fuel : ℕ) :
-    LeanVM.Prover.prove (m := Id) keccakF1600 prog input t ρ fuel =
-      honestProofWithDeployedKeccakWithHash proverWithHash prog input t ρ fuel := by
-  simp only [honestProofWithDeployedKeccakWithHash,
-    Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]
-  have h1 : implH deployedKeccakCalls = keccak256With (m := Id) keccakF1600 := by funext x; rfl
-  have h2 : implF deployedKeccakCalls = keccakF1600 := by funext x; rfl
-  rw [h1, h2]
-  rfl
-
-end Budget
 
 end Guest
 

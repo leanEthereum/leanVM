@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `verify_keccak_loop0`,
 `vkFirstT_holds`, `vkStepsT_holds`, `vkOutT_holds`, `vkInT_holds`, `vkFinT_holds`) give the sponge
 runs, the reads and the two opening checks (`vk_out_check`, `vk_in_check`), and `vk_runsTo`
-composes them into `verifyKeccak`'s run.
+composes them into `keccakSeg`'s run.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -41,16 +41,18 @@ theorem readsAt_single {rd : Reader} {p a : E} (h : LoadHolds rd p 0 a) : ReadsA
 
 /-- **`verify_keccak`** on a reader where `keccak_layer` has its meaning. -/
 theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
-    verify_keccak_Spec rd := by
+    KeccakSectionSound rd := by
   intro args rets hrel
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_vk args rets).mp hrel
   rw [show (fn% «verify_keccak»).params = [.n (val% «verify_keccak» "fs0@1"), .n (val% «verify_keccak» "fs1@1"), .n (val% «verify_keccak» "fs2@1"), .n (val% «verify_keccak» "fs3@1"), .n (val% «verify_keccak» "fs4@1"), .n (val% «verify_keccak» "cursor@1"), .n (val% «verify_keccak» "tau_g"), .n (val% «verify_keccak» "chi"), .n (val% «verify_keccak» "output_lanes"),
       .n (val% «verify_keccak» "z_vals"),
-    .n (val% «verify_keccak» "slices"), .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")] from rfl] at hpar
+    .n (val% «verify_keccak» "slices"), .n (val% «verify_keccak» "tabs")] from rfl] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar
   simp only [MeaningVerifyKeccak]
-  intro htabs τ chis outs hτ1 hτ2 htg hchiL hchi houtsL hol
+  intro htabs τ chis outs hτ1 hτ24 htg hchiL hchi houtsL hol
+  have hτ2 : τ ≤ 28 := by simp only [keccakTauMax] at hτ24; omega
+  simp only [keccakTauMin] at hτ1
   rw [show Fn.body fn% «verify_keccak» = vkT from vk_body, vkT, holdsList_append, holdsList_append,
       holdsList_append, holdsList_append,
     holdsList_append] at hb
@@ -134,7 +136,8 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
   have habs : (⟨(cap5 148).map σ, []⟩ : Fs).absorb (σ (.n (val% «verify_keccak» "x@1"))) dsObserve =
       ⟨[σ (.n (val% «verify_keccak» "nxt[8]@6")), σ (.n (val% «verify_keccak» "nxt[9]@6")), σ (.n (val% «verify_keccak» "nxt[10]@6")), σ (.n (val% «verify_keccak» "nxt[11]@6")), σ (.n (val% «verify_keccak» "nxt[12]@6"))], [(σ (.n (val% «verify_keccak» "x@1")), dsObserve)]⟩ := by
     simp [Fs.absorb, cap5, rateScalars]
-  have hrun := vk_runsTo τ (chis.take τ) outs (by rw [keccakSegmentBits_eq]; exact hsq1)
+  have hrun := vk_runsTo τ (chis.take τ) outs
+    ⟨by simp only [List.length_take]; omega, houtsL, by omega⟩ (by rw [keccakSegmentBits_eq]; exact hsq1)
     (by rw [show keccakLaneBits = 5 from rfl]; exact hsq5) (by rw [habs]; exact hrunL) hmOL hO
     (vk_out_check (chis.take τ) outs (σ (.n (val% «verify_keccak» "x@1"))) (σ (.n (val% «verify_keccak» "nxt[0]@1"))) rl hlen4 hslotOL hchk)
     hmIL hI hmSL hS hslices hfin
@@ -143,7 +146,7 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     simp only [List.append_assoc]
     rw [readsAt_append, readsAt_append, readsAt_append, readsAt_append, readsAt_append,
       readsAt_append]
-    simp only [List.length_singleton, pow_one, flatMap_pairs_length, hmOL, hmIL, hmSL]
+    simp only [List.length_singleton, pow_one, length_flatMap_pairs, hmOL, hmIL, hmSL]
     refine ⟨readsAt_single l191, hxsL, ?_, ?_, ?_, ?_, ?_⟩
     · rw [← h3690]; exact hmOR
     · rw [← h3690, show 2 * 6 = 12 from rfl, ← h3699]; exact readsAt_single l3701
@@ -194,15 +197,15 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
     omega
   · -- the returns
     rw [← hret, hpc]
-    simp only [List.length_cons, List.length_nil, List.length_append, flatMap_pairs_length, hmOL, hmIL, hmSL,
+    simp only [List.length_cons, List.length_nil, List.length_append, length_flatMap_pairs, hmOL, hmIL, hmSL,
       hslices, h4115, h3985, h3699, h3690, List.cons_append, List.nil_append, List.cons.injEq,
       and_true, true_and]
     ring
 
-/-- **`verify_keccak`**: its core IR computes its meaning on a memory
-image. -/
-theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
-    verify_keccak_Spec L.read :=
+/-- **The Keccak section is sound** (`verify_keccak`): its core IR computes its meaning on a
+memory image. -/
+theorem keccak_section_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
+    KeccakSectionSound L.read :=
   verify_keccak_holds_of L.read (keccak_layer_holds hκ hκ' L)
 
 end

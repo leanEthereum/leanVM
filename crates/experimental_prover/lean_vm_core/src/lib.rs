@@ -1,33 +1,28 @@
 //! leanVM: arithmetization of a minimal zkVM (see `doc/leanvm/main.tex`).
 //!
 //! Machine words are `c0 + c1*y ∈ E = K[y]/(y² + x*y + 1)`.
-//! Addresses, pc/fp, read counters, and logical indices live in
+//! Addresses, pc/fp, and logical indices live in
 //! `K = GF(2^64)`; indices are powers of a fixed generator `g`, so incrementing
 //! one is a multiplication by `g`, a free virtual operation. Every physical
 //! witness column is K-valued (an E-valued word is two K-lane columns) and is
 //! committed directly by a dense multilinear PCS. Challenges and transcript
 //! scalars live in `E = GF(2^128)`.
 //!
-//! - [`transcript`]: the shared Fiat-Shamir transcript (re-exported from `fiat_shamir`).
 //! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
 //! - [`witness`]: `K`-valued columns stacked into one committed witness.
-//! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
-//! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
-//! - [`constraints`]: one table sumcheck over all six tables'
-//!   degree-2 identities plus their bus forms, one per bus tree (§sec:air).
-//! - [`tables`]: the six instruction tables (columns, flushes, constraints).
+//! - [`form`]: the forms the tables' links are written in, and the claims on their columns.
+//! - [`link`]: Hotwire, one-hot pointer links and the tables' identities checked by sum-checks.
+//! - [`tables`]: the six instruction tables (columns, links, constraints).
 //! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
 //! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.
 
-pub mod constraints;
 pub mod cpu;
-pub mod gkr;
+pub mod form;
 pub mod keccak;
-pub mod leaf;
+pub mod link;
 pub mod pcs;
 mod prover;
 pub mod tables;
-pub mod transcript;
 pub mod witness;
 
 /// Target soundness in bits: every verifier message's round-by-round error, after its grind, is at
@@ -39,10 +34,6 @@ pub use prover::ExperimentalProver;
 /// Whether `scripts/tier-rustc` compiled this copy with a CPU tier's target features (`crates/experimental_tiers`).
 #[doc(hidden)]
 pub const __TIER: bool = cfg!(leanvm_tier);
-
-/// Below this many parallelizable items a pass runs serially: the fan-out
-/// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].
-pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
 
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
 /// which is what the CLI's `--tracing` tree shows.

@@ -62,7 +62,8 @@ theorem semRel0_walk {t : ℕ} (ht : 2 ≤ t) (hl : t < 2 ^ 21)
     (rd : Reader) (ws : List E) : SemRel0 glob t rd ws ↔ walkSem t rd ws := by
   have hT : t ≠ tagTabs := by rw [show tagTabs = 2 ^ 21 from rfl]; omega
   unfold SemRel0
-  rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega))]
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega)),
+    ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
   obtain ⟨n, rfl⟩ : ∃ n, t = n + 2 := ⟨t - 2, by omega⟩
   change (if n + 2 = tagTabs then B1.WinTabs rd (ws.getD 0 0)
     else if 2 ^ 21 ≤ n + 2 then lqSem (n + 2) rd ws else walkSem (n + 2) rd ws) ↔ _
@@ -137,7 +138,8 @@ theorem semRel_lq {n odd base d cd : ℕ} (ho : odd < 2) (hb : base < 2) (hc : c
   unfold SemRel SemRel0
   rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega)),
     ite_eq_right_of_eq_false _ _ (eq_false (by omega)),
-    ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega))]
+    ite_eq_right_of_eq_false _ _ (eq_false (by unfold tagNe; omega)),
+    ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
   obtain ⟨m, hm⟩ : ∃ m, lqTag n odd base d cd = m + 2 := ⟨lqTag n odd base d cd - 2, by omega⟩
   change globSem (lqTag n odd base d cd) rd ws ↔ _
   rw [hm]

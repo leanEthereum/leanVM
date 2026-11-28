@@ -1,21 +1,22 @@
 /-
   LeanVM.Guest.EndExecADyn
 
-  Every dynamic `HeapBuf`'s size is a power of `g`, at every honest instance (`DynPow`): the
-  nonzero facts' check (`Res.carryNzG`) carried down the honest tree.
+  Every dynamic `HeapBuf`'s size is a power of `g`, at every honest instance of b2c's aligned tree
+  (`DynPowA`): the nonzero facts' check (`Res.carryNzG`) carried down the honest tree.
 -/
 
 module
 
-public import LeanVM.Guest.EndExecW
-public import LeanVM.Guest.EndExecAReady
+public import LeanVM.Guest.EndExecCoreResA
+public import LeanVM.Guest.EndExecABuf
 public import LeanVM.Guest.Memory.Scope
-public import LeanVM.Guest.Checked
-public import LeanVM.Guest.B1.Placement.Common
+public import LeanVM.Guest.CoreMode.Fam.LoopTreeA
+public import LeanVM.Guest.CoreMode.Gen.CarryNzAll
 
 /-!
 # Dynamic sizes are powers of `g`
 
+The tag's `EndExecADyn` on b2c's aligned tree (`instsR`, `inst_validA`, `insts_allA`, `Res.instsA_ctr`).
 `g` generates `K^×` (`orderOf_g`), so a value of `K` is a power of `g` exactly when it is nonzero
 (`exists_gpow`); `NZ x`: `x` in `K` and nonzero.
 
@@ -27,16 +28,18 @@ public import LeanVM.Guest.B1.Placement.Common
 * `up_valid`: on a valid tree, each listed word of a node is `NZ` (`UpOk`), by its own body's check
   (`Res.upChk`) and its callees', by induction on the tree.
 * `carryNzQ_all`: at every honest instance, its carried parameters (`Res.carriedNz`) are `NZ`
-  (`CarryNzQ`), by `Res.insts_down`: a call site passes them (`Res.siteNz`), in the context of its
-  statement on the path (`Memory.allB_body`), with the caller's carried values and loop counter.
-* `dynPow_guest : DynPow`: a dynamic allocation on an honest instance's path has its size pinned.
+  (`CarryNzQ`), by `insts_allA`: a call site passes them (`Res.siteNz`), in the context of its
+  statement on the path (`Memory.allB_body`), with the caller's carried values and loop counter
+  (`inst_ctrA`, given `Res.ProgOk`).
+* `dynPowA_of : Res.ProgOk coreProgram → DynPowA (layB al) D`: a dynamic allocation on an honest
+  instance's path has its size pinned.
 -/
 
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Res (veq kvNz pinIn kIn upAt pinNz nzOf nzDepth siteNz nzStmt retNz upChk carryNzG
-  carriedNz nzUp carryNz_all tabAt tabNz armNzB topSelsC selTabAt selTabB ownChk ownNz)
+  carriedNz nzUp carryNzG_all tabAt tabNz armNzB topSelsC selTabAt selTabB ownChk ownNz)
 
 @[expose] public section
 
@@ -96,7 +99,7 @@ theorem nz_gpow (n : ℕ) : NZ (ofK (addressOfIndex n)) :=
   ⟨B2C.isInK_ofK _, ofK_ne_zero' (gpow_ne_zero n)⟩
 
 theorem NZ.mul {a b : E} (ha : NZ a) (hb : NZ b) : NZ (a * b) :=
-  ⟨isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
+  ⟨B1.isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
 
 /-- A factor of an `NZ` product by a nonzero value of `K` is `NZ`. -/
 theorem NZ.of_mul {a b : E} (hd : NZ (a * b)) (ha : IsInK a) : NZ b := by
@@ -184,7 +187,7 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
-        exact isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
+        exact B1.isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
     | _ => simp at hm
 
 /-- **`kIn` puts its value in `K`.** -/
@@ -208,7 +211,7 @@ theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]
-          exact isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
+          exact B1.isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
       | _ => simp at hm
 
 /-- The listed words of a context's calls are `NZ`. -/
@@ -244,15 +247,6 @@ theorem pinNz_sound (hrd : ∀ a w, rd a = some w → a ≠ 0) {sp : List Ev} (h
       exact hup g args rets he c hc hg (σ w) (by rw [← List.map_append, List.getElem?_map, hwv]; rfl)
     · cases hw
 
-/-- A word the guest's powers name is that power of `g` (`Res.powOf`). -/
-theorem tab_powOf {w : E} {e : ℕ} (h : Res.powOf w = some e) : w = ofK (addressOfIndex e) := by
-  unfold Res.powOf at h
-  split_ifs at h with h1
-  have hk := Exec.PowTree.find_ok (Exec.PowTree.ok_of_okW Checked.powTree_ok) h
-  rw [show K.ofBits (w.limb 0).toBitVec.toNat = w.limb 0 by
-    simp [K.ofBits, BF64.ofBitVec, BitVec.ofNat_toNat]] at hk
-  rw [eq_ofK_limb h1, hk]
-
 /-- **A table read is `NZ`** (`tabAt`): its index `J` range checked against `g^m` is `g^e`, `e ≤ m`, so
 the word at `T·J·g^off` is the one the context stores at `T·g^(e + off)`. -/
 theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds rd σ) {nz : V → Bool}
@@ -282,7 +276,7 @@ theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds r
       · rename_i m hpow
         simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at h2
         obtain ⟨hm28, hall⟩ := h2
-        rw [← veq_eq hk, hc, tab_powOf hpow, veq_eq hxJ] at r2
+        rw [← veq_eq hk, hc, powOf_sound hpow, veq_eq hxJ] at r2
         rw [veq_eq hxJ] at r1
         obtain ⟨e, he, hJe⟩ := hm.2 hm28 r1 r2 r3
         obtain ⟨e3, he3, h3⟩ := List.any_eq_true.mp (hall e (by omega))
@@ -376,7 +370,7 @@ theorem nzOf_sound (hM : MemNz rd) {kv : List V} {sp : List Ev}
 
 /-! ## What a body pins on every returning path -/
 
-theorem seq_ret_sub {o k : Out} {es : List Ev} {vs : List V} (h : o.seq k = .ret es vs) : ∀ y ∈ o.evs, y ∈ es := by
+theorem seq_ret_subN {o k : Out} {es : List Ev} {vs : List V} (h : o.seq k = .ret es vs) : ∀ y ∈ o.evs, y ∈ es := by
   intro y hy
   rcases o with es1 | ⟨es1, vs1⟩ | _
   · rcases k with es2 | ⟨es2, vs2⟩ | _ <;> simp only [Out.seq, Out.pre, reduceCtorEq, Out.ret.injEq] at h
@@ -388,7 +382,7 @@ theorem seq_ret_sub {o k : Out} {es : List Ev} {vs : List V} (h : o.seq k = .ret
   · simp [Out.evs] at hy
 
 /-- A statement free of `ret` on a returning path: its path falls through, the rest returns. -/
-theorem seq_ret_next {s : Stmt} {ss : List Stmt} {es : List Ev} {vs : List V} (hn : Bridge.noRet [s] = true)
+theorem seq_ret_nextN {s : Stmt} {ss : List Stmt} {es : List Ev} {vs : List V} (hn : Bridge.noRet [s] = true)
     (h : (walk1 σ s).seq (walk σ ss) = .ret es vs) : ∃ es1 es2, walk1 σ s = .fall es1 ∧ walk σ ss = .ret es2 vs ∧
       es = es1 ++ es2 := by
   rcases h1 : walk1 σ s with es1 | ⟨es1, vs1⟩ | _
@@ -401,14 +395,14 @@ theorem seq_ret_next {s : Stmt} {ss : List Stmt} {es : List Ev} {vs : List V} (h
   · rw [h1] at h; simp [Out.seq] at h
 
 /-- The arm a `match` that does not get stuck takes: arm `i`, at `x = g^(j + i)`. -/
-theorem walkArms_arm {x : V} : ∀ (arms : List (List Stmt)) (j : ℕ), walkArms σ x j arms ≠ .stuck →
+theorem walkArms_armN {x : V} : ∀ (arms : List (List Stmt)) (j : ℕ), walkArms σ x j arms ≠ .stuck →
     ∃ i, ∃ h : i < arms.length, σ x = ofK (addressOfIndex (j + i)) ∧ walkArms σ x j arms = walk σ arms[i]
   | [], _, h => by simp [walkArms] at h
   | a :: as, j, h => by
     unfold walkArms at h ⊢
     split_ifs at h ⊢ with hx
     · exact ⟨0, by simp, by simpa using hx, rfl⟩
-    · obtain ⟨i, hi, hxi, hw⟩ := walkArms_arm as (j + 1) h
+    · obtain ⟨i, hi, hxi, hw⟩ := walkArms_armN as (j + 1) h
       exact ⟨i + 1, by simpa using hi, by rw [hxi]; congr 2; omega, hw⟩
 
 /-- **A value a top-level `match` pins in every arm is `NZ`** (`armNzB`), on a returning path whose events hold. -/
@@ -426,14 +420,14 @@ theorem armNzB_sound (hM : MemNz rd) {v : V} : ∀ {ss : List Stmt} {es : List E
       have hst : walk1 σ (.match_ x (a :: as)) ≠ .stuck := by
         intro h0; rw [h0] at hw; simp [Out.seq] at hw
       simp only [walk1] at hst hw
-      obtain ⟨i, hi, -, harm⟩ := walkArms_arm (a :: as) 0 hst
-      have hsub := seq_ret_sub hw
+      obtain ⟨i, hi, -, harm⟩ := walkArms_armN (a :: as) 0 hst
+      have hsub := seq_ret_subN hw
       rw [harm] at hst hsub
       have hin : ∀ y ∈ spineE (a :: as)[i], y ∈ es := fun y hy ↦ hsub y (spineE_sub _ hst y hy)
       exact nzOf_sound hM (by simp) (fun e he ↦ hh e (hin e he)) (fun g a' r' hg ↦ hup g a' r' (hin _ hg)) _ _
         (hv _ (List.getElem_mem hi))
     · rw [Bool.and_eq_true] at hv
-      obtain ⟨es1, es2, -, hw2, rfl⟩ := seq_ret_next hv.1 hw
+      obtain ⟨es1, es2, -, hw2, rfl⟩ := seq_ret_nextN hv.1 hw
       exact armNzB_sound hM hw2 (fun e he ↦ hh e (List.mem_append_right _ he))
         (fun g a' r' hg ↦ hup g a' r' (List.mem_append_right _ hg)) hv.2
 
@@ -452,12 +446,12 @@ theorem topSelsC_sound : ∀ {ss : List Stmt} {es : List Ev} {vs : List V}, walk
       have hst : walk1 σ (.match_ x arms) ≠ .stuck := by
         intro h0; rw [h0] at hw; simp [Out.seq] at hw
       simp only [walk1] at hst
-      obtain ⟨i, hi, hx, -⟩ := walkArms_arm arms 0 hst
+      obtain ⟨i, hi, hx, -⟩ := walkArms_armN arms 0 hst
       exact ⟨i, hi, by simpa using hx⟩
     · cases hn : Bridge.noRet [s]
       · simp [hn] at h
       · simp only [hn, Bool.cond_true] at h
-        obtain ⟨es1, es2, -, hw2, -⟩ := seq_ret_next hn hw
+        obtain ⟨es1, es2, -, hw2, -⟩ := seq_ret_nextN hn hw
         exact topSelsC_sound hw2 h
 
 /-- **A table read at a selector is `NZ`** (`selTabAt`). -/
@@ -531,7 +525,7 @@ theorem call_mem_calls {es : List Ev} {g : String} {args rets : List V} (h : Ev.
     (⟨g, args, rets, true⟩ : Call) ∈ calls es := mem_calls_of_call h
 
 theorem carryNzG_of {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) : carryNzG fn = true :=
-  carryNz_all fn (List.mem_of_find?_eq_some hf)
+  carryNzG_all fn (List.mem_of_find?_eq_some hf)
 
 section
 
@@ -597,30 +591,54 @@ end
 
 section
 
-variable {r : Ref}
+variable {al : String → Bool} {D : Ref → RefD} {r : Ref}
 
 theorem ref_rd (hr : r.Ok) : ∀ a w, r.img.read a = some w → a ≠ 0 := fun a w h ↦ by
-  obtain ⟨i, -, rfl⟩ := read_pow h (logMemorySize_le_28 (e := r.exec) hr.size)
+  have hκ : r.κ < 64 := by have := hr.log; omega
+  obtain ⟨i, rfl, -⟩ := (read_some_iff hκ r.img a w).mp h
   exact gpow_ne_zero i
 
 /-- **The reference memory is as the nonzero facts' check asks**: of at most `2^28` words, so a range
-check bounds an exponent (`B1.Tables.tb_rc_sound'`). -/
+check bounds an exponent (`rc_sound'`). -/
 theorem ref_memNz (hr : r.Ok) : MemNz r.img.read := by
   refine ⟨ref_rd hr, fun {x y t1 t2 m} hm h1 h2 h3 ↦ ?_⟩
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨e, he, hx⟩ := B1.Tables.tb_rc_sound' (by omega) r.img (K := m + 1) (k := ofK (addressOfIndex m))
-    (by omega) (by omega) (by rw [Nat.add_sub_cancel]) h1 h2 h3
+  have hκ : r.κ ≤ 32 := by have := hr.log; omega
+  have h33 : m + 1 ≤ 2 ^ 33 := by
+    have : (2 : ℕ) ^ 28 < 2 ^ 33 := by norm_num
+    omega
+  obtain ⟨e, he, hx⟩ := rc_sound' hκ r.img (K := m + 1) (k := ofK (addressOfIndex m)) (by omega) h33
+    (by rw [Nat.add_sub_cancel]) h1 h2 h3
   exact ⟨e, by omega, by rw [hx, Value.gen_pow_eq_ofK]⟩
 
-/-- The values `kvNz` lists of an honest instance are `NZ`, given its carried parameters. -/
-theorem kvNz_sound (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
+/-- **A loop instance's counter is a power of `g`**, on the aligned honest tree. -/
+theorem inst_ctrA (hP : Res.ProgOk coreProgram) (hR : RefH (layB al) (D r) r) {I : Inst} (hI : I ∈ instsR al D r)
     {f : String} {σ : Core.Val} {bufs : List ℕ} {kids : List Tree} (hIt : I.t = .node f σ bufs kids) {fn : Fn}
-    (hf : coreProgram.find? f = some fn) (hQ : CarryNzQ I) : ∀ u ∈ kvNz fn, NZ (σ u) := by
+    (hf : coreProgram.find? f = some fn) (hl : fn.loop = true) :
+    ∃ p0 prest e, fn.params = p0 :: prest ∧ σ p0 = ofK (addressOfIndex e) := by
+  obtain ⟨rd, hH, -⟩ := hR.honest
+  have hfs : ∀ g, 1 ≤ B2C.fs g := fun g ↦ le_trans (by norm_num) (B2C.two_le_fs g)
+  have hroot : Res.CtrOk coreProgram B2C.fs ((D r).T.total B2C.fs + 1) (D r).T := by
+    intro g σ' _ _ fn' hT' hg hl'
+    have := (hP.loop g fn' hg hl').1
+    have hn := hR.name
+    rw [hT'] at hn
+    simp only [Tree.name] at hn
+    subst hn
+    exact absurd this (by decide)
+  obtain ⟨p0, prest, e, hps, hσ0, -⟩ := Res.instsA_ctr hfs hP (D r).T _ r.hdr hH.valid le_rfl hroot I hI
+    f σ bufs kids fn hIt hf hl
+  exact ⟨p0, prest, e, hps, hσ0⟩
+
+/-- The values `kvNz` lists of an honest instance are `NZ`, given its carried parameters. -/
+theorem kvNz_sound (hP : Res.ProgOk coreProgram) (hR : RefH (layB al) (D r) r) (hr : r.Ok) {I : Inst}
+    (hI : I ∈ instsR al D r) {f : String} {σ : Core.Val} {bufs : List ℕ} {kids : List Tree}
+    (hIt : I.t = .node f σ bufs kids) {fn : Fn} (hf : coreProgram.find? f = some fn) (hQ : CarryNzQ I) :
+    ∀ u ∈ kvNz fn, NZ (σ u) := by
   have hname : fn.name = f := fn_name_of_find hf
   intro u hu
   -- what its own body pins
   have hown : ∀ u, ownChk fn u = true → NZ (σ u) := by
-    obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+    obtain ⟨args, rets, hv⟩ := inst_validA hR hI hIt
     obtain ⟨fn', hf', -, es, vs, hw, -, hh, hk⟩ := hv
     obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
     have hM := ref_memNz hr
@@ -635,7 +653,7 @@ theorem kvNz_sound (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
       split_ifs at hcu with hb
       exact hQ f σ bufs kids hIt fn hf c hc (by rw [← hname]; exact beq_iff_eq.mp hb) u hcu
     · split_ifs at hu with hl
-      · obtain ⟨p0, prest, e', hps, hσ⟩ := inst_ctr hr hI hIt hf hl
+      · obtain ⟨p0, prest, e', hps, hσ⟩ := inst_ctrA hP hR hI hIt hf hl
         rw [hps] at hu
         simp only [List.take_succ_cons, List.take_zero, List.mem_singleton] at hu
         rw [hu, hσ]
@@ -650,8 +668,8 @@ theorem kvNz_sound (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
     exact hown _ ((hG.2 c hc).resolve_left (not_not.mpr (beq_iff_eq.mp hb)))
 
 /-- **The carried parameters pass down a call.** -/
-theorem carryNzQ_step (hr : r.Ok) :
-    Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) CarryNzQ := by
+theorem carryNzQ_step (hP : Res.ProgOk coreProgram) (hR : RefH (layB al) (D r) r) (hr : r.Ok) :
+    Res.KidStep coreProgram r.img.read B2C.H (instsR al D r) CarryNzQ := by
   intro I hI fI σI bufsI kidsI hIt fnI hfI es vs hw hh i c J hci hJS hk _ _ hname hval hph hQI
     f σ bufs kids hJt fn hfn cc hcc hcf v hv
   have hct : c.taken = true := by
@@ -676,13 +694,13 @@ theorem carryNzQ_step (hr : r.Ok) :
   simp only [carryNzG, Bool.and_eq_true] at hG
   obtain ⟨ctx, s, hs, hem, hctx⟩ := allB_body hG.1.1 hw _ he
   have hrd := ref_memNz hr
-  obtain ⟨args', rets', hvI⟩ := inst_valid' hr hI hIt
+  obtain ⟨args', rets', hvI⟩ := inst_validA hR hI hIt
   obtain ⟨fnI', hfI', -, es', vs', hw', -, -, hkI⟩ := hvI
   obtain rfl : fnI = fnI' := Option.some.inj (hfI.symm.trans hfI')
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ := Out.ret.inj hw'
   have hpin : ∀ a, nzOf (kvNz fnI) ctx nzDepth a = true → NZ (σI a) := fun a ha ↦
-    nzOf_sound hrd (kvNz_sound hr hI hIt hfI hQI) (fun x hx ↦ hh x (hctx x hx))
+    nzOf_sound hrd (kvNz_sound hP hR hr hI hIt hfI hQI) (fun x hx ↦ hh x (hctx x hx))
       (fun g a' r' hg ↦ Tree.KidsValid.up hrd σI kidsI (calls es) hkI _ (call_mem_calls (hctx _ hg)) rfl) _ a ha
   have hsite : siteNz (kvNz fnI) ctx c.f c.args = true := by
     rcases s with a | _ | _ | ⟨g, a', r'⟩ | ⟨b, g, a'⟩ | ⟨x, gs, a', r'⟩ | _
@@ -706,20 +724,19 @@ theorem carryNzQ_step (hr : r.Ok) :
   exact hpin a hs'
 
 /-- **The carried parameters at every honest instance.** -/
-theorem carryNzQ_all (hr : r.Ok) : ∀ J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, CarryNzQ J := by
-  refine insts_all hr (carryNzQ_step hr) fun J hm ↦ ?_
+theorem carryNzQ_all (hP : Res.ProgOk coreProgram) (hR : RefH (layB al) (D r) r) (hr : r.Ok) :
+    ∀ J ∈ instsR al D r, CarryNzQ J := by
+  refine insts_allA hR (carryNzQ_step hP hR hr) fun J hm ↦ ?_
   intro f σ bufs kids hJt fn _ c hc hcf
   have hn := hm _ _ _ _ hJt
   subst hn
-  have : ∀ c ∈ carriedNz, c.1 ≠ "main" := by decide
+  have : ∀ c ∈ carriedNz, c.1 ≠ "main" := by decide +kernel
   exact absurd hcf (this c hc)
 
-end
-
-/-- **Every dynamic `HeapBuf`'s size is a power of `g`**, at every honest instance. -/
-theorem dynPow_guest : DynPow := by
-  intro r hr I hI f σ bufs kids hIt d s hev
-  obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
+/-- **Every dynamic `HeapBuf`'s size is a power of `g`**, at every honest instance of the aligned tree. -/
+theorem dynPowA_of (hP : Res.ProgOk coreProgram) : DynPowA (layB al) D := by
+  intro r hR hr I hI f σ bufs kids hIt d s hev
+  obtain ⟨args, rets, hv⟩ := inst_validA hR hI hIt
   obtain ⟨fn, hf, -, es, vs, hw, -, hh, hk⟩ := hv
   rw [hIt, events_node hf hw] at hev
   have hG := carryNzG_of hf
@@ -732,15 +749,17 @@ theorem dynPow_guest : DynPow := by
     subst hem
     exact hs
   have hrd := ref_memNz hr
-  have hnz := nzOf_sound hrd (kvNz_sound hr hI hIt hf (carryNzQ_all hr I hI)) (fun x hx ↦ hh x (hctx x hx))
+  have hnz := nzOf_sound hrd (kvNz_sound hP hR hr hI hIt hf (carryNzQ_all hP hR hr I hI))
+    (fun x hx ↦ hh x (hctx x hx))
     (fun g a' r' hg ↦ Tree.KidsValid.up hrd σ kids (calls es) hk _ (call_mem_calls (hctx _ hg)) rfl) _ _ hs'
   obtain ⟨n, hn⟩ := hnz.pow
-  classical
-  have hex : ∃ e, I.t.val s = ofK (addressOfIndex e) := ⟨n, by rw [hIt]; exact hn⟩
-  unfold logG
+  have hex : ∃ e, σ s = ofK (addressOfIndex e) := ⟨n, hn⟩
+  unfold Memory.logG
   split
   · rename_i h; exact Nat.find_spec h
   · contradiction
+
+end
 
 end
 

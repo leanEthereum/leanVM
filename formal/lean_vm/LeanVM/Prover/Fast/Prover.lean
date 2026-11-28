@@ -1,4 +1,5 @@
 import LeanVM.Prover.Fast.Copy
+import LeanVM.Prover.Fast.Split
 import Statement.Prover.Prove
 
 /-!
@@ -7,8 +8,9 @@ import Statement.Prover.Prove
 The verifier's definitions (`Statement/LeanVmVerifier.lean`, `Statement/Verifier/`) and the prover's
 (`Statement/Prover/`) that multiply in `E`, or call one that does, copied (`Copy.lean`),
 callee-first: the verifier's first (its recursive ones, which the prover does not call in its hot
-loops, are left as they are), then the prover's in rounds, each round after the hand-written
-copies of the recursive definitions its callers wait for. A hand-written copy is the statement's
+loops, are left as they are; the program's split, `splitAt`, is `Split.lean`'s), then the
+prover's in rounds, each round after the hand-written copies of the recursive definitions its
+callers wait for. A hand-written copy is the statement's
 text with `E`'s product as `mulE` and its own name for the recursive call, proved equal by
 induction and marked `@[csimp]`; the last round fails if a recursive definition is left
 (`fast_copy_modules_complete`), so a prover that gains one fails the build here.
@@ -26,39 +28,6 @@ fast_copy_modules Statement.Prover
 namespace LeanVM.Prover
 
 open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
-
-/-- `addSlice`, copied. -/
-def addSlice.fast (off : ℕ) (vals : Array E) (s : E) : ℕ → Array E → Array E
-  | 0, acc => acc
-  | n + 1, acc => addSlice.fast off vals s n (acc.modify (off + n) (· + mulE s (vals.getD n 0)))
-
-@[csimp] theorem addSlice.fast_eq : @addSlice = @addSlice.fast := by
-  funext off vals s n acc
-  induction n generalizing acc with
-  | zero => rfl
-  | succ n ih => exact ih _
-
-/-- `mulLineFrom`, copied. -/
-def mulLineFrom.fast (a₀ a₁ : E) : E → List E → List E
-  | prev, [] => [mulE a₁ prev]
-  | prev, p :: ps => (mulE a₀ p + mulE a₁ prev) :: mulLineFrom.fast a₀ a₁ p ps
-
-@[csimp] theorem mulLineFrom.fast_eq : @mulLineFrom = @mulLineFrom.fast := by
-  funext a₀ a₁ prev ps
-  induction ps generalizing prev with
-  | nil => rfl
-  | cons p ps ih => simp only [mulLineFrom, mulLineFrom.fast, ih, mulE]
-
-/-- `treeLayers`, copied. -/
-def treeLayers.fast : ℕ → Array E → List (Array E)
-  | 0, t => [t]
-  | n + 1, t => t :: treeLayers.fast n (mulPairsA t)
-
-@[csimp] theorem treeLayers.fast_eq : @treeLayers = @treeLayers.fast := by
-  funext n t
-  induction n generalizing t with
-  | zero => rfl
-  | succ n ih => simp only [treeLayers, treeLayers.fast, ih]
 
 /-- `foldRoundsA`, copied. -/
 def foldRoundsA.fast : ℕ → ℕ → Array E → Array E → Script (Array E × Array E)
@@ -134,43 +103,6 @@ fast_copy_modules Statement.Prover
 
 namespace LeanVM.Prover
 
-open LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
-
-/-- `gkrLayersA`, copied. -/
-def gkrLayersA.fast (A₀ A₁ A₂ : List (Array E)) : ℕ → GkrState → Script GkrState
-  | 0, s => .ret s
-  | 1, s =>
-    (gkrStepA (A₀.getD 0 #[]) (A₁.getD 0 #[]) (A₂.getD 0 #[]) 1 true s).bind
-      (gkrLayersA.fast A₀ A₁ A₂ 0)
-  | n + 2, s =>
-    if n % 2 = 1 then
-      (gkrStepA (A₀.getD (n + 1) #[]) (A₁.getD (n + 1) #[]) (A₂.getD (n + 1) #[]) 1 false
-        s).bind
-        (gkrLayersA.fast A₀ A₁ A₂ (n + 1))
-    else
-      (gkrStepA (A₀.getD n #[]) (A₁.getD n #[]) (A₂.getD n #[]) 2 (n = 0) s).bind
-        (gkrLayersA.fast A₀ A₁ A₂ n)
-
-@[csimp] theorem gkrLayersA.fast_eq : @gkrLayersA = @gkrLayersA.fast := by
-  funext A₀ A₁ A₂ n s
-  induction n using Nat.strong_induction_on generalizing s with
-  | _ n ih =>
-    match n with
-    | 0 => rfl
-    | 1 => simp only [gkrLayersA, gkrLayersA.fast]
-    | n + 2 =>
-      have h1 : gkrLayersA A₀ A₁ A₂ (n + 1) = gkrLayersA.fast A₀ A₁ A₂ (n + 1) :=
-        funext fun s ↦ ih (n + 1) (by omega) s
-      have h0 : gkrLayersA A₀ A₁ A₂ n = gkrLayersA.fast A₀ A₁ A₂ n :=
-        funext fun s ↦ ih n (by omega) s
-      simp only [gkrLayersA, gkrLayersA.fast, h1, h0]
-
-end LeanVM.Prover
-
-fast_copy_modules Statement.Prover
-
-namespace LeanVM.Prover
-
 open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 
 section Run
@@ -218,6 +150,14 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
   | .sample k, S, sp, cs => do
     let r ← squeeze F sp
     runFrom.fast fuel (k r.1) (Script.afterSample r.1 S) r.2 cs
+  | .readPacked n k, S, sp, cs => do
+    let xs := Script.packedOf n S
+    let sp' ← observePacked F sp xs
+    let r ← runFrom.fast fuel (k xs) (Script.afterSendPacked S) sp' cs
+    pure (r.map fun t ↦ (xs ++ t.1, t.2))
+  | .samplePacked n k, S, sp, cs => do
+    let r ← samplesPacked F sp n
+    runFrom.fast fuel (k r.1) (Script.afterSamplePacked r.1 S) r.2 cs
   | .grind bits k, S, sp, cs => do
     match ← findNonceM F bits (Script.outsideKOf S) sp fuel with
     | none => pure none
@@ -245,6 +185,8 @@ def runFrom.fast (fuel : ℕ) {α β : Type} :
   | fail => rfl
   | read k ih => simp only [runFrom, runFrom.fast, ih]
   | sample k ih => simp only [runFrom, runFrom.fast, ih]
+  | readPacked n k ih => simp only [runFrom, runFrom.fast, ih]
+  | samplePacked n k ih => simp only [runFrom, runFrom.fast, ih]
   | grind bits k ih =>
     simp only [runFrom, runFrom.fast]
     congr 1

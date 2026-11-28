@@ -18,10 +18,10 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 The sections, in order:
 
 * `vkHeadT`: the capacity copied, `pack_g`, `y_g`, the bits of `y` (pinned boolean), `step_g`
-  and `rem_g` (`assert step_g⁸·rem_g = y_g`); the instance coordinates copied to `z_vals`;
+  and `rem_g` (`assert step_g^16·rem_g = y_g`); the instance coordinates copied to `z_vals`;
   the point's pack coordinates copied (`verify_keccak_loop0`); the segment and the lane coordinates
   squeezed (`sqZeroT`); the committed outputs' value read;
-* the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `copyWordsT`),
+* the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `muCopyT`),
   the lanes (`eqtreeT`), the segment weights (`eqtreeT`), the value (`dotLoadsT`);
 * twelve steps (`stepT`): the claim's segment weights (`eqfLevel0T`), its `ι` term (`flipsT`,
   `iotaSegT`), and `keccak_layer` (`stepTailT`);
@@ -150,16 +150,16 @@ def stepTailT (s b : ℕ) (cap : List ℕ) (cur cb pn io : ℕ) : List Stmt :=
       .atom (.const (.n (b + 2)) (word 2 0)), .atom (.mul (.n (b + 3)) (.n (val% «verify_keccak» "pack_g")) (.n (b + 2))),
       .atom (.const (.n (b + 4)) (word 4194304 0)), .atom (.mul (.n (b + 5)) (.n (val% «verify_keccak» "claims")) (.n (b + 4))),
       .call "keccak_layer__L1"
-        (cap.map .n ++ [.n (val% «verify_keccak» "value_rate[0]"), .n (val% «verify_keccak» "value_rate[1]"), .n (b + 1), .n (b + 3), .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"), .n (val% «verify_keccak» "claims"), .n (b + 5),
-          .n io, .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")]) ((List.range 6).map fun j ↦ .n (b + 6 + j))]
+        (cap.map .n ++ [.n (val% «verify_keccak» "value_rate[0]"), .n (val% «verify_keccak» "value_rate[1]"), .n (b + 1), .n (b + 3), .n 29, .n 48, .n (val% «verify_keccak» "claims"), .n (b + 5),
+          .n io, .n (val% «verify_keccak» "tabs")]) ((List.range 6).map fun j ↦ .n (b + 6 + j))]
   else
     [.atom (.const (.n b) (word 0 0)), .atom (.const (.n (b + 1)) (word 0 0)),
       .atom (.const (.n (b + 2)) (word 2 0)), .atom (.mul (.n (b + 3)) (.n (val% «verify_keccak» "pack_g")) (.n (b + 2))),
       .atom (.const (.n (b + 4)) (word 4194304 0)), .atom (.mul (.n (b + 5)) (.n cb) (.n (b + 4))),
       .atom (.const (.n (b + 6)) (word 4194304 0)), .atom (.mul (.n (b + 7)) (.n pn) (.n (b + 6))),
       .call "keccak_layer__L0"
-        (cap.map .n ++ [.n b, .n (b + 1), .n cur, .n (b + 3), .n (val% «verify_keccak» "step_g@2"), .n (val% «verify_keccak» "rem_g@3"), .n (b + 5), .n (b + 7),
-          .n io, .n (val% «verify_keccak» "tabs"), .n (val% «verify_keccak» "stream")]) ((List.range 6).map fun j ↦ .n (b + 8 + j))]
+        (cap.map .n ++ [.n b, .n (b + 1), .n cur, .n (b + 3), .n 29, .n 48, .n (b + 5), .n (b + 7),
+          .n io, .n (val% «verify_keccak» "tabs")]) ((List.range 6).map fun j ↦ .n (b + 8 + j))]
 
 /-- The size of `stepTailT`'s values. -/
 def stepTailSz (s : ℕ) : ℕ := if s = 0 then 12 else 14
@@ -179,49 +179,50 @@ def stepEnd (s b : ℕ) : ℕ :=
 
 /-! ## The head -/
 
-/-- `pack_g`, `y_g`, the bits of `y` (pinned boolean), `step_g = g^⌊y/8⌋`, `rem_g = g^(y % 8)`
-and their check `step_g⁸·rem_g = y_g`. -/
+/-- `pack_g` (value `18`), `y_g` (`20`), the bits of `y` (`21 .. 25`, pinned boolean), `step_g =
+g^⌊y/16⌋` (`29`), `rem_g = g^(y % 16)` (`48`) and their check `step_g^16·rem_g = y_g`. -/
 def vkBitsT : List Stmt :=
-  [.atom (.const (.n (val% «verify_keccak» "pack_g~0")) (word 8070450532247928836 0)),
-    .atom (.mul (.n (val% «verify_keccak» "pack_g")) (.n (val% «verify_keccak» "tau_g")) (.n (val% «verify_keccak» "pack_g~0"))),
-    .atom (.const (.n (val% «verify_keccak» "s5#0")) (word 2 0)),
-    .atom (.mul (.n (val% «verify_keccak» "s5#1")) (.n (val% «verify_keccak» "pack_g")) (.n (val% «verify_keccak» "s5#0"))),
-    .atom (.hint (.bitsExp (.n (val% «verify_keccak» "s5#1")) 5 (.stack [.n (val% «verify_keccak» "y_bits[0]"), .n (val% «verify_keccak» "y_bits[1]"), .n (val% «verify_keccak» "y_bits[2]"), .n (val% «verify_keccak» "y_bits[3]"), .n (val% «verify_keccak» "y_bits[4]")]))),
-    .atom (.mul (.n (val% «verify_keccak» "y_bits[0]")) (.n (val% «verify_keccak» "y_bits[0]")) (.n (val% «verify_keccak» "y_bits[0]"))),
-    .atom (.mul (.n (val% «verify_keccak» "y_bits[1]")) (.n (val% «verify_keccak» "y_bits[1]")) (.n (val% «verify_keccak» "y_bits[1]"))),
-    .atom (.mul (.n (val% «verify_keccak» "y_bits[2]")) (.n (val% «verify_keccak» "y_bits[2]")) (.n (val% «verify_keccak» "y_bits[2]"))),
-    .atom (.mul (.n (val% «verify_keccak» "y_bits[3]")) (.n (val% «verify_keccak» "y_bits[3]")) (.n (val% «verify_keccak» "y_bits[3]"))),
-    .atom (.mul (.n (val% «verify_keccak» "y_bits[4]")) (.n (val% «verify_keccak» "y_bits[4]")) (.n (val% «verify_keccak» "y_bits[4]"))),
-    .atom (.const (.n (val% «verify_keccak» "step_g@1~0")) (word 1 0)),
-    .atom (.const (.n (val% «verify_keccak» "step_g@1~1")) (word 3 0)),
-    .atom (.mul (.n (val% «verify_keccak» "step_g@1~2")) (.n (val% «verify_keccak» "y_bits[3]")) (.n (val% «verify_keccak» "step_g@1~1"))),
-    .atom (.add (.n (val% «verify_keccak» "step_g@1")) (.n (val% «verify_keccak» "step_g@1~0")) (.n (val% «verify_keccak» "step_g@1~2"))),
-    .atom (.const (.n (val% «verify_keccak» "step_g@2~0")) (word 1 0)),
-    .atom (.const (.n (val% «verify_keccak» "step_g@2~1")) (word 5 0)),
-    .atom (.mul (.n (val% «verify_keccak» "step_g@2~2")) (.n (val% «verify_keccak» "y_bits[4]")) (.n (val% «verify_keccak» "step_g@2~1"))),
-    .atom (.add (.n (val% «verify_keccak» "step_g@2~3")) (.n (val% «verify_keccak» "step_g@2~0")) (.n (val% «verify_keccak» "step_g@2~2"))),
-    .atom (.mul (.n (val% «verify_keccak» "step_g@2")) (.n (val% «verify_keccak» "step_g@1")) (.n (val% «verify_keccak» "step_g@2~3"))),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@1~0")) (word 1 0)),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@1~1")) (word 3 0)),
-    .atom (.mul (.n (val% «verify_keccak» "rem_g@1~2")) (.n (val% «verify_keccak» "y_bits[0]")) (.n (val% «verify_keccak» "rem_g@1~1"))),
-    .atom (.add (.n (val% «verify_keccak» "rem_g@1")) (.n (val% «verify_keccak» "rem_g@1~0")) (.n (val% «verify_keccak» "rem_g@1~2"))),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@2~0")) (word 1 0)),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@2~1")) (word 5 0)),
-    .atom (.mul (.n (val% «verify_keccak» "rem_g@2~2")) (.n (val% «verify_keccak» "y_bits[1]")) (.n (val% «verify_keccak» "rem_g@2~1"))),
-    .atom (.add (.n (val% «verify_keccak» "rem_g@2~3")) (.n (val% «verify_keccak» "rem_g@2~0")) (.n (val% «verify_keccak» "rem_g@2~2"))),
-    .atom (.mul (.n (val% «verify_keccak» "rem_g@2")) (.n (val% «verify_keccak» "rem_g@1")) (.n (val% «verify_keccak» "rem_g@2~3"))),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@3~0")) (word 1 0)),
-    .atom (.const (.n (val% «verify_keccak» "rem_g@3~1")) (word 17 0)),
-    .atom (.mul (.n (val% «verify_keccak» "rem_g@3~2")) (.n (val% «verify_keccak» "y_bits[2]")) (.n (val% «verify_keccak» "rem_g@3~1"))),
-    .atom (.add (.n (val% «verify_keccak» "rem_g@3~3")) (.n (val% «verify_keccak» "rem_g@3~0")) (.n (val% «verify_keccak» "rem_g@3~2"))),
-    .atom (.mul (.n (val% «verify_keccak» "rem_g@3")) (.n (val% «verify_keccak» "rem_g@2")) (.n (val% «verify_keccak» "rem_g@3~3"))),
-    .atom (.mul (.n (val% «verify_keccak» "s11#0")) (.n (val% «verify_keccak» "step_g@2")) (.n (val% «verify_keccak» "step_g@2"))),
-    .atom (.mul (.n (val% «verify_keccak» "s11#1")) (.n (val% «verify_keccak» "s11#0")) (.n (val% «verify_keccak» "s11#0"))),
-    .atom (.mul (.n (val% «verify_keccak» "s11#2")) (.n (val% «verify_keccak» "s11#1")) (.n (val% «verify_keccak» "s11#1"))),
-    .atom (.mul (.n (val% «verify_keccak» "s11#3")) (.n (val% «verify_keccak» "s11#2")) (.n (val% «verify_keccak» "rem_g@3"))),
-    .atom (.const (.n (val% «verify_keccak» "s11#4")) (word 2 0)),
-    .atom (.mul (.n (val% «verify_keccak» "s11#5")) (.n (val% «verify_keccak» "pack_g")) (.n (val% «verify_keccak» "s11#4"))),
-    .atom (.assertEq (.n (val% «verify_keccak» "s11#3")) (.n (val% «verify_keccak» "s11#5")))]
+  [.atom (.const (.n 17) (word 8070450532247928836 0)),
+    .atom (.mul (.n 18) (.n 6) (.n 17)),
+    .atom (.const (.n 19) (word 2 0)),
+    .atom (.mul (.n 20) (.n 18) (.n 19)),
+    .atom (.hint (.bitsExp (.n 20) 5 (.stack [.n 21, .n 22, .n 23, .n 24, .n 25]))),
+    .atom (.mul (.n 21) (.n 21) (.n 21)),
+    .atom (.mul (.n 22) (.n 22) (.n 22)),
+    .atom (.mul (.n 23) (.n 23) (.n 23)),
+    .atom (.mul (.n 24) (.n 24) (.n 24)),
+    .atom (.mul (.n 25) (.n 25) (.n 25)),
+    .atom (.const (.n 26) (word 1 0)),
+    .atom (.const (.n 27) (word 3 0)),
+    .atom (.mul (.n 28) (.n 25) (.n 27)),
+    .atom (.add (.n 29) (.n 26) (.n 28)),
+    .atom (.const (.n 30) (word 1 0)),
+    .atom (.const (.n 31) (word 3 0)),
+    .atom (.mul (.n 32) (.n 21) (.n 31)),
+    .atom (.add (.n 33) (.n 30) (.n 32)),
+    .atom (.const (.n 34) (word 1 0)),
+    .atom (.const (.n 35) (word 5 0)),
+    .atom (.mul (.n 36) (.n 22) (.n 35)),
+    .atom (.add (.n 37) (.n 34) (.n 36)),
+    .atom (.mul (.n 38) (.n 33) (.n 37)),
+    .atom (.const (.n 39) (word 1 0)),
+    .atom (.const (.n 40) (word 17 0)),
+    .atom (.mul (.n 41) (.n 23) (.n 40)),
+    .atom (.add (.n 42) (.n 39) (.n 41)),
+    .atom (.mul (.n 43) (.n 38) (.n 42)),
+    .atom (.const (.n 44) (word 1 0)),
+    .atom (.const (.n 45) (word 257 0)),
+    .atom (.mul (.n 46) (.n 24) (.n 45)),
+    .atom (.add (.n 47) (.n 44) (.n 46)),
+    .atom (.mul (.n 48) (.n 43) (.n 47)),
+    .atom (.mul (.n 49) (.n 29) (.n 29)),
+    .atom (.mul (.n 50) (.n 49) (.n 49)),
+    .atom (.mul (.n 51) (.n 50) (.n 50)),
+    .atom (.mul (.n 52) (.n 51) (.n 51)),
+    .atom (.mul (.n 53) (.n 52) (.n 48)),
+    .atom (.const (.n 54) (word 2 0)),
+    .atom (.mul (.n 55) (.n 18) (.n 54)),
+    .atom (.assertEq (.n 53) (.n 55))]
 
 /-- The point's allocation and the copy of its pack coordinates (`verify_keccak_loop0`). -/
 def vkPointT : List Stmt :=
@@ -236,7 +237,7 @@ def vkPointT : List Stmt :=
 
 /-- The segment and the five lane coordinates squeezed. -/
 def vkSqueezesT : List Stmt :=
-  sqZeroT 13 74 ++ [.atom (.load (.n (val% «verify_keccak» "nxt[0]@1")) (.n (val% «verify_keccak» "segment")) 0), .atom (.hint (.alloc (.n (val% «verify_keccak» "r_lane")) 5))] ++
+  sqZeroT 12 74 ++ [.atom (.load (.n (val% «verify_keccak» "nxt[0]@1")) (.n (val% «verify_keccak» "segment")) 0), .atom (.hint (.alloc (.n (val% «verify_keccak» "r_lane")) 5))] ++
     ((List.range 5).map fun i ↦
       sqZeroT (if i = 0 then 82 else 83 + 13 * i) (88 + 13 * i) ++
         [.atom (.load (.n (88 + 13 * i)) (.n (val% «verify_keccak» "r_lane")) i)]).flatten
@@ -281,6 +282,9 @@ def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
 /-- Lane `lane`'s weight in `slotLanesT`. -/
 def slotLaneV (b count lane : ℕ) : ℕ :=
   if count = 1 then b + 134 + 2 * lane else b + 136 + 4 * lane
+
+/-- The value after `slotLanesT`. -/
+def slotLanesEnd (b count : ℕ) : ℕ := if count = 1 then b + 183 else b + 233
 
 /-- Read `z` of the slices from `b`. -/
 def slB (b z : ℕ) : ℕ := b + 3 * z + 13 * (z / 4)

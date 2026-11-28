@@ -11,7 +11,7 @@ public import Statement.CostMachine
 # The leanISA guest program: what a node proves
 
 A node of the aggregation has claims (`NodeStatement`: leanXMSS and leanSPHINCS claims, a DA
-digest, and a claim it defers on the guest program's bytecode) and witnesses (`NodeWitness`: raw
+digest, and a claim it defers on the guest program split by opcode, `splitTable`) and witnesses (`NodeWitness`: raw
 signatures, a blob matrix, children carrying proofs, the batching's hints). What a valid execution
 of the guest program establishes is that the witnesses hold the claims, `NodeRelation`: its
 signatures, its DA digest, its children's proofs, and its deferred claim, the batching of its
@@ -27,7 +27,8 @@ Transcribed from leanVM's `crates/aggregation/src/` (the statement, its digest, 
 `guests/lean_ethereum.py` (the guest program), cited by their items' names. The signature schemes
 are `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
 `LeanDa.lean`'s. `statement.tex` says why the witness is named by a decoder program, and what a
-claim held through a child does not give.
+claim held through a child does not give: the deferring verifier takes the program's split at the
+child's link point from the witness (`Child.freshClaim`).
 -/
 
 @[expose] public section
@@ -153,12 +154,14 @@ namespace LeanVM.Node
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
-/-- A child of a node: its statement, its proof, and what the proof claims of the bytecode. -/
+/-- A child of a node: its statement, its proof, and the claim its verification raises on the
+program split by opcode. -/
 structure Child where
   /-- The child's node statement. -/
   statement : NodeStatement
-  /-- The claim on the bytecode its proof makes. -/
-  freshClaim : BytecodeClaim
+  /-- The claim its verification raises: the split columns at its link point's instruction
+  coordinates (`FreshClaim`, `crates/aggregation/src/deferred.rs`). -/
+  freshClaim : FreshClaim
   /-- Its proof. -/
   proof : Proof
 
@@ -177,26 +180,26 @@ structure NodeWitness where
   /-- The prover's part of the batching of the children's deferred claims. -/
   batchingHints : BatchingHints
 
-/-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
+/-- The deferred claim has the shape of the split program of the stacked program `bytecode`: a point
+of `deferredVariableCount bytecode` coordinates, the instructions' then the split columns'
 (`bytecode_vars`, `crates/aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
 def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  claim.bytecodePoint.length = Nat.log2 bytecode.length
+  claim.bytecodePoint.length = deferredVariableCount bytecode
 
-/-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
+/-- What a leaf defers: the split program at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
 def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
+  claim.bytecodePoint = List.replicate (deferredVariableCount bytecode) 0
 
-/-- **The deferred claim is true** of the bytecode `bytecode`: the bytecode has `2 ^ len` words,
-`len` the point's length (so the claim has the bytecode's shape, `HasBytecodeShape`), and the value
-is the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
-`crates/aggregation/src/deferred.rs`). Stronger than `BytecodeClaim.Holds` (the value only). The
-deployed outer verifier checks it of the root's deferred claim (`AggregateProof::verify`,
-`crates/aggregation/src/proof.rs`). -/
+/-- **The deferred claim is true** of the stacked program `bytecode`: the split table has `2 ^ len`
+entries, `len` the point's length (so the claim has the split program's shape, `HasBytecodeShape`),
+and the value is the split table's multilinear extension at the point
+(`DeferredBytecodeClaim::recompute`, `crates/aggregation/src/deferred.rs`). Stronger than
+`BytecodeClaim.Holds` (the value only). The deployed outer verifier checks it of the root's deferred
+claim (`AggregateProof::verify`, `crates/aggregation/src/proof.rs`). -/
 def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  2 ^ claim.bytecodePoint.length = bytecode.length ∧
-    multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
+  2 ^ claim.bytecodePoint.length = (splitTable bytecode).length ∧ claim.Holds bytecode
 
 /-! ## What the guest program proves
 
@@ -255,21 +258,23 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root : Digest) (z : E)
     LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root.toBytes ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (LeanDa.dualCodewordAt z) (fun b ↦ row.getD b 0) = 0
 
-/-- **Every child is proven**: its deferred claim has the bytecode's shape, and the deferring
+/-- **Every child is proven**: its deferred claim has the split program's shape, and the deferring
 verifier (`verifyDeferred`, the guest program's `verify_sub`) accepts its proof for its statement's
-digest under the same seed. The deferring verifier reads only the bytecode's length: it takes the
-bytecode's value at the child's point from the witness (`freshClaim`), which the batching folds into
-the node's deferred claim and nothing here checks. -/
+digest under the same seed, with its fresh claim. The deferring verifier reads only the bytecode's
+length: it takes the program's split at the child's link point from the witness (`freshClaim`: the
+link's point over the instructions must be its point, and the program side reads its values),
+which the batching folds into the node's deferred claim and nothing here checks. -/
 def ChildrenProven (bytecode : List K) (seed : Digest) (witness : NodeWitness) : Prop :=
   ∀ child ∈ witness.children, child.statement.deferredClaim.HasBytecodeShape bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
       child.proof = true
 
-/-- **The deferred claim batches the children's**: without children, the bytecode at the zero
+/-- **The deferred claim batches the children's**: without children, the split program at the zero
 point; with children, the batching program (`Batch.nodeBatchingProgram`), over Keccak-f[1600],
 accepts the stream of the children's claims (each child's public input, fresh claim and deferred
 claim) and the hints, with the statement's deferred claim as its outcome. Either way the deferred
-claim has the bytecode's shape: the zero point's, or the sumcheck's `log₂ |bytecode|` challenges. -/
+claim has the split program's shape: the zero point's, or the sumcheck's `deferredVariableCount`
+challenges. -/
 def DeferredClaimBatched (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
   if witness.children = [] then statement.deferredClaim.HasZeroPoint bytecode
@@ -389,6 +394,9 @@ instance : MachineEncoding Sphincs.Signature :=
 instance : MachineEncoding BytecodeClaim :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.bytecodePoint, encodeValue c.bytecodeValue]⟩
 
+instance : MachineEncoding FreshClaim :=
+  ⟨fun c ↦ .constructor 0 [encodeValue c.point, encodeValue c.values]⟩
+
 instance : MachineEncoding DaClaim :=
   ⟨fun c ↦ .constructor 0 [encodeValue c.daRoot, encodeValue c.membershipChallenge]⟩
 
@@ -431,13 +439,14 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ### The guest decoder's size bound and budget (`statement.tex` derives both) -/
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): the compiled
-decoder's size and a slack of `430`, less than two leanXMSS signatures' encodings. -/
-def guestWitnessDecoderSizeBound : ℕ := 237007
+decoder's size, `257768`, and a slack of `138`, less than one leanXMSS signature's encoding. -/
+def guestWitnessDecoderSizeBound : ℕ := 257906
 
 /-- **The guest decoder's budget** on an execution of `steps` steps on a memory of `2^κ` words:
 the most the decoder's run may cost, in the machine's price, with `lg = log₂(steps + 1)`,
-`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374 + 2^23 + 2^14·lg)·2^κ + 2^37·(lg + 16)`. Its constants
-are the deployed guest program's, and `program` is only ever `LeanVM.Guest.guestProgram`. -/
+`(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374 + 2^23 + 2^14·lg)·2^κ + 2^37·(lg + 16)`; `lean_vm`
+proves the compiled decoder's price within it (`Statement.Theorems`). Its constants are the
+deployed guest program's, and `program` is only ever `LeanVM.Guest.guestProgram`. -/
 def guestWitnessDecoderBudget {program : LeanIsaProgram} (execution : Execution program) : ℕ :=
   (execution.stepCount + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (execution.stepCount + 1)) +
     (70 * execution.logMemorySize + 374 + 2 ^ 23 + 2 ^ 14 * Nat.log2 (execution.stepCount + 1)) *

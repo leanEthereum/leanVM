@@ -20,7 +20,7 @@ use std::time::Instant;
 
 use bench_harness::{Plan, Timing, env_usize};
 use isa::pretty_integer;
-use pcs::{RingSwitchOpen, StackClaim, commit, open};
+use pcs::{RingSwitchClaim, RingSwitchOpen, StackClaim, commit, open};
 use primitives::{field::F64, test_rng::Rng};
 use verifier::MIN_LOG_INV_RATE;
 
@@ -41,20 +41,19 @@ fn main() {
     let n = 1usize << log_n;
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
     // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
-    let mut claims = vec![StackClaim {
+    let mut claims = vec![StackClaim::Point {
         offset: 0,
         low_point: rng.ext_vec(log_n),
     }];
     for c in 1..env_usize("PCS_POINT_CLAIMS", 1) {
-        claims.push(StackClaim {
+        claims.push(StackClaim::Point {
             offset: (c % 4) << (log_n - 2),
             low_point: rng.ext_vec(log_n - 2),
         });
     }
     let ring = RingSwitchOpen {
-        offset: 0,
-        points: (0..env_usize("PCS_RING_CLAIMS", 0))
-            .map(|_| rng.ext_vec(log_n - 1))
+        claims: (0..env_usize("PCS_RING_CLAIMS", 0))
+            .map(|_| RingSwitchClaim::single(0, rng.ext_vec(log_n - 1)))
             .collect(),
     };
 

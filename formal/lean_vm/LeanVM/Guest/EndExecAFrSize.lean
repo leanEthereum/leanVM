@@ -1,26 +1,27 @@
 /-
   LeanVM.Guest.EndExecAFrSize
 
-  A callee frame's hint reserves the next callee's block: `FrameSize alignA`, from the frame size
-  check (`Bridge.frChk`) at the call the hint's site makes.
+  A callee frame's hint reserves the next callee's block, on the aligned track: the bus era's
+  `EndExecAFrSize` (`frameSize_alignA`), from the frame sizes' check (`Bridge.frChk`) at the call the
+  hint's site makes.
 -/
 
 module
 
 public import LeanVM.Guest.EndExecAFrame
-public import LeanVM.Guest.CoreMode.Fam.ResT
-public import LeanVM.Guest.CoreMode.Fam.Down
-public import LeanVM.Guest.Bridge.AllocFrDefs
-public import LeanVM.Guest.Bridge.AllocChk.All
+public import LeanVM.Guest.EndExecABuf
+public import LeanVM.Guest.Bridge.FrChk
+public import LeanVM.Guest.CoreMode.Fam.LoopTree
 
 /-!
 # The callee frames' sizes
 
-`frameSize_alignA : FrameSize alignA`. At a frame hint the frame's next call is through the
-hint's site (`frame_next`); the call comes from a call statement of the body (`walk_callOf`) at that
-site, which fits the hint (`Bridge.frFits`), its callee's facts those of a listed compiled function
-(`calFind_spec`). The facts the statement reads are on the path (`CtxOn`): the spines of the blocks
-enclosing it and their calls' returns (`spine_evs`), the atoms of a path holding (`path_holds`).
+`frameSize_of`: at a frame hint the frame's next call is through the hint's site (`frame_nextA`);
+the call comes from a call statement of the body (`walk_callOf`, which also places the statement in
+`stmtsOf`) at that site, which fits the hint (`Bridge.frFits`), its callee's facts those of a listed
+compiled function (`calFind_spec`). The facts the statement reads are on the path (`CtxOn`): the
+spines of the blocks enclosing it and their calls' returns (`spine_evs`), the atoms of a path holding
+(`instsA_good`), the values at their cells (`cellRefN`, `FrameHolds.val`).
 
 * `alloc`: a `call` of a function no loop helper, entered, its block its frame; or of a loop helper
   from `g^e` to a constant end `g^K`, its run `K - e` iterations and the untaken call's tail (`chainB`);
@@ -28,8 +29,10 @@ enclosing it and their calls' returns (`spine_evs`), the atoms of a path holding
   frame;
 * `allocFrames`: a conditional call of a loop helper ending at its second parameter: entered, its
   run makes `m` iterations from `g^e` (`chainB`), its block `m` frames and the tail, and the end
-  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block the tail (the
-  guard's end equal to the stop's by `spEq_spec`).
+  `g^(e + m)` at the stop cell; not entered, the guard `g^e + end` zero, its block the tail.
+
+The iterations are below `maxCells`: the callee's block ends within the frame's subtree
+(`curA_block_le`), within `2^κ` (`endCurA_le_pow`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -37,12 +40,18 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Memory
 open LeanVM.Guest.Core hiding Hint
 open LeanVM.Guest.Bridge hiding St
-open LeanVM.Guest.Check (getF)
 open LeanVM.Prover.Exec
 
-public section
+@[expose] public section
 
-/-! ## The calls of a path, by statement -/
+/-- **A callee frame's hint reserves `B` words**, its size read off `M` at frame `fp`: a constant, a
+dispatch arm's by its selector, or a loop chain's by its bound. -/
+def SizeOkA (M : ℕ → E) (fp : ℕ) : Hint → ℕ → Prop
+  | .alloc _ n _, B => n = B
+  | .allocArm _ sel sizes _, B => ∃ k, M (fp + sel) = ofK (g ^ k) ∧ k < maxCells ∧ sizes[k]? = some B
+  | .allocFrames _ size stop si tail _, B => ∃ v n, M (fp + stop) = ofK v ∧ v * si = g ^ n ∧ n < maxCells ∧
+      size * n + tail = B
+  | _, _ => False
 
 /-- **Call `c` of a path made by statement `st`.** -/
 def CallOf (σ : Val) (c : Call) : Stmt → Prop
@@ -51,6 +60,75 @@ def CallOf (σ : Val) (c : Call) : Stmt → Prop
   | .dispatch x fs args rets => c.args = args ∧ c.rets = rets ∧ c.taken = true ∧
       ∃ j, fs[j]? = some c.f ∧ σ x = ofK (addressOfIndex j)
   | _ => False
+
+end
+
+public section
+
+theorem pick_ne_retF {σ : Val} {x : V} {args rets : List V} {es : List Ev} {vs : List V} :
+    ∀ (fs : List String) (j : ℕ), pick σ x args rets j fs ≠ .ret es vs
+  | [], _ => by simp [pick]
+  | f :: fs, j => by
+    unfold pick
+    split
+    · simp
+    · exact pick_ne_retF fs (j + 1)
+
+theorem noRet_consF (s : Stmt) (ss : List Stmt) : noRet (s :: ss) = (noRet [s] && noRet ss) := by
+  show (_ && _) = ((_ && true) && _)
+  rw [Bool.and_true]
+  rfl
+
+section
+
+variable {σ : Val}
+
+mutual
+/-- **A statement without `ret` does not return.** -/
+theorem walk1_noRetF : ∀ (s : Stmt), noRet [s] = true → ∀ es vs, walk1 σ s ≠ .ret es vs
+  | .atom _, _, _, _ => by simp [walk1]
+  | .ite c z n, h, es, vs => by
+    have h' : ((noRet z && noRet n) && true) = true := h
+    simp only [Bool.and_true, Bool.and_eq_true] at h'
+    intro he
+    rw [walk1] at he
+    obtain ⟨es', he', -⟩ := pre_eq_ret he
+    split at he'
+    · exact walk_noRetF z h'.1 es' vs he'
+    · exact walk_noRetF n h'.2 es' vs he'
+  | .match_ x arms, h, es, vs => by
+    have h' : (noRetArms arms && true) = true := h
+    simp only [Bool.and_true] at h'
+    rw [walk1]
+    exact walkArms_noRetF x arms 0 h' es vs
+  | .call .., _, _, _ => by simp [walk1]
+  | .callIf .., _, _, _ => by simp [walk1]
+  | .dispatch x fs args rets, _, es, vs => by rw [walk1]; exact pick_ne_retF fs 0
+  | .ret _, h, _, _ => absurd (show (false && true) = true from h) (by decide)
+
+theorem walk_noRetF : ∀ (ss : List Stmt), noRet ss = true → ∀ es vs, walk σ ss ≠ .ret es vs
+  | [], _, _, _ => by simp [walk]
+  | s :: ss, h, es, vs => by
+    rw [noRet_consF, Bool.and_eq_true] at h
+    intro he
+    rw [walk] at he
+    rcases seq_eq_ret he with ⟨es1, es2, -, h2, -⟩ | h1
+    · exact walk_noRetF ss h.2 es2 vs h2
+    · exact walk1_noRetF s h.1 es vs h1
+
+theorem walkArms_noRetF (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ), noRetArms arms = true →
+    ∀ es vs, walkArms σ x j arms ≠ .ret es vs
+  | [], _, _, _, _ => by simp [walkArms]
+  | a :: as, j, h, es, vs => by
+    have h' : (noRet a && noRetArms as) = true := h
+    rw [Bool.and_eq_true] at h'
+    rw [walkArms]
+    split
+    · exact walk_noRetF a h'.1 es vs
+    · exact walkArms_noRetF x as (j + 1) h'.2 es vs
+end
+
+end
 
 theorem callOf_args {σ : Val} {c : Call} {st : Stmt} (h : CallOf σ c st) : stArgs st = c.args ∧ stRets st = c.rets := by
   cases st with
@@ -176,13 +254,13 @@ theorem spine_evs : ∀ (ss : List Stmt), walk σ ss ≠ .stuck →
     exact ⟨fun a ha ↦ hsub (ih1 a ha), fun x hx ↦ (ih2 x hx).imp fun ev h ↦ ⟨hsub h.1, h.2⟩⟩
   | .dispatch x fs args rets :: ss, hs => by
     rw [walk_dispatch_cons] at hs ⊢
-    obtain ⟨hs', -, hsub⟩ := seq_cont (fun es vs ↦ pick_ne_ret fs 0) hs
+    obtain ⟨hs', -, hsub⟩ := seq_cont (fun es vs ↦ pick_ne_retF fs 0) hs
     obtain ⟨ih1, ih2⟩ := spine_evs ss hs'
     exact ⟨fun a ha ↦ hsub (ih1 a ha), fun y hy ↦ (ih2 y hy).imp fun ev h ↦ ⟨hsub h.1, h.2⟩⟩
   | .ite c z n :: ss, hs => by
     by_cases hn : (noRet z && noRet n) = true
     · rw [walk] at hs ⊢
-      obtain ⟨hs', -, hsub⟩ := seq_cont (walk1_noRet (.ite c z n) (show ((noRet z && noRet n) && true) = true by
+      obtain ⟨hs', -, hsub⟩ := seq_cont (walk1_noRetF (.ite c z n) (show ((noRet z && noRet n) && true) = true by
         simp only [hn, Bool.and_true])) hs
       obtain ⟨ih1, ih2⟩ := spine_evs ss hs'
       refine ⟨fun a ha ↦ ?_, fun y hy ↦ ?_⟩
@@ -193,7 +271,7 @@ theorem spine_evs : ∀ (ss : List Stmt), walk σ ss ≠ .stuck →
   | .match_ x arms :: ss, hs => by
     by_cases hn : noRetArms arms = true
     · rw [walk] at hs ⊢
-      obtain ⟨hs', -, hsub⟩ := seq_cont (walk1_noRet (.match_ x arms) (show (noRetArms arms && true) = true by
+      obtain ⟨hs', -, hsub⟩ := seq_cont (walk1_noRetF (.match_ x arms) (show (noRetArms arms && true) = true by
         simp only [hn, Bool.and_true])) hs
       obtain ⟨ih1, ih2⟩ := spine_evs ss hs'
       refine ⟨fun a ha ↦ ?_, fun y hy ↦ ?_⟩
@@ -209,7 +287,7 @@ mutual
 /-- **A statement's path calls only at its call statements**, the facts each reads on the path. -/
 theorem walk1_callOf : ∀ (s : Stmt) (sp : List Atom) (nm : List V), callsSpS p s sp nm = true →
     ∀ c ∈ calls (walk1 σ s).evs, ∃ st sp' nm', p sp' nm' st = true ∧ CallOf σ c st ∧
-      CtxOn sp nm sp' nm' (walk1 σ s).evs
+      CtxOn sp nm sp' nm' (walk1 σ s).evs ∧ st ∈ s :: stmtsSub s
   | .atom a, _, _, _, c, h => by simp [walk1, Out.evs, calls, Ev.call?] at h
   | .ite b z m, sp, nm, hs, c, h => by
     replace hs : (callsSpL p z (sp ++ spine z) (nm ++ spineNamed z) &&
@@ -218,22 +296,25 @@ theorem walk1_callOf : ∀ (s : Stmt) (sp : List Atom) (nm : List V), callsSpS p
     rw [walk1] at h ⊢
     rw [Out.calls_pre_inK] at h
     split_ifs at h ⊢
-    · obtain ⟨st, sp', nm', h1, h2, h3⟩ := walk_callOf z _ _ hs.1 c h
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walk_callOf z _ _ hs.1 c h
       obtain ⟨e1, e2⟩ := spine_evs z (stuck_of_calls h)
-      exact ⟨st, sp', nm', h1, h2, (h3.widen e1 e2).mono (Out.evs_pre_sub _ _)⟩
-    · obtain ⟨st, sp', nm', h1, h2, h3⟩ := walk_callOf m _ _ hs.2 c h
+      exact ⟨st, sp', nm', h1, h2, (h3.widen e1 e2).mono (Out.evs_pre_sub _ _),
+        List.mem_cons_of_mem _ (List.mem_append_left _ h4)⟩
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walk_callOf m _ _ hs.2 c h
       obtain ⟨e1, e2⟩ := spine_evs m (stuck_of_calls h)
-      exact ⟨st, sp', nm', h1, h2, (h3.widen e1 e2).mono (Out.evs_pre_sub _ _)⟩
+      exact ⟨st, sp', nm', h1, h2, (h3.widen e1 e2).mono (Out.evs_pre_sub _ _),
+        List.mem_cons_of_mem _ (List.mem_append_right _ h4)⟩
   | .match_ x arms, sp, nm, hs, c, h => by
     rw [walk1] at h ⊢
-    exact walkArms_callOf x arms 0 sp nm (show callsSpA p arms sp nm = true from hs) c h
+    obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walkArms_callOf x arms 0 sp nm (show callsSpA p arms sp nm = true from hs) c h
+    exact ⟨st, sp', nm', h1, h2, h3, List.mem_cons_of_mem _ h4⟩
   | .call f args rets, sp, nm, hs, c, h => by
     simp only [walk1, Out.evs, calls, List.filterMap_cons, Ev.call?, List.filterMap_nil,
       List.mem_cons, List.not_mem_nil, or_false] at h
     subst h
-    exact ⟨_, sp, nm, hs, rfl, fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩
+    exact ⟨_, sp, nm, hs, rfl, ⟨fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩, List.mem_cons_self⟩
   | .callIf b f args, sp, nm, hs, c, h => by
-    refine ⟨_, sp, nm, hs, ?_, fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩
+    refine ⟨_, sp, nm, hs, ?_, ⟨fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩, List.mem_cons_self⟩
     rw [walk1] at h
     by_cases h0 : σ b = 0
     · simp only [h0, ↓reduceIte, Out.evs, calls, List.filterMap_cons, Ev.call?, List.filterMap_nil,
@@ -247,37 +328,43 @@ theorem walk1_callOf : ∀ (s : Stmt) (sp : List Atom) (nm : List V), callsSpS p
   | .dispatch x gs args rets, sp, nm, hs, c, h => by
     rw [walk1] at h
     obtain ⟨h1, h2, h3, i, hi, hσ⟩ := pick_callOf gs 0 c h
-    exact ⟨_, sp, nm, hs, ⟨h1, h2, h3, i, hi, by rw [hσ, Nat.zero_add]⟩, fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩
+    exact ⟨_, sp, nm, hs, ⟨h1, h2, h3, i, hi, by rw [hσ, Nat.zero_add]⟩, ⟨fun a ha ↦ .inl ha, fun x hx ↦ .inl hx⟩,
+      List.mem_cons_self⟩
   | .ret _, _, _, _, c, h => by simp [walk1, Out.evs, calls] at h
 
 /-- **A block's path calls only at its call statements**, the facts each reads on the path. -/
 theorem walk_callOf : ∀ (ss : List Stmt) (sp : List Atom) (nm : List V), callsSpL p ss sp nm = true →
     ∀ c ∈ calls (walk σ ss).evs, ∃ st sp' nm', p sp' nm' st = true ∧ CallOf σ c st ∧
-      CtxOn sp nm sp' nm' (walk σ ss).evs
+      CtxOn sp nm sp' nm' (walk σ ss).evs ∧ st ∈ stmtsOf ss
   | [], _, _, _, c, h => by simp [walk, Out.evs, calls] at h
   | s :: ss, sp, nm, hs, c, h => by
     rw [walk] at h ⊢
     replace hs : (callsSpS p s sp nm && callsSpL p ss sp nm) = true := hs
     simp only [Bool.and_eq_true] at hs
     rcases Out.calls_seq_sub h with ⟨h, hsub⟩ | ⟨h, hsub⟩
-    · obtain ⟨st, sp', nm', h1, h2, h3⟩ := walk1_callOf s sp nm hs.1 c h
-      exact ⟨st, sp', nm', h1, h2, h3.mono hsub⟩
-    · obtain ⟨st, sp', nm', h1, h2, h3⟩ := walk_callOf ss sp nm hs.2 c h
-      exact ⟨st, sp', nm', h1, h2, h3.mono hsub⟩
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walk1_callOf s sp nm hs.1 c h
+      refine ⟨st, sp', nm', h1, h2, h3.mono hsub, ?_⟩
+      rw [stmtsOf]
+      rcases List.mem_cons.mp h4 with h4 | h4
+      · rw [h4]; exact List.mem_cons_self
+      · exact List.mem_cons_of_mem _ (List.mem_append_left _ h4)
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walk_callOf ss sp nm hs.2 c h
+      exact ⟨st, sp', nm', h1, h2, h3.mono hsub, by rw [stmtsOf]; exact List.mem_cons_of_mem _ (List.mem_append_right _ h4)⟩
 
 theorem walkArms_callOf (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) (sp : List Atom) (nm : List V),
     callsSpA p arms sp nm = true → ∀ c ∈ calls (walkArms σ x j arms).evs, ∃ st sp' nm', p sp' nm' st = true ∧
-      CallOf σ c st ∧ CtxOn sp nm sp' nm' (walkArms σ x j arms).evs
+      CallOf σ c st ∧ CtxOn sp nm sp' nm' (walkArms σ x j arms).evs ∧ st ∈ stmtsArms arms
   | [], _, _, _, _, c, h => by simp [walkArms, Out.evs, calls] at h
   | a :: as, j, sp, nm, hs, c, h => by
     unfold walkArms at h ⊢
     replace hs : (callsSpL p a (sp ++ spine a) (nm ++ spineNamed a) && callsSpA p as sp nm) = true := hs
     simp only [Bool.and_eq_true] at hs
     split_ifs at h ⊢
-    · obtain ⟨st, sp', nm', h1, h2, h3⟩ := walk_callOf a _ _ hs.1 c h
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walk_callOf a _ _ hs.1 c h
       obtain ⟨e1, e2⟩ := spine_evs a (stuck_of_calls h)
-      exact ⟨st, sp', nm', h1, h2, h3.widen e1 e2⟩
-    · exact walkArms_callOf x as (j + 1) sp nm hs.2 c h
+      exact ⟨st, sp', nm', h1, h2, h3.widen e1 e2, by rw [stmtsArms]; exact List.mem_append_left _ h4⟩
+    · obtain ⟨st, sp', nm', h1, h2, h3, h4⟩ := walkArms_callOf x as (j + 1) sp nm hs.2 c h
+      exact ⟨st, sp', nm', h1, h2, h3, by rw [stmtsArms]; exact List.mem_append_right _ h4⟩
 end
 
 end
@@ -387,51 +474,6 @@ theorem chainB (hfs : ∀ f, 1 ≤ fs f) : ∀ (n : ℕ) {f : String} {σ : Val}
 
 end
 
-/-! ## The callee frames' sizes -/
-
-/-- **A parameter or a value an event of the path uses is at its cell**, as `cellRef`. -/
-theorem cellRefP {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
-    (hT : RefTrack alignA r pc fp (done, e :: st)) {j : ℕ} (hj : B2C.idxOf e.I.t.name = some j) {v : V}
-    (hv : (v ∈ (coreOf j).params ∧ (ctxOf j).extra.lookup v.idx = none) ∨ ∃ ev ∈ e.pre ++ e.es, v ∈ ev.uses)
-    (hcell : allocCellOk (ctxOf j) (B2C.fsN j) v = true) :
-    e.I.fp + (ctxOf j).locAt v.idx < maxCells ∧ refMem r.img (e.I.fp + (ctxOf j).locAt v.idx) = e.σ v := by
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  obtain ⟨hI, j', bufs, kids, vs, hj', hIt, hfn, hw, hFH⟩ :=
-    (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
-  obtain rfl : j = j' := Option.some.inj (hj.symm.trans hj')
-  have hE := hT.track.ents e List.mem_cons_self
-  have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
-  have hA2 : alignA e.I.t.name = fnAl j := alignA_of hj
-  have hnamed : v ∈ B2C.namedOf (coreOf j).params (e.pre ++ e.es) vs := by
-    rcases hv with ⟨hp, -⟩ | ⟨ev, hat, hdu⟩
-    · exact List.mem_append_left _ (List.mem_append_left _ hp)
-    · exact List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hat, hdu⟩))
-  rcases hx : (ctxOf j).extra.lookup v.idx with _ | c
-  · simp only [allocCellOk, hx, Option.isSome_none, Bool.false_or, Bool.and_eq_true, decide_eq_true_eq] at hcell
-    obtain ⟨-, hlocC⟩ := pairOk_alignA _ _ j hE.find hj
-    have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = none := by rw [hA2]; exact hx
-    have hlc : (ctxOf j).locAt v.idx = (certOf j).locs.getD v.idx 0 := by
-      have := hlocC v.idx hx' hcell.1.1
-      rwa [hA2] at this
-    have hcj : B2C.cellJ j v = (ctxOf j).locAt v.idx := hlc.symm
-    rw [← hcj] at hcell ⊢
-    have hrd := hFH.val v hnamed hcell.1.2 hcell.2
-    obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
-    have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
-      honest_within_node hI hIt (by have := hHon.cells.two_le e.I hI; omega)
-    have h28 : r.T.total B2C.fs ≤ 2 ^ r.κ := le_two_pow_logMem _
-    have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
-    exact refRd_img hκ r.img _ _ (by rw [hfs] at hwithin; omega) hrd
-  · rcases hv with ⟨-, hn⟩ | ⟨ev, hat, hdu⟩
-    · rw [hx] at hn; cases hn
-    have hx' : (alignA e.I.t.name).X.extra.lookup v.idx = some c := by rw [hA2]; exact hx
-    obtain ⟨hlt, hrd⟩ := hr.extra e.I hI _ _ bufs kids hIt v (by rw [hevs]; exact List.mem_flatMap.mpr ⟨_, hat, hdu⟩) c hx'
-    have hlc : (ctxOf j).locAt v.idx = c := by
-      unfold Bridge.AlignCtx.locAt; rw [hx]; rfl
-    rw [hlc]
-    exact refRd_img hκ r.img (e.I.fp + c) _ (by omega) hrd
-
 /-- A call's arguments are its event's uses. -/
 theorem uses_of_call {es : List Ev} {c : Call} (hc : c ∈ calls es) {v : V} (hv : v ∈ c.args) :
     ∃ ev ∈ es, v ∈ ev.uses := by
@@ -448,7 +490,7 @@ theorem spConst_spec {sp : List Atom} {v : V} {e : ℕ} (h : spConst sp v e = tr
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   cases a with
   | const x w =>
-    simp only [Bool.and_eq_true, vBeq_iff] at hp
+    simp only [Bool.and_eq_true, beq_iff_eq] at hp
     obtain ⟨rfl, hw⟩ := hp
     exact ⟨w, ha, (constOk_spec hw).1⟩
   | _ => simp at hp
@@ -460,31 +502,11 @@ theorem spWord_spec {sp : List Atom} {v : V} {w : E} (h : spWord sp v = some w) 
   | const x w' =>
     simp only at hp
     split_ifs at hp with hx
-    · simp only [vBeq_iff] at hx
+    · simp only [beq_iff_eq] at hx
       obtain rfl := hx
       obtain rfl := Option.some.inj hp
       exact ha
   | _ => simp at hp
-
-/-- The atoms of a frame's path hold. -/
-theorem path_holds {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
-    (htr : RefTrack alignA r pc fp (done, e :: st)) : ∃ rd, ∀ a, Ev.atom a ∈ e.pre ++ e.es → a.Holds rd e.σ := by
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  have hE := htr.track.ents e List.mem_cons_self
-  obtain ⟨f, bufs, kids, ht⟩ := hE.node
-  rcases insts_good r.T _ r.hdr hHon.valid e.I hE.mem with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
-  · rw [ht] at hv
-    obtain ⟨fn, hf, -, es, vs', hw', -, hh, -⟩ := hv
-    refine ⟨rd, fun a hmem ↦ ?_⟩
-    have hf' : fn = e.fn := by
-      have := hE.find
-      rw [ht] at this
-      exact Option.some.inj (hf.symm.trans this)
-    obtain ⟨vs0, hw0, -⟩ := hE.path
-    rw [hf', hw0] at hw'
-    obtain ⟨rfl, -⟩ := Out.ret.inj hw'
-    exact hh _ hmem
-  · rw [ht] at hph; cases hph
 
 theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)} {sizes : List ℕ} :
     ∀ (fs : List String) (j0 : ℕ), armsFit tbl sizes fs j0 = true → ∀ {i : ℕ} {f : String}, fs[i]? = some f →
@@ -510,16 +532,16 @@ theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ) �
 theorem spEqPtr_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {p q : V}
     (h : spEqPtr sp p q = true) : σ p = σ q := by
   unfold spEqPtr at h
-  simp only [Bool.or_eq_true, vBeq_iff, List.any_eq_true] at h
+  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
   rcases h with rfl | ⟨a, ha, hp⟩
   · rfl
   cases a with
   | mul p' u w =>
-    simp only [Bool.and_eq_true, vBeq_iff, List.any_eq_true] at hp
+    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
     obtain ⟨rfl, c, hc, hq⟩ := hp
     cases c with
     | mul q' u' w' =>
-      simp only [Bool.and_eq_true, vBeq_iff] at hq
+      simp only [Bool.and_eq_true, beq_iff_eq] at hq
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hq
       exact (hsp _ ha).trans (hsp _ hc).symm
     | _ => simp at hq
@@ -528,16 +550,16 @@ theorem spEqPtr_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ 
 theorem spEq_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {x y : V}
     (h : spEq sp x y = true) : σ x = σ y := by
   unfold spEq at h
-  simp only [Bool.or_eq_true, vBeq_iff, List.any_eq_true] at h
+  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
   rcases h with rfl | ⟨a, ha, hp⟩
   · rfl
   cases a with
   | load x' p o =>
-    simp only [Bool.and_eq_true, vBeq_iff, List.any_eq_true] at hp
+    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
     obtain ⟨rfl, c, hc, hq⟩ := hp
     cases c with
     | load y' q o' =>
-      simp only [Bool.and_eq_true, vBeq_iff, beq_iff_eq] at hq
+      simp only [Bool.and_eq_true, beq_iff_eq] at hq
       obtain ⟨⟨rfl, rfl⟩, hpq⟩ := hq
       have h1 := (hsp _ ha).2
       have h2 := (hsp _ hc).2
@@ -554,7 +576,7 @@ theorem guardOk_spec {sp : List Atom} {b a1 : V} {e : ℕ} (h : guardOk sp b a1 
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   cases a with
   | add d x y =>
-    simp only [Bool.and_eq_true, vBeq_iff, Bool.or_eq_true] at hp
+    simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hp
     obtain ⟨rfl, hp⟩ := hp
     refine ⟨x, y, ha, ?_⟩
     rcases hp with (⟨h1, h2⟩ | ⟨h1, h2⟩) | h3
@@ -568,60 +590,174 @@ theorem guardOk_spec {sp : List Atom} {b a1 : V} {e : ℕ} (h : guardOk sp b a1 
   | _ => simp at hp
 
 
-/-- **A callee frame's hint reserves the next callee's block.** -/
-theorem frameSize_alignA : FrameSize alignA := by
-  intro r C e s sx i h hat hfr
-  obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (isFrame_ptr hfr)
-  obtain ⟨off, c, s0, hpcE, hqm, hc, hsite, hkC⟩ := frame_next hat hfr hp
-  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, -, hfine, -, hget, hpre, hag⟩ := hat
-  have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
-  obtain ⟨rd, hHon, hHX⟩ := hr.honest
-  obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
+/-! ## The callees of a path -/
+
+theorem endOfFn_ltF {fn : Fn} {N : ℕ} (h : Res.endOfFn fn = some (some N)) : N < 256 := by
+  unfold Res.endOfFn at h
+  split_ifs at h
+  · cases h
+  · obtain ⟨x, hx, hxN⟩ := Option.map_eq_some_iff.mp h
+    cases hxN
+    exact List.mem_range.mp (List.mem_of_find?_eq_some hx)
+
+/-- An entered callee of a valid node's path is valid on its call's words. -/
+theorem kidsValid_atF {P : Core.Program} {rd : Reader} {σ : Val} : ∀ {cs : List Call} {ks : List Tree},
+    Tree.KidsValid P rd σ cs ks → ∀ {i : ℕ} {c : Call} {k : Tree}, cs[i]? = some c → ks[i]? = some k →
+      k.name = c.f ∧ (c.taken = true → k.Valid P rd (c.args.map σ) (c.rets.map σ)) ∧
+        (c.taken = false → ∃ f σ', k = .phantom f σ')
+  | [], _, _, _, _, _, hc, _ => by simp at hc
+  | _ :: _, [], h, _, _, _, _, _ => h.elim
+  | c' :: cs, k' :: ks, h, 0, c, k, hc, hk => by
+    obtain rfl := Option.some.inj hc
+    obtain rfl := Option.some.inj hk
+    obtain ⟨hn, hv, -⟩ := h
+    refine ⟨hn, fun ht ↦ by rw [ite_eq_left ht] at hv; exact hv, fun ht ↦ ?_⟩
+    rw [ht] at hv
+    exact hv.1
+  | c' :: cs, k' :: ks, h, i + 1, c, k, hc, hk => kidsValid_atF h.2.2 (by simpa using hc) (by simpa using hk)
+
+/-! ## The values at their cells -/
+
+variable {D : Ref → RefD}
+
+/-- **A value's cell holds it on the reference**, as `cellRefB`, for a parameter or a value any event
+of the path uses. -/
+theorem cellRefN {al : String → Bool} {r : Ref} (hR : RefH ⟨B2C.fs, al, B2C.H, B2C.C, B2C.cert⟩ (D r) r)
+    (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
+    (htr : RefTrack ⟨B2C.fs, al, B2C.H, B2C.C, B2C.cert⟩ D alignA r pc fp (done, e :: st)) {j : ℕ}
+    (hj : B2C.idxOf e.I.t.name = some j) {v : V} (hv : v ∈ (coreOf j).params ∨ ∃ ev ∈ e.pre ++ e.es, v ∈ ev.uses)
+    (hlo : (ctxOf j).locOk = true) (hcell : bufCellOk (ctxOf j) (B2C.fsN j) v = true) :
+    e.I.fp + (ctxOf j).locAt v.idx < maxCells ∧ refMem r.img (e.I.fp + (ctxOf j).locAt v.idx) = e.σ v := by
+  obtain ⟨rd, hHa, hX⟩ := hR.honest
+  have hcov : Covers coreProgram B2C.fs al B2C.H B2C.C r.hdr (D r).T r.img :=
+    fun w hw ha ↦ (hR.img w.1).trans (hX.covers w hw ha)
+  obtain ⟨hI, j', bufs, kids, vs, hj', hIt, -, -, hF⟩ :=
+    Bridge.RefOk.framesA hR.name hHa hcov htr e List.mem_cons_self
+  obtain rfl : j = j' := Option.some.inj (hj.symm.trans hj')
+  obtain ⟨i0, rfl, -, -, -, -, hfsj, -, -, -⟩ := B2C.fn_of_idx hj
+  simp only [bufCellOk, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hcell
+  obtain ⟨⟨⟨hx, hlt⟩, h2⟩, hfs⟩ := hcell
+  have hloc : (ctxOf (i0 + 1)).locAt v.idx = (certOf (i0 + 1)).locs.getD v.idx 0 := locAt_ofData hlo hx hlt
+  have hnamed : v ∈ B2C.namedOf (coreOf (i0 + 1)).params (e.pre ++ e.es) vs := by
+    rcases hv with hp | ⟨ev, hev, hu⟩
+    · exact List.mem_append_left _ (List.mem_append_left _ hp)
+    · exact List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hev, hu⟩))
+  have hrd := hF.val v hnamed (by rw [B2C.cellJ, ← hloc]; exact h2) (by rw [B2C.cellJ, ← hloc]; exact hfs)
+  rw [B2C.cellJ, ← hloc] at hrd
+  have h2' : 2 ≤ e.I.t.fsz B2C.fs := hHa.cells.two_le e.I hI
+  have hw : e.I.fp + B2C.fs e.I.t.name ≤ (D r).T.wordsA B2C.fs coreProgram.loop al :=
+    honestA_within_node hI hIt (by omega)
+  have hle := le_two_pow_logMem ((D r).T.wordsA B2C.fs coreProgram.loop al)
+  have hlog : logMem ((D r).T.wordsA B2C.fs coreProgram.loop al) ≤ 28 := hR.log hr
+  have h28 : 2 ^ logMem ((D r).T.wordsA B2C.fs coreProgram.loop al) ≤ 2 ^ 28 :=
+    Nat.pow_le_pow_right (by norm_num) hlog
+  have hκ : r.κ ≤ 28 := by rw [hR.κ]; exact hlog
+  exact refRd_img hκ r.img _ _ (by omega) hrd
+
+/-- **A frame hint among its function's frame hints**, at its offset, with the hints there. -/
+theorem frame_memA {L : Lay} {A : String → FnAl} (hH : HintHyps L D A) {r : Ref} {C : Ctx} {e : Ent} {s sx : St}
+    {i : ℕ} {h : Hint} (hat : HintAtA L D A r C e s sx i h) (hfr : isFrame (A e.I.t.name).X h = true) :
+    ∃ hs, (A e.I.t.name).d.2.2.lookup ((A e.I.t.name).X.entry + (s.pc - entOf A e.I.t.name)) = some hs ∧
+      hs[i]? = some h ∧ (s.pc - entOf A e.I.t.name, h) ∈ frames (A e.I.t.name).X (A e.I.t.name).d := by
+  obtain ⟨done, st, htr, -⟩ := hat.track
   have hE := htr.track.ents e List.mem_cons_self
-  have hfpe : e.I.fp = s.fp := htr.linked.top.1
-  have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
-  have hsxfp : sx.fp = e.I.fp := hfol.fp.trans hfpe.symm
-  rw [hsxfp]
-  obtain ⟨i0, rfl, -, -, hfind, hcore, hfs, -, h1, h2⟩ := B2C.fn_of_idx hj
-  have hA : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
-  rw [hA] at hqm hsite
-  obtain ⟨cs, hchk⟩ := AllocChk.frJ_all _ h1 (by have : nFns = fn_count% := rfl; omega)
-  have hne : (frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1))).isEmpty = false := by
-    cases hf : frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1)) with
-    | nil => change (off, h) ∈ frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1)) at hqm; rw [hf] at hqm; cases hqm
+  have hne : (C.hints[s.pc]?).getD [] ≠ [] := fun h0 ↦ by have := hat.get; rw [h0] at this; simp at this
+  have hget := hat.get
+  rw [hints_off hH.progAl hH.advAl hat.ctx htr hne] at hget
+  have hU := hintsUp_of hH.progAl hE.find
+  unfold hintsAtOff at hget
+  cases hlk : (A e.I.t.name).d.2.2.lookup ((A e.I.t.name).X.entry + (s.pc - entOf A e.I.t.name)) with
+  | none => rw [hlk] at hget; simp at hget
+  | some hs =>
+    rw [hlk, Option.getD_some] at hget
+    refine ⟨hs, rfl, hget, ?_⟩
+    unfold frames allocHints hintsOff
+    refine List.mem_filter.mpr ⟨List.mem_filter.mpr ⟨List.mem_flatMap.mpr ⟨_, mem_of_lookup' hlk,
+      List.mem_map.mpr ⟨h, List.mem_of_getElem? hget, ?_⟩⟩, isFrame_ptr hfr⟩, hfr⟩
+    rw [hU.1]; simp
+
+/-! ## The callee frames' sizes -/
+
+/-- **A callee frame's hint reserves the next callee's block**: the frame's next call `c` through the
+hint's site `s0`, made by a call statement of the body, and its size read off the reference. -/
+theorem frameSize_of {al : String → Bool} (hH : HintHyps ⟨B2C.fs, al, B2C.H, B2C.C, B2C.cert⟩ D alignA)
+    (hC : CurHyps ⟨B2C.fs, al, B2C.H, B2C.C, B2C.cert⟩ D alignA) (hPO : Res.ProgOk coreProgram)
+    (hchk : ∀ f fn, coreProgram.find? f = some fn →
+      ∃ cs, frChk (alignA f).X (B2C.fs f) cs fn.params fn.body (alignA f).d = true)
+    {r : Ref} {C : Ctx} {e : Ent} {s sx : St} {i : ℕ} {h : Hint} {p : ℕ}
+    (hat : HintAtA ⟨B2C.fs, al, B2C.H, B2C.C, B2C.cert⟩ D alignA r C e s sx i h)
+    (hfr : isFrame (alignA e.I.t.name).X h = true) (hp : allocPtr h = some p) :
+    ∃ c s0 stm, (calls (e.pre ++ e.es))[e.nc]? = some c ∧ (alignA e.I.t.name).X.siteAt p c.args c.rets = some s0 ∧
+      e.nc < (e.I.t.kidsC coreProgram.loop).length ∧ CallOf e.σ c stm ∧ stm ∈ stmtsOf e.fn.body ∧
+      SizeOkA (refMem r.img) e.I.fp h
+        ((((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0) := by
+  obtain ⟨c, s0, hc, hsite, hkC⟩ := frame_nextA hH hC hat hfr hp
+  obtain ⟨hs, -, -, hqm⟩ := frame_memA hH hat hfr
+  obtain ⟨done, st, htr, hch⟩ := hat.track
+  have hR := hat.ref
+  have hr := hat.ok
+  have hE := htr.track.ents e List.mem_cons_self
+  obtain ⟨rd, hHa, hX⟩ := hR.honest
+  have hcov : Covers coreProgram B2C.fs al B2C.H B2C.C r.hdr (D r).T r.img :=
+    fun w hw ha ↦ (hR.img w.1).trans (hX.covers w hw ha)
+  obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, -⟩ :=
+    Bridge.RefOk.framesA hR.name hHa hcov htr e List.mem_cons_self
+  have hlog : logMem ((D r).T.wordsA B2C.fs coreProgram.loop al) ≤ 28 := hR.log hr
+  have hκ : r.κ ≤ 28 := by rw [hR.κ]; exact hlog
+  have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
+  obtain ⟨i0, rfl, -, -, -, -, -, -, h1, h2⟩ := B2C.fn_of_idx hj
+  have hA2 : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
+  set off := s.pc - entOf alignA e.I.t.name
+  obtain ⟨cs, hchk'⟩ := hchk _ _ hE.find
+  have hne : (frames (alignA e.I.t.name).X (alignA e.I.t.name).d).isEmpty = false := by
+    cases hf : frames (alignA e.I.t.name).X (alignA e.I.t.name).d with
+    | nil => rw [hf] at hqm; cases hqm
     | cons _ _ => rfl
-  simp only [frChk, hne, Bool.false_or, Bool.and_eq_true, List.all_eq_true] at hchk
-  obtain ⟨hcs, hcalls⟩ := hchk
-  have hwc : walk e.σ (coreOf (i0 + 1)).body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
-  obtain ⟨stm, sp', nm', hP, hco, hctx⟩ := walk_callOf _ _ _ hcalls c (by rw [hwc]; exact List.mem_of_getElem? hc)
+  simp only [frChk, hne, Bool.false_or, Bool.and_eq_true, List.all_eq_true] at hchk'
+  obtain ⟨⟨hlo, hcs⟩, hcalls⟩ := hchk'
+  have hlo' : (ctxOf (i0 + 1)).locOk = true := by rw [hA2] at hlo; exact hlo
+  obtain ⟨stm, sp', nm', hP, hco, hctx, hmem⟩ :=
+    walk_callOf _ _ _ hcalls c (by rw [hw]; exact List.mem_of_getElem? hc)
+  refine ⟨c, s0, stm, hc, hsite, hkC, hco, hmem, ?_⟩
   -- the facts the call statement reads are on the path
-  have hspn := spine_evs (σ := e.σ) (coreOf (i0 + 1)).body (by rw [hwc]; exact nofun)
-  rw [hwc] at hspn hctx
+  have hspn := spine_evs (σ := e.σ) e.fn.body (by rw [hw]; exact nofun)
+  rw [hw] at hspn hctx
   simp only [Out.evs] at hspn hctx
   have hsp' : ∀ a ∈ sp', Ev.atom a ∈ e.pre ++ e.es := fun a ha ↦ (hctx.1 a ha).elim (hspn.1 a) id
   have hnm' : ∀ x ∈ nm', ∃ ev ∈ e.pre ++ e.es, x ∈ ev.uses := fun x hx ↦ (hctx.2 x hx).elim (hspn.2 x) id
-  obtain ⟨rd', hpath⟩ := path_holds hr htr
-  have hsp : ∀ a ∈ sp', a.Holds rd' e.σ := fun a ha ↦ hpath a (hsp' a ha)
+  have hpath : ∀ a, Ev.atom a ∈ e.pre ++ e.es → a.Holds rd e.σ := by
+    rcases instsA_good (P := coreProgram) (rd := rd) _ _ _ hHa.valid e.I hI with ⟨args, rets, hv⟩ | ⟨f', σ', hph⟩
+    · rw [hIt] at hv
+      obtain ⟨fn, hf, -, es, vs', hw', -, hh, -⟩ := hv
+      have hf' : fn = e.fn := Option.some.inj (hf.symm.trans hE.find)
+      rw [hf', hw] at hw'
+      obtain ⟨rfl, -⟩ := Out.ret.inj hw'
+      exact fun a hmem ↦ hh _ hmem
+    · rw [hIt] at hph; cases hph
+  have hsp : ∀ a ∈ sp', a.Holds rd e.σ := fun a ha ↦ hpath a (hsp' a ha)
   have hq := List.all_eq_true.mp hP (off, h) hqm
   simp only [hp] at hq
   obtain ⟨hargs, hrets⟩ := callOf_args hco
-  rw [hargs, hrets] at hq
-  change (ctxOf (i0 + 1)).siteAt p c.args c.rets = some s0 at hsite
-  rw [hsite, Option.isNone_some, Bool.false_or] at hq
+  rw [hargs, hrets, hsite, Option.isNone_some, Bool.false_or] at hq
   -- the callee
   have hlt : e.nc < e.I.t.kids.length := lt_of_lt_of_le hkC (kidsC_length_le _)
   have hkC' : (e.I.t.kidsC coreProgram.loop)[e.nc]? = some e.I.t.kids[e.nc] := by
-    rw [List.getElem?_eq_getElem hkC, kidsC_getElem hkC]
+    rw [kidsC_getElem?_of hkC, List.getElem?_eq_getElem hlt]
   rw [hkC', Option.map_some, Option.getD_some]
+  have hbl := curA_block_le (fs := B2C.fs) (lp := coreProgram.loop) (al := al) ⟨_, _, _, _, hIt⟩
+    (nb := e.I.t.bufs.length) hkC'
+  have hpow : e.I.endCurA B2C.fs coreProgram.loop al ≤ 2 ^ r.κ := endCurA_le_pow hR htr hch
+  have hkb : e.I.t.kids[e.nc].block B2C.fs coreProgram.loop ≤ 2 ^ 28 := by
+    have := le_allocBase (al e.I.t.kids[e.nc].name) (e.I.curA B2C.fs coreProgram.loop al e.I.t.bufs.length e.nc)
+    omega
   obtain ⟨rv, hkv⟩ := hE.kids
-  obtain ⟨hkn, hkt, hkp⟩ := Res.kidsValid_at hkv hc (List.getElem?_eq_getElem hlt)
-  have hcs' := fun c' hc' ↦ hcs c' hc'
+  obtain ⟨hkn, hkt, hkp⟩ := kidsValid_atF hkv hc (List.getElem?_eq_getElem hlt)
   -- the facts of a listed callee
   have cal : ∀ {f m lp en t}, calFind (calTbl cs) f = some (m, lp, en, t) → ∃ c', (coreOf c').name = f ∧
       B2C.fs f = m ∧ coreProgram.find? f = some (coreOf c') ∧ coreProgram.loop f = lp ∧
       en = Res.endOfFn (coreOf c') ∧ B2C.fs (Memory.tailKey f) = t := fun h0 ↦ by
     obtain ⟨c', hc', hn, hm, hl, he, ht⟩ := calFind_spec h0
-    have hb := hcs' c' hc'
+    have hb := hcs c' hc'
     simp only [Nat.ble_eq, Nat.blt_eq] at hb
     obtain ⟨hf1, hf2, hf3⟩ := cal_facts hb.1 hb.2
     have hft := B2C.fs_tailKey (B2C.idxOf_coreOf hb.1 hb.2)
@@ -635,8 +771,17 @@ theorem frameSize_alignA : FrameSize alignA := by
     · rw [hk] at hn; simp only [Tree.name] at hn; subst hn
       simp [Tree.block, hl, hm]
     · rw [hk] at hv; exact hv.elim
+  have hcellv : ∀ {v : V}, (v ∈ (coreOf (i0 + 1)).params ∨ ∃ ev ∈ e.pre ++ e.es, v ∈ ev.uses) →
+      bufCellOk (alignA e.I.t.name).X (B2C.fs e.I.t.name) v = true →
+      refMem r.img (e.I.fp + (alignA e.I.t.name).X.locAt v.idx) = e.σ v := fun hv hcl ↦ by
+    have hfsj : B2C.fs e.I.t.name = B2C.fsN (i0 + 1) := by
+      obtain ⟨_, h', -, -, -, -, hfs', -⟩ := B2C.fn_of_idx hj
+      cases h'; exact hfs'
+    rw [hA2, hfsj] at hcl
+    rw [hA2]
+    exact (cellRefN hR hr htr hj hv hlo' hcl).2
   cases h <;> cases stm <;> simp only [frFits, Bool.false_eq_true] at hq
-  case alloc.call q m f args rets =>
+  case alloc.call q m a f args rets =>
     simp only [CallOf] at hco
     subst hco
     split at hq
@@ -658,10 +803,10 @@ theorem frameSize_alignA : FrameSize alignA := by
         have hσa0 : e.σ a0 = ofK (addressOfIndex e0) := hsp _ hw0
         have hkv' := hkt rfl
         rcases hk : e.I.t.kids[e.nc] with ⟨f', σk, bk, kk⟩ | ⟨f', σk⟩
-        · rw [hk] at hkv' hkn
+        · rw [hk] at hkv' hkn hkb
           simp only [Tree.name] at hkn
           subst hkn
-          obtain ⟨-, e', hend, hshape, -⟩ := progOk_guest.loop _ _ hfindf (by rw [← Program.loop_of_find? hfindf]; exact hlp)
+          obtain ⟨-, e', hend, hshape, -⟩ := hPO.loop _ _ hfindf (by rw [← Program.loop_of_find? hfindf]; exact hlp)
           obtain rfl : e' = some K := by
             have := hen'.symm.trans hend
             exact (Option.some.inj this).symm
@@ -676,16 +821,10 @@ theorem frameSize_alignA : FrameSize alignA := by
           obtain ⟨hp0, -⟩ := hpm
           simp only [Res.endVal] at hend'
           rw [hp0, hσa0, Res.ofK_gpow_add] at hend'
-          -- the iterations below `2^63`
-          have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
-          have hcu := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length (e.nc + 1)
-          unfold Inst.curAt at hcu
-          rw [ksum_succ hkC, kidsC_getElem hkC, hk] at hcu
-          have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
-          have h28 := le_two_pow_logMem (r.T.total B2C.fs)
-          have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
-          have hK := endOfFn_lt hen'
-          have hmK : e0 + m' = K := gpow_inj (by unfold Ref.κ at h2k; omega) (by omega) (ofK_injective hend')
+          have hK := endOfFn_ltF hen'
+          have h2m : m' * 2 ≤ m' * B2C.fs f' := Nat.mul_le_mul_left m' (B2C.two_le_fs _)
+          rw [hblk] at hkb
+          have hmK : e0 + m' = K := gpow_inj (by omega) (by omega) (ofK_injective hend')
           rw [hblk, hfsf, htl]
           show m = m' * k' + t
           have h1 : K - e0 = m' := by omega
@@ -693,7 +832,7 @@ theorem frameSize_alignA : FrameSize alignA := by
         · rw [hk] at hkv'; exact hkv'.elim
       · cases hq
     · cases hq
-  case allocFrames.callIf q size stop si tail b f args =>
+  case allocFrames.callIf q size stop si tail a b f args =>
     obtain ⟨hcf, hca, hcr, htk⟩ := hco
     rcases args with _ | ⟨a0, _ | ⟨a1, rest⟩⟩
     · simp at hq
@@ -702,7 +841,7 @@ theorem frameSize_alignA : FrameSize alignA := by
     split at hq
     · rename_i k' lp ep t hcal
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hq
-      obtain ⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, hcell⟩, hstart⟩ := hq
+      obtain ⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, hstop⟩, hcell⟩, hstart⟩ := hq
       obtain ⟨c', -, hfsf, hfindf, hlpf, hepf, htl⟩ := cal hcal
       obtain ⟨e0, hsc, hsi, hg⟩ : ∃ e0, spConst sp' a0 e0 = true ∧
           addressOfIndex e0 * si = 1 ∧ guardOk sp' b a1 e0 = true := by
@@ -715,22 +854,21 @@ theorem frameSize_alignA : FrameSize alignA := by
       have hσa0 : e.σ a0 = ofK (addressOfIndex e0) := hsp _ hw0
       -- the end at the stop cell
       have hcm : c ∈ calls (e.pre ++ e.es) := List.mem_of_getElem? hc
-      have ha1 := cellRefP hr htr hj (v := a1) (.inr (uses_of_call hcm (by rw [hca]; simp))) hcell
-      simp only [SizeOk]
-      rw [ha1.2]
+      have ha1 := hcellv (v := a1) (.inr (uses_of_call hcm (by rw [hca]; simp))) hcell
+      simp only [SizeOkA]
+      rw [← hstop, ha1]
       have hsi' : ∀ m, addressOfIndex (e0 + m) * si = addressOfIndex m := fun m ↦ by
         rw [Parameters.addressOfIndex, Parameters.addressOfIndex, pow_add, mul_comm (Parameters.g ^ e0), mul_assoc,
           ← Parameters.addressOfIndex, hsi, mul_one]
       by_cases ht : c.taken = true
       · -- entered: the run's iterations
-        have hb0 := htk.mp ht
         have hkv' := hkt ht
         rcases hk : e.I.t.kids[e.nc] with ⟨f', σk, bk, kk⟩ | ⟨f', σk⟩
-        · rw [hk] at hkv' hkn
+        · rw [hk] at hkv' hkn hkb
           simp only [Tree.name] at hkn
           rw [hcf] at hkn
           subst hkn
-          obtain ⟨-, e', hend, hshape, -⟩ := progOk_guest.loop _ _ hfindf (by rw [← Program.loop_of_find? hfindf]; exact hlpf)
+          obtain ⟨-, e', hend, hshape, -⟩ := hPO.loop _ _ hfindf (by rw [← Program.loop_of_find? hfindf]; exact hlpf)
           have he' : e' = none := Option.some.inj (hend.symm.trans hepf.symm)
           subst he'
           obtain ⟨m, p0, prest, hps, hm1, hmt, hend', hblk⟩ :=
@@ -746,21 +884,10 @@ theorem frameSize_alignA : FrameSize alignA := by
           obtain ⟨hp0, hp1, -⟩ := hpm
           simp only [Res.endVal, hps] at hend'
           rw [hp0, hp1, hσa0, Res.ofK_gpow_add] at hend'
-          -- the bound on the iterations
-          have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
-          have hcu := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length (e.nc + 1)
-          unfold Inst.curAt at hcu
-          rw [ksum_succ hkC, kidsC_getElem hkC, hk] at hcu
-          have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
-          have hIP := insts_placed r.T (0, r.T.block B2C.fs coreProgram.loop) r.hdr (by omega) e.I hI
-          have hbl : B2C.fs e.I.t.name ≤ e.I.t.block B2C.fs coreProgram.loop := by
-            rw [hIt]; simp [Tree.block, Tree.name]
-          have hfs2 := B2C.two_le_fs e.I.t.name
-          have h28 := le_two_pow_logMem (r.T.total B2C.fs)
-          have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
+          have h2m : m * 2 ≤ m * B2C.fs f' := Nat.mul_le_mul_left m (B2C.two_le_fs _)
+          rw [hblk] at hkb
           refine ⟨addressOfIndex (e0 + m), m, by rw [← hend'], hsi' m, ?_, ?_⟩
-          · have := hIP.2.2
-            unfold maxCells; unfold Ref.κ at h2k; omega
+          · unfold maxCells; omega
           · rw [hblk, hfsf, htl]; ring
         · rw [hk] at hkv'; exact hkv'.elim
       · -- not entered: the guard zero, the end the start
@@ -784,22 +911,22 @@ theorem frameSize_alignA : FrameSize alignA := by
         refine ⟨addressOfIndex e0, 0, by rw [hend], by simpa using hsi' 0, by unfold maxCells; norm_num, ?_⟩
         rw [htl]; ring
     · cases hq
-  case allocArm.dispatch q sel sizes x fs args rets =>
+  case allocArm.dispatch q sel sizes a x fs args rets =>
     obtain ⟨hca, hcr, htk, jj, hjj, hσx⟩ := hco
     simp only [Bool.and_eq_true, beq_iff_eq, Nat.blt_eq, Bool.or_eq_true, List.contains_iff_mem,
       List.any_eq_true] at hq
-    obtain ⟨⟨⟨⟨rfl, hcell⟩, huse⟩, hsz⟩, harms⟩ := hq
+    obtain ⟨⟨⟨⟨hsel, hcell⟩, huse⟩, hsz⟩, harms⟩ := hq
     obtain ⟨m, ep, hcf, hsm⟩ := armsFit_spec fs 0 harms hjj
     obtain ⟨c', -, hfsf, -, hlp, -⟩ := cal hcf
     rw [Nat.zero_add] at hsm
     have hjl : jj < sizes.length := (List.getElem?_eq_some_iff.mp hsm).1
     refine ⟨jj, ?_, by unfold maxCells; omega, by rw [hsm, blk htk hlp hfsf hkn]⟩
-    have hx := cellRefP hr htr hj (v := x) (by
-      rcases huse with (⟨hpx, hxn⟩ | ⟨a, ha, hu⟩) | hnx
-      · exact .inl ⟨hpx, by simpa using hxn⟩
-      · exact .inr ⟨.atom a, hsp' a ha, hu⟩
-      · exact .inr (hnm' x hnx)) hcell
-    rw [hx.2, hσx]
+    have hx := hcellv (v := x) (by
+      rcases huse with (hpx | ⟨a', ha, hu⟩) | hnx
+      · exact .inl (by rw [hfn]; exact hpx)
+      · exact .inr ⟨.atom a', hsp' a' ha, hu⟩
+      · exact hnm' x hnx |>.elim fun ev h ↦ .inr ⟨ev, h⟩) hcell
+    rw [← hsel, hx, hσx]
 
 end
 

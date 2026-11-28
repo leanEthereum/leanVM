@@ -11,7 +11,7 @@ public import LeanVM.Protocol.Compile.Prog
 /-!
 # A Keccak layer's pack rounds
 
-`verifyKeccakLayer` (`Statement/Verifier/Keccak.lean`) runs its pack and segment rounds as the
+`verifyKeccakLayer` (`Statement/LeanVmVerifier.lean`) runs its pack and segment rounds as the
 generic `sumcheck` in equality mode, as `crates/verifier/src/keccak.rs` does. The proofs read them
 as `keccakPackRounds`, the same rounds returning the value first (`sumcheck_eq_keccakPackRounds`),
 and the layer as `verifyKeccakLayerPacked`, the same program through it

@@ -1027,7 +1027,44 @@ theorem idxPowG_rep {img : MemoryImage κ} {Cf : CFun} (hp : Cf.pows.Ok) (htop :
       · cases h
     · cases h
   | num n => simp [ghostArg] at h
-  | mono c => simp [ghostArg] at h
+  | mono m =>
+    -- the ghost slot's word `[v]·g^d`, `v` a value a residual bounds, times `g^off`
+    obtain ⟨mb, off⟩ := m
+    simp only [ghostArg] at h
+    split at h
+    · rename_i b _
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+      obtain ⟨hb, h⟩ := h
+      split at h
+      · rename_i c hc
+        split at h
+        · rename_i v hcv
+          obtain ⟨r, hr, hrk⟩ := List.any_eq_true.mp h
+          match r, hrk with
+          | .lt (.val k') (.num n), hrk =>
+            simp only [Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq] at hrk
+            obtain ⟨rfl, hn⟩ := hrk
+            obtain ⟨ya, yb, hya, hyb, hlt⟩ := hres _ hr
+            rw [idxC, valW_baseC] at hya
+            rw [idxC, rep_const (by omega), Option.some.injEq] at hyb
+            subst hyb
+            have hs : slotW (args.map σ ++ gargsW Cf.H σ f args) b = σ (V.n k') * ofK (addressOfIndex c.off) := by
+              unfold slotW gargsW
+              rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by simpa using hb), List.length_map,
+                List.getElem?_map, hc]
+              obtain ⟨cb, co⟩ := c
+              simp only at hcv
+              subst hcv
+              simp [CCell.valW, prodW, vw]
+            have hw : slotW (args.map σ ++ gargsW Cf.H σ f args) b = ofK (g ^ (ya + c.off)) := by
+              rw [hs, show σ (V.n k') = ofK (addressOfIndex ya) from (rep_spec hya).2, addressOfIndex,
+                addressOfIndex, pow_add, ofK_mul']
+            have := idxEx_idxO (w := slotW (args.map σ ++ gargsW Cf.H σ f args)) (b := b) (c := off)
+              (by rw [capE_eq] at hn; omega) hw
+            cases off <;> exact this
+        · cases h
+      · cases h
+    · cases h
 /-- **The promised products' bases at the return**: a parameter's frame cell, a return cell holding the
 returned value, the word past a parameter's a top-level `load` read, written. -/
 theorem baseCellsP_of {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {G : Mode.Sig} {m : Mode.Mono}

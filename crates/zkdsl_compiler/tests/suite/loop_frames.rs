@@ -5,7 +5,6 @@ use zkdsl_compiler::parse;
 
 #[test]
 fn loop_frames_preserve_escaped_cells_and_nested_allocations() {
-    parallel::init();
     let source = r#"
 def make_heap(x):
     h = HeapBuf(2)
@@ -101,7 +100,6 @@ def main():
 
 #[test]
 fn rebound_counter_keeps_incremental_frames() {
-    parallel::init();
     let source = r#"
 def bump(x):
     if x == 1:

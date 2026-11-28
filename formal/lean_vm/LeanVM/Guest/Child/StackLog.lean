@@ -1,192 +1,157 @@
 /-
   LeanVM.Guest.Child.StackLog
 
-  The honest proof announces the honest sizes: its stream starts with them, so the stack log a
-  child's stream announces is the stack of the execution's committed size, at least `20` for the
-  guest's `2^19` instructions.
+  Every layout a proof stream announces has a stack log at least `min_execution_stacked_log`, the
+  least the guest program has an opening arm for (`Coverage.minChildStackLog`).
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Guest.Child.Honest
 public import LeanVM.Protocol.WithHashBridge
-public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Verifier.Deferred
+public import LeanVM.Facts.Stack
 public import LeanVM.Guest.AcceptableChild
 
 /-!
-# The announced stack log of an honest proof
+# The announced stack log
 
-The honest script starts by sending `announce s ρ` (`honestRun`), and the verifier program starts
-by reading eight scalars (`readAnnouncedSizes`), so the honest proof's stream starts with them
-(`stream_prefix`). `readAnnouncedSizes` on them returns the verifier's layout at `s`
-(`follows_readSizes`, run on a stream by `run_of_follows_sendList`), whose stack log is
-`leanIsaμ prog s`, the ceiling of the stacked size's logarithm: at a child's witness the execution's
-committed size (`announced_honest`, `muMin_le_announced`).
+The layout a stream announces (`announcedLayoutAndRate`) is one `buildLayout` gives
+(`built_of_announced`): the stack of the columns' log-sizes at the announced memory and table
+heights (`stack`). Its log-size grows with every block's log-size (`stack_snd_mono`), and each
+column's log-size grows with the memory's and the tables' heights (`columnKappas_forall₂`). The
+announced memory is at least `MIN_LOG_MEMORY` and every table's height at least its floor
+(`buildLayout`), the sizes `min_execution_stacked_log` stacks, so every announced stack log is at
+least it (`minExecutionStackedLog_le_of_buildLayout`), on every bytecode
+(`stackLog_ge_of_announced`).
 -/
 
 namespace LeanVM.Guest.Child
 
-open LeanVM.Prover (Script)
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Arithmetization LeanVM.Protocol
-open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.LeanIsa
-open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete LeanVM.Protocol.Whir.Complete
-open LeanVM.Protocol.KeccakHash
-open Air.Flat (EnsembleWitness)
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-! ## The honest prover sends what its script sends first -/
+/-! ## The stack grows with its blocks -/
 
-/-- **The prover on a run of reads**: when the strategy sends `l` along the reads, the prover's
-stream starts with `l`. -/
-theorem proveFrom_readN {α : Type} (H : Bytes → Digest) (F : KeccakState → KeccakState) (S : Strategy)
-    (fuel : ℕ) : ∀ (l : List E) (k : List E → VerifierProgram α) (sp : Sponge) (h : List Ev),
-      (∀ i (hi : i < l.length), S.msg (h ++ (l.take i).map Ev.read) = l[i]) →
-      ∃ sp', proveFrom H F S fuel ((VerifierProgram.readScalars l.length).bind k) sp h =
-        (proveFrom H F S fuel (k l) sp' (h ++ l.map Ev.read)).map fun t ↦ (l ++ t.1, t.2)
-  | [], k, sp, h, _ => ⟨sp, by simp [VerifierProgram.readScalars]⟩
-  | x :: xs, k, sp, h, hS => by
-    have h0 : S.msg h = x := by
-      have := hS 0 (by simp)
-      simpa only [List.take_zero, List.map_nil, List.append_nil, List.getElem_cons_zero] using this
-    obtain ⟨sp', e⟩ := proveFrom_readN H F S fuel xs (fun ys ↦ k (x :: ys))
-      (absorbI F sp x dsObserve) (h ++ [Ev.read x]) (fun i hi ↦ by
-        have := hS (i + 1) (by simp; omega)
-        simpa [List.take_succ_cons, List.append_assoc] using this)
-    refine ⟨sp', ?_⟩
-    have hb : (VerifierProgram.readScalars (x :: xs).length).bind k =
-        VerifierProgram.read fun y ↦ (VerifierProgram.readScalars xs.length).bind fun ys ↦ k (y ::
-            ys) := by
-      simp only [List.length_cons, VerifierProgram.readScalars, VerifierProgram.readScalar,
-          VerifierProgram.bind_eq, VerifierProgram.bind_assoc,
-        VerifierProgram.pure_eq]
-      rfl
-    rw [hb, proveFrom, h0, e]
-    simp only [Option.map_map, List.map_cons, List.cons_append, List.append_assoc]
-    rfl
+/-- `log2_ceil` is monotone. -/
+theorem log2Ceil_mono {a b : ℕ} (h : a ≤ b) : log2Ceil a ≤ log2Ceil b :=
+  (log2Ceil_le_iff a _).mpr (h.trans ((log2Ceil_le_iff b _).mp le_rfl))
 
-/-- The script sending `l` first sends `l[i]` after its first `i` sends. -/
-theorem msgAt_sendList {α : Type} : ∀ (l : List E) (f : Unit → Script α) (i : ℕ)
-    (hi : i < l.length), ((Script.sendList l).bind f).msgAt ((l.take i).map Ev.read) = l[i]
-  | [], _, _, hi => by simp at hi
-  | x :: xs, f, 0, _ => rfl
-  | x :: xs, f, i + 1, hi => by
-    have := msgAt_sendList xs f i (by simp at hi; omega)
-    simpa [Script.msgAt, Script.walk, Script.step, Script.sendList, Script.bind] using this
+/-- **The stack's log-size grows with its blocks' log-sizes.** -/
+theorem stack_snd_mono {kappas kappas' : List ℕ}
+    (h : ∀ b ∈ stackBlocks, kappas.getD b.column 0 ≤ kappas'.getD b.column 0) :
+    (stack kappas).2 ≤ (stack kappas').2 := by
+  simp only [stack, stackOffsets_snd, List.map_map]
+  refine max_le_max le_rfl (log2Ceil_mono (List.sum_le_sum fun b hb ↦ ?_))
+  exact Nat.pow_le_pow_right (by norm_num) (h b hb)
 
-/-- The verifier program reads eight scalars first. -/
-theorem leanVmProgram_readN (bytecode : List K) (publicInput : Digest) :
-    ∃ k, leanVmVerifierProgram bytecode publicInput = (VerifierProgram.readScalars 8).bind k :=
-  ⟨_, by
-    simp only [leanVmProgram_eq, verifyExecutionClaims, readAnnouncedSizes, VerifierProgram.bind_eq,
-        VerifierProgram.bind_assoc]
-    rfl⟩
+theorem forall₂_getD {l l' : List ℕ} (h : List.Forall₂ (· ≤ ·) l l') (i : ℕ) :
+    l.getD i 0 ≤ l'.getD i 0 := by
+  induction h generalizing i with
+  | nil => simp
+  | cons hab _ ih =>
+    cases i with
+    | zero => simpa using hab
+    | succ i => simpa using ih i
 
-theorem script_bind_assoc {α β γ : Type} (p : Script α) (f : α → Script β) (g : β → Script γ) :
-    (p.bind f).bind g = p.bind fun a ↦ (f a).bind g := by
-  induction p with
-  | ret a => rfl
-  | send x k ih => simp only [Script.bind, ih]
-  | sample k ih => simp only [Script.bind, ih]
-  | grind o k ih => simp only [Script.bind, ih]
-  | commit w k ih => simp only [Script.bind, ih]
-  | query k ih => simp only [Script.bind, ih]
+theorem forall₂_append {a b c d : List ℕ} (h1 : List.Forall₂ (· ≤ ·) a c)
+    (h2 : List.Forall₂ (· ≤ ·) b d) : List.Forall₂ (· ≤ ·) (a ++ b) (c ++ d) := by
+  induction h1 with
+  | nil => simpa using h2
+  | cons h _ ih => exact .cons h ih
 
-/-- The honest script is the announcement, then the rest. -/
-theorem honestProver_sendList (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ)
-    (q : Column (leanIsaμ prog s)) (P : Phases) :
-    ∃ f, honestProver prog s ρ q P = (Script.sendList (announce s ρ)).bind f :=
-  ⟨_, by simp only [honestProver, honestRun, Script.bind_eq, script_bind_assoc]; rfl⟩
+theorem forall₂_replicate {x y : ℕ} (h : x ≤ y) :
+    ∀ n, List.Forall₂ (· ≤ ·) (List.replicate n x) (List.replicate n y)
+  | 0 => .nil
+  | n + 1 => by
+    simp only [List.replicate_succ]
+    exact .cons h (forall₂_replicate h n)
 
-/-- **The honest proof's stream starts with the announcement.** -/
-theorem stream_prefix (H : Bytes → Digest) (F : KeccakState → KeccakState) {prog : LeanIsaProgram} {s : Sizes}
-    {ρ : ℕ} {q : Column (leanIsaμ prog s)} {input : PublicInput} {sd : KeccakState} {fuel : ℕ}
-    {π : Proof}
-    (h : prove H F (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
-      (leanVmProver prog s ρ q) sd fuel = some π) :
-    ∃ rest, π.stream = announce s ρ ++ rest := by
-  obtain ⟨k, hk⟩ := leanVmProgram_readN (bytecodeWords prog) (publicInputDigest input)
-  have hl : (announce s ρ).length = 8 := by simp [announce]
-  obtain ⟨f, hf⟩ := honestProver_sendList prog s ρ q (leanVmPhases prog s q)
-  obtain ⟨sp', e⟩ := proveFrom_readN H F (leanVmProver prog s ρ q) fuel (announce s ρ) k
-    ⟨sd, [], none⟩ [] (fun i hi ↦ by
-      show (Strategy.ofScript _ 0).msg _ = _
-      simp only [Strategy.ofScript, List.drop_zero, List.nil_append]
-      rw [hf]
-      exact msgAt_sendList _ f i hi)
-  rw [hl] at e
-  unfold prove at h
-  rw [hk, e] at h
-  simp only [Option.map_map] at h
-  obtain ⟨t, -, rfl⟩ := Option.map_eq_some_iff.mp h
-  exact ⟨t.1, rfl⟩
+/-- **Each column's log-size grows with the memory's and the tables' heights.** -/
+theorem columnKappas_forall₂ (tl : List Table) {logMemory logMemory' : ℕ}
+    {heights heights' : List ℕ} (hm : logMemory ≤ logMemory')
+    (hh : ∀ i, heights.getD i 0 ≤ heights'.getD i 0) :
+    List.Forall₂ (· ≤ ·) (columnKappas tl logMemory heights) (columnKappas tl logMemory' heights') := by
+  unfold columnKappas
+  refine forall₂_append (.cons hm (.cons hm (.cons (by have := hh opKeccak; omega) .nil))) ?_
+  induction tl with
+  | nil => exact .nil
+  | cons t ts ih =>
+    simp only [List.flatMap_cons]
+    exact forall₂_append (forall₂_replicate (hh _) _) ih
 
-/-! ## The announcement read -/
+/-- Every table's height `buildLayout` takes is at least its floor. -/
+theorem floors_getD_le : ∀ {rows floors : List ℕ}, floors.length ≤ rows.length → ∀ i,
+    floors.getD i 0 ≤ (List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) rows floors).getD i 0
+  | _, [], _, i => by simp
+  | [], _ :: _, hl, _ => by simp at hl
+  | r :: rs, f :: fs, hl, i => by
+    cases i with
+    | zero => simp
+    | succ i =>
+      simpa using floors_getD_le (rows := rs) (floors := fs) (by simpa using hl) i
 
-/-- **A program met by sends runs on them**: if the script sending `l` follows `p`, then `p` run
-on a stream starting with `l` returns a value the relation admits, the rest of the stream left. -/
-theorem run_of_follows_sendList {β : Type} {R : Commits → Unit → β → Prop}
-    (H : Bytes → Id Digest) (F : KeccakState → Id KeccakState) :
-    ∀ (l : List E) (p : VerifierProgram β) (cs : Commits), Follows R (Script.sendList l) p cs →
-      ∀ (sp : Sponge), sp.ground = none → ∀ (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
-        ∃ b sp', Compile.runWithHash H F p ⟨sp, l ++ rest, os, roots⟩ = some (b, ⟨sp', rest, os, roots⟩) ∧
-          R cs () b
-  | [], p, cs, hf, sp, _, rest, os, roots => by
-    cases p with
-    | ret b => exact ⟨b, sp, rfl, hf⟩
-    | _ => simp [Script.sendList, Follows] at hf
-  | x :: xs, p, cs, hf, sp, hg, rest, os, roots => by
-    cases p with
-    | read k =>
-      simp only [Script.sendList, Follows] at hf
-      obtain ⟨b, sp', e, hR⟩ := run_of_follows_sendList H F xs (k x) cs hf
-        (Id.run (Compile.absorb F sp x dsObserve)) ((absorbI_ground F sp x dsObserve).trans hg) rest
-        os roots
-      refine ⟨b, sp', ?_, hR⟩
-      simp only [Compile.runWithHash, List.cons_append, hg]
-      exact e
-    | _ => simp [Script.sendList, Follows] at hf
+/-! ## The announced layout -/
 
-/-- **The honest announcement is read as the verifier's layout.** -/
-theorem announced_honest {prog : LeanIsaProgram} {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
-    (hρ : validRate ρ) (rest : List E) :
-    announcedLayoutAndRate (bytecodeWords prog) (announce s ρ ++ rest) = some (verifierLayout prog
-        s, ρ) := by
-  obtain ⟨b, sp', e, -, hb⟩ := run_of_follows_sendList (fun _ ↦ default)
-    (fun _ ↦ default) (announce s ρ) _ [] (follows_readSizes prog hs hρ []) ⟨default, [], none⟩ rfl
-    rest [] []
-  unfold announcedLayoutAndRate
-  rw [Compile.runPure_eq_withHash, e, hb]
-  rfl
+/-- What `buildLayout` stacks: the columns' log-sizes at the memory, at least `MIN_LOG_MEMORY`,
+and at the tables' heights, each the least fitting its rows and at least its floor. -/
+theorem buildLayout_stackLog {bytecode : List K} {logMemory : ℕ} {tableRows : List ℕ}
+    {layout : Layout} (h : buildLayout bytecode logMemory tableRows = some layout) :
+    minLogMemory ≤ logMemory ∧ tableRows.length = nTables ∧
+      layout.stackLog = (stack (columnKappas tables logMemory
+        (List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows tableLogFloors))).2 := by
+  unfold buildLayout at h
+  split at h
+  · cases h
+  · split at h
+    · next hc =>
+      simp only [Option.some.injEq] at h
+      subst h
+      exact ⟨hc.1, hc.2.2.2.2.2, rfl⟩
+    · cases h
 
-/-- **A child's honest proof announces a stack log of at least `20`**, for a program of at least
-`2^19` instructions: its bytecode column alone commits `2^logSize` words, and the Keccak table
-some more. -/
-theorem muMin_le_announced {prog : LeanIsaProgram} {input : PublicInput} {t : Execution prog}
-    {ρ : ℕ}
-    {w : EnsembleWitness (leanIsaEnsemble prog t.logMemorySize)} {s : Sizes} (hc : ChildFor prog input t ρ w s)
-    (hls : 19 ≤ prog.logSize) (rest : List E) :
-    ∀ layout r, announcedLayoutAndRate (bytecodeWords prog) (announce s ρ ++ rest) = some
-        (layout, r) →
-      Coverage.minChildStackLog ≤ layout.stackLog := by
-  intro layout r h
-  obtain ⟨⟨hρ, -, -, hadm, -⟩, -⟩ := hc
-  rw [announced_honest hadm hρ rest] at h
-  simp only [Option.some.injEq, Prod.mk.injEq] at h
-  obtain ⟨rfl, -⟩ := h
-  rw [stackLog_verifierLayout]
-  refine le_trans ?_ (le_max_left _ _)
-  have hb : 2 ^ 19 ≤ 2 ^ prog.logSize := Nat.pow_le_pow_right (by norm_num) hls
-  have hk : 0 < 2 ^ s.τ 5 := Nat.two_pow_pos _
-  have htot : 2 ^ 19 < (LeanIsa.blocks prog s).total := by
-    rw [blocks_total_eq]
-    have h4 : 2 ^ 19 < 2 ^ prog.logSize + 28 * 2 ^ s.τ 5 := by omega
-    generalize 2 ^ s.logMem = a
-    generalize 2 ^ (s.τ 5 + 6) = d
-    omega
-  exact (Nat.lt_clog_iff_pow_lt (by norm_num)).2 htot
+/-- **A layout `buildLayout` gives stacks at least `min_execution_stacked_log`**: its memory and
+its tables' heights are at least the smallest execution's. -/
+theorem minExecutionStackedLog_le_of_buildLayout {bytecode : List K} {logMemory : ℕ}
+    {tableRows : List ℕ} {layout : Layout} (h : buildLayout bytecode logMemory tableRows = some layout)
+    (logBytecode : ℕ) : minExecutionStackedLog logBytecode ≤ layout.stackLog := by
+  obtain ⟨hm, hlen, he⟩ := buildLayout_stackLog h
+  rw [he]
+  unfold minExecutionStackedLog
+  have hfl : tableLogFloors.length ≤ tableRows.length := by rw [hlen]; decide
+  exact stack_snd_mono fun b _ ↦ forall₂_getD
+    (columnKappas_forall₂ tables hm (floors_getD_le hfl)) b.column
+
+/-- **The layout a stream announces is one `buildLayout` gives.** -/
+theorem built_of_announced {bytecode : List K} {stream : List E} {layout : Layout} {r : ℕ}
+    (h : announcedLayoutAndRate bytecode stream = some (layout, r)) :
+    ∃ logMemory tableRows, buildLayout bytecode logMemory tableRows = some layout := by
+  unfold announcedLayoutAndRate at h
+  obtain ⟨⟨x, s'⟩, hrun, hx⟩ := Option.map_eq_some_iff.mp h
+  simp only at hx
+  subst hx
+  rw [runPure_eq_withHash] at hrun
+  have hr := VerifierProgram.returns_of_run _ _ hrun
+  unfold readAnnouncedSizes at hr
+  obtain ⟨_, -, hr⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨_, -, hr⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨_, -, hr⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨layout', hl, hr⟩ := VerifierProgram.returns_bind hr
+  obtain ⟨_, -, hr⟩ := VerifierProgram.returns_bind hr
+  have he := congrArg Prod.fst (VerifierProgram.returns_ret hr)
+  simp only at he
+  subst he
+  exact ⟨_, _, returns_liftOption hl⟩
+
+/-- **Every layout a stream announces has a stack log at least `minChildStackLog`**
+(`min_execution_stacked_log`), on every bytecode: `AcceptableChild`'s `stackLogAtLeastMinimum`. -/
+theorem stackLog_ge_of_announced {bytecode : List K} {stream : List E} {layout : Layout} {r : ℕ}
+    (h : announcedLayoutAndRate bytecode stream = some (layout, r)) :
+    Coverage.minChildStackLog ≤ layout.stackLog :=
+  let ⟨_, _, hb⟩ := built_of_announced h
+  minExecutionStackedLog_le_of_buildLayout hb 19
 
 end
+
 end LeanVM.Guest.Child

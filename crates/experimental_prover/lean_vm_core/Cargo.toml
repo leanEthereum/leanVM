@@ -16,3 +16,7 @@ pcs = { package = "experimental_pcs", path = "../pcs" }
 keccak_gkr = { package = "experimental_keccak_gkr", path = "../keccak_gkr" }
 verifier.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+primitives = { package = "experimental_primitives", path = "../primitives", features = ["test-util"] }
+zkdsl_compiler.workspace = true

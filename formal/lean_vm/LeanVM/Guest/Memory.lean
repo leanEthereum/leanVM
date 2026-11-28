@@ -9,9 +9,12 @@
 
 module
 
+public import LeanVM.Guest.Data.FrameSizes
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
+public import Statement.Data.Bytecode
+import all Statement.Data.Bytecode
 public import LeanVM.Guest.Code
 
 /-!
@@ -26,7 +29,7 @@ checker's completeness consumes.
 **Inputs.** The evaluation `T` from `main`, valid on some reader `rd`; the frame sizes `fs`
 (the certificate's); the header of each callee, `H I i` (`fp[0]`, `fp[1]`: the return pc and
 the caller's frame, or the caller's own header for a tail call); and the cells of each frame,
-`C I` (offset, word): the certificate's cell of each value with its word, and
+`C I` (offset, word): the certificate's cell of each value with its word (`valueCells`), and
 whatever plumbing the compiled code writes (callee frame pointers, jump targets, a loop's next
 frame, `main`'s jump table, `tableCells`).
 
@@ -42,10 +45,12 @@ equations name addresses of the memory, agree among themselves (`Tree.Valid.eqns
 they do on any memory the evaluation is valid on), and agree with the frames where they meet
 (`cross`: an equation in a `HeapBuf` meets no frame, `frameWrites_not_buf`; one in a frame,
 a `StackBuf` read through `frameAddr` or a range check landing there, reads what the frame
-holds).
+holds; both hold when one memory holds the frames and the equations, `cross_of_read`).
 
 **Conclusions.** The image is consistent (`Honest.consistent`); every frame's header, cells
-and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`); a callee is the instance at its caller's
+and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`, `read_value`), and
+every equation (`Honest.read_eqn`); the evaluation and every instance in it are valid on the
+image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
 callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
 `Execution.committedSize ≤ 2^30` is the end theorem's: `logMem_le_iff` bounds `2^κ` by the words
@@ -222,6 +227,21 @@ theorem Honest.read_C (h : Honest P fs H C hdr T rd args rets) {I : Inst}
     (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex o) = some w :=
   h.read_cell hI (q := (o, w)) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hq))
 
+/-- Every memory equation reads back. -/
+theorem Honest.read_eqn (h : Honest P fs H C hdr T rd args rets) {q : Write}
+    (hq : q ∈ T.eqns P) : (honest P fs H C hdr T).read q.1 = some q.2 :=
+  image_read h.lt_64 h.consistent (List.mem_append_right _ hq) (h.addr q hq)
+
+/-- **The evaluation is valid on the honest memory.** -/
+theorem Honest.valid_image (h : Honest P fs H C hdr T rd args rets) :
+    T.Valid P (honest P fs H C hdr T).read args rets :=
+  h.valid.transfer T fun _ hq => h.read_eqn hq
+
+/-- **Every instance is valid on the honest memory**, or a phantom. -/
+theorem Honest.inst_good (h : Honest P fs H C hdr T rd args rets) {I : Inst}
+    (hI : I ∈ honestInsts P fs H hdr T) : I.Good P (honest P fs H C hdr T).read :=
+  insts_good T _ hdr h.valid_image I hI
+
 /-- `main`'s instance: the root, at frame `g^0`, with the header `hdr`. -/
 theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧ I.hdr = hdr := by
   obtain ⟨I, rest, he, ht, hfp, -, hh⟩ :=
@@ -239,6 +259,13 @@ theorem Honest.publicBoundary {input : PublicInput} {prog : Semantics.LeanIsaPro
   obtain ⟨h0, h1⟩ := h.read_hdr hI
   rw [hfp, hh, addressOfIndex, pow_zero, one_mul] at h0 h1
   exact ⟨minLogMem_le_logMem _, h.logMem_le, h0, h1⟩
+
+/-- A word nothing writes reads `0`, as the Rust runner reads an unwritten cell. -/
+theorem Honest.read_unwritten (h : Honest P fs H C hdr T rd args rets)
+    (i : Fin (2 ^ logMem (T.total fs)))
+    (hn : ∀ q ∈ frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P, q.1 ≠ addressOfIndex i) :
+    (honest P fs H C hdr T).read (addressOfIndex i) = some 0 :=
+  image_read_zero h.lt_64 i hn
 
 /-- **The callees of an instance**: its `i`-th callee is an instance at its `i`-th callee frame,
 with the header `H I i`. -/
@@ -297,7 +324,35 @@ theorem HonestAt.nodeAt {cert : String → V → ℕ} (h : HonestAt P fs H C hdr
       ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (addressOfIndex (I.fp + cert f q.2)) :=
   Inst.nodeAt (insts_placedAt T _ hdr h.placed I hI) (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht
 
+/-- **A `frameAddr`'s equations are frame writes** of a placed instance whose cells hold its run
+at the certificate's offsets. -/
+theorem HonestAt.frameAddr_eqns {cert : String → V → ℕ}
+    (h : HonestAt P fs H C hdr T cert rd args rets) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
+    {p r : V} {rs : List V} (he : Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P)
+    (hrun : ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I) :
+    ∀ q ∈ atomEqns σ (.frameAddr p (r :: rs)), q ∈ frameWrites C (honestInsts P fs H hdr T) := by
+  intro q hq
+  have hp := (h.nodeAt hI ht).2 (p, r) (List.mem_filterMap.mpr ⟨_, he, rfl⟩)
+  obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hq
+  refine List.mem_flatMap.mpr ⟨I, hI, List.mem_map.mpr ⟨(cert f r + k, σ (r :: rs)[k]),
+    List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (hrun k hk)), ?_⟩⟩
+  simp only at hp ⊢
+  rw [hp]
+  rw [show (ofK (addressOfIndex (I.fp + cert f r))).limb 0 = addressOfIndex (I.fp + cert f r)
+      by simp, addressOfIndex, addressOfIndex,
+    addressOfIndex, ← pow_add, Nat.add_assoc]
+
 /-! ## Certificates -/
+
+/-- **The cells of a certificate**: each value of the frame's domain at the certificate's
+offset for its function, with its word. -/
+def valueCells (cert : String → V → ℕ) (dom : Inst → List V) (I : Inst) : List (ℕ × E) :=
+  (dom I).map fun v => (cert I.t.name v, I.t.val v)
+
+theorem mem_valueCells {cert : String → V → ℕ} {dom : Inst → List V} {I : Inst} {v : V}
+    (hv : v ∈ dom I) : (cert I.t.name v, I.t.val v) ∈ valueCells cert dom I :=
+  List.mem_map.mpr ⟨v, hv, rfl⟩
 
 /-- Cells from two sources, agreeing where they meet. -/
 theorem CellsOk.append {Is : List Inst} {C₁ C₂ : Inst → List (ℕ × E)} (h₁ : CellsOk fs C₁ Is)
@@ -312,6 +367,49 @@ theorem CellsOk.append {Is : List Inst} {C₁ C₂ : Inst → List (ℕ × E)} (
     · exact hx I hI q hq q' hq' he
     · exact (hx I hI q' hq' q hq he.symm).symm
     · exact h₂.agree I hI q hq q' hq' he
+
+/-- **Every value reads back** at its certificate cell. -/
+theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : String → V → ℕ}
+    {dom : Inst → List V} (hC : ∀ I, valueCells cert dom I ⊆ C I) {I : Inst}
+    (hI : I ∈ honestInsts P fs H hdr T) {v : V} (hv : v ∈ dom I) :
+    (honest P fs H C hdr T).read (addressOfIndex I.fp * addressOfIndex (cert I.t.name v)) = some
+        (I.t.val v) :=
+  h.read_C hI (hC I (mem_valueCells hv))
+
+/-! ## `main`'s jump table -/
+
+/-- **`main`'s jump table**: the slot each `SET` of `__jump_tables` writes in `main`'s frame,
+and its word. -/
+def tableCells : List (ℕ × E) :=
+  Data.f0.code.filterMap fun
+    | .set o k0 k1 => some (o, OffsetInstruction.immediateWord k0 k1)
+    | _ => none
+
+set_option maxRecDepth 100000 in
+/-- The slots are `Data.mainCells, Data.mainCells + 1, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' Data.mainCells Data.jtSlots := by
+  decide +kernel
+
+/-- The slots lie in `main`'s frame past its header, below `Data.mainCells + Data.jtSlots`. -/
+theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) :
+    2 ≤ q.1 ∧ q.1 < Data.mainCells + Data.jtSlots := by
+  have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
+  rw [List.mem_range'_1] at this
+  have : 2 ≤ Data.mainCells := by decide
+  omega
+
+/-- Two slots at one offset are one slot. -/
+theorem tableCells_agree {q q' : ℕ × E} (hq : q ∈ tableCells) (hq' : q' ∈ tableCells)
+    (he : q.1 = q'.1) : q.2 = q'.2 := by
+  have hnd : (tableCells.map Prod.fst).Nodup := tableCells_offsets ▸ List.nodup_range'
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hq
+  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hq'
+  have : i = j := by
+    have hi' : i < (tableCells.map Prod.fst).length := by simpa using hi
+    have hj' : j < (tableCells.map Prod.fst).length := by simpa using hj
+    exact (List.Nodup.getElem_inj_iff hnd (hi := hi') (hj := hj')).mp (by simpa using he)
+  subst this
+  rfl
 
 end Honest
 

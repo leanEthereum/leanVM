@@ -22,8 +22,5 @@ abbrev keccak_plain_rounds_Spec : Prop := keccak_plain_rounds_SpecP coreProgram
 /-- `keccak_layer_SpecP` at the guest's `coreProgram`. -/
 abbrev keccak_layer_Spec (rd : Reader) : Prop := keccak_layer_SpecP coreProgram rd
 
-/-- `verify_keccak_SpecP` at the guest's `coreProgram`. -/
-abbrev verify_keccak_Spec (rd : Reader) : Prop := verify_keccak_SpecP coreProgram rd
-
 end
 end LeanVM.Guest.B1.VerifySub

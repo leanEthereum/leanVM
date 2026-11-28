@@ -15,8 +15,8 @@ public import LeanVM.Guest.Mode.HintsCtx
 /-!
 # The advice's streams
 
-`advHintOk h`: a heap witness run's offset and length are below `2^30`. `adviceHints_ok`: every hint of the advice passes it. `posHintOk h`: the run a hint writes or
-reads is nonempty, so its last cell bounds it (`runAt`); `hints_pos`: every hint the executor runs
+`advHintOk h`: a heap witness run's offset and length are below `2^30`. `adviceHints_ok`: every hint of the advice passes it. `posHintOk h`: the run a witness, limbs, bits, `log2Ceil` or windows hint writes or
+reads is nonempty (a digits hint's may be empty: `column_selector`'s specializations have none), so its last cell bounds it (`runAt`); `hints_pos`: every hint the executor runs
 passes it.
 -/
 
@@ -35,7 +35,6 @@ def advHintOk : Hint → Bool
 def posHintOk : Hint → Bool
   | .witnessStack _ _ len | .witnessHeap _ _ _ len | .fieldLimbs _ _ len => Nat.blt 0 len
   | .log2Ceil _ _ nbits _ | .bitDecompose _ _ nbits | .bitDecomposeExp _ _ nbits => Nat.blt 0 nbits
-  | .digitDecomposeExp _ _ _ ndigits _ _ _ => Nat.blt 0 ndigits
   | .windowsExp _ _ _ _ _ count => Nat.blt 0 count
   | _ => true
 

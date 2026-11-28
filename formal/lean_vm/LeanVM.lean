@@ -1,318 +1,279 @@
 module
 
-public import LeanVM.Protocol.LeanVM
-public import LeanVM.Protocol.LeanVMRpm
-public import LeanVM.Guest.Batch.Children
-public import LeanVM.Guest.Batch.Rpm
-public import LeanVM.Guest.EndRpm
-public import LeanVM.Guest.Budget.Closed
-public import LeanVM.Prover.End
-public import LeanVM.Prover.EndChild
-public import LeanVM.Protocol.Verifier.Defers
+public import Statement.Theorems
+public import Statement.Corollaries
+public import Statement.LeanVmGuestProver
+public import LeanVM.Guest.Binding
+public import LeanVM.Wire.RoundTrip
+public import LeanVM.Wire.OneEncoding
+public import LeanVM.Wire.Honest
 public import LeanVM.Prover.ExecuteSound
 public import LeanVM.Prover.ExecuteComplete
 public import LeanVM.Prover.ExecuteCompleteX
-public import LeanVM.Guest.HonestChildren
-public import LeanVM.Guest.EndExecHonest
-public import LeanVM.Guest.EndExecFinal
+public import LeanVM.Protocol.Hotwire
+public import LeanVM.Protocol.Verifier.Defers
+public import LeanVM.Facts.Hotwire
+public import LeanVM.Guest.Batch.Rpm
+public import LeanVM.Guest.Batch.Node
+public import LeanVM.Protocol.Compile.SpecRules.Packed
+public import LeanVM.Protocol.Verifier.PackedPos
+public import LeanVM.Protocol.Verifier.Cost
+public import LeanVM.Protocol.Verifier.Grinds
+public import LeanVM.Protocol.Extraction.AS.LiteSound
+public import LeanVM.Protocol.Relation.Link.GroupLinksEnd
+public import LeanVM.Protocol.KnowledgeSoundness
+public import LeanVM.Cost.KnowledgeExtractor
+public import LeanVM.Protocol.KnowledgeSoundnessCompiled
+public import LeanVM.Prover.Complete
+public import LeanVM.Cost.GuestKnowledgeHolds
+public import LeanVM.Guest.Complete.Holds
+public import LeanVM.Protocol.Link
+public import LeanVM.Guest.Child.Accepted
 public import XmssSecurity.Rpm
 public import Sphincs.Security
 public import LeanDa.End
-public import Statement.Theorems
-public import Statement.Corollaries
-public import LeanVM.Protocol.WithHash
-public import LeanVM.Guest.WithHash
-public import LeanVM.Cost.KnowledgeExtractor
-public import LeanVM.Guest.DecoderProgram
-public import LeanVM.Cost.DecoderSpec
-public import LeanVM.Cost.Bounds.Guest.Budget
-public import LeanVM.Cost.GuestDecoding
-public import LeanVM.Wire.OneEncoding
-public import LeanVM.Wire.Honest
 
 public section
 
 /-! # The end theorems of leanVM
 
-`LeanVM.theorems_hold` (at the end) proves `Statement.Theorems` (`Statement/Theorems.lean`): every
-end statement of the repository, leanXMSS's, leanSPHINCS's and LeanDA's included, in one theorem.
-`LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` (`Statement/Corollaries.lean`) from
-the fields of `Statement.Theorems` alone, and `LeanVM.corollaries_hold` for the compiled extractor
-and decoder programs (`LeanVM.Cost.compiledKnowledgeExtractor`,
-`LeanVM.Cost.compiledGuestWitnessDecoder`).
+`LeanVM.theorems_hold` proves `Statement.Theorems` (`Statement/Theorems.lean`) for the extractor
+program `LeanVM.Cost.compiledKnowledgeExtractor` (`LeanVM/Cost/KnowledgeExtractor.lean`, the
+agreement-set extractor compiled, within `leanVmKnowledgeExtractorSizeBound` and its budget) and the
+decoder program `LeanVM.Cost.compiledGuestWitnessDecoder` (`LeanVM/Cost/DecoderSpec.lean`, the
+guest's decoder compiled, within `guestWitnessDecoderSizeBound` and its budget): leanVM's knowledge
+soundness (`LeanVM.knowledgeSoundness_compiled`, `LeanVM/Protocol/KnowledgeSoundnessCompiled.lean`)
+and completeness (`LeanVM.completeness_holds`, `LeanVM/Prover/Complete.lean`), the guest program's
+knowledge soundness (`LeanVM.Cost.guestKnowledgeSoundness_holds`,
+`LeanVM/Cost/GuestKnowledgeHolds.lean`) and execution completeness
+(`LeanVM.Guest.Complete.guestExecutionComplete_of_routed`, `LeanVM/Guest/Complete/Holds.lean`, at
+the generated core route: `CoreMode.offSigs` is `[]`, by `rfl`), the statement digest's binding,
+the batching's soundness (`LeanVM.Guest.Batch.batch_sound_holds`, `LeanVM/Guest/Batch/Rpm.lean`),
+leanXMSS's and leanSPHINCS's strong unforgeability, and LeanDA's completeness, position binding and
+membership soundness. `LeanVM.corollaries_of_theorems` proves `Statement.Corollaries` from the fields
+of `Statement.Theorems` and `LeanVM.Node.NodeRelation.hasBytecodeShape`
+(`LeanVM/Guest/Batch/Node.lean`), and `LeanVM.corollaries_hold` at the compiled programs; the
+guest's aggregate soundness alone is `LeanVM.aggregateSound_holds`.
 
-**The guest decoder.** `Statement.Theorems` takes the guest program's decoder as a cost-machine
-program too (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`):
-`LeanVM.Cost.compiledGuestWitnessDecoder`, the
-proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
-within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
-execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget
-(`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget : DecoderPriceWithinBudget`,
-`Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
-`corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
-Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
-`DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
-`LeanVM/Guest/DecoderProgram.lean`); `theorems_hold_of_decode` takes that decoder to be `decode`,
-whose decodings explain the input by `guest_knowledge`.
+Besides the end theorems, lemmas: the state link, the shift and window reads, the mirror test and
+the lookup link (`LeanVM/Protocol/Hotwire.lean`, which pins their axioms), the soundness of
+`verify_link`'s sum-checks in the sample model from the link's arithmetization
+(`LeanVM/Protocol/Link.lean`, which pins its axioms), and those pinned below.
 
-**The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
-(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`), the
-knowledge extractor `transcriptExtractor` (`LeanVM/Protocol/KnowledgeSoundness.lean`, the
-agreement-set extractor of `LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`)
-behind an entry (`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
-(`Cost/AS/ProgramSize.lean`), and the extractor it computes within its budget is
-`transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget`
-wherever it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
+The build fails if the axiom footprint of a theorem pinned here ever grows beyond Lean's three
+standard axioms. -/
 
-Each theorem below proves a proposition of `Statement/` (`statement.tex`), in the
-random-permutation model where an adversary is involved, except the memory-decoder forms
-`MemoryGuestKnowledge` and `MemoryAggregateSound`, which are `lean_vm`'s own definitions
-(`Guest/EndKnow.lean`, `Guest/EndRpm.lean`), steps to `Statement`'s `GuestKnowledgeSoundness` and
-`AggregateSound`; the final `example`, after `theorems_hold`, checks the end theorem against
-`Statement.Theorems` itself:
+/-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
+`LeanVM.Cost.compiledKnowledgeExtractor` and the decoder `LeanVM.Cost.compiledGuestWitnessDecoder`. -/
+theorem LeanVM.theorems_hold :
+    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
+      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) where
+  leanVmKnowledgeSoundness := LeanVM.knowledgeSoundness_compiled
+  leanVmCompleteness := LeanVM.completeness_holds
+  guestKnowledgeSoundness := LeanVM.Cost.guestKnowledgeSoundness_holds
+  statementDigestBinds := LeanVM.Guest.Binding.digest_binds
+  guestExecutionComplete := LeanVM.Guest.Complete.guestExecutionComplete_of_routed rfl
+  leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
+  leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
+  leanDaComplete := LeanDa.leanDa_complete
+  leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
+  leanDaMembershipSound := LeanDa.leanDa_membershipSound_rpm
+  batchingSound := LeanVM.Guest.Batch.batch_sound_holds
 
-* `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
-  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
-  sound for the straight-line extractor `transcriptExtractor`, and complete;
-* `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
-  definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
-  (`Statement/LeanVmGuest.lean`;
-  with `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
-  MemoryAggregateSound guestProgram decode transcriptExtractor`): the leanISA guest program, its
-  witness named by the decoder of memories `LeanVM.Guest.End.decode`
-  (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledgeSoundness D` of
-  `Statement/LeanVmGuest.lean` follows
-  for a decoder program `D` that computes it within its size bound and budget
-  (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
-  `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
-  recursion step, the batching of the children's deferred claims run outside the circuit, sound in
-  the random-permutation model (from `batch_rpm`);
-* `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
-  (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
-  the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
-  within the deployed limits whose children the verifier accepts, unless a child's proof exhibits a
-  Keccak-256 collision (`OpeningsCollide`); with `completeness_holds` it gives
-  `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
-
-**The executor on the guest.** `LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children :
-ExecGaps Ks Km E0 X Pro → AdviceComplete honestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
-executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
-(`LeanVM.Guest.honestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
-cells, on every node `GuestExecutionComplete` covers unless a child's proof exhibits a Keccak-256
-collision (`OpeningsCollide`), given `ExecGaps`
-(`LeanVM/Guest/EndExec.lean`), which `execGaps` proves (`LeanVM/Guest/EndExecFinal.lean`: the core
-route's certificates, kernel-checked, the reference run and its alignment, the hint tracks, the residuals
-and the termination facts). `Statement/LeanVmGuestProver.lean`'s advice is that advice
-(`LeanVM.Guest.ProverGuest.honestPushes_eq`, `EndExec.prover_guestAdvice_eq`), which gives
-`guestExecution_complete_holds`.
-
-The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
-completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.AS.extractL_cost`,
-`LeanVM.Cost.Bounds.AS.asPrice_le`, `LeanVM.Cost.AS.asPrice_within`), the guest's batching
-of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
-random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
-`aggregate_knowledge`, the guest's completeness on the children it accepts
-(`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
-`LeanVM/Guest/AcceptableChild.lean`; a node `NodeRelation` admits has such children, or a child's
-proof exhibits a Keccak-256 collision, by `LeanVM.Guest.Child.acceptableChildren_or_collide`, and
-an honest proof by `guest_child_complete`; a proof the verifier accepts, the deferring verifier
-accepts with exactly one claim, a true one, by `LeanVM.verifyDeferred_of_leanVmVerifier`, so a
-child the deployed verifier accepts has a true fresh claim, by
-`LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier`), the executor on honest children
-(`LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children`, with no collision alternative, and `guestExecution_complete_on_verified_honest_children`, the fresh claims' truth
-replaced by the deployed verifier's acceptance), and the guest's completeness within its deployed budget
-(`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
-The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
-`LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
-`LeanVM.Guest.Batch.batch_rom`, `batch_rom_bits`) is a proof step: its theorems are not pinned here
-(`tests/LeanVMTests/Protocol/` and `tests/LeanVMTests/Guest/Batch.lean` check their footprints).
-The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
-
-example : LeanVM.KnowledgeSoundness LeanVM.transcriptExtractor := LeanVM.knowledgeSoundness_holds
-example : LeanVM.Completeness := LeanVM.completeness_holds
-example : LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.guestProgram LeanVM.Guest.End.decode :=
-  LeanVM.Guest.End.guest_knowledge
-example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
-example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
-    LeanVM.transcriptExtractor :=
-  LeanVM.Guest.End.aggregate_sound_outer
-example : LeanVM.Guest.Completeness.GuestExecutionComplete :=
-  LeanVM.Guest.EndExec.guestExecution_complete_holds
-example : LeanVM.Guest.Completeness.GuestCompleteOnAcceptableChildren :=
-  LeanVM.Guest.Budget.guest_complete_on_acceptable_children
-example : LeanVM.Guest.Completeness.GuestChildComplete := LeanVM.Guest.Budget.guest_child_complete
-example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_holds
-
-/-- info: 'LeanVM.knowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.theorems_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.knowledgeSoundness_holds
+#print axioms LeanVM.theorems_hold
 
-/-- info: 'LeanVM.Cost.Bounds.AS.extractL_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Complete.guestExecutionComplete_of_routed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.AS.extractL_cost
+#print axioms LeanVM.Guest.Complete.guestExecutionComplete_of_routed
 
-/-- info: 'LeanVM.Cost.Bounds.AS.asPrice_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Cost.Bounds.AS.asPrice_le
+example : LeanVM.Cost.compiledGuestWitnessDecoder.size ≤ LeanVM.Node.guestWitnessDecoderSizeBound :=
+  LeanVM.Cost.decoderProgram_size_le
 
-/-- info: 'LeanVM.Cost.AS.asPrice_within' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.guestKnowledgeSoundness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.AS.asPrice_within
-
-/-- info: 'LeanVM.soundnessRpmAS_le_statement' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.soundnessRpmAS_le_statement
-
-/-- info: 'LeanVM.completenessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.completenessError_le
-
-/-- info: 'LeanVM.completeness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.completeness_holds
-
-/-- info: 'LeanVM.Rpm.completenessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Rpm.completenessRpm_le
-
-/-- info: 'LeanVM.keccak256_eq_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.keccak256_eq_rpm
-
-/-- info: 'LeanVM.Guest.Batch.children_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Batch.children_sound
-
-/-- info: 'LeanVM.Guest.Batch.batch_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_rpm
-
-/-- info: 'LeanVM.Guest.Batch.batch_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_rpm_bits
-
-/-- info: 'LeanVM.Guest.Batch.batch_sound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Batch.batch_sound_holds
-
-/-- info: 'LeanVM.Guest.End.guest_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.End.guest_knowledge
-
-/-- info: 'LeanVM.Guest.End.decode_binds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.End.decode_binds
+#print axioms LeanVM.Cost.guestKnowledgeSoundness_holds
 
 /-- info: 'LeanVM.Guest.Binding.digest_binds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Binding.digest_binds
 
-/-- info: 'LeanVM.Guest.End.aggregate_sound_outer' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.Batch.batch_sound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.End.aggregate_sound_outer
+#print axioms LeanVM.Guest.Batch.batch_sound_holds
 
-/-- info: 'LeanVM.Guest.End.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Node.NodeRelation.hasBytecodeShape' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.End.aggregate_knowledge
+#print axioms LeanVM.Node.NodeRelation.hasBytecodeShape
 
-/-- info: 'LeanVM.Guest.End.aggregate_complete_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.End.aggregate_complete_of
+/-! The Fiat-Shamir framework with packed messages: the random-oracle theorem, the packed leaves of
+the specification calculus and the compiled verifier's query bound. -/
 
-/-- info: 'LeanVM.Guest.End.guest_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.Rom.romSound_logG' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.End.guest_sound
+#print axioms LeanVM.Protocol.Compile.Rom.romSound_logG
 
-/-- info: 'LeanVM.Guest.Budget.guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.Spec.samplePackedCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Budget.guest_complete
+#print axioms LeanVM.Protocol.Compile.Spec.samplePackedCount
 
-/-- info: 'LeanVM.Guest.Budget.guestComplete_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.Spec.grindSamplePacked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Budget.guestComplete_mono
+#print axioms LeanVM.Protocol.Compile.Spec.grindSamplePacked
 
-/-- info: 'LeanVM.Guest.Budget.guest_complete_numeric' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.isTotalQueryBound_verifierComp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Budget.guest_complete_numeric
+#print axioms LeanVM.Protocol.Compile.isTotalQueryBound_verifierComp
 
-/-- info: 'LeanVM.Guest.EndExec.execute_guest_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.rootOk_leanVmVerifierProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.execute_guest_complete
+#print axioms LeanVM.Protocol.Compile.rootOk_leanVmVerifierProgram
 
-/-- info: 'LeanVM.Guest.EndExec.aggregate_complete_exec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Verifier.isTotalQueryBound_leanVm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.aggregate_complete_exec
+#print axioms LeanVM.Protocol.Verifier.isTotalQueryBound_leanVm
 
-/--
-info: 'LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
+/-- info: 'LeanVM.Protocol.Verifier.leanVmQueryBound_add_three_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.honestExecution_complete_on_accepted_children
+#print axioms LeanVM.Protocol.Verifier.leanVmQueryBound_add_three_le
 
-/-- info: 'LeanVM.Guest.Child.acceptableChildren_or_collide' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Protocol.Compile.grindBits_le_of_reachable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Child.acceptableChildren_or_collide
+#print axioms LeanVM.Protocol.Compile.grindBits_le_of_reachable
 
-/--
-info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
+/-- info: 'LeanVM.Extraction.AS.transcriptExtractorL_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children
+#print axioms LeanVM.Extraction.AS.transcriptExtractorL_of
 
-/--
-info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_verified_honest_children' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
+/-- info: 'LeanVM.Protocol.Relation.linkIface' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.guestExecution_complete_on_verified_honest_children
+#print axioms LeanVM.Protocol.Relation.linkIface
 
-/-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.knowledgeSoundnessRomAS' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
+#print axioms LeanVM.knowledgeSoundnessRomAS
 
-/-- info: 'LeanVM.Guest.Budget.guest_complete_on_acceptable_children' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.knowledgeSoundness_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Budget.guest_complete_on_acceptable_children
+#print axioms LeanVM.knowledgeSoundness_of
 
-/-- info: 'LeanVM.Guest.Budget.guest_child_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Guest.Budget.guest_child_complete
+open OracleComp OracleSpec LeanVM.Parameters LeanVM.Semantics LeanVM.Node in
+/-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
+returns `t`, `guestProve`'s proof is rejected or not made exactly as the honest prover's proof of
+`t` (`Completeness`), for any program `guest`. -/
+theorem LeanVM.Guest.guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement}
+    {w : NodeWitness} {t : Execution guest} (he : guestExecution guest s w = .ok t)
+    (hv : ValidExecution guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t)
+    (hsz : t.committedSize ≤ 2 ^ 30)
+    (hw : t.pointerWidth ≤ LeanVM.Protocol.Verifier.maxPointerWidth)
+    (hk : t.KeccakBlocksInWindows) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness) :
+    let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
+    Pr{let accepted ← Common.runWithRandomPermutation (do
+        match ← guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
+        | none => pure false
+        | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
+        accepted = false] ≤ (2 : ENNReal)⁻¹ ^ 256 := by
+  have hp : guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
+      LeanVM.Prover.prove Common.queryPermutation guest
+        (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
+    simp only [guestProve, he]
+  intro input
+  rw [hp]
+  exact hC _ _ t ρ hv hsz hw hk hρ
 
-/-- info: 'LeanVM.verifyDeferredWith_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.verifyDeferredWith_of_leanVmVerifier
+open OracleComp in
+/-- **The guest's aggregate soundness follows from the end theorems alone**: from
+`leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
+whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
+digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
+collision). The decoded statement's shape, which `statementDigestBinds` asks for, is
+`NodeRelation.hasBytecodeShape`'s. -/
+theorem LeanVM.aggregateSound_of_fields {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
+    (hks : LeanVM.KnowledgeSoundness (LeanVM.extractorComputedBy extractorProgram))
+    (hgks : LeanVM.Node.GuestKnowledgeSoundness decoderProgram)
+    (hbind : LeanVM.Node.StatementDigestBinds) :
+    LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram decoderProgram
+      (LeanVM.extractorComputedBy extractorProgram) := by
+  intro A Q hA
+  refine le_trans (prEvent_mono _ _ _ ?_) (hks A Q hA)
+  rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
+  dsimp only at hprog
+  subst hprog
+  refine ⟨hb, ?_⟩
+  rintro ⟨t, hx, hv⟩
+  obtain ⟨d, hdec, hd, hrel⟩ := hgks input t hv
+  refine hno ⟨t, d, hx, hdec, ?_⟩
+  rcases hbind _ _ _ _ _ hrel.hasBytecodeShape hs.hasBytecodeShape (hd.trans hpub) with
+    ⟨h1, h2⟩ | hc
+  · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
+  · exact Or.inr hc
 
-/-- info: 'LeanVM.verifyDeferred_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.verifyDeferred_of_leanVmVerifier
+open OracleComp in
+/-- The same, from `Statement.Theorems`. -/
+theorem LeanVM.aggregateSound_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
+    (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
+      (guestWitnessDecoder := decoderProgram)) :
+    LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram decoderProgram
+      (LeanVM.extractorComputedBy extractorProgram) :=
+  LeanVM.aggregateSound_of_fields h.leanVmKnowledgeSoundness h.guestKnowledgeSoundness
+    h.statementDigestBinds
 
-/--
-info: 'LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
+/-- **The guest's aggregate soundness, proved**: `AggregateSound` at the compiled extractor and
+decoder, from the end theorems it reads, which do not include the guest's execution completeness. -/
+theorem LeanVM.aggregateSound_holds :
+    LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram LeanVM.Cost.compiledGuestWitnessDecoder
+      (LeanVM.extractorComputedBy LeanVM.Cost.compiledKnowledgeExtractor) :=
+  LeanVM.aggregateSound_of_fields LeanVM.knowledgeSoundness_compiled
+    LeanVM.Cost.guestKnowledgeSoundness_holds LeanVM.Guest.Binding.digest_binds
+
+/-- info: 'LeanVM.aggregateSound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Guest.Completeness.freshClaim_holds_of_leanVmVerifier
+#print axioms LeanVM.aggregateSound_holds
+
+/-- **The corollaries follow from the end theorems**, field by field:
+`aggregateSound` from the end theorems alone (`LeanVM.aggregateSound_of_theorems`);
+`guestProverComplete` from `guestExecutionComplete` and `leanVmCompleteness` (the guest's prover
+proves the execution the executor returns with the honest prover). -/
+theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
+    (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
+      (guestWitnessDecoder := decoderProgram)) :
+    Statement.Corollaries (leanVmKnowledgeExtractor := extractorProgram)
+      (guestWitnessDecoder := decoderProgram) where
+  aggregateSound := LeanVM.aggregateSound_of_theorems h
+  guestProverComplete s w hrel hlim :=
+    (h.guestExecutionComplete s w hrel hlim).imp_left fun ⟨_, he, hv, hsz, hw, hk⟩ _ hρ ↦
+      LeanVM.Guest.guestProve_complete he hv hsz hw hk hρ h.leanVmCompleteness
+
+/-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.corollaries_of_theorems
+
+/-- **Every corollary**, `Statement/Corollaries.lean`, at the compiled extractor and decoder. -/
+theorem LeanVM.corollaries_hold :
+    Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
+      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
+  LeanVM.corollaries_of_theorems LeanVM.theorems_hold
+
+/-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.corollaries_hold
 
 /-! ## The proof on the wire
 
-The end theorems are about structured proofs; the wire encoding is a compression layer
+The end statements are about structured proofs; the wire encoding is a compression layer
 (`LeanVM/Wire/Encoding.lean`: `Proof.toBytes`, `Proof.fromBytes`, transcriptions of leanVM's
-`crates/verifier/src/wire.rs`). It is lossless on honest proofs and the only encoding of its
-proof:
+`crates/verifier/src/wire.rs`). It is lossless on the proofs it can decode and the only encoding of
+its proof:
 
 * `LeanVM.Wire.roundTrip : RoundTripStatement`: a proof whose phases one Merkle tree each opens,
   within the decoding's bounds (`WireDecodable`), decodes from its encoding;
-* `LeanVM.Wire.proveWithHash_wireDecodable`: the honest prover's proofs are such proofs, so the
-  round trip applies to them (`LeanVM/Wire/Honest.lean`);
-* `LeanVM.Wire.oneEncoding : OneEncodingStatement`: bytes that decode to a proof are its encoding.
+* `LeanVM.Wire.oneEncoding : OneEncodingStatement`: bytes that decode to a proof are its encoding;
+* `LeanVM.Wire.proveWithHash_wireDecodable`: the honest prover's proofs are such proofs, with the
+  hash they were proved with (`LeanVM.Wire.prove_wireDecodable` for the statement's prover, with
+  Keccak-256 over its permutation): the verifier program opens at most `wireMaxPhases` phases within
+  the bounds and reads fewer than `2^32` stream elements, and the honest script commits well-shaped
+  words (`LeanVM/Wire/Honest.lean`).
 
 That `Proof.toBytes` and `Proof.fromBytes` are the Rust's is test evidence (`scripts/wire-diff.py`).
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
@@ -322,13 +283,77 @@ The pruning idea and its formalization on leanerVM's main branch are scaraven's
 #guard_msgs in
 #print axioms LeanVM.Wire.roundTrip
 
+/-- info: 'LeanVM.Wire.oneEncoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Wire.oneEncoding
+
 /-- info: 'LeanVM.Wire.proveWithHash_wireDecodable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Wire.proveWithHash_wireDecodable
 
-/-- info: 'LeanVM.Wire.oneEncoding' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Wire.prove_wireDecodable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Wire.oneEncoding
+#print axioms LeanVM.Wire.prove_wireDecodable
+
+/-! ## The deferring verifier
+
+An aggregate checks a child's proof with the deferring verifier (`verifyDeferred`), which takes the
+program's split at the link's point from the child's fresh claim instead of computing it.
+`LeanVM.verifyDeferred_of_leanVmVerifier`: a proof the deployed verifier accepts, the deployed
+deferring verifier accepts under the IV the verifier hashes with a true fresh claim (the split
+columns' values at the link's point), and every fresh claim it accepts it with has that point, so
+no other true one. `LeanVM.leanVmVerifier_iff_verifyDeferred`: the deployed verifier accepts
+exactly the proofs the deferring verifier accepts with a true fresh claim
+(`LeanVM/Protocol/Verifier/Defers.lean`). A false claim at the link's point may pass the link's
+terminal check, which is linear in the claim's values: that it does with small probability is a
+soundness statement, not this one. -/
+
+/-- info: 'LeanVM.verifyDeferred_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.verifyDeferred_of_leanVmVerifier
+
+/-- info: 'LeanVM.verifyDeferredWith_of_leanVmVerifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.verifyDeferredWith_of_leanVmVerifier
+
+/-- info: 'LeanVM.leanVmVerifier_iff_verifyDeferred' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.leanVmVerifier_iff_verifyDeferred
+
+/-! ## The guest's children
+
+What the guest program asks of a child (`AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`)
+follows from the deferring verifier's acceptance, unless the child's openings collide
+(`LeanVM/Guest/Child/`), on every bytecode:
+
+* `LeanVM.Guest.Child.stream_le_of_verifyDeferred`: a proof the deferring verifier accepts has a
+  stream of at most `leanVmStream = 4792` scalars, within `STREAM_CAP = 8192`;
+* `LeanVM.Guest.Child.stackLog_ge_of_announced`: every layout a stream announces has a stack log at
+  least `min_execution_stacked_log`;
+* `LeanVM.Guest.Child.capsAgree_or_collide`: at every query step of the deferring verifier's run
+  the step's openings agree, or the proof's openings exhibit a Keccak-256 collision;
+* `LeanVM.Guest.Child.acceptableChildren_or_collide`: the children of a node `NodeRelation` admits
+  are children the guest program accepts, or a child's proof exhibits a collision. -/
+
+/-- info: 'LeanVM.Guest.Child.stream_le_of_verifyDeferred' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.stream_le_of_verifyDeferred
+
+/-- info: 'LeanVM.Guest.Child.stackLog_ge_of_announced' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.stackLog_ge_of_announced
+
+/-- info: 'LeanVM.Guest.Child.capsAgree_or_collide' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.capsAgree_or_collide
+
+/-- info: 'LeanVM.Guest.Child.acceptableChildren_or_collide' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.acceptableChildren_or_collide
+
+/-- info: 'LeanVM.Guest.Child.guestChildren_acceptable_or_collide' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Child.guestChildren_acceptable_or_collide
 
 /-! ## The executor
 
@@ -356,122 +381,23 @@ commits no more cells than the reference (`LeanVM/Prover/ExecuteCompleteX.lean`)
 #guard_msgs in
 #print axioms LeanVM.Prover.Exec.execute_completeX
 
-/-- **Every end theorem**, `Statement/Theorems.lean`, at the extractor
-`LeanVM.Cost.compiledKnowledgeExtractor` and any decoder program `decoderProgram` meeting its
-specification
-(`LeanVM/Guest/DecoderProgram.lean`). That specification has two parts. First, the program
-computes a decoder of executions `decoder` on every valid execution, within its size bound and
-budget (`DecoderProgramSpec`). Second, that decoder's decodings explain the public input
-(`DecoderExplains`). -/
-theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProgram}
-    {decoder : LeanVM.Semantics.Execution LeanVM.Guest.guestProgram →
-      LeanVM.Node.SeedStatementAndWitness}
-    (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram decoder)
-    (hexplains : LeanVM.Guest.End.DecoderExplains decoder) :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
-      (guestWitnessDecoder := decoderProgram) where
-  leanVmKnowledgeSoundness := by
-    rw [LeanVM.Cost.extractorOf_extractorProgram]
-    exact LeanVM.knowledgeSoundness_holds
-  leanVmCompleteness := LeanVM.completeness_holds
-  guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
-  statementDigestBinds := LeanVM.Guest.Binding.digest_binds
-  guestExecutionComplete := LeanVM.Guest.EndExec.guestExecution_complete_holds
-  batchingSound := LeanVM.Guest.Batch.batch_sound_holds
-  leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
-  leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
-  leanDaComplete := LeanDa.leanDa_complete
-  leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
-  leanDaMembershipSound := LeanDa.leanDa_membershipSound_rpm
+/-! `LeanVM.Cost.extractorOf_extractorProgram`: the extractor the compiled cost-machine program
+`compiledKnowledgeExtractor` computes, within the statement's size bound and budget, is the lite
+agreement-set extractor `transcriptExtractorL` (`LeanVM/Cost/KnowledgeExtractor.lean`). -/
 
-/-- info: 'LeanVM.theorems_of_decoderSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+example : LeanVM.Cost.compiledKnowledgeExtractor.size ≤ LeanVM.leanVmKnowledgeExtractorSizeBound :=
+  LeanVM.Cost.extractorProgram_size_le
+
+/-- info: 'LeanVM.Cost.extractorOf_extractorProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.theorems_of_decoderSpec
+#print axioms LeanVM.Cost.extractorOf_extractorProgram
 
-/-- **Every end theorem**, for a decoder program that computes `LeanVM.Guest.End.decode` (read off
-the memory) within its size bound and budget on every valid execution: that hypothesis alone
-(`DecoderProgramSpec`). -/
-theorem LeanVM.theorems_hold_of_decode {decoderProgram : LeanVM.Cost.MachineProgram}
-    (hspec : LeanVM.Guest.End.DecoderProgramSpec decoderProgram
-      fun t ↦ LeanVM.Guest.End.decode t.memory) :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
-      (guestWitnessDecoder := decoderProgram) :=
-  LeanVM.theorems_of_decoderSpec hspec LeanVM.Guest.End.decoderExplains_decode
-
-/-- info: 'LeanVM.theorems_hold_of_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.extractorProgram_size_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.theorems_hold_of_decode
+#print axioms LeanVM.Cost.extractorProgram_size_le
 
-/-- **Every end theorem**, `Statement/Theorems.lean`: the guest's witness named by the compiled
-decoder `LeanVM.Cost.compiledGuestWitnessDecoder`, its price within its budget
-(`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), the extractor
-`LeanVM.Cost.compiledKnowledgeExtractor`. -/
-theorem LeanVM.theorems_hold :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
-      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.theorems_hold_of_decode
-    (LeanVM.Cost.decoderProgram_spec LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget)
-
-/-- info: 'LeanVM.theorems_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.knowledgeSoundness_compiled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.theorems_hold
-
-/-- info: 'LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget
-
-/-- info: 'LeanVM.Cost.encodeValue_decoded_injective' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.Cost.encodeValue_decoded_injective
-
-/-- The end theorems' statement, pinned: the programs named, no hypothesis. -/
-example :
-    Statement.Theorems (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
-      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.theorems_hold
-
-open OracleComp in
-/-- **The corollaries follow from the end theorems**, field by field: `aggregateSound` from
-`leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
-whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
-digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
-collision); `guestProverComplete` from `guestExecutionComplete` and `leanVmCompleteness` (the
-guest's prover proves the execution the executor returns with the honest prover). -/
-theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
-    (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
-      (guestWitnessDecoder := decoderProgram)) :
-    Statement.Corollaries (leanVmKnowledgeExtractor := extractorProgram)
-      (guestWitnessDecoder := decoderProgram) where
-  aggregateSound := by
-    intro A Q hA
-    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA)
-    rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
-    dsimp only at hprog
-    subst hprog
-    refine ⟨hb, ?_⟩
-    rintro ⟨t, hx, hv⟩
-    obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
-    refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.hasBytecodeShape (hd.trans hpub) with ⟨h1, h2⟩ | hc
-    · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
-    · exact Or.inr hc
-  guestProverComplete s w hrel hlim :=
-    (h.guestExecutionComplete s w hrel hlim).imp_left fun ⟨_, he, hv, hsz⟩ _ hρ ↦
-      LeanVM.Guest.EndExec.guestProve_complete he hv hsz hρ h.leanVmCompleteness
-
-/-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.corollaries_of_theorems
-
-/-- **Every corollary**, `Statement/Corollaries.lean`, for the compiled extractor and decoder
-programs. -/
-theorem LeanVM.corollaries_hold :
-    Statement.Corollaries (leanVmKnowledgeExtractor := LeanVM.Cost.compiledKnowledgeExtractor)
-      (guestWitnessDecoder := LeanVM.Cost.compiledGuestWitnessDecoder) :=
-  LeanVM.corollaries_of_theorems LeanVM.theorems_hold
-
-/-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms LeanVM.corollaries_hold
+#print axioms LeanVM.knowledgeSoundness_compiled
 
 end

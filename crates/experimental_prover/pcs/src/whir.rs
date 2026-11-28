@@ -15,9 +15,8 @@
 //! - committed message / L0 codeword / L0 opened rows: `F64` (8 bytes)
 //! - challenges, sumcheck messages, folded witnesses, deeper-level codewords
 //!   and opened rows, `b_initial`, betas, alphas: `F128` (16 bytes)
-//! - the RS-encoding evaluation domain and all LCH twiddles stay in K, so the
-//!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
-//!   [`F128::mul_base`] (2 PMULL) instead of a full E multiplication.
+//! - the RS-encoding evaluation domain and all LCH twiddles stay in K: a deeper level's E-valued codeword is the base
+//!   transform over its `2n` K limbs.
 //!
 //! Soundness note: [`WhirSecurityConfig`] analyzes the challenge field
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
@@ -34,8 +33,6 @@ use std::mem::MaybeUninit;
 pub use super::whir_config::{
     LOG_INV_RATE_0, LevelShapes, ProverConfig, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
 };
-#[cfg(test)]
-pub use super::whir_config::{default_config, udr_queries};
 use verifier::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 
 pub use crate::whir_induce::*;
@@ -661,13 +658,8 @@ pub(crate) struct InitialBasis {
     pub(crate) terms: Terms,
 }
 
-/// Sample `count` query positions in transcript order: no dedup, no sort.
-/// `block_len = 2^d`; each squeezed field element yields `⌊128/d⌋` positions as
-/// its disjoint d-bit chunks (low bits first), matching the scheme the recursive guest derives (fixed `128/d` per
-/// squeeze, dup-tolerant: soundness matches the deployed PCS with the same
-/// `config.queries`). Duplicates are harmless, a repeated position re-opens the
-/// same Merkle-authenticated row.
-///
+/// `count` query positions in transcript order, duplicates kept: each squeeze of a `block_len = 2^d` block gives
+/// `⌊128/d⌋` positions, its disjoint `d`-bit chunks low bits first, as the verifiers derive them.
 fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) -> Vec<usize> {
     let d = block_len.trailing_zeros() as usize;
     let per = 128 / d;
@@ -1006,10 +998,7 @@ mod tests {
                         }
                     })
                     .collect();
-                let ring = RingSwitchOpen {
-                    offset: 0,
-                    claims: Vec::new(),
-                };
+                let ring = RingSwitchOpen::default();
 
                 let prove = |msg: &[F64]| {
                     let (cm, pd) = commit(msg, log_n, pc.initial_k, pc.log_inv_rates[0]);

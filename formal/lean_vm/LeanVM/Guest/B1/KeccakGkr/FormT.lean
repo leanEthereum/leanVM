@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerT
 public import LeanVM.Guest.B1.KeccakGkr.KFormMath
-import LeanVM.ToMathlib.Finset
 
 /-!
 # `keccak_form`
@@ -199,7 +198,7 @@ theorem formCols_isSome {lp : V} {sh f : ℕ → ℕ} :
     exact formCols_isSome (x' :: xs) _ _ (by simp)
 
 theorem sum_xy (G : ℕ → E) : ∑ x ∈ range 5, ∑ y ∈ range 5, G (x + 5 * y) = ∑ l ∈ range 25, G l := by
-  rw [show (25 : ℕ) = 5 * 5 from rfl, Finset.sum_range_mul, Finset.sum_comm]
+  rw [show (25 : ℕ) = 5 * 5 from rfl, sum_range_mul, Finset.sum_comm]
   refine Finset.sum_congr rfl fun x _ ↦ Finset.sum_congr rfl fun y _ ↦ ?_
   rw [add_comm]
 

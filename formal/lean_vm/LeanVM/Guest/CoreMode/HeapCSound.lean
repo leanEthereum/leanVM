@@ -49,6 +49,17 @@ section Pass
 
 variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} {σ : Val} {rd : Reader}
 
+theorem pick_cases (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
+    pick σ x args rets j fs = .stuck ∨ ∃ g ∈ fs, pick σ x args rets j fs = .fall [.call g args rets]
+  | [], _ => Or.inl rfl
+  | g :: fs, j => by
+    unfold pick
+    split_ifs
+    · exact Or.inr ⟨g, List.mem_cons_self, rfl⟩
+    · rcases pick_cases x args rets fs (j + 1) with h | ⟨g', hg', h⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨g', List.mem_cons_of_mem _ hg', h⟩
+
 theorem pick_idx (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
     pick σ x args rets j fs = .stuck ∨ ∃ i, ∃ hi : i < fs.length, σ x = ofK (addressOfIndex (j + i)) ∧
       pick σ x args rets j fs = .fall [.call fs[i] args rets]
@@ -841,7 +852,42 @@ theorem ghostMs_ok (σ : Val) (G : HSig) : MsOk (vw σ) (ghostMs G.ghosts) (slot
   · rw [List.getElem?_eq_none (by simpa using h)] at hb
     cases hb
 
-theorem initC_ok {X : CX} {σ : Val} {rd : Reader} {st0 : CSt} (h : initC X = some st0) :
+/-- **The equation residuals hold**, as kept equations. -/
+theorem resEqs_ok {H : HCert} {σ : Val} (hR : ResF H σ) : EqsOk σ (resEqs H.res) := by
+  intro p hp
+  obtain ⟨r, hr, he⟩ := List.mem_filterMap.mp hp
+  cases r with
+  | eq a b =>
+    simp only [Option.some.injEq] at he
+    subst he
+    exact hR _ hr
+  | _ => simp at he
+
+/-- **The seeded environment is valid**: an equation `⟨[(v, 1)], 0⟩ = m` that holds makes `m` `v`'s word. -/
+theorem seedEnv_ok {σ : Val} : ∀ {E : List (CCell × CCell)} {env : Trie CCell}, EnvOk σ env → EqsOk σ E →
+    EnvOk σ (seedEnv E env)
+  | [], _, he, _ => he
+  | p :: l, env, he, hE => by
+    rw [seedEnv]
+    refine seedEnv_ok ?_ fun q hq ↦ hE q (List.mem_cons_of_mem _ hq)
+    split
+    · next v e hb =>
+      cases hc : (Nat.beq e 1 && Nat.beq p.1.off 0) with
+      | false => simpa only [hc, Bool.cond_false] using he
+      | true =>
+        simp only [Bool.cond_true]
+        obtain ⟨he1, ho⟩ : e = 1 ∧ p.1.off = 0 := by simpa only [Bool.and_eq_true, Nat.beq_eq] using hc
+        refine envPut_ok he ?_
+        have hp1 : p.1 = baseC v := by
+          obtain ⟨⟨bs, o⟩, m⟩ := p
+          simp only at hb ho ⊢
+          subst hb he1 ho
+          rfl
+        rw [val_eq, ← hE p List.mem_cons_self, ← val_eq, hp1, val_baseC]
+    · exact he
+
+theorem initC_ok {X : CX} {σ : Val} {rd : Reader} {E : List (CCell × CCell)} (hE : EqsOk σ E) {st0 : CSt}
+    (h : initC X E = some st0) :
     StOk rd (fun x ↦ PreSet rd X.sig (X.params.map σ ++ ownG X.sig σ) x) σ st0 := by
   unfold initC at h
   cases hd : dersOk X.ders with
@@ -862,15 +908,15 @@ theorem initC_ok {X : CX} {σ : Val} {rd : Reader} {st0 : CSt} (h : initC X = so
         cases h2 : instPRL (mp ++ ghostMs X.sig.ghosts) X.sig.prePR with
         | none => simp [h1, hr, h2] at h
         | some prs =>
-          simp only [h1, hr, h2, Option.some.injEq] at h
+          simp only [h1, hr, h2, Trie.seq_eq, Option.some.injEq] at h
           subst h
           obtain ⟨hmp0, hlp⟩ := monos_ok (paramEnv_ok σ _) _ mp hm
           have hmp := msOk_append hmp0 (ghostMs_ok σ X.sig) (by simpa using hlp)
-          refine pushPRL_ok (pushRL_ok (pushPL_ok ⟨paramEnv_ok σ _, fun n c h ↦ by simp [getF_nil] at h,
+          refine pushPRL_ok (pushRL_ok (pushPL_ok ⟨seedEnv_ok (paramEnv_ok σ _) hE, fun n c h ↦ by simp [getF_nil] at h,
             fun r R h ↦ by simp [getF_nil] at h, fun k p h ↦ by simp [getF_nil] at h,
             fun n p h ↦ by simp [getF_nil] at h, fun n p h ↦ by simp [getF_nil] at h,
             fun n p h ↦ by simp [getF_nil] at h, fun n p h ↦ by simp [getF_nil] at h, fun e he ↦ by simp at he,
-            fun p hp ↦ by simp at hp, fun p hp ↦ by simp at hp⟩ (fun _ h ↦ h)
+            hE, fun p hp ↦ by simp at hp⟩ (fun _ h ↦ h)
             fun p hp x hx ↦ ?_) (fun _ h ↦ h) fun q hq ↦ ?_) (fun _ h ↦ h) fun p hp a ha x hx ↦ ?_
           · obtain ⟨p0, hp0, hi, he⟩ := instPP_ok h1 p hp
             refine Or.inr (Or.inl ⟨p0, hp0, ?_⟩)
@@ -943,47 +989,47 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
 its value defined by one of them, or past a nonempty run. -/
-theorem faOk_spec {as : List Atom} {fas : List (ℕ × ℕ)} (h : faOk as (dstKeys as) fas = true) :
+theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
     ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
-      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2 := by
-  intro p hp
-  rw [faOk, Exec.listSeq_eq, List.all_eq_true] at h
-  obtain ⟨⟨k, run⟩, hr, hfa⟩ := List.any_eq_true.mp (h p hp)
-  obtain ⟨a, ha, hfr⟩ := List.mem_filterMap.mp hr
-  simp only [Bool.and_eq_true, faCell, Bool.or_eq_true] at hfa
-  obtain ⟨hk, hv⟩ := hfa
-  have hk : k = p.1 := Nat.eq_of_beq_eq_true hk
-  subst hk
-  have ha : Atom.frameAddr (V.n p.1) run ∈ as := by
-    cases a with
-    | frameAddr q run' =>
-      cases hqn : vnum q with
-      | none => simp [frOf, hqn] at hfr
-      | some k' =>
-        simp only [frOf, hqn, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hfr
-        obtain ⟨rfl, rfl⟩ := hfr
-        rwa [vnum_eq hqn] at ha
-    | _ => simp [frOf] at hfr
-  rcases hv with hv | hv
-  · left
-    cases hri : run[p.2]? with
-    | none => rw [hri] at hv; cases hv
-    | some v =>
-      simp only [hri] at hv
-      cases hvn : vnum v with
-      | none => simp only [hvn] at hv; cases hv
-      | some k' =>
-        simp only [hvn] at hv
-        rcases getF_keysT _ _ hv with hm | hm
-        · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-          obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-          refine ⟨run, v, ha, hri, a', ha', ?_⟩
-          rw [vnum_eq hvn, ← vnum_eq hv'n]
-          exact hva'
-        · simp [getF_nil] at hm
-  · right
-    simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
-    exact ⟨run, ha, hv.1, hv.2⟩
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
+  | [], _, p, hp => by simp at hp
+  | (kp, i) :: l, h, p, hp => by
+    simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
+    rcases List.mem_cons.mp hp with rfl | hp
+    · obtain ⟨a, ha, hfa⟩ := h.1
+      cases a with
+      | frameAddr q run =>
+        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
+        obtain ⟨hq, hv⟩ := hfa
+        cases hqn : vnum q with
+        | none => rw [hqn] at hq; cases hq
+        | some k =>
+          rw [hqn] at hq
+          have hk : k = kp := Nat.eq_of_beq_eq_true hq
+          subst hk
+          rw [vnum_eq hqn] at ha
+          rcases hv with hv | hv
+          · left
+            cases hri : run[i]? with
+            | none => rw [hri] at hv; cases hv
+            | some v =>
+              simp only [hri] at hv
+              cases hvn : vnum v with
+              | none => simp only [hvn] at hv; cases hv
+              | some k' =>
+                simp only [hvn] at hv
+                rcases getF_keysT _ _ hv with hm | hm
+                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
+                  rw [vnum_eq hvn, ← vnum_eq hv'n]
+                  exact hva'
+                · simp [getF_nil] at hm
+          · right
+            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+            exact ⟨run, ha, hv.1, hv.2⟩
+      | _ => simp [faAt] at hfa
+    · exact faOk_spec h.2 p hp
 
 /-- No frame run cell guaranteed (`HCert.fas` empty), none among them. -/
 theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x := by
@@ -1040,22 +1086,23 @@ theorem walk_bodyC (σ : Val) (ds : List ℕ) (ss : List Stmt) : walk σ (bodyC 
 that returns, its events holding, given its entry facts and its residuals, every event's needs are written before
 it once the calls before it have their callees' returned words (`ReadsOkP`), and, every call having them, its
 guarantees are written at return. A loop helper's own signature is `sigOf`'s for its name. -/
-theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOkC1 pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+theorem heapOkC1P_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    {path : List CCond} (hok : heapOkC1P path pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val}
+    {rd : Reader} (hpath : ∀ c ∈ path, c.Holds σ)
     {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
     ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
       (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
       RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
       RetEqOk H.sig (f.params.map σ ++ vs.map σ)) := by
-  unfold heapOkC1 at hok
+  unfold heapOkC1P at hok
   simp only [Bool.and_eq_true] at hok
   obtain ⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, -⟩, hfa⟩, hc⟩ := hok
   simp only [Trie.seq_eq] at hc
   have hpar' : f.params = (List.range f.params.length).map V.n := by
     rw [List.range_eq_range']; exact paramsN_eq _ 0 hpar
   generalize hXdef : (⟨pows, H.readT, trieFrom H.sig.pre 0 .nil, trieFrom H.calls 0 .nil, trieFrom H.rets 0 .nil,
-    trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, [],
+    trieFrom H.res 0 .nil, keysT H.divs .nil, keysT H.hvs .nil, H.gargs, sigOf, H.sig, f.params, path,
     keysT H.eqs .nil, H.fas, H.ders⟩ : CX) = X at hc
   have hX : XOk sigOf H rd f σ X := by
     subst hXdef
@@ -1072,7 +1119,7 @@ theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig
               simp only [Bool.and_eq_true] at ho
               exact (ltF_congr (idxOver_val hpar' ho.1) (idxOver_val hpar' ho.2)).mp (hE q hq)
             resF := hR
-            path := fun c hc ↦ by simp at hc
+            path := hpath
             fas := rfl
             ders := rfl
             der := hD
@@ -1097,12 +1144,12 @@ theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig
           fun x hx ↦ ((h2 hM).2.2.2.2.2.1 x hx).resolve_right (noFAX hn),
           (h2 hM).2.2.2.2.2.2.mono fun x hx ↦ hx.resolve_right (noFAX hn)⟩⟩,
       (h2 hM).2.2.1, (h2 hM).2.2.2.1, (h2 hM).2.2.2.2.1⟩⟩
-  cases hi : initC X with
+  cases hi : initC X (resEqs H.res) with
   | none => simp [hi] at hc
   | some st0 =>
     simp only [hi] at hc
     have hs0 : StOk rd W0 σ st0 := by
-      have := initC_ok (X := X) (σ := σ) (rd := rd) hi
+      have := initC_ok (X := X) (σ := σ) (rd := rd) (resEqs_ok hR) hi
       rwa [hX.sig, hX.params] at this
     split at hc
     · obtain ⟨st', hst⟩ := Option.isSome_iff_exists.mp hc
@@ -1198,6 +1245,17 @@ theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig
       · cases hc
     · cases hc
 
+/-- `heapOkC1P_soundP` under no branch condition. -/
+theorem heapOkC1_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC1 pows sigOf f H = true) (hself : sigOf f.name = H.sig) {σ : Val} {rd : Reader}
+    {es : List Ev} {vs : List V} (hw : walk σ f.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ) (hG : GwOk H.sig rd σ) :
+    ReadsOkP sigOf H rd σ (f.params.map σ) es ∧ ((∀ e ∈ es, EvM sigOf rd σ e) →
+      (PostOkC sigOf H rd σ (f.params.map σ) es vs ∧ (H.fas = [] → PostOkW sigOf H rd σ (f.params.map σ) es vs)) ∧
+      RetMOk H.sig (f.params.map σ) (vs.map σ) ∧ RetVOk rd H.sig (f.params.map σ ++ vs.map σ) ∧
+      RetEqOk H.sig (f.params.map σ ++ vs.map σ)) :=
+  heapOkC1P_soundP hp hok hself (by simp) hw hh hE hR hD hG
+
 /-! ## A certificate split at a selector -/
 
 section Split
@@ -1221,7 +1279,8 @@ theorem readsArms_get {R : Trie (List (ℕ × ℕ × Wit))} {f : Fn} {H : HCert}
 
 theorem selArmsOk_get {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} :
     ∀ (arms : List HArm) (r0 i : ℕ) {a : HArm}, selArmsOk pows sigOf f H r0 arms = true → arms[i]? = some a →
-      heapOkC1 pows sigOf (selF H.sel (r0 + i) f) (H.arm a) = true
+      (heapOkC1P (armPath H.sel (r0 + i) f.body) pows sigOf (selF H.sel (r0 + i) f) (H.arm a) ||
+        heapOkC1 pows sigOf (selF H.sel (r0 + i) f) (H.arm a)) = true
   | [], _, _, _, _, h => by simp at h
   | b :: as, r0, 0, a, h, ha => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at ha
@@ -1233,6 +1292,94 @@ theorem selArmsOk_get {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : H
     simp only [selArmsOk, Bool.and_eq_true] at h
     have := selArmsOk_get as (r0 + 1) i h.2 ha
     rwa [show r0 + 1 + i = r0 + (i + 1) by omega] at this
+
+/-- A `dispatch` not stuck picks a callee: its selector's word is `g^(j + i)`, `i` below the callees'. -/
+theorem pick_arm {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ), pick σ x args rets j fs ≠ .stuck →
+    ∃ i < fs.length, σ x = ofK (addressOfIndex (j + i))
+  | [], _, h => (h (by unfold pick; rfl)).elim
+  | f :: fs, j, h => by
+    unfold pick at h
+    split_ifs at h with hx
+    · exact ⟨0, by simp, by simpa using hx⟩
+    · obtain ⟨i, hi, hxi⟩ := pick_arm fs (j + 1) h
+      exact ⟨i + 1, by simpa using hi, by rw [hxi, show j + 1 + i = j + (i + 1) by omega]⟩
+
+/-- A `match` not stuck takes an arm: its selector's word is `g^(j + i)`, `i` below the arms'. -/
+theorem walkArms_arm {x : V} : ∀ (arms : List (List Stmt)) (j : ℕ), walkArms σ x j arms ≠ .stuck →
+    ∃ i < arms.length, σ x = ofK (addressOfIndex (j + i))
+  | [], _, h => (h (by unfold walkArms; rfl)).elim
+  | a :: as, j, h => by
+    unfold walkArms at h
+    split_ifs at h with hx
+    · exact ⟨0, by simp, by simpa using hx⟩
+    · obtain ⟨i, hi, hxi⟩ := walkArms_arm as (j + 1) h
+      exact ⟨i + 1, by simpa using hi, by rw [hxi, show j + 1 + i = j + (i + 1) by omega]⟩
+
+theorem seq_stuck_ne {o k : Out} {es : List Ev} {vs : List V} (h : o.seq k = .ret es vs) : o ≠ .stuck := by
+  rintro rfl; simp [Out.seq] at h
+
+theorem fall_seq_ret {es0 : List Ev} {k : Out} {es : List Ev} {vs : List V} (h : (Out.fall es0).seq k = .ret es vs) :
+    ∃ es', k = .ret es' vs := by
+  cases k with
+  | fall _ => simp [Out.seq, Out.pre] at h
+  | ret es' vs' =>
+    simp only [Out.seq, Out.pre, Out.ret.injEq] at h
+    exact ⟨es', by rw [h.2]⟩
+  | stuck => simp [Out.seq, Out.pre] at h
+
+/-- **A returning path took an arm of a selection it reaches** (`selReach`): the selector's word is `g^i`, `i < n`,
+every `match` and `dispatch` on it of at most `n` arms. -/
+theorem selReach_sound {x n : ℕ} : ∀ (ss : List Stmt), selReach x ss = true → armLeL x n ss = true →
+    ∀ {es : List Ev} {vs : List V}, walk σ ss = .ret es vs → ∃ i < n, σ (V.n x) = ofK (addressOfIndex i)
+  | [], h, _, _, _, _ => by simp [selReach] at h
+  | .atom a :: ss, h, hl, _, _, hw => by
+    have hl' : (armLeS x n (.atom a) && armLeL x n ss) = true := hl
+    simp only [Bool.and_eq_true] at hl'
+    rw [walk, walk1] at hw
+    obtain ⟨_, hw'⟩ := fall_seq_ret hw
+    exact selReach_sound ss h hl'.2 hw'
+  | .call f args rets :: ss, h, hl, _, _, hw => by
+    have hl' : (armLeS x n (.call f args rets) && armLeL x n ss) = true := hl
+    simp only [Bool.and_eq_true] at hl'
+    rw [walk, walk1] at hw
+    obtain ⟨_, hw'⟩ := fall_seq_ret hw
+    exact selReach_sound ss h hl'.2 hw'
+  | .callIf c f args :: ss, h, hl, _, _, hw => by
+    have hl' : (armLeS x n (.callIf c f args) && armLeL x n ss) = true := hl
+    simp only [Bool.and_eq_true] at hl'
+    rw [walk, walk1] at hw
+    obtain ⟨_, hw'⟩ := fall_seq_ret hw
+    exact selReach_sound ss h hl'.2 hw'
+  | .match_ y arms :: ss, h, hl, _, _, hw => by
+    have hl' : (((!selIs x y || Nat.ble arms.length n) && armLeA x n arms) && armLeL x n ss) = true := hl
+    have hy : y = V.n x := by simpa [selReach, selIs] using h
+    subst hy
+    simp only [selIs, decide_true, Bool.not_true, Bool.false_or, Bool.and_eq_true, Nat.ble_eq] at hl'
+    rw [walk, walk1] at hw
+    obtain ⟨i, hi, hx⟩ := walkArms_arm arms 0 (seq_stuck_ne hw)
+    exact ⟨i, by omega, by simpa using hx⟩
+  | .dispatch y fs args rets :: ss, h, hl, _, _, hw => by
+    have hl' : ((!selIs x y || Nat.ble fs.length n) && armLeL x n ss) = true := hl
+    have hy : y = V.n x := by simpa [selReach, selIs] using h
+    subst hy
+    simp only [selIs, decide_true, Bool.not_true, Bool.false_or, Bool.and_eq_true, Nat.ble_eq] at hl'
+    rw [walk, walk1] at hw
+    obtain ⟨i, hi, hx⟩ := pick_arm fs 0 (seq_stuck_ne hw)
+    exact ⟨i, by omega, by simpa using hx⟩
+  | .ite _ _ _ :: _, h, _, _, _, _ => by simp [selReach] at h
+  | .ret _ :: _, h, _, _, _, _ => by simp [selReach] at h
+
+/-- **A split's arm `r` starts under its `armPath`** on a returning path the selector picks `r` on. -/
+theorem armPath_holds {x r n : ℕ} {body : List Stmt} (hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r)
+    (hle : armLeL x n body = true) {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs) :
+    ∀ c ∈ armPath x r body, c.Holds σ := by
+  unfold armPath
+  cases hs : selReach x body
+  · simp
+  · obtain ⟨i, hi, hx⟩ := selReach_sound body hs hle hw
+    obtain rfl := hu i hi hx
+    simp only [Bool.cond_true, List.mem_singleton, forall_eq]
+    exact hx
 
 /-- **A read for the certificate is one for the arm**, where the arm's reads cover the certificate's. -/
 theorem reads_arm {H H' : HCert} {b : Atom} {x : K}
@@ -1289,7 +1436,10 @@ theorem heapOkC_soundP {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
   have hok1 := selArmsOk_get H.arms 0 r ha haget
   have hin := readsArms_get H.arms 0 r hrd haget
   rw [Nat.zero_add] at hok1 hin
-  have h := heapOkC1_soundP (f := selF H.sel r f) (H := H.arm a) hp hok1 hself hw' hh hE hR hD hG
+  have h := (Bool.or_eq_true_iff.mp hok1).elim
+    (fun h1 ↦ heapOkC1P_soundP (f := selF H.sel r f) (H := H.arm a) hp h1 hself (armPath_holds hu hle hw) hw' hh hE
+      hR hD hG)
+    (fun h1 ↦ heapOkC1_soundP (f := selF H.sel r f) (H := H.arm a) hp h1 hself hw' hh hE hR hD hG)
   refine ⟨readsOkP_arm h.1 fun d p off hm hs ↦ ?_, h.2⟩
   have hst := Bridge.walk_atomS (σ := σ) (selL H.sel r f.body) (by rw [hw']; exact hm)
   have hall := List.all_eq_true.mp hin _ hst
@@ -1321,6 +1471,21 @@ theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
   ((heapOkC_soundP hp hok hself hw hh hE hR hD hG).2 hM).1.2 hn
 
 end Main
+
+/-- **Constant preconditions** (`main`'s public input cells): a precondition of a signature whose preconditions
+are cells only, each constant (`⟨[], k⟩`), is the address `g^k` of one of them, whatever the words. -/
+theorem preSet_const {rd : Reader} {G : HSig} {ws : List E} {x : K} (hR : G.preR = []) (hP : G.preP = [])
+    (hPR : G.prePR = []) (hc : ∀ c ∈ G.pre, c.bases = []) (h : PreSet rd G ws x) :
+    ∃ c ∈ G.pre, x = addressOfIndex c.off := by
+  rcases h with (⟨c, hc', rfl⟩ | ⟨r, hr, -⟩) | (⟨p, hp, -⟩ | ⟨p, hp, -⟩)
+  · refine ⟨c, hc', ?_⟩
+    rw [CCell.addrW, valW_nil (by simp [hc c hc'])]
+    simp
+  · rw [hR] at hr; cases hr
+  · rw [hP] at hp; cases hp
+  · rw [hPR] at hp; cases hp
+
+/-! ## `heapOk`'s statement -/
 
 end
 

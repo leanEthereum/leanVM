@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.RingVerifier
 
-  The statement's ring switching (`ringSwitch` of `Statement/Verifier/RingSwitch.lean`) on
-  `RingMap`'s definitions: the same map, target, coefficients and weight, and the bad challenges
-  of the sixteen it draws counted as one group.
+  The statement's ring switching (`Statement/Verifier/RingSwitch.lean`) on `RingMap`'s
+  definitions: the same map, target and coefficients, and the bad challenges of the map's sixteen
+  counted as one group.
 -/
 
 module
@@ -14,18 +14,15 @@ public import Statement.Verifier.Lib
 /-!
 # The verifier's ring switching
 
-`LeanVM.Protocol.Verifier.ringSwitch point s` (`crates/verifier/src/ring_switch.rs` at
-leanVM) grinds `batchGrindingBits`, draws sixteen challenges, `f` the first eight and `g`
-the last eight, and returns the target and the weight. Its helpers transcribe the Rust as
+`LeanVM.Protocol.Verifier.ringSwitch` (`crates/verifier/src/ring_switch.rs`) grinds
+`batchGrindingBits` and draws the map's sixteen challenges, `f` the first eight and `g` the next
+eight, in one packed draw with `rho` and the batching challenge. Its helpers transcribe the Rust as
 `RingMap`'s do, `frobenius8` by a power rather than by squarings:
 
 * `verifier_frobenius8`, `verifier_ringPsi`, `verifier_polyEval`, `verifier_gen`: the helpers are
   `RingMap`'s;
 * `verifier_ringTarget`, `verifier_ringCoefficients`: so are the target and the coefficients;
-* `verifier_ringWeight`: the weight at points of `μ` coordinates is
-  `Σ_k c_k eq(r^(2^k), r')` (`idxSum`), the extension `ringWeight_mle` computes;
-* `ringSwitch_eq`: the program is the grind, the sixteen challenges, and `RingMap`'s target and
-  coefficients at their halves;
+* `ringWeight_fold`: a Frobenius sum of `eq` factors, folded as the statement folds a point group;
 * `card_ringBad_le`, `ringBad_ratio_le`: slice claims `s ≠ z` meet the honest value
   `Σ_i x^i Φ(z_i)` at no more than `2·|E|^15` of the `|E|^16` challenge lists, a fraction
   `2/|E|`. The bound holds for the sixteen jointly, not per challenge (`f` is drawn before `g`),
@@ -115,29 +112,6 @@ theorem ringWeight_fold (y : List E) :
       rw [← sq, ← pow_mul, pow_succ 2 k, mul_comm]
     simp only [List.map_map, e, List.map_id, e']
     ring
-
-/-- **The statement's weight** at points of `μ` coordinates is `Σ_k c_k eq(r^(2^k), r')`. -/
-theorem verifier_ringWeight {μ : ℕ} (r r' : Fin μ → E) (cs : List E) :
-    Verifier.ringWeight (List.ofFn r) (List.ofFn r') cs =
-      idxSum cs fun k ↦ eqP (frobPt r k) r' := by
-  rw [Verifier.ringWeight, ringWeight_fold, zero_add]
-  congr 1
-  funext k
-  rw [List.map_ofFn, ← eqEval_ofFn]
-  rfl
-
-/-! ## The program -/
-
-/-- **The statement's ring switching** is the grind, the sixteen challenges, and `RingMap`'s
-target and coefficients at their two halves. -/
-theorem ringSwitch_eq (point s : List E) :
-    Verifier.ringSwitch point s =
-      (Compile.VerifierProgram.grindProofOfWork Whir.batchGrindingBits).bind fun _ ↦
-        (Compile.VerifierProgram.sampleChallenges 16).bind fun ch ↦
-          Compile.VerifierProgram.ret (ringTarget s (ch.take 8) (ch.drop 8),
-            fun r' ↦ Verifier.ringWeight point r' (ringCoefficients (ch.take 8) (ch.drop 8))) := by
-  rw [Verifier.ringSwitch, ← verifier_ringTarget, ← verifier_ringCoefficients]
-  rfl
 
 /-! ## The bad challenges -/
 

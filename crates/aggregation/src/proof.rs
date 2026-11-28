@@ -47,6 +47,12 @@ impl AggregateProof {
         encode(&self.bytecode_point, &self.proof.to_bytes())
     }
 
+    /// The VM proof's scalar stream length, and its encoding's length in bytes: the bench's.
+    #[doc(hidden)]
+    pub fn __vm_proof_shape(&self) -> (usize, usize) {
+        (self.proof.stream.len(), self.proof.to_bytes().len())
+    }
+
     /// Decode a proof, `None` if the bytes are not one. This does not verify: call [`Self::verify`].
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let (bytecode_point, proof) = decode(bytes)?;
@@ -57,8 +63,7 @@ impl AggregateProof {
         Some(Self { bytecode_point, proof })
     }
 
-    /// Whether this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
-    /// proof is valid.
+    /// Whether this proves `claims`: the lists are sorted, the deferred claim holds, and the VM proof is valid.
     pub fn verify(&self, claims: &AggregateClaims) -> bool {
         // The cheap check first: the rest evaluates the bytecode at a point the sender chose.
         if !is_sorted(claims) {

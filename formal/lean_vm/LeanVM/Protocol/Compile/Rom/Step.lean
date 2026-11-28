@@ -35,9 +35,10 @@ The proof (see `LeanVM.Protocol.Compile.Rom.Potential` for the terms):
 * the new record's term averages to at most `εmax` (`term_step_new`): on fresh answers it is
   `[D h] · esc D h p` at the start of its group, and `esc D h p ≤ C.ε h` at a doomed boundary
   (`esc_le_eps`). After a nonce it is `[D h]` times the proof of work's success on the answer's
-  third lane times the escape probability after the answer's challenge, its first two lanes, and
-  later permutation answers, whose inputs carry the answer's capacity: the lanes are disjoint
-  (`sum_powOk_mul_challengeOf_div_le`), so the average is at most `2^-min(b, 64) · esc D h p`.
+  third lane times the escape probability after the answer's challenge, its first two lanes (or a
+  packed draw's first cells, `groundCells`, lanes `0, 1, 4..16`), and later permutation answers,
+  whose inputs carry the answer's capacity: the lanes are disjoint
+  (`sum_powOk_mul_groundCells_div_le`), so the average is at most `2^-min(b, 64) · esc D h p`.
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
@@ -86,21 +87,21 @@ theorem term_step_new {G : List Ev → Prop} (C : CertG P G) {εmax : ℝ≥0∞
       by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
       · rw [ind_of hf, one_mul, gv_fresh C.D hf]
       · rw [ind_of_not hf, zero_mul]; exact bot_le
-    · -- after a nonce: the permutation draws the proof of work and the first challenge
+    · -- after a nonce: the permutation draws the proof of work and the first draw's cells
       simp only [Option.map_some, Option.getD_some] at hcert
       have h1 : (∑ u, ind (Fresh (ℓ ++ [.inr (t, u)]) u) *
           term C.D (ℓ ++ [.inr (t, u)]) (Shape.st h p (some (b, n)), u)) /
             Fintype.card KeccakState ≤
           ind (C.D h) * ((∑ u, ind (powOk b (Keccak.lane u 2) = true) *
-            escAt C.D (challengeOf u) h p) / Fintype.card KeccakState) := by
+            escF C.D (groundCells u) h p) / Fintype.card KeccakState) := by
         rw [← mul_div_assoc, Finset.mul_sum]
         refine ENNReal.div_le_div_right (Finset.sum_le_sum fun u _ ↦ ?_) _
-        simp only [term, powF, stGv]
+        simp only [term, powF, stGv, gvG]
         by_cases hf : Fresh (ℓ ++ [.inr (t, u)]) u
-        · rw [ind_of hf, one_mul, gv1_fresh C.D hf]
+        · rw [ind_of hf, one_mul, gvF_fresh C.D hf]
         · rw [ind_of_not hf, zero_mul]; exact bot_le
-      have h2 := sum_powOk_mul_challengeOf_div_le b fun c ↦ escAt C.D c h p
-      rw [avg_escAt] at h2
+      have h2 := sum_powOk_mul_groundCells_div_le b fun L ↦ escF C.D L h p
+      rw [avg_escF C.D (by norm_num)] at h2
       exact h1.trans ((mul_le_mul_right h2 _).trans hcert)
   | sq h p =>
     obtain ⟨hr, hb, ha, hg⟩ := hok
@@ -115,7 +116,7 @@ theorem term_step_new {G : List Ev → Prop} (C : CertG P G) {εmax : ℝ≥0∞
       congr 1
       refine Finset.sum_congr rfl fun u _ ↦ by ring
     rw [heq]
-    exact (mul_le_mul_right (gv1_new C.D h p) _).trans hcert
+    exact (mul_le_mul_right (gv1_new C.D (ℓ := ℓ) (t := t) h p) _).trans hcert
 
 /-- Averaging `f + c` adds `c` to the average of `f`. -/
 theorem avg_add_const {γ : Type} [Fintype γ] [Nonempty γ] (f : γ → ℝ≥0∞) (c : ℝ≥0∞) :

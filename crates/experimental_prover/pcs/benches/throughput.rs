@@ -68,12 +68,8 @@ fn main() {
         });
     }
     let ring = RingSwitchOpen {
-        offset: 0,
         claims: (0..env_usize("PCS_RING_CLAIMS", 0))
-            .map(|_| RingSwitchClaim {
-                suffix_point: rng.ext_vec(log_n - 1),
-                s_hat_v: None,
-            })
+            .map(|_| RingSwitchClaim::single(0, rng.ext_vec(log_n - 1), None))
             .collect(),
     };
 

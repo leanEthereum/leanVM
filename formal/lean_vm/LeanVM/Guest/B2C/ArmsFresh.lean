@@ -26,6 +26,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 @[expose] public section
 
+variable {al : String → Bool}
+
 /-- Every arm `a` of the plumbs `l`, the first of index `k`, passes `q`. -/
 def armsCheck (q : ℕ → ℕ × ℕ × ℕ → Bool) : List Plumb → ℕ → Bool
   | [], _ => true
@@ -129,9 +131,9 @@ theorem armsFresh : ArmsFresh := by
 
 /-- **The checker's `keep`**, outright. -/
 theorem kfacts_keep_all (hdr : E × E) (T : Tree) :
-    ∀ ν, ∀ I ∈ honestInsts coreProgram fs H hdr T,
-      ∀ I' ∈ honestInsts coreProgram fs H hdr (T.retemp coreProgram fs ν (0, T.block fs coreProgram.loop)),
-        I'.fp = I.fp → I'.t = I.t.retemp coreProgram fs ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
+    ∀ ν, ∀ I ∈ honestInstsA coreProgram fs al H hdr T,
+      ∀ I' ∈ honestInstsA coreProgram fs al H hdr (T.retempA coreProgram fs al ν (0, T.block fs coreProgram.loop)),
+        I'.fp = I.fp → I'.t = I.t.retempA coreProgram fs al ν (I.fp, I.cur) → ∀ q ∈ I'.cells C,
           ¬ TmpOff coreProgram cert I.t q.1 → q ∈ I.cells C :=
   kfacts_keep coreProgram_fresh armsFresh hdr T
 

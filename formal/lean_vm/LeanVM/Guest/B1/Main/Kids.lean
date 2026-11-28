@@ -74,14 +74,14 @@ structure KidOk (C : CallRel) (rd : Reader) (σ : Val) (c : ℕ) (k : KidRec) : 
   sdig : [k.cs0, k.cs1] = digestCells (keccak256 (cellsBytes k.cellss))
   da0 : LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * c) k.d0
   da1 : LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * c + 1) k.d1
-  deflen : k.defer.length = 24
-  defreads : ReadsAt rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) k.defer
+  deflen : k.defer.length = 26
+  defreads : ReadsAt rd (σ (.n (val% «main» "child_carried")) * gen ^ (26 * c)) k.defer
   pdig : [k.p0, k.p1] = digestCells (keccak256
     (stmtBytes [σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), k.cx0, k.cx1, k.cs0, k.cs1, k.d0, k.d1] k.defer))
   pi0 : LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c) k.p0
   pi1 : LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c + 1) k.p1
   sub : C "verify_sub"
-    [k.p0, k.p1, σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "g_squares")), σ (.n (val% «main» "child_fresh")) * gen ^ (24 * c)] []
+    [k.p0, k.p1, σ (.n (val% «main» "fs_seed[0]")), σ (.n (val% «main» "fs_seed[1]")), σ (.n (val% «main» "g_squares")), σ (.n (val% «main» "child_fresh")) * gen ^ (55 * c)] []
 
 theorem loadHolds_gen_pow_iff {rd : Reader} {p : E} {c k : ℕ} {w : E} :
     LoadHolds rd (p * gen ^ c) k w ↔ LoadHolds rd p (c + k) w :=

@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Rpm.Paths
 /-!
 # The transcript's hashes are the adversary's cache
 
-In the transfer's random-oracle world the adversary of `Statement/LeanVm.lean` runs with the
+In the transfer's random-oracle world the adversary of the random-permutation game (`Rpm/Game.lean`) runs with the
 two-oracle simulator of `common` (`Common.advS2`). It makes no hash query itself: the
 simulator queries `H m` only when a fresh forward query completes a rooted sponge path that pads
 `m`, and books the path. So the hash answers in the cache when the adversary returns are exactly

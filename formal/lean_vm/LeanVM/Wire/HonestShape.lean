@@ -1,32 +1,31 @@
 /-
   LeanVM.Wire.HonestShape
 
-  Every opening phase of the leanVM verifier program is within the wire decoding's bounds: at most
-  `wireMaxPhases` phases, each of `1` to `wireMaxQueries` positions below `2^height`, of a
-  commitment of height at most `wireMaxHeight` and width at most `wireMaxLeafWords`.
+  Every opening phase of the leanVM verifier program is within the wire decoding's bounds, and its
+  stream is short: at most `wireMaxPhases` phases, each of `1` to `wireMaxQueries` positions below
+  `2^height` of a commitment of height at most `wireMaxHeight`, and at most `leanVmStream` stream
+  elements.
 -/
 
 module
 
-public import LeanVM.Protocol.Verifier.Cost
-public import LeanVM.Protocol.Verifier.Deferred
-public import LeanVM.Wire.Spec
+public import LeanVM.Wire.HonestRun
+public import LeanVM.Wire.HonestCost
 
 /-!
-# The verifier program's openings are within the wire bounds
+# The verifier program's openings and stream are within the wire bounds
 
-`Wired p shapes n Q`: along every run of `p`, from commitments of the shapes `shapes` (height,
-width) and with at most `n` openings left, every opening asks `1` to `wireMaxQueries` positions
-below `2^height` of a commitment of height at most `wireMaxHeight` and width at most
-`wireMaxLeafWords` (`QueryShape`), there are at most `n` of them, and every value returned
-satisfies `Q` at the shapes and the openings left then.
-
-The leanVM verifier program is `Wired` from no commitment with `wireMaxPhases` openings left
-(`wired_leanVmProgram`). Its only commitments are the stack's and the WHIR levels', its only
-openings the WHIR levels', one per level; every phase before the stacked opening commits and
-opens nothing (`NoOpen`). The bounds are decided over the `56` admissible ladders
-(`ladder_wire`): at most `6` levels, `13` to `234` queries per level, query depths (the
-commitments' heights) `9` to `26`, the stack's width `64` and the deeper levels' at most `32`.
+The leanVM verifier program is `Wired` from no commitment with `wireMaxPhases` openings and
+`leanVmStream` stream elements (`wired_leanVmProgram`). It is `verify_execution` split at the link's
+call of the program's split (`verifyExecution_split`): the prefix (`execPre`: the sizes, the stack's
+commitment, its out-of-domain sample, the link up to the split), the computed split, and the
+suffix (`execSuf`: the rest of the link, the public input, `KECCAK`'s reduction, ring switching,
+the memory term and the stacked opening). Its only commitments are the stack's and the WHIR
+levels', its only openings the WHIR levels', one per level; every other phase commits and opens
+nothing and reads the stream `LeanVM.Wire.HonestCost` bounds. The WHIR bounds are decided over the
+`60` admissible ladders (`ladder_wire`): at most `wireMaxPhases` levels, `1` to `wireMaxQueries`
+queries per level, query depths (the commitments' heights) `1` to `wireMaxHeight`, and at most
+`whirStreamBound` stream elements.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
 (https://github.com/scaraven).
@@ -37,408 +36,133 @@ The pruning idea and its formalization on leanerVM's main branch are scaraven's
 namespace LeanVM.Wire
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
-open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Verifier LeanVM.Protocol.Verifier.Defers
 
 variable {α β : Type}
 
-/-! ## Programs that commit and open nothing -/
-
-/-- No `commit` and no `query` on any path (the recursion). -/
-def NoOpenA : VerifierProgram α → Prop
-  | .ret _ => True
-  | .fail => True
-  | .read k => ∀ x, NoOpenA (k x)
-  | .sample k => ∀ c, NoOpenA (k c)
-  | .grind _ k => NoOpenA k
-  | .commit _ _ _ => False
-  | .query _ _ _ => False
-
-/-- **No `commit` and no `query` on any path.** Irreducible: unfolding it on a large program would
-evaluate the program. -/
-@[irreducible] def NoOpen (p : VerifierProgram α) : Prop := NoOpenA p
-
-theorem noOpen_iff (p : VerifierProgram α) : NoOpen p ↔ NoOpenA p := by
-  unfold NoOpen; rfl
-
-theorem NoOpenA.bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : NoOpenA p)
-    (hf : ∀ a, NoOpenA (f a)) : NoOpenA (p.bind f) := by
-  induction p with
-  | ret a => exact hf a
-  | fail => trivial
-  | read k ih => exact fun x ↦ ih x (hp x)
-  | sample k ih => exact fun c ↦ ih c (hp c)
-  | grind b k ih => exact ih hp
-  | commit _ _ _ _ => exact hp.elim
-  | query _ _ _ _ => exact hp.elim
-
-theorem NoOpen.bind {p : VerifierProgram α} {f : α → VerifierProgram β} (hp : NoOpen p)
-    (hf : ∀ a, NoOpen (f a)) : NoOpen (p.bind f) :=
-  (noOpen_iff _).2 (NoOpenA.bind ((noOpen_iff _).1 hp) fun a ↦ (noOpen_iff _).1 (hf a))
-
-theorem noOpen_ret (a : α) : NoOpen (VerifierProgram.ret a) := (noOpen_iff _).2 trivial
-
-theorem noOpen_fail : NoOpen (VerifierProgram.fail : VerifierProgram α) := (noOpen_iff _).2 trivial
-
-theorem noOpen_readE : NoOpen VerifierProgram.readScalar := (noOpen_iff _).2 fun _ ↦ trivial
-
-theorem noOpen_sampleE : NoOpen VerifierProgram.sampleChallenge :=
-  (noOpen_iff _).2 fun _ ↦ trivial
-
-theorem noOpen_grind (bits : ℕ) : NoOpen (VerifierProgram.grindProofOfWork bits) := by
-  unfold VerifierProgram.grindProofOfWork
-  split
-  · exact noOpen_ret _
-  · exact (noOpen_iff _).2 trivial
-
-theorem noOpen_readN : ∀ n, NoOpen (VerifierProgram.readScalars n)
-  | 0 => noOpen_ret _
-  | n + 1 => by
-    simp only [VerifierProgram.readScalars, VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    exact NoOpen.bind noOpen_readE fun _ ↦ NoOpen.bind (noOpen_readN n) fun _ ↦ noOpen_ret _
-
-theorem noOpen_sampleN : ∀ n, NoOpen (VerifierProgram.sampleChallenges n)
-  | 0 => noOpen_ret _
-  | n + 1 => by
-    simp only [VerifierProgram.sampleChallenges, VerifierProgram.bind_eq,
-      VerifierProgram.pure_eq]
-    exact NoOpen.bind noOpen_sampleE fun _ ↦ NoOpen.bind (noOpen_sampleN n) fun _ ↦ noOpen_ret _
-
-theorem noOpen_require (c : Prop) [Decidable c] : NoOpen (VerifierProgram.require c) := by
-  unfold VerifierProgram.require
-  split
-  · exact noOpen_ret _
-  · exact noOpen_fail
-
-theorem noOpen_liftOption (o : Option α) : NoOpen (liftOption o) := by
-  cases o
-  · exact noOpen_fail
-  · exact noOpen_ret _
-
-theorem noOpen_sumcheckRoundPoly (count : ℕ) (claim : E) (e : Option E) :
-    NoOpen (sumcheckRoundPoly count claim e) := by
-  cases e <;> (unfold sumcheckRoundPoly; simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq])
-  · exact NoOpen.bind noOpen_readE fun _ ↦ NoOpen.bind (noOpen_readN _) fun _ ↦
-      NoOpen.bind (noOpen_grind _) fun _ ↦ noOpen_ret _
-  · exact NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_grind _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_sumcheck (claim : E) (count : ℕ) : ∀ eqs : List (Option E),
-    NoOpen (sumcheck claim count eqs) := by
-  intro eqs
-  induction eqs generalizing claim with
-  | nil => exact noOpen_ret _
-  | cons e eqs ih =>
-    unfold sumcheck
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    exact NoOpen.bind (noOpen_sumcheckRoundPoly _ _ _) fun _ ↦ NoOpen.bind noOpen_sampleE
-      fun _ ↦ NoOpen.bind (ih _) fun _ ↦ noOpen_ret _
-
-/-- A search for `NoOpen` through binds, the primitives, matches and `if`s. -/
-macro "no_open" : tactic => `(tactic| repeat (first
-  | exact noOpen_ret _
-  | exact noOpen_readE
-  | exact noOpen_sampleE
-  | exact noOpen_grind _
-  | exact noOpen_readN _
-  | exact noOpen_sampleN _
-  | exact noOpen_require _
-  | exact noOpen_liftOption _
-  | exact noOpen_fail
-  | exact (noOpen_iff _).2 trivial
-  | exact noOpen_sumcheckRoundPoly _ _ _
-  | exact noOpen_sumcheck _ _ _
-  | (refine NoOpen.bind ?_ fun _ ↦ ?_)
-  | (simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq])
-  | split
-  | (intro _)))
-
-/-! ## The phases before the stacked opening -/
-
-theorem noOpen_readSizes (bytecode : List K) : NoOpen (readAnnouncedSizes bytecode) := by
-  unfold readAnnouncedSizes
-  no_open
-
-theorem noOpen_gkrStep (step : ℕ) (last : Bool) (s : GkrState) : NoOpen (gkrStep step last s) := by
-  unfold gkrStep
-  no_open
-
-theorem noOpen_gkrLayers : ∀ (n : ℕ) (s : GkrState), NoOpen (gkrLayers n s)
-  | 0, _ => noOpen_ret _
-  | 1, s => by
-    unfold gkrLayers
-    simp only [VerifierProgram.bind_eq]
-    exact NoOpen.bind (noOpen_gkrStep _ _ _) fun _ ↦ noOpen_gkrLayers 0 _
-  | n + 2, s => by
-    unfold gkrLayers
-    split
-    · simp only [VerifierProgram.bind_eq]
-      exact NoOpen.bind (noOpen_gkrStep _ _ _) fun _ ↦ noOpen_gkrLayers (n + 1) _
-    · simp only [VerifierProgram.bind_eq]
-      exact NoOpen.bind (noOpen_gkrStep _ _ _) fun _ ↦ noOpen_gkrLayers n _
-
-theorem noOpen_verifyGkr (depth : ℕ) : NoOpen (verifyGkrGrandProducts depth) := by
-  unfold verifyGkrGrandProducts
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  exact NoOpen.bind noOpen_readE fun _ ↦ NoOpen.bind noOpen_readE fun _ ↦
-    NoOpen.bind (noOpen_gkrLayers _ _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_bytecodeShare (weights bytecodeLow : List E) :
-    NoOpen (bytecodeShare weights bytecodeLow) := by
-  unfold bytecodeShare
-  no_open
-
-theorem noOpen_verifyBusBalance (layout : Layout) :
-    NoOpen (verifyBusBalance computedBytecodeValue layout) := by
-  unfold verifyBusBalance computedBytecodeValue
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_require _) fun _ ↦ NoOpen.bind (noOpen_grind _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_sampleN _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_verifyGkr _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_require _) fun _ ↦ NoOpen.bind (noOpen_readN _) fun _ ↦ ?_
-  refine NoOpen.bind noOpen_readE fun _ ↦ NoOpen.bind noOpen_readE fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_bytecodeShare _ _) fun _ ↦ ?_
-  no_open
-
-theorem noOpen_tableTerms (cP fP point : List E) :
-    ∀ (rows : List (Table × ℕ × List Form × E)) (cursor : ℕ) (final : E)
-      (claims : List ColumnClaim), NoOpen (tableTermsClaims cP fP point rows cursor final claims)
-  | [], _, _, _ => noOpen_ret _
-  | (table, height, forms, weight) :: rest, cursor, final, claims => by
-    unfold tableTermsClaims
-    simp only [VerifierProgram.bind_eq]
-    exact NoOpen.bind (noOpen_readN _) fun _ ↦ noOpen_tableTerms cP fP point rest _ _ _
-
-theorem noOpen_tablePhase (layout : Layout) (bus : BusResult) :
-    NoOpen (tablePhaseClaims layout bus) := by
-  unfold tablePhaseClaims tableSumcheckClaims
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ ?_
-  refine NoOpen.bind (NoOpen.bind (noOpen_sumcheck _ _ _) fun x ↦ ?_) fun _ ↦ noOpen_ret _
-  obtain ⟨_, _⟩ := x
-  refine NoOpen.bind (noOpen_tableTerms _ _ _ _ _ _ _) fun y ↦ ?_
-  obtain ⟨_, _⟩ := y
-  exact NoOpen.bind (noOpen_require _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_publicInputPhase (layout : Layout) (pi : Digest) :
-    NoOpen (publicInputPhase layout pi) := by
-  unfold publicInputPhase
-  no_open
-
-theorem noOpen_keccakPackRounds : ∀ (rs : List E) (value : E),
-    NoOpen (keccakPackRounds rs value)
-  | [], _ => noOpen_ret _
-  | r :: rs, value => by
-    unfold keccakPackRounds
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    exact NoOpen.bind (noOpen_sumcheckRoundPoly _ _ _) fun _ ↦ NoOpen.bind noOpen_sampleE
-      fun _ ↦ NoOpen.bind (noOpen_keccakPackRounds rs _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
-    NoOpen (verifyKeccakLayer logSteps step claim) := by
-  rw [verifyKeccakLayer_packed]
-  unfold verifyKeccakLayerPacked
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_keccakPackRounds _ _) fun x ↦ ?_
-  obtain ⟨_, _⟩ := x
-  refine NoOpen.bind (noOpen_sumcheck _ _ _) fun y ↦ ?_
-  obtain ⟨_, _⟩ := y
-  refine NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_
-  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ noOpen_ret _
-
-theorem noOpen_keccakLayers (logSteps : ℕ) (steps : List ℕ) :
-    ∀ claim : KeccakClaim, NoOpen (keccakLayers logSteps steps claim) := by
-  induction steps with
-  | nil => intro _; exact noOpen_ret _
-  | cons step steps ih =>
-    intro claim
-    unfold keccakLayers
-    simp only [VerifierProgram.bind_eq]
-    exact NoOpen.bind (noOpen_verifyKeccakLayer logSteps step claim) fun _ ↦ ih _
-
-theorem noOpen_keccakOpen (logSteps : ℕ) (claim : KeccakClaim) (first count : ℕ) (value : E) :
-    NoOpen (keccakOpen logSteps claim first count value) := by
-  unfold keccakOpen
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_sumcheck _ _ _) fun x ↦ ?_
-  obtain ⟨_, _⟩ := x
-  exact noOpen_ret _
-
-theorem noOpen_verifyKeccak (logSteps : ℕ) (inst output : List E) :
-    NoOpen (verifyKeccak logSteps inst output) := by
-  have h1 : 1 < keccakSegments := by decide
-  unfold verifyKeccak
-  simp only [h1, ↓reduceIte]
-  refine NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_sampleN _) fun _ ↦ NoOpen.bind noOpen_readE fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_keccakLayers _ _ _) fun _ ↦ ?_
-  -- `refine` names the `q_keccak` openings' programs only by a goal of their own: unified inside a
-  -- bind, `keccakOpen` is unfolded.
-  refine NoOpen.bind ?_ fun _ ↦ ?_
-  · exact noOpen_keccakOpen _ _ _ _ _
-  refine NoOpen.bind noOpen_readE fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_ret _) fun _ ↦ NoOpen.bind (noOpen_sumcheck _ _ _) fun _ ↦ ?_
-  refine NoOpen.bind ?_ fun _ ↦ ?_
-  · exact noOpen_keccakOpen _ _ _ _ _
-  exact NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_keccakPhase (layout : Layout) (claims : List ColumnClaim) :
-    NoOpen (keccakPhaseClaims layout claims) := by
-  unfold keccakPhaseClaims
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_require _) fun _ ↦ NoOpen.bind (noOpen_verifyKeccak _ _ _) fun x ↦ ?_
-  obtain ⟨_, _, _⟩ := x
-  exact noOpen_ret _
-
-theorem noOpen_ringSwitch (point s : List E) : NoOpen (ringSwitch point s) := by
-  rw [ringSwitch_eq]
-  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦ noOpen_liftOption _
-
-/-- The phases between the stack's commitment and the stacked opening. -/
-def claimsPhase (layout : Layout) (publicInput : Digest) : VerifierProgram (List StackClaim) := do
-  let bus ← verifyBusBalance computedBytecodeValue layout
-  let claims ← tablePhaseClaims layout bus
-  let publicClaims ← publicInputPhase layout publicInput
-  let (claims, keccakPoint, keccakSlices) ← keccakPhaseClaims layout (claims ++ publicClaims)
-  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
-  return ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout)
-
-theorem noOpen_claimsPhase (layout : Layout) (pi : Digest) : NoOpen (claimsPhase layout pi) := by
-  unfold claimsPhase
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine NoOpen.bind (noOpen_verifyBusBalance _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_tablePhase _ _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_publicInputPhase _ _) fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_keccakPhase _ _) fun x ↦ ?_
-  obtain ⟨cl, kp, ks⟩ := x
-  exact NoOpen.bind (noOpen_ringSwitch _ _) fun _ ↦ noOpen_ret _
-
-theorem noOpen_readOod (stackLog : ℕ) : NoOpen (readOod stackLog) := by
-  rw [readOod_eq]
-  exact NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind (noOpen_sampleN _) fun _ ↦
-    NoOpen.bind noOpen_readE fun _ ↦ noOpen_liftOption _
-
-/-- The verifier program, regrouped: the sizes, the stack's commitment, its out-of-domain sample,
-the claims, the stacked opening. -/
-theorem leanVmProgram_regroup (bytecode : List K) (publicInput : Digest) :
-    leanVmVerifierProgram bytecode publicInput =
-      (readAnnouncedSizes bytecode).bind fun ls ↦
-      (commitStack ls.1.stackLog ls.2).bind fun _ ↦
-      (readOod ls.1.stackLog).bind fun ood ↦
-      (claimsPhase ls.1 publicInput).bind fun cl ↦
-      (verifyStackedOpening ls.1.stackLog ls.2 (cl ++ [ood])).bind fun _ ↦
-        VerifierProgram.ret true := by
-  rw [leanVmProgram_eq]
-  simp only [verifyExecutionClaims, claimsPhase, VerifierProgram.bind_eq, VerifierProgram.pure_eq,
-    VerifierProgram.bind_assoc, VerifierProgram.ret_bind, List.cons_append]
-
 /-! ## The calculus -/
-
-/-- **An opening within the wire bounds**: `1` to `wireMaxQueries` positions, below `2^height`, of
-a commitment `(height, width)` of height at most `wireMaxHeight` and width at most
-`wireMaxLeafWords`. -/
-def QueryShape (shape : ℕ × ℕ) (positions : List ℕ) : Prop :=
-  positions ≠ [] ∧ positions.length ≤ wireMaxQueries ∧ shape.1 ≤ wireMaxHeight ∧
-    shape.2 ≤ wireMaxLeafWords ∧ ∀ q ∈ positions, q < 2 ^ shape.1
-
-/-- **Openings within the wire bounds**: along every run of `p` from commitments of the shapes
-`shapes`, with at most `n` openings left, every opening is within the bounds (`QueryShape`), there
-are at most `n`, and every value returned satisfies `Q` at the shapes and openings left then. -/
-def Wired : VerifierProgram α → List (ℕ × ℕ) → ℕ → (α → List (ℕ × ℕ) → ℕ → Prop) → Prop
-  | .ret a, shapes, n, Q => Q a shapes n
-  | .fail, _, _, _ => True
-  | .read k, shapes, n, Q => ∀ x, Wired (k x) shapes n Q
-  | .sample k, shapes, n, Q => ∀ c, Wired (k c) shapes n Q
-  | .grind _ k, shapes, n, Q => Wired k shapes n Q
-  | .commit height width k, shapes, n, Q => Wired k (shapes ++ [(height, width)]) n Q
-  | .query i ps k, shapes, n, Q =>
-    0 < n ∧ QueryShape (shapes.getD i (0, 0)) ps ∧ ∀ rows, Wired (k rows) shapes (n - 1) Q
 
 namespace Wired
 
-theorem mono {p : VerifierProgram α} {shapes : List (ℕ × ℕ)} {n : ℕ}
-    {Q R : α → List (ℕ × ℕ) → ℕ → Prop} (h : Wired p shapes n Q)
-    (hQR : ∀ a shapes' n', Q a shapes' n' → R a shapes' n') : Wired p shapes n R := by
-  induction p generalizing shapes n with
-  | ret a => exact hQR a shapes n h
+theorem mono {p : VerifierProgram α} {hs : List ℕ} {n c d : ℕ}
+    {Q R : α → List ℕ → ℕ → Prop} (h : Wired p hs n c Q)
+    (hQR : ∀ a hs' n', Q a hs' n' → R a hs' n') (hcd : c ≤ d) : Wired p hs n d R := by
+  induction p generalizing hs n c d with
+  | ret a => exact hQR a hs n h
   | fail => trivial
-  | read k ih => exact fun x ↦ ih x (h x)
-  | sample k ih => exact fun x ↦ ih x (h x)
-  | grind b k ih => exact ih h
-  | commit ht w k ih => exact ih h
-  | query i ps k ih => exact ⟨h.1, h.2.1, fun r ↦ ih r (h.2.2 r)⟩
+  | read k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
+  | sample k ih => exact fun x ↦ ih x (h x) hcd
+  | readPacked m k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
+  | samplePacked m k ih => exact fun x ↦ ih x (h x) hcd
+  | grind b k ih => exact ⟨by have := h.1; omega, ih h.2 (by omega)⟩
+  | commit ht w k ih => exact ⟨by have := h.1; omega, ih h.2 (by omega)⟩
+  | query i ps k ih => exact ⟨h.1, h.2.1, fun r ↦ ih r (h.2.2 r) hcd⟩
 
-theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {shapes : List (ℕ × ℕ)} {n : ℕ}
-    {Q : α → List (ℕ × ℕ) → ℕ → Prop} {R : β → List (ℕ × ℕ) → ℕ → Prop}
-    (hp : Wired p shapes n Q) (hf : ∀ a shapes' n', Q a shapes' n' → Wired (f a) shapes' n' R) :
-    Wired (p.bind f) shapes n R := by
-  induction p generalizing shapes n with
-  | ret a => exact hf a shapes n hp
+theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {hs : List ℕ} {n a b : ℕ}
+    {Q : α → List ℕ → ℕ → Prop} {R : β → List ℕ → ℕ → Prop}
+    (hp : Wired p hs n a Q) (hf : ∀ x hs' n', Q x hs' n' → Wired (f x) hs' n' b R) :
+    Wired (p.bind f) hs n (a + b) R := by
+  induction p generalizing hs n a with
+  | ret x => exact (hf x hs n hp).mono (fun _ _ _ h ↦ h) (by omega)
   | fail => trivial
-  | read k ih => exact fun x ↦ ih x (hp x)
+  | read k ih =>
+    refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
+    have := ih x (hp.2 x)
+    rwa [show a - 1 + b = a + b - 1 by have := hp.1; omega] at this
   | sample k ih => exact fun x ↦ ih x (hp x)
-  | grind b k ih => exact ih hp
-  | commit ht w k ih => exact ih hp
+  | readPacked m k ih =>
+    refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
+    have := ih x (hp.2 x)
+    rwa [show a - m + b = a + b - m by have := hp.1; omega] at this
+  | samplePacked m k ih => exact fun x ↦ ih x (hp x)
+  | grind bits k ih =>
+    refine ⟨by have := hp.1; omega, ?_⟩
+    have := ih hp.2
+    rwa [show a - 1 + b = a + b - 1 by have := hp.1; omega] at this
+  | commit ht w k ih =>
+    refine ⟨by have := hp.1; omega, ?_⟩
+    have := ih hp.2
+    rwa [show a - 2 + b = a + b - 2 by have := hp.1; omega] at this
   | query i ps k ih => exact ⟨hp.1, hp.2.1, fun r ↦ ih r (hp.2.2 r)⟩
 
-/-- A program that commits and opens nothing keeps the shapes and the openings left. -/
-theorem of_noOpenA : ∀ {p : VerifierProgram α} {shapes : List (ℕ × ℕ)} {n : ℕ}, NoOpenA p →
-    Wired p shapes n fun a shapes' n' ↦ shapes' = shapes ∧ n' = n ∧ VerifierProgram.Returns p a := by
+theorem seq {p : VerifierProgram α} {f : α → VerifierProgram β} {hs : List ℕ} {n a c : ℕ}
+    {Q : α → List ℕ → ℕ → Prop} {R : β → List ℕ → ℕ → Prop}
+    (hp : Wired p hs n a Q) (hf : ∀ x hs' n', Q x hs' n' → Wired (f x) hs' n' (c - a) R)
+    (ha : a ≤ c) : Wired (p >>= f) hs n c R :=
+  (bind hp hf).mono (fun _ _ _ h ↦ h) (by omega)
+
+/-- A program that commits and opens nothing keeps the heights and the openings left. -/
+theorem of_cost : ∀ {p : VerifierProgram α} {hs : List ℕ} {n a : ℕ}, CostLE p a →
+    Wired p hs n a fun x hs' n' ↦ hs' = hs ∧ n' = n ∧ VerifierProgram.ReturnsAny p x := by
   intro p
   induction p with
-  | ret a => intro shapes n _; exact ⟨rfl, rfl, .ret a⟩
-  | fail => intro shapes n _; trivial
+  | ret x => intro _ _ _ _; exact ⟨rfl, rfl, .ret x⟩
+  | fail => intro _ _ _ _; trivial
   | read k ih =>
-    intro shapes n h x
-    exact (ih x (h x)).mono fun a _ _ hr ↦ ⟨hr.1, hr.2.1, .read x hr.2.2⟩
+    intro hs n a h
+    exact ⟨h.1, fun x ↦ (ih x (h.2 x)).mono (fun y _ _ hr ↦ ⟨hr.1, hr.2.1, .read x hr.2.2⟩)
+      le_rfl⟩
   | sample k ih =>
-    intro shapes n h x
-    exact (ih x (h x)).mono fun a _ _ hr ↦ ⟨hr.1, hr.2.1, .sample x hr.2.2⟩
+    intro hs n a h x
+    exact (ih x (h x)).mono (fun y _ _ hr ↦ ⟨hr.1, hr.2.1, .sample x hr.2.2⟩) le_rfl
+  | readPacked m k ih =>
+    intro hs n a h
+    exact ⟨h.1, fun xs ↦ (ih xs (h.2 xs)).mono
+      (fun y _ _ hr ↦ ⟨hr.1, hr.2.1, .readPacked m xs hr.2.2⟩) le_rfl⟩
+  | samplePacked m k ih =>
+    intro hs n a h xs
+    exact (ih xs (h xs)).mono (fun y _ _ hr ↦ ⟨hr.1, hr.2.1, .samplePacked m xs hr.2.2⟩) le_rfl
   | grind b k ih =>
-    intro shapes n h
-    exact (ih h).mono fun a _ _ hr ↦ ⟨hr.1, hr.2.1, .grind b hr.2.2⟩
-  | commit _ _ _ _ => intro shapes n h; exact h.elim
-  | query _ _ _ _ => intro shapes n h; exact h.elim
+    intro hs n a h
+    exact ⟨h.1, (ih h.2).mono (fun y _ _ hr ↦ ⟨hr.1, hr.2.1, .grind b hr.2.2⟩) le_rfl⟩
+  | commit _ _ _ _ => intro _ _ _ h; exact h.elim
+  | query _ _ _ _ => intro _ _ _ h; exact h.elim
 
-/-- A program that commits and opens nothing, followed by a wired one. -/
-theorem no_bind {p : VerifierProgram α} {f : α → VerifierProgram β} {shapes : List (ℕ × ℕ)}
-    {n : ℕ} {R : β → List (ℕ × ℕ) → ℕ → Prop} (hp : NoOpen p)
-    (hf : ∀ a, VerifierProgram.Returns p a → Wired (f a) shapes n R) :
-    Wired (p.bind f) shapes n R :=
-  bind (of_noOpenA ((noOpen_iff _).1 hp)) fun a _ _ h ↦ h.1 ▸ h.2.1 ▸ hf a h.2.2
+/-- A program that commits and opens nothing, then a wired one. -/
+theorem cost_seq {p : VerifierProgram α} {f : α → VerifierProgram β} {hs : List ℕ} {n a c : ℕ}
+    {R : β → List ℕ → ℕ → Prop} (hp : CostLE p a)
+    (hf : ∀ x, VerifierProgram.ReturnsAny p x → Wired (f x) hs n (c - a) R) (ha : a ≤ c) :
+    Wired (p >>= f) hs n c R :=
+  seq (of_cost hp) (fun x _ _ h ↦ h.1 ▸ h.2.1 ▸ hf x h.2.2) ha
 
 end Wired
 
 /-! ## The WHIR ladders -/
 
 /-- The levels from a message of `μ` variables are within the wire bounds: each queries `1` to
-`wireMaxQueries` positions at a depth (its commitment's height) of `1` to `wireMaxHeight` bits,
-and each deeper level's commitment is at most `wireMaxLeafWords` wide. -/
+`wireMaxQueries` positions at a depth (its commitment's height) of `1` to `wireMaxHeight` bits. -/
 def levelsWired : ℕ → List Whir.Level → Bool
   | _, [] => true
   | μ, level :: rest =>
     decide (1 ≤ level.queries ∧ level.queries ≤ wireMaxQueries ∧
         1 ≤ μ - level.fold + level.logInvRate ∧ μ - level.fold + level.logInvRate ≤ wireMaxHeight) &&
-      (match rest with
-        | [] => true
-        | next :: _ => decide (2 * 2 ^ next.fold ≤ wireMaxLeafWords)) &&
       levelsWired (μ - level.fold) rest
 
-/-- The stack's commitment is at most `wireMaxLeafWords` wide. -/
-def stackWired : List Whir.Level → Bool
-  | [] => true
-  | level :: _ => decide (2 ^ level.fold ≤ wireMaxLeafWords)
+/-- The stream the WHIR levels from a message of `μ` variables read: per level its fold rounds
+(four scalars and a nonce each), then on the final level the folded lane, a nonce and the tail's
+rounds, on another the next commitment's root, the high part and three nonces and scalars. -/
+def whirStream : ℕ → List Whir.Level → ℕ
+  | _, [] => 0
+  | μ, [level] =>
+    level.fold * 5 + (2 ^ (μ - level.fold) + level.fold) + 1 + (μ - level.fold) * 5
+  | μ, level :: next :: rest =>
+    level.fold * 5 + 2 + level.fold + 1 + 1 + 1 + whirStream (μ - level.fold) (next :: rest)
+
+/-- The stream the WHIR levels read, at most. -/
+def whirStreamBound : ℕ := 256
 
 /-- **Every admissible ladder is within the wire bounds**: at most `wireMaxPhases` levels, each
-within the bounds; decided over the `60` admissible pairs. -/
+within the bounds, at most `whirStreamBound` stream elements; decided over the `60` admissible
+pairs. -/
 theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
     (h : Whir.ladder μ logInvRate = some levels) :
-    levels.length ≤ wireMaxPhases ∧ levelsWired μ levels = true ∧ stackWired levels = true := by
+    levels.length ≤ wireMaxPhases ∧ levelsWired μ levels = true ∧
+      whirStream μ levels ≤ whirStreamBound := by
   by_cases hadm : Whir.Admissible μ logInvRate
   · have key : ∀ μ < Whir.maxLogStack + 1, ∀ r < 5, Whir.Admissible μ r →
         ∀ levels, Whir.ladder μ r = some levels →
           (decide (levels.length ≤ wireMaxPhases) && levelsWired μ levels &&
-            stackWired levels) = true := by
+            decide (whirStream μ levels ≤ whirStreamBound)) = true := by
       decide +kernel
     have hk := key μ (Nat.lt_succ_of_le hadm.2.1) logInvRate (Nat.lt_succ_of_le hadm.2.2.2)
       hadm levels h
@@ -448,77 +172,78 @@ theorem ladder_wire (μ logInvRate : ℕ) (levels : List Whir.Level)
 
 /-! ## The WHIR levels -/
 
+theorem foldRoundP (s : WhirState) : CostLE (foldRound s) 5 := by
+  unfold foldRound
+  exact CostLE.seq CostLE.readE (fun _ _ ↦ CostLE.seq CostLE.readE (fun _ _ ↦
+    CostLE.seq CostLE.readE (fun _ _ ↦ CostLE.seq CostLE.readE (fun _ _ ↦
+      CostLE.seq (CostLE.grindP _) (fun _ _ ↦ CostLE.seq CostLE.sampleE (fun _ _ ↦
+        CostLE.seq CostLE.sampleE (fun _ _ ↦ trivial) (Nat.zero_le _)) (Nat.zero_le _))
+        (by omega)) (by omega)) (by omega)) (by omega)) (by omega)
+
 theorem foldRound_returns (s : WhirState) {r : WhirState × FoldRound}
-    (h : VerifierProgram.Returns (foldRound s) r) : r.1.alphas.length = s.alphas.length + 1 := by
+    (h : VerifierProgram.ReturnsAny (foldRound s) r) : r.1.alphas.length = s.alphas.length + 1 := by
   unfold foldRound at h
-  repeat obtain ⟨_, -, h⟩ := VerifierProgram.returns_bind h
-  rw [VerifierProgram.returns_ret h]
+  repeat obtain ⟨_, -, h⟩ := VerifierProgram.returnsAny_bind h
+  rw [VerifierProgram.returnsAny_ret h]
   simp
 
+theorem foldRoundsP : ∀ (n : ℕ) (s : WhirState), CostLE (foldRounds n s) (n * 5)
+  | 0, _ => trivial
+  | n + 1, s => by
+    unfold foldRounds
+    refine CostLE.seq (foldRoundP s) (fun x _ ↦ ?_) (by omega)
+    obtain ⟨s', round⟩ := x
+    exact CostLE.seq (foldRoundsP n _) (fun y _ ↦ by obtain ⟨_, _⟩ := y; trivial) (by
+      rw [Nat.succ_mul]; omega)
+
 theorem foldRounds_returns : ∀ (n : ℕ) (s : WhirState) {r : WhirState × List FoldRound},
-    VerifierProgram.Returns (foldRounds n s) r → r.1.alphas.length = s.alphas.length + n
+    VerifierProgram.ReturnsAny (foldRounds n s) r → r.1.alphas.length = s.alphas.length + n
   | 0, s, r, h => by
-    have := VerifierProgram.returns_ret h
+    have := VerifierProgram.returnsAny_ret h
     subst this
     rfl
   | n + 1, s, r, h => by
     unfold foldRounds at h
-    obtain ⟨c, hc, h⟩ := VerifierProgram.returns_bind h
-    obtain ⟨d, hd, h⟩ := VerifierProgram.returns_bind h
+    obtain ⟨c, hc, h⟩ := VerifierProgram.returnsAny_bind h
+    obtain ⟨d, hd, h⟩ := VerifierProgram.returnsAny_bind h
     have h1 := foldRound_returns s hc
     have h2 := foldRounds_returns n _ hd
-    rw [VerifierProgram.returns_ret h]
+    rw [VerifierProgram.returnsAny_ret h]
     simp only at h2 ⊢
     omega
 
-theorem noOpen_foldRound (s : WhirState) : NoOpen (foldRound s) := by
-  unfold foldRound
-  no_open
-
-theorem noOpen_foldRounds : ∀ (n : ℕ) (s : WhirState), NoOpen (foldRounds n s)
-  | 0, _ => noOpen_ret _
-  | n + 1, s => by
-    unfold foldRounds
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-    refine NoOpen.bind (noOpen_foldRound s) fun x ↦ ?_
-    obtain ⟨_, _⟩ := x
-    refine NoOpen.bind (noOpen_foldRounds n _) fun y ↦ ?_
-    obtain ⟨_, _⟩ := y
-    exact noOpen_ret _
-
-theorem noOpen_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
-    NoOpen (sampleQueriesAux depth fuel remaining)
-  | 0, _ => noOpen_ret _
+theorem sampleQueriesAuxP (depth : ℕ) : ∀ (fuel remaining : ℕ),
+    CostLE (sampleQueriesAux depth fuel remaining) 0
+  | 0, _ => trivial
   | fuel + 1, remaining => by
     unfold sampleQueriesAux
-    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     split
-    · exact noOpen_ret _
-    · exact NoOpen.bind noOpen_sampleE fun _ ↦ NoOpen.bind
-        (noOpen_sampleQueriesAux depth fuel _) fun _ ↦ noOpen_ret _
+    · trivial
+    · exact CostLE.seq CostLE.sampleE (fun _ _ ↦ CostLE.seq (sampleQueriesAuxP depth fuel _)
+        (fun _ _ ↦ trivial) le_rfl) le_rfl
 
 /-- The positions `sampleQueriesAux` returns: at most `remaining`, below `2^depth`, and at least
 one when `1 ≤ remaining`, `1 ≤ depth ≤ 128` and there is fuel. -/
 theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs : List ℕ},
-    VerifierProgram.Returns (sampleQueriesAux depth fuel remaining) qs →
+    VerifierProgram.ReturnsAny (sampleQueriesAux depth fuel remaining) qs →
       qs.length ≤ remaining ∧ (∀ q ∈ qs, q < 2 ^ depth) ∧
         (1 ≤ fuel → 1 ≤ remaining → 1 ≤ depth → depth ≤ 128 → qs ≠ [])
   | 0, _, qs, h => by
-    have := VerifierProgram.returns_ret h
+    have := VerifierProgram.returnsAny_ret h
     subst this
     simp
   | fuel + 1, remaining, qs, h => by
     unfold sampleQueriesAux at h
     split at h
-    · have := VerifierProgram.returns_ret h
+    · have := VerifierProgram.returnsAny_ret h
       subst this
       simp only [List.length_nil, Nat.zero_le, List.not_mem_nil, false_implies,
         implies_true, true_and]
       intro _ hr
       omega
-    · obtain ⟨c, -, h⟩ := VerifierProgram.returns_bind h
-      obtain ⟨rest, hrest, h⟩ := VerifierProgram.returns_bind h
-      have := VerifierProgram.returns_ret h
+    · obtain ⟨c, -, h⟩ := VerifierProgram.returnsAny_bind h
+      obtain ⟨rest, hrest, h⟩ := VerifierProgram.returnsAny_bind h
+      have := VerifierProgram.returnsAny_ret h
       subst this
       obtain ⟨hl, hlt, -⟩ := sampleQueriesAux_returns depth fuel _ hrest
       refine ⟨?_, fun q hq ↦ ?_, fun _ _ hd1 hd2 ↦ ?_⟩
@@ -535,132 +260,196 @@ theorem sampleQueriesAux_returns (depth : ℕ) : ∀ (fuel remaining : ℕ) {qs 
         simp only [List.length_append, List.length_map, List.length_range, List.length_nil] at this
         omega
 
-/-- **The WHIR levels are wired**: at level `index`, the shapes so far end with the current
-level's commitment, of height `logN − |α| − fold + rate` and width at most `wireMaxLeafWords`, and
-as many openings are left as levels. -/
+theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (oodPoint : List E) (oodValue : E)
+    (queries : List ℕ) (queryWeights : List E) (batched : E) :
+    (glueLevel s lam mu oodPoint oodValue queries queryWeights batched).alphas = s.alphas := rfl
+
+/-- **The WHIR levels are wired**: at level `index`, the heights so far end with the current
+level's commitment, of height `logN − |α| − fold + rate`, and as many openings are left as
+levels. -/
 theorem wired_whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
-    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (shapes : List (ℕ × ℕ)) (n : ℕ),
-      shapes.length = index + 1 → levels.length ≤ n →
+    ∀ (levels : List Whir.Level) (index : ℕ) (s : WhirState) (hs : List ℕ) (n : ℕ),
+      hs.length = index + 1 → levels.length ≤ n →
       levelsWired (logN - s.alphas.length) levels = true →
       (∀ level ∈ levels.head?,
-        (shapes.getD index (0, 0)).1 = logN - s.alphas.length - level.fold + level.logInvRate ∧
-          (shapes.getD index (0, 0)).2 ≤ wireMaxLeafWords) →
-      Wired (whirLevels logN laneFolds evaluateBasis index levels s) shapes n
-        fun _ _ _ ↦ True
+        hs.getD index 0 = logN - s.alphas.length - level.fold + level.logInvRate) →
+      Wired (whirLevels logN laneFolds evaluateBasis index levels s) hs n
+        (whirStream (logN - s.alphas.length) levels) fun _ _ _ ↦ True
   | [], _, _, _, _, _, _, _, _ => trivial
-  | level :: rest, index, s, shapes, n, hl, hn, hw, hh => by
-    obtain ⟨hh1, hh2⟩ := hh level rfl
+  | level :: rest, index, s, hs, n, hl, hn, hw, hh => by
+    have hh1 := hh level rfl
     simp only [levelsWired, Bool.and_eq_true, decide_eq_true_eq] at hw
-    obtain ⟨⟨⟨hq1, hq2, hd1, hd2⟩, hnext⟩, hrest⟩ := hw
-    unfold whirLevels
-    refine Wired.no_bind (noOpen_foldRounds _ _) fun r hr ↦ ?_
-    obtain ⟨s', rounds⟩ := r
-    have hf := foldRounds_returns _ _ hr
-    simp only at hf
-    have hdepth : logN - s'.alphas.length + level.logInvRate = (shapes.getD index (0, 0)).1 := by
-      rw [hh1, hf]; omega
+    obtain ⟨⟨hq1, hq2, hd1, hd2⟩, hrest⟩ := hw
+    have hd2' : logN - s.alphas.length - level.fold + level.logInvRate ≤ 32 := hd2
     have hn1 : 0 < n := by simp only [List.length_cons] at hn; omega
-    have hq : ∀ queries, VerifierProgram.Returns
-        (sampleQueries (logN - s'.alphas.length + level.logInvRate) level.queries) queries →
-        QueryShape (shapes.getD index (0, 0)) queries := by
-      intro queries hqs
-      obtain ⟨hlen, hlt, hne⟩ := sampleQueriesAux_returns _ _ _ hqs
-      rw [hdepth] at hlt hne
-      exact ⟨hne hq1 hq1 (by rw [hh1]; omega) (by rw [hh1]; unfold wireMaxHeight at hd2; omega),
-        hlen.trans hq2, by rw [hh1]; exact hd2, hh2, hlt⟩
+    unfold whirLevels
     cases rest with
     | nil =>
-      refine Wired.no_bind (noOpen_readN _) fun _ _ ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        (noOpen_grind _) fun _ _ ↦ ?_
-      refine Wired.no_bind (p := sampleQueries _ level.queries)
-        (noOpen_sampleQueriesAux _ _ _) fun queries hqs ↦ ?_
-      refine ⟨hn1, hq queries hqs, fun words ↦ ?_⟩
-      refine Wired.no_bind (noOpen_ret words) fun _ _ ↦ ?_
-      refine Wired.no_bind (noOpen_require _) fun _ _ ↦ ?_
-      refine Wired.no_bind (noOpen_sumcheck _ _ _) fun r _ ↦ ?_
-      obtain ⟨tail, claim⟩ := r
-      exact (Wired.of_noOpenA ((noOpen_iff _).1 (noOpen_require _))).mono fun _ _ _ _ ↦ trivial
+      simp only [whirStream]
+      generalize hP : 2 ^ (logN - s.alphas.length - level.fold) = P
+      refine Wired.cost_seq (foldRoundsP _ _) (fun r hr ↦ ?_) (by omega)
+      obtain ⟨s', rounds⟩ := r
+      have hf := foldRounds_returns _ _ hr
+      simp only at hf
+      have hdepth : logN - s'.alphas.length + level.logInvRate = hs.getD index 0 := by
+        rw [hh1, hf]; omega
+      have hmu : logN - s'.alphas.length = logN - s.alphas.length - level.fold := by omega
+      refine Wired.cost_seq (CostLE.readN _) (fun _ _ ↦ ?_) (by rw [hmu, hP]; omega)
+      refine Wired.cost_seq (CostLE.grindP _) (fun _ _ ↦ ?_) (by rw [hmu, hP]; omega)
+      refine Wired.cost_seq (sampleQueriesAuxP _ _ _) (fun queries hqs ↦ ?_) (Nat.zero_le _)
+      obtain ⟨hlen, hlt, hne⟩ := sampleQueriesAux_returns _ _ _ hqs
+      rw [hdepth] at hlt hne
+      have hne' : queries ≠ [] := hne hq1 hq1 (by rw [hh1]; omega) (by rw [hh1]; omega)
+      refine ⟨hn1, ⟨hne', hlen.trans hq2, by rw [hh1]; exact hd2, hlt⟩, fun words ↦ ?_⟩
+      refine Wired.cost_seq (CostLE.ret' words 0) (fun _ _ ↦ ?_) (Nat.zero_le _)
+      refine Wired.cost_seq (CostLE.require _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+      refine Wired.cost_seq (CostLE.sumcheckP 3 _ _) (fun r _ ↦ ?_) ?_
+      · exact (Wired.of_cost (CostLE.require _)).mono (fun _ _ _ _ ↦ trivial) (Nat.zero_le _)
+      · rw [List.length_replicate, hmu]; omega
     | cons next rest' =>
-      simp only [levelShape]
-      simp only [decide_eq_true_eq] at hnext
+      refine Wired.cost_seq (foldRoundsP _ _) (fun r hr ↦ ?_) (by simp only [whirStream]; omega)
+      obtain ⟨s', rounds⟩ := r
+      have hf := foldRounds_returns _ _ hr
+      simp only at hf
+      have hdepth : logN - s'.alphas.length + level.logInvRate = hs.getD index 0 := by
+        rw [hh1, hf]; omega
+      have hmu : logN - s'.alphas.length = logN - s.alphas.length - level.fold := by omega
+      simp only [levelShape, whirStream]
       have hc : Wired (VerifierProgram.readCommitment (logN - s'.alphas.length - next.fold +
-          next.logInvRate) (2 * 2 ^ next.fold)) shapes n
-          (fun _ shapes' n' ↦ shapes' = shapes ++ [(logN - s'.alphas.length - next.fold +
-            next.logInvRate, 2 * 2 ^ next.fold)] ∧ n' = n) :=
-        ⟨rfl, rfl⟩
-      refine Wired.bind hc fun _ _ _ e ↦ ?_
-      obtain ⟨rfl, rfl⟩ := e
-      have hgi : (shapes ++ [(logN - s'.alphas.length - next.fold + next.logInvRate,
-          2 * 2 ^ next.fold)]).getD index (0, 0) = shapes.getD index (0, 0) := by
+          next.logInvRate) (2 * 2 ^ next.fold)) hs n 2
+          (fun _ hs' n' ↦ hs' = hs ++ [logN - s'.alphas.length - next.fold +
+            next.logInvRate] ∧ n' = n) :=
+        ⟨le_rfl, rfl, rfl⟩
+      refine Wired.seq hc (fun _ _ n' e ↦ ?_) (by omega)
+      obtain ⟨rfl, hn'⟩ := e
+      rw [hn']
+      have hgi : (hs ++ [logN - s'.alphas.length - next.fold + next.logInvRate]).getD index 0 =
+          hs.getD index 0 := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
           ← List.getD_eq_getElem?_getD]
-      refine Wired.no_bind (noOpen_readN _) fun _ _ ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.oodGrindingBits)
-        (noOpen_grind _) fun _ _ ↦ ?_
-      refine Wired.no_bind (noOpen_sampleN _) fun _ _ ↦ ?_
-      refine Wired.no_bind noOpen_readE fun _ _ ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.grindProofOfWork Whir.queryGrindingBits)
-        (noOpen_grind _) fun _ _ ↦ ?_
-      refine Wired.no_bind (p := sampleQueries _ level.queries)
-        (noOpen_sampleQueriesAux _ _ _) fun queries hqs ↦ ?_
-      refine Wired.no_bind (p := VerifierProgram.sampleChallenge) noOpen_sampleE fun lam _ ↦ ?_
-      refine ⟨hn1, by rw [hgi]; exact hq queries hqs, fun words ↦ ?_⟩
-      refine wired_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _ _
-        (by simp [hl]) (by simp only [List.length_cons] at hn ⊢; omega) ?_ fun lv hlv ↦ ?_
-      · rw [glueLevel_alphas, hf]
-        rw [show logN - (s.alphas.length + level.fold) = logN - s.alphas.length - level.fold by
-          omega]
-        exact hrest
-      · simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
-        subst hlv
-        rw [glueLevel_alphas]
-        simp [List.getD_eq_getElem?_getD, hl, hnext]
+      refine Wired.cost_seq (CostLE.readN _) (fun _ _ ↦ ?_) (by omega)
+      refine Wired.cost_seq (CostLE.grindP _) (fun _ _ ↦ ?_) (by omega)
+      refine Wired.cost_seq (CostLE.sampleN _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+      refine Wired.cost_seq CostLE.readE (fun _ _ ↦ ?_) (by omega)
+      refine Wired.cost_seq (CostLE.grindP _) (fun _ _ ↦ ?_) (by omega)
+      refine Wired.cost_seq (sampleQueriesAuxP _ _ _) (fun queries hqs ↦ ?_) (Nat.zero_le _)
+      refine Wired.cost_seq CostLE.sampleE (fun lam _ ↦ ?_) (Nat.zero_le _)
+      obtain ⟨hlen, hlt, hne⟩ := sampleQueriesAux_returns _ _ _ hqs
+      rw [hdepth] at hlt hne
+      have hne' : queries ≠ [] := hne hq1 hq1 (by rw [hh1]; omega) (by rw [hh1]; omega)
+      refine ⟨hn1, ?_, fun words ↦ ?_⟩
+      · rw [hgi]
+        exact ⟨hne', hlen.trans hq2, by rw [hh1]; exact hd2, hlt⟩
+      · refine (wired_whirLevels logN laneFolds evaluateBasis (next :: rest') (index + 1) _ _
+          (n - 1) ?_ ?_ ?_ ?_).mono (fun _ _ _ h ↦ h) ?_
+        · simp [hl]
+        · simp only [List.length_cons] at hn ⊢; omega
+        · rw [glueLevel_alphas, hmu]
+          exact hrest
+        · intro lv hlv
+          simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
+          subst hlv
+          rw [glueLevel_alphas]
+          simp [List.getD_eq_getElem?_getD, hl]
+        · rw [glueLevel_alphas, hmu]
+          omega
 
-/-- The stack's commitment: the shape of the ladder's first level. -/
-theorem wired_commitStack (μ r : ℕ) (shapes : List (ℕ × ℕ)) (n : ℕ) :
-    Wired (commitStack μ r) shapes n fun _ shapes' n' ↦ n' = n ∧ ∃ level rest,
+/-- The stack's commitment: the height of the ladder's first level. -/
+theorem wired_commitStack (μ r : ℕ) (hs : List ℕ) (n : ℕ) :
+    Wired (commitStack μ r) hs n 2 fun _ hs' n' ↦ n' = n ∧ ∃ level rest,
       Whir.ladder μ r = some (level :: rest) ∧
-        shapes' = shapes ++ [(μ - level.fold + level.logInvRate, 2 ^ level.fold)] := by
-  rw [commitStack_eq]
-  refine Wired.no_bind (noOpen_liftOption _) fun shape hc ↦ ?_
-  have hs : commitShapeOf μ r = some shape := by
-    unfold Verifier.liftOption at hc
-    split at hc
-    · cases hc
-    · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
-  obtain ⟨level, rest, hl, rfl⟩ := commitShapeOf_spec hs
-  exact ⟨rfl, level, rest, hl, rfl⟩
+        hs' = hs ++ [μ - level.fold + level.logInvRate] := by
+  unfold commitStack
+  refine Wired.cost_seq (CostLE.liftOptionP _) (fun config hc ↦ ?_) (Nat.zero_le _)
+  have hc := returnsAny_liftOption hc
+  cases config with
+  | nil => trivial
+  | cons level rest => exact ⟨le_rfl, rfl, level, rest, hc, rfl⟩
 
-/-- **The verifier program's openings are within the wire bounds**, from no commitment, with
-`wireMaxPhases` openings left. -/
-theorem wired_leanVmProgram (bytecode : List K) (publicInput : Digest) :
-    Wired (leanVmVerifierProgram bytecode publicInput) [] wireMaxPhases fun _ _ _ ↦ True := by
-  rw [leanVmProgram_regroup]
-  refine Wired.no_bind (noOpen_readSizes _) fun ls _ ↦ ?_
-  refine Wired.bind (wired_commitStack _ _ [] _) fun _ shapes' n' hc ↦ ?_
-  obtain ⟨rfl, level, rest, hcfg, rfl⟩ := hc
-  obtain ⟨hlen, hlw, hsw⟩ := ladder_wire _ _ _ hcfg
-  refine Wired.no_bind (noOpen_readOod _) fun _ _ ↦ ?_
-  refine Wired.no_bind (noOpen_claimsPhase _ _) fun cl _ ↦ ?_
-  refine Wired.bind (Q := fun _ _ _ ↦ True) ?_ fun _ _ _ _ ↦ trivial
-  rw [verifyStackedOpening_nf]
-  refine Wired.no_bind (noOpen_require _) fun _ _ ↦ ?_
-  refine Wired.no_bind noOpen_sampleE fun _ _ ↦ ?_
+/-- **The stacked opening is wired**, from the stack's commitment. -/
+theorem wired_verifyStackedOpening (μ r : ℕ) (claims : List StackClaim) (batching : E)
+    (hs : List ℕ) (n : ℕ) (level : Whir.Level) (rest : List Whir.Level)
+    (hl : Whir.ladder μ r = some (level :: rest)) (hlen : hs.length = 1)
+    (hh : hs.getD 0 0 = μ - level.fold + level.logInvRate) (hn : wireMaxPhases ≤ n) :
+    Wired (verifyStackedOpening μ r claims batching) hs n whirStreamBound fun _ _ _ ↦ True := by
+  obtain ⟨hlen', hlw, hst⟩ := ladder_wire _ _ _ hl
+  unfold verifyStackedOpening
+  refine Wired.cost_seq (CostLE.require _) (fun _ _ ↦ ?_) (Nat.zero_le _)
   unfold verifyWhir
-  refine Wired.no_bind (noOpen_liftOption _) fun config hc ↦ ?_
-  have hc' : Whir.ladder ls.1.stackLog ls.2 = some config := by
-    unfold Verifier.liftOption at hc
-    split at hc
-    · cases hc
-    · next a ha => rw [VerifierProgram.returns_ret hc]; exact ha
-  rw [hcfg] at hc'
-  cases hc'
-  refine wired_whirLevels _ _ _ _ 0 _ _ _ rfl hlen (by simpa using hlw) fun lv hlv ↦ ?_
+  refine Wired.cost_seq (CostLE.liftOptionP _) (fun config hc ↦ ?_) (Nat.zero_le _)
+  have hc := returnsAny_liftOption hc
+  rw [hl] at hc
+  cases hc
+  refine (wired_whirLevels _ _ _ _ 0 _ _ _ hlen (by omega) (by simpa using hlw) ?_).mono
+    (fun _ _ _ h ↦ h) (by simpa using hst)
+  intro lv hlv
   simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at hlv
   subst hlv
-  simp only [stackWired, decide_eq_true_eq] at hsw
-  simp [hsw]
+  simpa using hh
+
+/-! ## The whole program -/
+
+/-- The stream the leanVM verifier program reads, at most: the sizes, the stack's root, its
+out-of-domain sample, the link, `KECCAK`'s reduction, ring switching and the WHIR levels. -/
+def leanVmStream : ℕ := 8 + 2 + 2 + 122 + linkSufCost + keccakStream + 1 + whirStreamBound
+
+theorem leanVmStream_lt : leanVmStream < 2 ^ 32 := by
+  unfold leanVmStream linkSufCost keccakStream keccakStreamOf keccakLayerStream whirStreamBound
+  decide
+
+/-- **The prefix is wired**: the stack's commitment, of the ladder's first level's height, the
+sizes the verifier accepts, `Chunks::new`'s chunks. -/
+theorem wired_execPre (bytecode : List K) :
+    Wired (execPre bytecode) [] wireMaxPhases (8 + 2 + 2 + 122) fun z hs n ↦
+      n = wireMaxPhases ∧ SizesOK z.layout ∧ (∃ w, Chunks.new w = some z.link.chunks) ∧
+        ∃ level rest, Whir.ladder z.layout.stackLog z.rate = some (level :: rest) ∧
+          hs = [z.layout.stackLog - level.fold + level.logInvRate] := by
+  unfold execPre
+  refine Wired.cost_seq (readSizesP bytecode) (fun sizes hsz ↦ ?_) (by omega)
+  have hok := (readSizes_ok hsz).1
+  refine Wired.seq (wired_commitStack _ _ [] _) (fun _ hs' n' hc ↦ ?_) (by omega)
+  obtain ⟨rfl, level, rest, hl, rfl⟩ := hc
+  refine Wired.cost_seq (readOodP _) (fun _ _ ↦ ?_) (by omega)
+  refine Wired.cost_seq (linkPreP _) (fun y hy ↦ ?_) (by omega)
+  exact ⟨rfl, hok, linkPre_chunks hy, level, rest, hl, rfl⟩
+
+theorem computedSplitP (bytecode : List K) (point : List E) (pc : List (ℕ × ℕ)) :
+    CostLE (computedSplit bytecode point pc) 0 := by
+  unfold computedSplit
+  exact CostLE.seq (CostLE.require _) (fun _ _ ↦ trivial) le_rfl
+
+/-- **The suffix is wired**, from the stack's commitment. -/
+theorem wired_execSuf (publicInput : Digest) (z : ExecPre) (split : Split) (hsz : SizesOK z.layout)
+    {w : ℕ} (hc : Chunks.new w = some z.link.chunks) (level : Whir.Level)
+    (rest : List Whir.Level) (hl : Whir.ladder z.layout.stackLog z.rate = some (level :: rest)) :
+    Wired (execSuf publicInput z split) [z.layout.stackLog - level.fold + level.logInvRate]
+      wireMaxPhases (linkSufCost + keccakStream + 1 + whirStreamBound) fun _ _ _ ↦ True := by
+  unfold execSuf linkSuf
+  refine Wired.cost_seq (linkSufOfP hsz hc _) (fun link _ ↦ ?_) (by omega)
+  refine Wired.cost_seq (bindPublicInputP _ _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+  refine Wired.cost_seq (keccakValidityP hsz _) (fun x _ ↦ ?_) (by omega)
+  obtain ⟨outputs, keccakPoint, keccakSlices⟩ := x
+  refine Wired.cost_seq (CostLE.liftOptionP _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+  refine Wired.cost_seq (ringSwitchP _) (fun x _ ↦ ?_) (by omega)
+  obtain ⟨ring, batching⟩ := x
+  refine Wired.cost_seq (memoryTermClaimP _ _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+  exact (wired_verifyStackedOpening _ _ _ _ _ _ level rest hl rfl rfl le_rfl).mono
+    (fun _ _ _ h ↦ h) (by omega)
+
+/-- **The verifier program's openings and stream are within the wire bounds**, from no commitment,
+with `wireMaxPhases` openings and `leanVmStream` stream elements. -/
+theorem wired_leanVmProgram (bytecode : List K) (publicInput : Digest) :
+    Wired (leanVmVerifierProgram bytecode publicInput) [] wireMaxPhases leanVmStream
+      fun _ _ _ ↦ True := by
+  rw [leanVmVerifierProgram_eq, verifyExecution_split]
+  refine (Wired.bind (f := fun _ ↦ VerifierProgram.ret true) (a := leanVmStream) (b := 0)
+    (Q := fun _ _ _ ↦ True) (R := fun _ _ _ ↦ True) ?_ fun _ _ _ _ ↦ trivial).mono
+    (fun _ _ _ h ↦ h) le_rfl
+  refine Wired.seq (wired_execPre bytecode) (fun z hs n hz ↦ ?_) (by unfold leanVmStream; omega)
+  obtain ⟨rfl, hsz, ⟨w, hc⟩, level, rest, hl, rfl⟩ := hz
+  refine Wired.cost_seq (computedSplitP _ _ _) (fun split _ ↦ ?_) (Nat.zero_le _)
+  exact (wired_execSuf publicInput z split hsz hc level rest hl).mono (fun _ _ _ h ↦ h)
+    (by unfold leanVmStream; omega)
 
 end LeanVM.Wire
 

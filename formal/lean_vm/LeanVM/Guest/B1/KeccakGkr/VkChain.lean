@@ -55,7 +55,7 @@ theorem stepEnd_11 : stepEnd 11 876 = 916 := by decide +kernel
 /-- **The twelve steps**: each layer reads the claim at `claims·g^(22 s)` and writes
 the next one `KC_SIZE = 22` words on. -/
 theorem vkStepsT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
-    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
+    (h33 : σ (.n 29) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))
     {c : KeccakClaim} {L0 : E}
     (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims"))) c (τ - 3))
     (hL0 : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = L0)

@@ -26,8 +26,8 @@ KINDS = {
                  'dimension facts: function, base parameter, bound parameter, pairs (`Res.dimFacts`)'),
     'expVals': ('Data', 'List (String × ℕ × ℕ)', 'EndExec.ExpValOk',
                 'exponent facts of values: function, value, bound (`CoreMode.expQ0`)'),
-    'stLoops': ('Data', 'List (String × ℕ × ℕ × ℕ)', 'EndExec.StLoopOk',
-                'the loops reading the proof stream past a cursor: `(name, D, v, S)` (`CoreMode.stLoops`)'),
+    'stLoops': ('Data', 'List (String × ℕ × ℕ × ℕ × ℕ × ℕ)', 'EndExec.StLoopOk',
+                'the cursor-run loops: `(name, Dbase, Dbound, W, v, S)` (`CoreMode.stLoops`)'),
     'nzs': ('Data', 'List (String × Core.V)', 'EndExec.NzOk',
             'the parameters whose nonzero values the core route\'s residuals are (`CoreMode.coreNzs`)'),
     'stCallers': ('Data', 'List (String × String)', None,
@@ -105,9 +105,11 @@ def scan():
 def render():
     fns = scan()
     files, errs = {}, []
+    # Hotwire's port: the registries' soundness waits for the families' (`EndExecCoreFn`), and is not written before it.
+    sound = os.path.exists(os.path.join(GUEST, 'EndExecCoreFn.lean'))
     for f, got in fns.items():
         for k, (part, _, pred, _) in KINDS.items():
-            if k in got.get(part, ()) and pred and k not in got.get('Sound', ()):
+            if k in got.get(part, ()) and pred and k not in got.get('Sound', ()) and sound:
                 errs.append('CoreMode/Fn/%s: %s without its Sound.lean `%s_ok`' % (f, k, k))
     if errs:
         raise SystemExit('fnreg:\n  ' + '\n  '.join(errs))
@@ -169,7 +171,8 @@ def render():
         t.append('/-- **%s**: each holds (`%s`). -/\ntheorem %s_ok : ∀ c ∈ %s, %s c :=\n  %s\n\n' % (
             what[0].upper() + what[1:].split(' (`')[0], pred, k, k, pred, proof))
     t.append('end\n\nend LeanVM.Guest.CoreMode.FnReg\n')
-    files[os.path.join(OUT, 'FnSound.lean')] = ''.join(t)
+    if sound:
+        files[os.path.join(OUT, 'FnSound.lean')] = ''.join(t)
     return files
 
 
@@ -177,7 +180,7 @@ def main(argv):
     own_files()
     files = render()
     check = '--check' in argv
-    bad = genfiles.sync(files, [p for p in files if os.path.exists(p)], check)
+    bad = genfiles.sync(files, [p for p in files if os.path.exists(p)] + glob.glob(os.path.join(OUT, 'FnSound.lean')), check)
     genfiles.fail_if_stale(bad, check)
     print('fnreg: %d functions\' modules, %s' % (len(scan()), 'unchanged' if not bad else ('stale' if check else
                                                                                            'written')))

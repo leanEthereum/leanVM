@@ -21,7 +21,7 @@ fn run<P: isa::Prover>(cli: Cli) {
     }
     match cli.command {
         Command::Aggregate { xmss, sphincs, blobs } => {
-            benchmark::run_aggregation::<P>(xmss, sphincs, blobs, cli.log_inv_rate, plan);
+            benchmark::run_aggregation::<P>(xmss, sphincs, blobs, cli.log_inv_rate, plan, cli.verify_repeat);
         }
         Command::Recursion {
             n,
@@ -78,6 +78,15 @@ struct Cli {
         value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..)
     )]
     repeat: usize,
+
+    /// Verifications of an aggregate whose mean the benchmark reports.
+    #[arg(
+        long,
+        global = true,
+        default_value_t = 1,
+        value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..)
+    )]
+    verify_repeat: usize,
 
     /// Thread count (0: one per physical core).
     #[arg(long, global = true, default_value_t = 0)]

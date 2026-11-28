@@ -34,5 +34,13 @@ theorem callsOK_9 : CallsOK 9 := CallsOKN.ok (by unfold CallsOKN; decide +kernel
 
 theorem callsOK_10 : CallsOK 10 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
 
+theorem callsOK_11 : CallsOK 11 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
+theorem callsOK_12 : CallsOK 12 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
+theorem callsOK_13 : CallsOK 13 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
+theorem callsOK_14 : CallsOK 14 := CallsOKN.ok (by unfold CallsOKN; decide +kernel)
+
 end
 end LeanVM.Guest.Fast

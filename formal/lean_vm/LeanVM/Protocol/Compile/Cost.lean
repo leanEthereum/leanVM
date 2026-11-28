@@ -23,6 +23,10 @@ makes, per node of the program,
 * `sample`: one permutation, none when a proof of work drew its challenge;
 * `grind`: one absorption, then one permutation (`absorbNonce`);
 * `commit`: two absorptions;
+* `readPacked n`: a permutation of whatever waits, then one per chunk of eight scalars
+  (`observePacked`), the queue left empty;
+* `samplePacked n`: one permutation per chunk of eight challenges, fewer right after a grind
+  (`samplesPacked`), the queue left empty;
 * `query i ps`: per position, one hash query for the leaf and one per level of its path, when the
   opening has the committed shape, and none otherwise; the run stops at the first failure;
 * `ret`, `fail`: none.
@@ -30,8 +34,9 @@ makes, per node of the program,
 A permutation forced by an absorption empties the four waiting scalars, so at most one
 absorption in four forces one. The cost is counted in quarters of a query: an absorption costs
 `1` (a quarter of the permutation it may force), a permutation `4`, a hash query `4`. So a read
-costs `1`, a sample `4`, a proof of work `5`, a commitment `2`, and an opening of `k` positions
-`4 · k · (1 + height)`.
+costs `1`, a sample `4`, a proof of work `5`, a commitment `2`, an opening of `k` positions
+`4 · k · (1 + height)`, a packed message of `n` scalars `4 · (1 + ⌈n/8⌉)` (`readPackedCost`), and
+a packed draw of `n` challenges `4 · ⌈n/8⌉` (`samplePackedCost`).
 
 A program's cost depends on the heights of its commitments. `VerifierProgram.Costs height p n Q`
 says: every commitment `p` reads has height at most `height`, every run of `p` costs at most `n`
@@ -67,15 +72,27 @@ variable {α β : Type}
 `k · (1 + height)` hash queries. -/
 def openCost (height k : ℕ) : ℕ := 4 * (k * (1 + height))
 
+/-- The cost of a packed message of `n` scalars, in quarters: a permutation of whatever waits,
+then one per chunk of eight (`observePacked`). -/
+def readPackedCost (n : ℕ) : ℕ := 4 * (1 + (n + 7) / 8)
+
+/-- The cost of a packed draw of `n` challenges, in quarters: one permutation per chunk of eight
+(`samplesPacked`). -/
+def samplePackedCost (n : ℕ) : ℕ := 4 * ((n + 7) / 8)
+
 /-- **The cost of a program**, in quarters of a query. `Costs height p n Q`: every commitment of
 `p` has height at most `height`, every run of `p` costs at most `n` (a read `1`, a sample `4`, a
-proof of work `5`, a commitment `2`, an opening of `k` positions `openCost height k`), and every
-value `p` returns satisfies `Q`. -/
+proof of work `5`, a commitment `2`, an opening of `k` positions `openCost height k`, a packed
+message `readPackedCost n`, a packed draw `samplePackedCost n`), and every value `p` returns
+satisfies `Q`. -/
 def Costs (height : ℕ) : VerifierProgram α → ℕ → (α → Prop) → Prop
   | ret a, _, Q => Q a
   | fail, _, _ => True
   | read k, n, Q => 1 ≤ n ∧ ∀ x, Costs height (k x) (n - 1) Q
   | sample k, n, Q => 4 ≤ n ∧ ∀ c, Costs height (k c) (n - 4) Q
+  | readPacked m k, n, Q => readPackedCost m ≤ n ∧ ∀ xs, Costs height (k xs) (n - readPackedCost m) Q
+  | samplePacked m k, n, Q =>
+    samplePackedCost m ≤ n ∧ ∀ cs, Costs height (k cs) (n - samplePackedCost m) Q
   | grind _ k, n, Q => 5 ≤ n ∧ Costs height k (n - 5) Q
   | commit h _ k, n, Q => h ≤ height ∧ 2 ≤ n ∧ Costs height k (n - 2) Q
   | query _ ps k, n, Q => openCost height ps.length ≤ n ∧
@@ -102,6 +119,8 @@ theorem mono {p : VerifierProgram α} {n m : ℕ} {Q R : α → Prop} (h : Costs
   | fail => trivial
   | read k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
   | sample k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
+  | readPacked m k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
+  | samplePacked m k ih => exact ⟨by have := h.1; omega, fun x ↦ ih x (h.2 x) (by omega)⟩
   | grind b k ih => exact ⟨by have := h.1; omega, ih h.2 (by omega)⟩
   | commit ht w k ih => exact ⟨h.1, by have := h.2.1; omega, ih h.2.2 (by omega)⟩
   | query i ps k ih => exact ⟨by have := h.1; omega, fun r ↦ ih r (h.2 r) (by omega)⟩
@@ -114,6 +133,8 @@ theorem and {p : VerifierProgram α} {n : ℕ} {Q R : α → Prop} (hQ : Costs h
   | fail => trivial
   | read k ih => exact ⟨hQ.1, fun x ↦ ih x (hQ.2 x) (hR.2 x)⟩
   | sample k ih => exact ⟨hQ.1, fun x ↦ ih x (hQ.2 x) (hR.2 x)⟩
+  | readPacked m k ih => exact ⟨hQ.1, fun x ↦ ih x (hQ.2 x) (hR.2 x)⟩
+  | samplePacked m k ih => exact ⟨hQ.1, fun x ↦ ih x (hQ.2 x) (hR.2 x)⟩
   | grind b k ih => exact ⟨hQ.1, ih hQ.2 hR.2⟩
   | commit ht w k ih => exact ⟨hQ.1, hQ.2.1, ih hQ.2.2 hR.2.2⟩
   | query i ps k ih => exact ⟨hQ.1, fun r ↦ ih r (hQ.2 r) (hR.2 r)⟩
@@ -135,6 +156,15 @@ theorem bind {p : VerifierProgram α} {f : α → VerifierProgram β} {n m : ℕ
     refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
     have := ih x (hp.2 x)
     rwa [show n - 4 + m = n + m - 4 by have := hp.1; omega] at this
+  | readPacked c k ih =>
+    refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
+    have := ih x (hp.2 x)
+    rwa [show n - readPackedCost c + m = n + m - readPackedCost c by have := hp.1; omega] at this
+  | samplePacked c k ih =>
+    refine ⟨by have := hp.1; omega, fun x ↦ ?_⟩
+    have := ih x (hp.2 x)
+    rwa [show n - samplePackedCost c + m = n + m - samplePackedCost c by have := hp.1; omega]
+      at this
   | grind b k ih =>
     refine ⟨by have := hp.1; omega, ?_⟩
     have := ih hp.2
@@ -200,6 +230,16 @@ theorem sampleN : ∀ n, Costs height (VerifierProgram.sampleChallenges n) (4 * 
           show (x :: xs).length = n + 1
           simp [hxs])
     exact h.mono (by omega) fun _ h ↦ h
+
+/-- A packed message of `n` scalars costs `readPackedCost n`. -/
+theorem readPackedE (n : ℕ) :
+    Costs height (VerifierProgram.readScalarsPacked n) (readPackedCost n) fun _ ↦ True :=
+  ⟨le_rfl, fun _ ↦ trivial⟩
+
+/-- A packed draw of `n` challenges costs `samplePackedCost n`. -/
+theorem samplePackedE (n : ℕ) :
+    Costs height (VerifierProgram.sampleChallengesPacked n) (samplePackedCost n) fun _ ↦ True :=
+  ⟨le_rfl, fun _ ↦ trivial⟩
 
 theorem grindP (bits : ℕ) : Costs height (VerifierProgram.grindProofOfWork bits) 5 fun _ ↦ True := by
   unfold VerifierProgram.grindProofOfWork
@@ -382,6 +422,75 @@ theorem isTotalQueryBound_absorb {β : Type} (sp : Sponge) (hk : sp.pending.leng
     simp only [List.length_append, List.length_singleton]
     omega
 
+/-- A packed message's chunks, then a continuation of `m` queries: one query per chunk. -/
+theorem isTotalQueryBound_absorbPackedChunks {β : Type} (g : KeccakState → OracleComp KeccakCalls β)
+    (m : ℕ) (hg : ∀ st, IsTotalQueryBound (g st) m) :
+    ∀ (fuel : ℕ) (state : KeccakState) (vals : List E),
+      IsTotalQueryBound (absorbPackedChunks callKeccakF1600 fuel state vals >>= g)
+        ((vals.length + 7) / 8 + m)
+  | 0, state, _ => by simpa [absorbPackedChunks] using (hg state).mono (by omega)
+  | _ + 1, state, [] => by simpa [absorbPackedChunks] using (hg state).mono (by omega)
+  | fuel + 1, state, v :: vs => by
+    simp only [absorbPackedChunks, bind_assoc]
+    refine (isTotalQueryBound_queryF_bind _ fun st ↦
+      isTotalQueryBound_absorbPackedChunks g m hg fuel st _).mono ?_
+    simp only [List.length_drop, List.length_cons]
+    omega
+
+/-- A packed message's absorption, then a continuation of `m` queries from the emptied queue:
+at most a permutation of what waits, then one per chunk. -/
+theorem isTotalQueryBound_observePacked {β : Type} (g : Sponge → OracleComp KeccakCalls β)
+    (m : ℕ) (sp : Sponge) (vals : List E)
+    (hg : ∀ sp' : Sponge, sp'.pending = [] → IsTotalQueryBound (g sp') m) :
+    IsTotalQueryBound (observePacked callKeccakF1600 sp vals >>= g)
+      (1 + (vals.length + 7) / 8 + m) := by
+  unfold observePacked duplex
+  split
+  · rename_i he
+    simp only [pure_bind, bind_assoc]
+    refine (isTotalQueryBound_absorbPackedChunks _ m (fun st ↦ ?_) _ _ _).mono (by omega)
+    exact hg _ (by simpa using he)
+  · simp only [bind_assoc, pure_bind]
+    rw [show 1 + (vals.length + 7) / 8 + m = ((vals.length + 7) / 8 + m) + 1 by omega]
+    refine isTotalQueryBound_queryF_bind _ fun st ↦ ?_
+    refine isTotalQueryBound_absorbPackedChunks _ m (fun st' ↦ ?_) _ _ _
+    exact hg _ rfl
+
+/-- A packed draw's loop, then a continuation of `m` queries from a queue no longer than
+before: one query per chunk. -/
+theorem isTotalQueryBound_squeezePackedChunks {β : Type}
+    (g : List E × Sponge → OracleComp KeccakCalls β) (m : ℕ) :
+    ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ),
+      (∀ r : List E × Sponge, r.2.pending.length ≤ sp.pending.length →
+        IsTotalQueryBound (g r) m) →
+      IsTotalQueryBound (squeezePackedChunks callKeccakF1600 fuel sp missing >>= g)
+        ((missing + 7) / 8 + m)
+  | 0, sp, _, hg => by simpa [squeezePackedChunks] using (hg _ le_rfl).mono (by omega)
+  | _ + 1, sp, 0, hg => by simpa [squeezePackedChunks] using (hg _ le_rfl).mono (by omega)
+  | fuel + 1, sp, missing + 1, hg => by
+    simp only [squeezePackedChunks, duplex, bind_assoc, pure_bind]
+    have h1 := Nat.min_le_left 8 (missing + 1)
+    have h2 : 1 ≤ min 8 (missing + 1) := le_min (by norm_num) (by omega)
+    refine (isTotalQueryBound_queryF_bind _ fun st ↦ ?_).mono
+      (show ((missing + 1 - min 8 (missing + 1) + 7) / 8 + m) + 1 ≤ (missing + 1 + 7) / 8 + m by
+        omega)
+    refine isTotalQueryBound_squeezePackedChunks _ m fuel _ _ fun r hr ↦ ?_
+    simp only [List.length_nil] at hr
+    exact hg _ (le_trans hr (Nat.zero_le _))
+
+/-- A packed draw of `n` challenges, then a continuation of `m` queries from a queue no longer
+than before: at most one query per chunk. -/
+theorem isTotalQueryBound_samplesPacked {β : Type} (g : List E × Sponge → OracleComp KeccakCalls β)
+    (m : ℕ) (sp : Sponge) (n : ℕ)
+    (hg : ∀ r : List E × Sponge, r.2.pending.length ≤ sp.pending.length →
+      IsTotalQueryBound (g r) m) :
+    IsTotalQueryBound (samplesPacked callKeccakF1600 sp n >>= g) ((n + 7) / 8 + m) := by
+  unfold samplesPacked
+  rcases n with _ | c <;> rcases hg' : sp.ground with _ | gr <;> simp only [] <;> rw [bind_assoc] <;>
+    refine (isTotalQueryBound_squeezePackedChunks _ m _ _ _ fun r hr ↦ ?_).mono
+      (Nat.add_le_add_right (Nat.div_le_div_right (Nat.add_le_add_right (Nat.sub_le _ _) 7)) m) <;>
+    obtain ⟨a, b⟩ := r <;> simp only [pure_bind] <;> exact hg _ hr
+
 /-- **The compiled run's queries.** A program of cost `n` at `height`, run from a state whose
 roots have height at most `height` and whose sponge has at most four scalars waiting, makes at
 most `(n + k) / 4` queries, `k` the number of waiting scalars. -/
@@ -392,6 +501,30 @@ theorem isTotalQueryBound_run {α : Type} (height : ℕ) :
       IsTotalQueryBound (runWithHash callKeccak256 callKeccakF1600 p s) ((n + s.sponge.pending.length) / 4)
   | .ret a, s, n, Q, _, _, _ => trivial
   | .fail, s, n, Q, _, _, _ => trivial
+  | .readPacked c k, s, n, Q, hp, hs, hk => by
+    simp only [runWithHash]
+    split
+    · have h1 := hp.1
+      unfold VerifierProgram.readPackedCost at h1
+      refine (isTotalQueryBound_observePacked _ ((n - VerifierProgram.readPackedCost c) / 4) _ _
+        fun sp' hsp' ↦ ?_).mono ?_
+      · simpa [hsp'] using isTotalQueryBound_run height (k (s.stream.take c))
+          { s with sponge := sp', stream := s.stream.drop c } _ Q (hp.2 _) hs (by simp [hsp'])
+      · unfold VerifierProgram.readPackedCost
+        have : (s.stream.take c).length ≤ c := by simp
+        omega
+    · trivial
+  | .samplePacked c k, s, n, Q, hp, hs, hk => by
+    simp only [runWithHash]
+    have h1 := hp.1
+    unfold VerifierProgram.samplePackedCost at h1
+    refine (isTotalQueryBound_samplesPacked _
+      ((n - VerifierProgram.samplePackedCost c + s.sponge.pending.length) / 4) _ _
+      fun r hr ↦ ?_).mono ?_
+    · exact (isTotalQueryBound_run height (k r.1) { s with sponge := r.2 } _ Q (hp.2 _) hs
+        (hr.trans hk)).mono (by dsimp only; omega)
+    · unfold VerifierProgram.samplePackedCost
+      omega
   | .read k, s, n, Q, hp, hs, hk => by
     simp only [runWithHash]
     split

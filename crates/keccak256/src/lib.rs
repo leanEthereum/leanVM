@@ -3,7 +3,7 @@
 //! tree.
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes and `keccak_gkr`
-//!   proves, and [`keccak_f_many`], its batched form; [`first_nonce`], the provers' proof-of-work search over it.
+//!   proves; [`first_nonce`], the provers' proof-of-work search over it.
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, and [`hash_many`], its batched form over equal-length inputs.
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
@@ -93,9 +93,7 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{
-    digest_halves_from, first_nonce, hash_many, hash_many_from_state, hash_many_from_state_uninit, keccak_f_many, lanes,
-};
+pub use lanes::{digest_halves_from, first_nonce, hash_many, hash_many_from_state, hash_many_from_state_uninit, lanes};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -356,20 +354,6 @@ mod tests {
                 input[at..at + 16].copy_from_slice(&value.to_le_bytes());
                 assert_eq!(got.to_le_bytes()[..], hash(&input)[..16], "len {len}");
             }
-        }
-    }
-
-    /// The batched permutation, whole groups and the remainder, against the scalar one.
-    #[test]
-    fn keccak_f_many_matches_keccak_f() {
-        let states: Vec<[u64; STATE_LANES]> = (0..2 * MAX_WIDTH as u64 + 1)
-            .map(|l| core::array::from_fn(|i| (l << 32) ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
-            .collect();
-        let mut got = states.clone();
-        keccak_f_many(&mut got);
-        for (mut want, got) in states.into_iter().zip(got) {
-            keccak_f(&mut want);
-            assert_eq!(got, want);
         }
     }
 

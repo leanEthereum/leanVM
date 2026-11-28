@@ -16,7 +16,8 @@ gives its value (`decTopC.costSpec`), which is `End.decode` (`decTop_eq`). Its s
 
 Its price within the budget (`DecoderPriceWithinBudget`, `guestWitnessDecoderBudget`) is a hypothesis
 here, so that this module does not import the cost bounds; `Cost/Bounds/Guest/Budget.lean` proves
-it (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), and `LeanVM.lean` composes the two.
+it from B2 and `verify_sub`'s statement (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget`), and
+`Cost/GuestKnowledge.lean` composes the two.
 -/
 
 namespace LeanVM.Cost
@@ -70,7 +71,8 @@ theorem outputWithin_decoderProgram (t : Execution LeanVM.Guest.guestProgram) {b
 
 /-- **The decoder program's price is within its budget** on every valid execution of the guest
 (`guestWitnessDecoderBudget`, `Statement/LeanVmGuest.lean`): the fact the decoder's specification takes,
-proved by `LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget` (`Cost/Bounds/Guest/Budget.lean`). -/
+proved, given B2 and `verify_sub`'s statement, by
+`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget` (`Cost/Bounds/Guest/Budget.lean`). -/
 @[expose] def DecoderPriceWithinBudget : Prop :=
   ∀ input (t : Execution LeanVM.Guest.guestProgram), ValidExecution LeanVM.Guest.guestProgram input t →
     decoderProgramPrice LeanVM.Guest.guestProgram t ≤ guestWitnessDecoderBudget t
@@ -81,7 +83,8 @@ theorem decoderProgram_spec_memoryDecoder (hprice : DecoderPriceWithinBudget) :
   ⟨decoderProgram_size_le, fun input t hv ↦ outputWithin_decoderProgram t (hprice input t hv)⟩
 
 /-- **The decoder program's specification**, its price within the budget given
-(`DecoderPriceWithinBudget`, proved in `Cost/Bounds/Guest/Budget.lean`). -/
+(`DecoderPriceWithinBudget`, proved from B2 and `verify_sub`'s statement in
+`Cost/Bounds/Guest/Budget.lean`). -/
 theorem decoderProgram_spec (hprice : DecoderPriceWithinBudget) :
     LeanVM.Guest.End.DecoderProgramSpec compiledGuestWitnessDecoder fun t ↦ LeanVM.Guest.End.decode
         t.memory :=

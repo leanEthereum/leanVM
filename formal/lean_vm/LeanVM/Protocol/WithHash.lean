@@ -9,7 +9,6 @@
 
 module
 
-import LeanVM.Protocol.Extraction.Extractor
 public import LeanVM.Protocol.RunWithHash
 public import Statement.LeanVm
 public import CompPoly.Univariate.Basic
@@ -87,6 +86,14 @@ def runFromWithHash (fuel : ℕ) {α β : Type} :
   | .sample k, S, sp, cs => do
     let r ← squeeze F sp
     runFromWithHash fuel (k r.1) (Script.afterSample r.1 S) r.2 cs
+  | .readPacked n k, S, sp, cs => do
+    let xs := Script.packedOf n S
+    let sp' ← observePacked F sp xs
+    let r ← runFromWithHash fuel (k xs) (Script.afterSendPacked S) sp' cs
+    pure (r.map fun t ↦ (xs ++ t.1, t.2))
+  | .samplePacked n k, S, sp, cs => do
+    let r ← samplesPacked F sp n
+    runFromWithHash fuel (k r.1) (Script.afterSamplePacked r.1 S) r.2 cs
   | .grind bits k, S, sp, cs => do
     match ← findNonceM F bits (Script.outsideKOf S) sp fuel with
     | none => pure none
@@ -259,11 +266,13 @@ noncomputable def verifierCompletenessExperimentWithHash (proverWithHash : Hones
     | some proof => verifierWithHash callKeccak256 callKeccakF1600 prog input proof)).run' []
 
 /-- **Completeness in the random-permutation model**: trying `2^35` nonces per proof of work, the
-honest prover's (`prover`) proof of an execution within the verifier's size cap is rejected with
-probability at most `2^-256`. -/
+honest prover's (`prover`) proof of an execution within the verifier's size cap, its pointer width
+and its `KECCAK` blocks as `LeanVM.Completeness` asks, is rejected with probability at most
+`2^-256`. -/
 def CompletenessWithHash : Prop :=
   ∀ (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) (ρ : ℕ),
-    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 → 1 ≤ ρ ∧ ρ ≤ 4 →
+    ValidExecution prog input t → t.committedSize ≤ 2 ^ 30 →
+    t.pointerWidth ≤ Verifier.maxPointerWidth → t.KeccakBlocksInWindows → 1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← verifierCompletenessExperimentWithHash proverWithHash prog input t ρ
           (2 ^ 35)}[v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

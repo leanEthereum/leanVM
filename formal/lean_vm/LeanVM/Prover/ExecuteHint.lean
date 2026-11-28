@@ -183,8 +183,8 @@ theorem bitsBase_follows {s s' : St} {d : BitsDest} {len : ℕ} {what : String} 
 theorem put_le {m m' : Mem} {c : ℕ} {v : E} (hm : m.WF) (h : m.put c v = .ok m') : m ≤ m' ∧ m'.WF :=
   ⟨(Mem.put_ok hm h).1, (Mem.put_ok hm h).2.1⟩
 
-theorem allocate_follows {s s' : St} {ptr size : ℕ} (hs : s.Good)
-    (h : allocate s ptr size = .ok s') :
+theorem allocate_follows {s s' : St} {ptr size : ℕ} {aligned : Bool} (hs : s.Good)
+    (h : allocate s ptr size aligned = .ok s') :
     St.Follows s s' := by
   unfold allocate at h
   rw [bind_ok] at h
@@ -219,13 +219,13 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     simp only [runHint, bind_ok, pure_ok] at h
     obtain ⟨c, -, rfl⟩ := h
     exact ⟨⟨hs.wf, hs.dl.note c⟩, Mem.le_refl _, rfl, rfl, rfl⟩
-  | alloc ptr size => exact allocate_follows hs h
+  | alloc ptr size aligned => exact allocate_follows hs h
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
     exact f1.trans (allocate_follows f1.good h)
-  | allocArm ptr sel sizes =>
+  | allocArm ptr sel sizes aligned =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, h⟩ := h
     have f1 := (St.logOr_ok hs h1).1
@@ -236,7 +236,7 @@ theorem runHint_follows {C : Ctx} {s s' : St} {hint : Hint} (hs : s.Good)
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, p, -, h⟩ := h
     exact put_follows hs h
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse tail aligned =>
     simp only [runHint, bind_ok] at h
     obtain ⟨c, -, sp, -, h⟩ := h
     split_ifs at h

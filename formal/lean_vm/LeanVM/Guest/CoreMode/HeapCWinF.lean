@@ -76,7 +76,7 @@ parameters naming no ghost, the frame run cells at return (`faOk`), and the entr
 noncomputable def headOkF (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (S0 : CSt) : Bool :=
   paramsN f.params 0 && preOver f.params.length H.sig.pre && H.sig.term.isEmpty && f.params.all okV &&
     faOk (topAtoms f.body) (dstKeys (topAtoms f.body)) H.fas && H.dups.isEmpty &&
-    withCx pows sigOf f H fun X ↦ decide (initC X = some S0)
+    withCx pows sigOf f H fun X ↦ decide (initC X (resEqs H.res) = some S0)
 
 /-- **The last part of a body's check**: the statements from `N` on name no ghost value, and the pass over them
 from `Sn` succeeds (it ends at a `ret`, or at the end of the body). -/

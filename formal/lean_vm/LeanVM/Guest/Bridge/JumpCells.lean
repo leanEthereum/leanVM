@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Bridge.FrameMap
+public import LeanVM.Guest.Bridge.FrameMapA
 public import LeanVM.Guest.Bridge.StepRule
 public import LeanVM.Guest.Bridge.JumpCellsPack
 public import LeanVM.Guest.Bridge.JumpCellsSound
@@ -15,16 +15,15 @@ public import LeanVM.Guest.B2C.Table
 public import LeanVM.Guest.SoundFacts
 public import LeanVM.Guest.Mode.SoundOp
 public import LeanVM.Guest.Mode.Step
-public import LeanVM.Guest.Memory.Discharge
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Bridge.JumpCellsIdx
 
 /-!
 # The jump cells of the deployed guest
 
-`jcData j` (`JumpCellsIdx.lean`): `jcDataD` on function `j`'s data, which the kernel decides for every function (`Bridge/JumpCells/`). `ChainArm`: at a chained `match`'s table jump, the arm the previous selector took is one whose target cell the jump reads, what the alignment check cannot see (the chained `match` follows the previous one, its jump repeated at the end of each arm); only `main_loop2` has chains (`B2C.chained_only`).
+`AShape A`: the alignment contexts of `A` are the data's (`AlignCtx.ofData` over function `j`'s certificate cells, `Plumb`, entry, whether it is `main`, the guest's powers and jump table), their hint-only cells only values without a certificate cell (below `2`), their code the compiled function's. `jcData j` (`JumpCellsIdx.lean`): `jcDataD` on function `j`'s data, which the kernel decides for every function (`Bridge/JumpCells/`). `ChainArm`: at a chained `match`'s table jump, the arm the previous selector took is one whose target cell the jump reads, what the alignment check cannot see (the chained `match` follows the previous one, its jump repeated at the end of each arm); only `main_loop2` has chains (`B2C.chained_only`).
 
-`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.frames`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), which its next-frame cell holds, a fixed cell or one past the frame at a self frame pointer cell of the next frame (`next_read`), its header; `main` at frame `0` (no path calls `main`, `insts_main_or`) and only `main` (`Memory.insts_same`).
+`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under `ProgAl`, `AShape`, every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.framesA`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), which its next-frame cell holds, a fixed cell or one past the frame at a self frame pointer cell of the next frame (`next_read`), its header; `main` at frame `0` (no path calls `main`, `insts_main_orA`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -33,6 +32,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Check (getF getF_eq)
 
 @[expose] public section
+
+/-- **The alignment contexts are the data's**: for function `j`, over its certificate's cells
+(hint-only cells only for values without one), `Plumb`, entry, whether it is `main`, the guest's
+powers and jump table; its code the compiled function's. -/
+def AShape (A : String → FnAl) : Prop :=
+  ∀ f j, idxOf f = some j → (A f).code = (fnOf j).code ∧ ∃ extra ents halt len,
+    (A f).X = AlignCtx.ofData (certOf j).locs extra (fnOf j).entryPc (j == 1) (plumbOf j) Data.powTree
+      Data.jtTrie ents halt len ∧ ∀ i c, extra.lookup i = some c → (certOf j).locs.getD i 0 < 2
 
 /-- **The arm a chained `match`'s table jump comes from**: at a state of the track whose top frame
 is at a jump reading a chained `match`'s target cell `od`, the previous selector took an arm whose
@@ -213,40 +220,40 @@ theorem kidsValid_get {P : Core.Program} {rv : Reader} {σ : Val} : ∀ {cs : Li
     exact ⟨k, by simpa using hk, hn, hv⟩
 
 mutual
-/-- An instance of a subtree is its root at its frame, or not named `main`. -/
-theorem insts_main_or {fs : String → ℕ} {lp : String → Bool} {H : Inst → ℕ → E × E} {rv : Reader} :
+/-- An instance of a subtree, placed by the aligned allocator, is its root at its frame, or not named `main`. -/
+theorem insts_main_orA {fs : String → ℕ} {lp al : String → Bool} {H : Inst → ℕ → E × E} {rv : Reader} :
     ∀ (t : Tree) (p : ℕ × ℕ) (hdr : E × E) {args rets : List E}, t.Valid coreProgram rv args rets →
-      ∀ I ∈ t.insts fs lp H p hdr, (I.fp = p.1 ∧ I.t = t) ∨ I.t.name ≠ "main"
+      ∀ I ∈ t.instsA fs lp al H p hdr, (I.fp = p.1 ∧ I.t = t) ∨ I.t.name ≠ "main"
   | .node f σ bufs kids, p, hdr, args, rets, hv, I, hI => by
-    rw [insts_node, List.mem_cons] at hI
+    rw [instsA_node, List.mem_cons] at hI
     rcases hI with rfl | hI
     · exact Or.inl ⟨rfl, rfl⟩
     · obtain ⟨fn, hf, -, es, vs, hw, -, -, hk⟩ := hv
-      exact Or.inr (instsKids_main kids σ (calls es) _ 0 _ hk (fun c hc ↦ calls_ne_main hf hw hc) I hI)
+      exact Or.inr (instsKidsA_main kids σ (calls es) _ 0 _ hk (fun c hc ↦ calls_ne_main hf hw hc) I hI)
   | .phantom .., _, _, _, _, hv, _, _ => hv.elim
 
-theorem instsKids_main {fs : String → ℕ} {lp : String → Bool} {H : Inst → ℕ → E × E} {rv : Reader} :
+theorem instsKidsA_main {fs : String → ℕ} {lp al : String → Bool} {H : Inst → ℕ → E × E} {rv : Reader} :
     ∀ (ks : List Tree) (σ : Val) (cs : List Memory.Call) (I : Inst) (j : ℕ) (ps : List (ℕ × ℕ)),
       Tree.KidsValid coreProgram rv σ cs ks → (∀ c ∈ cs, c.f ≠ "main") →
-        ∀ J ∈ Tree.instsKids fs lp H I j ps ks, J.t.name ≠ "main"
-  | [], _, _, _, _, _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
-  | _ :: _, _, _, _, _, [], _, _, J, hJ => by rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
+        ∀ J ∈ Tree.instsKidsA fs lp al H I j ps ks, J.t.name ≠ "main"
+  | [], _, _, _, _, _, _, _, J, hJ => by rw [instsKidsA_nil] at hJ; exact (List.not_mem_nil hJ).elim
+  | _ :: _, _, _, _, _, [], _, _, J, hJ => by rw [instsKidsA_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
   | k :: ks, σ, c :: cs, I, j, p :: ps, ⟨hn, hc, hks⟩, hm, J, hJ => by
-    rw [instsKids_cons, List.mem_append] at hJ
+    rw [instsKidsA_cons, List.mem_append] at hJ
     rcases hJ with hJ | hJ
     · have hcm := hm c List.mem_cons_self
       by_cases ht : c.taken = true
       · rw [ite_eq_left ht] at hc
-        rcases insts_main_or k p _ hc J hJ with ⟨-, rfl⟩ | h
+        rcases insts_main_orA k p _ hc J hJ with ⟨-, rfl⟩ | h
         · rw [hn]; exact hcm
         · exact h
       · rw [ite_eq_right ht] at hc
         obtain ⟨⟨f, σ', rfl⟩, -⟩ := hc
-        rw [insts_phantom, List.mem_singleton] at hJ
+        rw [instsA_phantom, List.mem_singleton] at hJ
         subst hJ
         simp only [Tree.name] at hn ⊢
         rw [hn]; exact hcm
-    · exact instsKids_main ks σ cs I (j + 1) ps hks (fun c' hc' ↦ hm c' (List.mem_cons_of_mem _ hc')) J hJ
+    · exact instsKidsA_main ks σ cs I (j + 1) ps hks (fun c' hc' ↦ hm c' (List.mem_cons_of_mem _ hc')) J hJ
   | _ :: _, _, [], _, _, _ :: _, h, _, _, _ => h.elim
 end
 

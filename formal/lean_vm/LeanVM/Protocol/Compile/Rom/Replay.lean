@@ -17,8 +17,10 @@ permutation queries. It needs no hash: commitments are absorbed as their roots, 
 which the sponge never absorbs, are returned as the proof's leaves unverified.
 
 * `replayU F p s`: `xrun` with the permutation answered by `F`, without the history, the
-  commitments' words or the openings' authentication.
-* `replayIn F p s`: the permutation inputs the replay makes, in order.
+  commitments' words or the openings' authentication; packed messages and draws as `run` makes
+  them (`observePacked`, `samplesPacked`).
+* `replayIn F p s`: the permutation inputs the replay makes, in order (a packed message's:
+  `observeIn`, a packed draw's: `samplesIn`).
 * `replayU_of_xrun`: where `xrun` returns, the replay returns the same value and state.
 * `replayU_congr`: answers that agree on the replay's inputs give the same replay.
 -/
@@ -33,6 +35,44 @@ section Replay
 
 variable (F : KeccakState → Option KeccakState)
 
+/-! ## The packed messages' permutations -/
+
+/-- The permutation inputs of a packed message's chunks, from the state `state`. -/
+def absorbChunksIn : ℕ → KeccakState → List E → List KeccakState
+  | 0, _, _ => []
+  | _ + 1, _, [] => []
+  | fuel + 1, state, values@(_ :: _) =>
+    packedInput state (values.take 8) ::
+      match F (packedInput state (values.take 8)) with
+      | some st => absorbChunksIn fuel st (values.drop 8)
+      | none => []
+
+/-- The permutation inputs of a packed message: what waits, if anything, then its chunks. -/
+def observeIn (sp : Sponge) (vals : List E) : List KeccakState :=
+  if sp.pending.isEmpty then absorbChunksIn F vals.length sp.state vals
+  else duplexInput sp :: match F (duplexInput sp) with
+    | some u => absorbChunksIn F vals.length u vals
+    | none => []
+
+/-- The permutation inputs of a packed draw's loop. -/
+def squeezeChunksIn : ℕ → Sponge → ℕ → List KeccakState
+  | 0, _, _ => []
+  | _ + 1, _, 0 => []
+  | fuel + 1, sp, missing + 1 => duplexInput sp :: match F (duplexInput sp) with
+    | some u => squeezeChunksIn fuel ⟨u, [], sp.ground⟩ (missing + 1 - min 8 (missing + 1))
+    | none => []
+
+/-- The permutation inputs of a packed draw: none for what a grind's permutation drew, then the
+loop's. -/
+def samplesIn (sp : Sponge) (count : ℕ) : List KeccakState :=
+  let (first, sponge) := match count, sp.ground with
+    | 0, _ => (([] : List E), sp)
+    | _ + 1, none => ([], sp)
+    | c + 1, some ground =>
+      (ground :: ((List.range 6).take c).map (packedChallengeOf sp.state ∘ (· + 2)),
+        { sp with ground := none })
+  squeezeChunksIn F (count - first.length) sponge (count - first.length)
+
 /-- **The replay**: `xrun` with the permutation answered by `F`, the openings unverified, no
 history. -/
 def replayU {α : Type} : VerifierProgram α → VerifierProgramState → Option (α × VerifierProgramState)
@@ -43,6 +83,13 @@ def replayU {α : Type} : VerifierProgram α → VerifierProgramState → Option
       replayU (k x) { s with sponge := sp, stream := xs }
     | _, _ => none
   | .sample k, s => (squeeze (m := Option) F s.sponge).bind fun r ↦
+      replayU (k r.1) { s with sponge := r.2 }
+  | .readPacked n k, s =>
+    if s.sponge.ground.isNone ∧ n ≤ s.stream.length then
+      (observePacked (m := Option) F s.sponge (s.stream.take n)).bind fun sp ↦
+        replayU (k (s.stream.take n)) { s with sponge := sp, stream := s.stream.drop n }
+    else none
+  | .samplePacked n k, s => (samplesPacked (m := Option) F s.sponge n).bind fun r ↦
       replayU (k r.1) { s with sponge := r.2 }
   | .grind bits k, s => match s.stream, s.sponge.ground with
     | n :: xs, none => (absorbNonce (m := Option) F s.sponge n).bind fun r ↦
@@ -80,6 +127,17 @@ def replayIn {α : Type} : VerifierProgram α → VerifierProgramState → List 
     | _, _ => []
   | .sample k, s => squeezeIn s.sponge ++
       match squeeze (m := Option) F s.sponge with
+      | some r => replayIn (k r.1) { s with sponge := r.2 }
+      | none => []
+  | .readPacked n k, s =>
+    if s.sponge.ground.isNone ∧ n ≤ s.stream.length then
+      observeIn F s.sponge (s.stream.take n) ++
+        match observePacked (m := Option) F s.sponge (s.stream.take n) with
+        | some sp => replayIn (k (s.stream.take n)) { s with sponge := sp, stream := s.stream.drop n }
+        | none => []
+    else []
+  | .samplePacked n k, s => samplesIn F s.sponge n ++
+      match samplesPacked (m := Option) F s.sponge n with
       | some r => replayIn (k r.1) { s with sponge := r.2 }
       | none => []
   | .grind bits k, s => match s.stream, s.sponge.ground with
@@ -136,6 +194,128 @@ theorem absorbNonce_congr {F' : KeccakState → Option KeccakState} {sp sp' : Sp
   rw [absorb_congr n dsPowNonce fun y hy ↦ h y (List.mem_append_left _ hy)]
   simp only [bind, habs, Option.bind_some, duplex,
     h (duplexInput sp') (List.mem_append_right _ (List.mem_singleton_self _))]
+
+theorem absorbPackedChunks_congr {F' : KeccakState → Option KeccakState} :
+    ∀ (fuel : ℕ) (state : KeccakState) (vals : List E),
+      (∀ y ∈ absorbChunksIn F fuel state vals, F' y = F y) →
+      absorbPackedChunks (m := Option) F' fuel state vals =
+        absorbPackedChunks (m := Option) F fuel state vals
+  | 0, _, _, _ => rfl
+  | _ + 1, _, [], _ => rfl
+  | fuel + 1, state, v :: vs, h => by
+    simp only [absorbChunksIn] at h
+    simp only [absorbPackedChunks, bind]
+    rw [h _ List.mem_cons_self]
+    rcases hF : F (packedInput state ((v :: vs).take 8)) with _ | st
+    · rfl
+    · simp only [Option.bind_some]
+      rw [hF] at h
+      exact absorbPackedChunks_congr fuel st _ fun y hy ↦ h y (List.mem_cons_of_mem _ hy)
+
+theorem observePacked_congr {F' : KeccakState → Option KeccakState} (sp : Sponge) (vals : List E)
+    (h : ∀ y ∈ observeIn F sp vals, F' y = F y) :
+    observePacked (m := Option) F' sp vals = observePacked (m := Option) F sp vals := by
+  unfold observePacked observeIn at *
+  split
+  · rename_i he
+    simp only [he, ↓reduceIte] at h
+    simp only [bind, pure, Option.bind_some]
+    rw [absorbPackedChunks_congr _ _ _ h]
+  · rename_i he
+    simp only [he, Bool.false_eq_true, ↓reduceIte] at h
+    simp only [duplex, bind, pure]
+    rw [h _ List.mem_cons_self]
+    rcases hF : F (duplexInput sp) with _ | u
+    · rfl
+    · simp only [Option.bind_some]
+      rw [hF] at h
+      rw [absorbPackedChunks_congr _ _ _ fun y hy ↦ h y (List.mem_cons_of_mem _ hy)]
+
+theorem squeezePackedChunks_congr {F' : KeccakState → Option KeccakState} :
+    ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ),
+      (∀ y ∈ squeezeChunksIn F fuel sp missing, F' y = F y) →
+      squeezePackedChunks (m := Option) F' fuel sp missing =
+        squeezePackedChunks (m := Option) F fuel sp missing
+  | 0, _, _, _ => rfl
+  | _ + 1, _, 0, _ => rfl
+  | fuel + 1, sp, missing + 1, h => by
+    simp only [squeezeChunksIn] at h
+    simp only [squeezePackedChunks, duplex, bind, pure]
+    rw [h _ List.mem_cons_self]
+    rcases hF : F (duplexInput sp) with _ | u
+    · rfl
+    · simp only [Option.bind_some]
+      rw [hF] at h
+      rw [squeezePackedChunks_congr fuel _ _ fun y hy ↦ h y (List.mem_cons_of_mem _ hy)]
+
+theorem samplesPacked_congr {F' : KeccakState → Option KeccakState} (sp : Sponge) (count : ℕ)
+    (h : ∀ y ∈ samplesIn F sp count, F' y = F y) :
+    samplesPacked (m := Option) F' sp count = samplesPacked (m := Option) F sp count := by
+  unfold samplesPacked
+  unfold samplesIn at h
+  rcases count with _ | c <;> rcases hg : sp.ground with _ | g <;> simp only [hg] at h ⊢ <;>
+    simp only [bind] <;> rw [squeezePackedChunks_congr _ _ _ h]
+
+theorem absorbPackedChunks_answered :
+    ∀ (fuel : ℕ) (state : KeccakState) (vals : List E) {st : KeccakState},
+      absorbPackedChunks (m := Option) F fuel state vals = some st →
+      ∀ y ∈ absorbChunksIn F fuel state vals, ∃ v, F y = some v
+  | 0, _, _, _, _ => fun _ hy ↦ by simp [absorbChunksIn] at hy
+  | _ + 1, _, [], _, _ => fun _ hy ↦ by simp [absorbChunksIn] at hy
+  | fuel + 1, state, v :: vs, st, h => by
+    simp only [absorbPackedChunks, bind, Option.bind_eq_some_iff] at h
+    obtain ⟨st1, h1, h⟩ := h
+    intro y hy
+    simp only [absorbChunksIn, h1, List.mem_cons] at hy
+    rcases hy with rfl | hy
+    · exact ⟨st1, h1⟩
+    · exact absorbPackedChunks_answered fuel st1 _ h y hy
+
+theorem observePacked_answered {sp sp' : Sponge} {vals : List E}
+    (h : observePacked (m := Option) F sp vals = some sp') :
+    ∀ y ∈ observeIn F sp vals, ∃ v, F y = some v := by
+  unfold observePacked at h
+  unfold observeIn
+  split at h
+  · rename_i he
+    simp only [he, ↓reduceIte]
+    simp only [bind, pure, Option.bind_some, Option.bind_eq_some_iff] at h
+    obtain ⟨st, hst, -⟩ := h
+    exact absorbPackedChunks_answered _ _ _ hst
+  · rename_i he
+    simp only [he, Bool.false_eq_true, ↓reduceIte]
+    simp only [duplex, bind, pure, Option.bind_eq_some_iff, Option.some.injEq] at h
+    obtain ⟨_, ⟨u, hu, rfl⟩, st, hst, -⟩ := h
+    intro y hy
+    simp only [hu, List.mem_cons] at hy
+    rcases hy with rfl | hy
+    · exact ⟨u, hu⟩
+    · exact absorbPackedChunks_answered _ _ _ hst y hy
+
+theorem squeezePackedChunks_answered :
+    ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ) {r : List E × Sponge},
+      squeezePackedChunks (m := Option) F fuel sp missing = some r →
+      ∀ y ∈ squeezeChunksIn F fuel sp missing, ∃ v, F y = some v
+  | 0, _, _, _, _ => fun _ hy ↦ by simp [squeezeChunksIn] at hy
+  | _ + 1, _, 0, _, _ => fun _ hy ↦ by simp [squeezeChunksIn] at hy
+  | fuel + 1, sp, missing + 1, r, h => by
+    simp only [squeezePackedChunks, duplex, bind, pure, Option.bind_eq_some_iff,
+      Option.some.injEq] at h
+    obtain ⟨_, ⟨u, hu, rfl⟩, r', hr', -⟩ := h
+    intro y hy
+    simp only [squeezeChunksIn, hu, List.mem_cons] at hy
+    rcases hy with rfl | hy
+    · exact ⟨u, hu⟩
+    · exact squeezePackedChunks_answered fuel _ _ hr' y hy
+
+theorem samplesPacked_answered {sp : Sponge} {count : ℕ} {r : List E × Sponge}
+    (h : samplesPacked (m := Option) F sp count = some r) :
+    ∀ y ∈ samplesIn F sp count, ∃ v, F y = some v := by
+  unfold samplesPacked at h
+  unfold samplesIn
+  rcases count with _ | c <;> rcases hg : sp.ground with _ | g <;> simp only [hg] at h ⊢ <;>
+    simp only [bind, pure, Option.bind_eq_some_iff] at h <;>
+    obtain ⟨r', hr', -⟩ := h <;> exact squeezePackedChunks_answered _ _ _ hr'
 
 /-! ## The replay of an extracted run -/
 
@@ -210,6 +390,22 @@ theorem replayU_of_xrun (H : Bytes → Option Digest) (F : KeccakState → Optio
     obtain ⟨r, hr, hx⟩ := Option.bind_eq_some_iff.mp hx
     rw [hr, Option.bind_some]
     exact replayU_of_xrun H F (k r.1) _ _ hx
+  | .readPacked n k, s, h, _, _, _, hx => by
+    simp only [xrun] at hx
+    simp only [replayU]
+    split at hx
+    · rename_i hc
+      simp only [hc, and_self, ↓reduceIte]
+      obtain ⟨sp, hsp, hx⟩ := Option.bind_eq_some_iff.mp hx
+      rw [hsp, Option.bind_some]
+      exact replayU_of_xrun H F _ _ _ hx
+    · simp at hx
+  | .samplePacked n k, s, h, _, _, _, hx => by
+    simp only [xrun] at hx
+    simp only [replayU]
+    obtain ⟨r, hr, hx⟩ := Option.bind_eq_some_iff.mp hx
+    rw [hr, Option.bind_some]
+    exact replayU_of_xrun H F (k r.1) _ _ hx
   | .grind bits k, s, h, _, _, _, hx => by
     simp only [xrun] at hx
     simp only [replayU]
@@ -267,6 +463,26 @@ theorem replayU_congr {F F' : KeccakState → Option KeccakState} {α : Type} :
     simp only [replayU, replayIn] at h ⊢
     rw [squeeze_congr fun y hy ↦ h y (List.mem_append_left _ hy)]
     rcases hr : squeeze (m := Option) F s.sponge with _ | r
+    · rfl
+    · simp only [Option.bind_some]
+      rw [hr] at h
+      exact replayU_congr (k r.1) _ fun y hy ↦ h y (List.mem_append_right _ hy)
+  | .readPacked n k, s, h => by
+    simp only [replayU, replayIn] at h ⊢
+    split
+    · rename_i hc
+      simp only [hc, and_self, ↓reduceIte] at h
+      rw [observePacked_congr _ _ fun y hy ↦ h y (List.mem_append_left _ hy)]
+      rcases hsp : observePacked (m := Option) F s.sponge (s.stream.take n) with _ | sp
+      · rfl
+      · simp only [Option.bind_some]
+        rw [hsp] at h
+        exact replayU_congr _ _ fun y hy ↦ h y (List.mem_append_right _ hy)
+    · rfl
+  | .samplePacked n k, s, h => by
+    simp only [replayU, replayIn] at h ⊢
+    rw [samplesPacked_congr _ _ fun y hy ↦ h y (List.mem_append_left _ hy)]
+    rcases hr : samplesPacked (m := Option) F s.sponge n with _ | r
     · rfl
     · simp only [Option.bind_some]
       rw [hr] at h
@@ -378,6 +594,28 @@ theorem replayU_answered {α : Type} :
     intro x hx
     rcases List.mem_append.mp hx with hx | hx
     · exact squeeze_answered hr x hx
+    · exact replayU_answered _ _ h x hx
+  | .readPacked n k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · rename_i hc
+      simp only [hc, and_self, ↓reduceIte]
+      obtain ⟨sp, hsp, h⟩ := Option.bind_eq_some_iff.mp h
+      rw [hsp]
+      intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact observePacked_answered hsp x hx
+      · exact replayU_answered _ _ h x hx
+    · simp at h
+  | .samplePacked n k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    rw [hr]
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact samplesPacked_answered hr x hx
     · exact replayU_answered _ _ h x hx
   | .grind bits k, s, _, h => by
     simp only [replayU] at h

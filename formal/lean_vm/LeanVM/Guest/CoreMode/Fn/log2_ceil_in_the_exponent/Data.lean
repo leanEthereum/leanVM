@@ -18,9 +18,9 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **Its divisors, nonzero** (`CoreMode.coreNzs`): two specializations' parameter `0`. -/
+/-- **Its divisor, nonzero** (`CoreMode.coreNzs`): its one specialization's parameter `0`. -/
 def nzs : List (String × V) :=
-  [(name% «log2_ceil_in_the_exponent__L0_L34», .n (valf% «log2_ceil_in_the_exponent» "g_N")), (name% «log2_ceil_in_the_exponent__L16_L34», .n (valf% «log2_ceil_in_the_exponent» "g_N"))]
+  [(name% «log2_ceil_in_the_exponent__L16_L34», .n (valf% «log2_ceil_in_the_exponent» "g_N"))]
 
 end
 

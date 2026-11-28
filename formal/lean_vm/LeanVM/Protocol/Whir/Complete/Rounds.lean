@@ -14,8 +14,6 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
-import LeanVM.ToMathlib.Finset
-import LeanVM.ToMathlib.Array
 
 /-!
 # An honest fold round
@@ -35,6 +33,8 @@ halves, every read is at an adjacent pair: the half `H[i] = f[2i]` (`getD_halfA`
 -/
 
 namespace LeanVM.Protocol.Whir.Complete
+
+open LeanVM.Protocol.Tables
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
   LeanVM.Protocol.Whir LeanVM.Prover LeanVM.Prover.Enc Finset
@@ -66,7 +66,7 @@ theorem getD_halfA (f : Array E) {m cols : ℕ} (hf : f.size = cols * 2 ^ (m + 1
   by_cases hi : i < cols * 2 ^ m
   · have hn : i < f.size / 2 ^ (m + 1) * (2 ^ (m + 1) / 2) := by
       rwa [hf, Nat.mul_div_cancel _ (Nat.two_pow_pos _), two_pow_succ_div_two]
-    rw [halfA, Array.getD_ofFn _ hn]
+    rw [halfA, Enc.getD_ofFn _ _ _ hn]
     simp only [two_pow_succ_div_two, idx_two]
   · have hs := size_halfA f hf
     have e : f.size = 2 * (cols * 2 ^ m) := by rw [hf, pow_succ]; ring
@@ -91,7 +91,7 @@ theorem getD_mulXA (h : Array E) {m cols : ℕ} (hh : h.size = cols * 2 ^ m) (hc
   have hpos := Nat.two_pow_pos m
   have hi : c * 2 ^ m + l < (h.size / 2 ^ m + 1) * 2 ^ m := by
     rw [hh, Nat.mul_div_cancel _ hpos]; nlinarith
-  rw [mulXA, Array.getD_ofFn _ hi]
+  rw [mulXA, Enc.getD_ofFn _ _ _ hi]
   have hdiv : (c * 2 ^ m + l) / 2 ^ m = c := by
     rw [add_comm, Nat.add_mul_div_right _ _ hpos, Nat.div_eq_of_lt hl, zero_add]
   have hmod : (c * 2 ^ m + l) % 2 ^ m = l := by
@@ -116,7 +116,7 @@ theorem getD_foldLanesA (f : Array E) (m : ℕ) (H XH : Array E) (α β : E) {i 
     (hi : i < XH.size) :
     (foldLanesA f (2 ^ (m + 1)) H XH α β).getD i 0 =
       f.getD (2 * i + 1) 0 + α * H.getD i 0 + β * XH.getD i 0 := by
-  rw [foldLanesA, Array.getD_ofFn _ hi]
+  rw [foldLanesA, Enc.getD_ofFn _ _ _ hi]
   simp only [two_pow_succ_div_two, idx_two]
 
 /-! ## Lanes -/
@@ -219,7 +219,7 @@ theorem claim_fold (f w : Array E) {m cols k : ℕ} (hf : f.size = cols * 2 ^ (m
     rw [hXH]; have := mem_range.mp hi
     calc i < 2 ^ k * 2 ^ m := this
       _ ≤ (cols + 1) * 2 ^ m := Nat.mul_le_mul_right _ (by omega)
-  rw [hclaim, hw2, Finset.sum_range_two_mul, hwsz]
+  rw [hclaim, hw2, sum_range_two_mul, hwsz]
   have key : ∀ i ∈ range n, (foldPairsA α w).getD i 0 *
       (foldLanesA f (2 ^ (m + 1)) H XH α β).getD i 0 =
       w.getD (2 * i) 0 * f.getD (2 * i + 1) 0 +

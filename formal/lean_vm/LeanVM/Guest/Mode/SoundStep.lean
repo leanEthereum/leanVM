@@ -199,7 +199,7 @@ theorem keccak_writes {C : Ctx} {s s' : St} {ins : Array ℕ} {out : ℕ} {inOdd
     s.mem ≤ s'.mem ∧ s'.fp = s.fp ∧ s'.pc = s.pc + 1 ∧
       ∀ j < n, s'.mem.written (s.fp + (out + j)) = true := by
   simp only [runOp, bind_ok] at e
-  obtain ⟨cells, hcells, input, -, outs, houts, s1, hs1, e⟩ := e
+  obtain ⟨-, -, cells, hcells, input, -, outs, houts, s1, hs1, e⟩ := e
   simp only [pure_ok] at e; subst e
   obtain ⟨m, hm, rfl⟩ := St.withMem_ok hs1
   rw [bind_ok] at hm

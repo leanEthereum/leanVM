@@ -71,6 +71,13 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   have hh := headH_of hr hz hf
   obtain ⟨st, ss, hcur, hna⟩ := headH_stmt hh
   have hs : st ∈ stmtsOf body := zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
+  have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
+    intro a ha hn
+    rcases List.mem_append.mp ha with ha | ha
+    · cases hfa : flowAtom a
+      · exact hq a ha hfa
+      · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
+    · exact hbs a ha
   have hX : (PairCtx.ofH X H O S).X = X := rfl
   cases st with
   | atom a => exact absurd rfl (hna a)
@@ -109,8 +116,11 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
     refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-    exact written_flowC (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
-      (by simpa [List.append_assoc] using hrw) hq hbs hx
+    rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
+        (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
+    · exact Or.inl h
+    · rw [List.mem_filter] at ha
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
   | callIf c f args =>
     obtain ⟨hloc, t, ca, ht, he, hca, rfl, hcase⟩ := headH_callIf hh hcur
     obtain ⟨s, hsite, hsr⟩ : ∃ s, X.siteAt of args [] = some s ∧ s.r = X.entry + i + 1 := by
@@ -126,8 +136,12 @@ theorem pair_callAny {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
     refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-    exact written_flowC (rest := Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es3))
-      (by simpa [List.append_assoc] using hrw) hq hbs hx
+    rcases written_extendC (fs := as.filter flowAtom)
+        (rest := Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es3))
+        (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
+    · exact Or.inl h
+    · rw [List.mem_filter] at ha
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
 
 theorem pick_seq_ret {σ : Val} {x : V} {args rets : List V} {k : Out} {es : List Ev} {vs : List V} :
     ∀ (fs : List String) (j : ℕ), (pick σ x args rets j fs).seq k = .ret es vs →
@@ -173,6 +187,13 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   have hh := headH_of hr hz hf
   obtain ⟨st, ss, hcur, hna⟩ := headH_stmt hh
   have hs : st ∈ stmtsOf body := zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
+  have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
+    intro a ha hn
+    rcases List.mem_append.mp ha with ha | ha
+    · cases hfa : flowAtom a
+      · exact hq a ha hfa
+      · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
+    · exact hbs a ha
   have hX : (PairCtx.ofH X H O S).X = X := rfl
   cases st with
   | atom a => exact absurd rfl (hna a)
@@ -206,8 +227,11 @@ theorem pair_dispatch {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
     obtain ⟨f, hf, es2, rfl, hes2⟩ := walk_dispatch_ret hes1
     obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
     refine ⟨f, hf, (as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-    exact written_flowC (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
-      (by simpa [List.append_assoc] using hrw) hq hbs hx
+    rcases written_extendC (fs := as.filter flowAtom) (rest := Ev.call f args rets :: (cs.map Ev.atom ++ es3))
+        (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
+    · exact Or.inl h
+    · rw [List.mem_filter] at ha
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
 
 end
 

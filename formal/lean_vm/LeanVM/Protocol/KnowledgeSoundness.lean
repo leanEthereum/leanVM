@@ -1,57 +1,61 @@
 /-
   LeanVM.Protocol.KnowledgeSoundness
 
-  The straight-line knowledge extractor and its knowledge soundness, the end statement
-  `LeanVM.KnowledgeSoundness` of `Statement/LeanVm.lean`.
+  The end statement `LeanVM.KnowledgeSoundness` of `Statement/LeanVm.lean`, for an extractor a
+  cost-machine program computes, from the link's interface and the program's agreement with the
+  agreement-set extractor.
 -/
 
 module
 
-public import LeanVM.Protocol.Extraction.AS.Lite
-import LeanVM.Protocol.LeanVMRpmASC
+public import LeanVM.Protocol.LeanVMRpmAS
+public import LeanVM.Protocol.LeanVMSoundAS
+public import Statement.CostMachine
 
 /-!
-# The knowledge extractor and its knowledge soundness
+# Knowledge soundness, composed
 
-`transcriptExtractor`: the agreement-set extractor on the lite layout
-(`Extraction.AS.transcriptExtractorL`, `Extraction/AS/Lite.lean`) on the adversary's transcript:
-it replays the verifier's transcript operations over the transcript's first forward answers,
-inverts every committed root's Merkle tree through the transcript's Keccak-256 evaluations, and
-descends from the final polynomial to level 0's stack, each fold round decoding the previous
-round's word with at most one error on the columns where the current tuple agrees with it; it
-runs the one stack it finds. **`knowledgeSoundness_holds`**: it satisfies `KnowledgeSoundness`,
-with the end statement's bound: whatever it returns, the agreement-set extractor over Newton's
-decoder returns (`extractL_eq`, `extractP_eq`, `extractC_eq`, `extractA_eq`, `extractM_of_ASF`,
-`extractASF_of_extractASC`, `transcriptExtractorASC_eq`), which is knowledge sound
-(`knowledgeSoundnessAS_holds`).
+* `KnowledgeSoundness.of_imp`: an extractor that returns whatever a knowledge-sound extractor
+  returns is knowledge sound (a break for it is a break for the other).
+* `knowledgeSoundness_transcriptExtractor LI`: the agreement-set extractor on the adversary's
+  transcript (`Relation.transcriptExtractor`) is knowledge sound, from the random-oracle bound
+  `knowledgeSoundnessRomAS LI` (`LeanVMSoundAS.lean`) and the transfer
+  `knowledgeSoundness_of_rom` (`LeanVMRpmAS.lean`).
+* `knowledgeSoundness_of LI hext hmono`: the extractor a cost-machine program `P` computes
+  (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`) is knowledge sound, when it is an
+  extractor `E'` (`hext`) that returns whatever `Relation.transcriptExtractor` returns (`hmono`).
+  The compiled extractor need not equal the agreement-set extractor: it replays the verifier's
+  transcript operations without its checks, so it may return where the agreement-set extractor
+  fails, which only helps.
 -/
 
 namespace LeanVM
 
 @[expose] public section
 
-/-- **The knowledge extractor**, in the random-permutation model: the agreement-set extractor on
-the adversary's transcript (`Extraction.AS.transcriptExtractorL`). -/
-def transcriptExtractor : StraightLineExtractor := Extraction.AS.transcriptExtractorL
-
-/-- An extractor that returns whatever a knowledge-sound extractor returns is knowledge sound. -/
+/-- **An extractor that returns whatever a knowledge-sound extractor returns is knowledge
+sound.** -/
 theorem KnowledgeSoundness.of_imp {E₁ E₂ : StraightLineExtractor}
     (h : ∀ prog input T proof t, E₁ prog input T proof = some t → E₂ prog input T proof = some t)
     (h₁ : KnowledgeSoundness E₁) : KnowledgeSoundness E₂ := fun A Q hQ ↦
   (prEvent_mono _ _ _ fun _ ho ↦ ⟨ho.1, fun ⟨t, ht, hv⟩ ↦ ho.2 ⟨t, h _ _ _ _ _ ht, hv⟩⟩).trans
     (h₁ A Q hQ)
 
-/-- **Knowledge soundness holds** (in the random-permutation model), for `transcriptExtractor`. -/
-theorem knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor :=
-  KnowledgeSoundness.of_imp (fun prog input T π t h ↦ by
-    have h1 : transcriptExtractorASC Protocol.Whir.Sound.newtonValsDecoder prog input T π = some t := by
-      rw [transcriptExtractorASC_eq]; exact h
-    have h2 := Protocol.EndToEnd.Sound.extractASF_of_extractASC Protocol.Whir.Sound.newtonValsDecoder h1
-    have h3 := Extraction.AS.extractM_of_ASF Protocol.Whir.Sound.newtonValsDecoder (T := T) h2
-    show Extraction.AS.extractL prog input (permutationQueries T) π = some t
-    rw [Extraction.AS.extractL_eq, Extraction.AS.extractP_eq, Extraction.AS.extractC_eq,
-      Extraction.AS.extractA_eq]
-    exact h3) (knowledgeSoundnessAS_holds Protocol.Whir.Sound.newtonNearDecoder)
+/-- **The agreement-set extractor on the adversary's transcript is knowledge sound**, in the
+random-permutation model, with the end statement's bound. -/
+theorem knowledgeSoundness_transcriptExtractor (LI : Protocol.Relation.LinkIface) :
+    KnowledgeSoundness Protocol.Relation.transcriptExtractor :=
+  knowledgeSoundness_of_rom (knowledgeSoundnessRomAS LI)
+
+/-- **Knowledge soundness of a compiled extractor**: the extractor the cost-machine program `P`
+computes, if it is `E'` and `E'` returns whatever `Relation.transcriptExtractor` returns. -/
+theorem knowledgeSoundness_of (LI : Protocol.Relation.LinkIface) {P : Cost.MachineProgram}
+    {E' : StraightLineExtractor} (hext : extractorComputedBy P = E')
+    (hmono : ∀ prog input T proof t, Protocol.Relation.transcriptExtractor prog input T proof =
+      some t → E' prog input T proof = some t) :
+    KnowledgeSoundness (extractorComputedBy P) := by
+  rw [hext]
+  exact KnowledgeSoundness.of_imp hmono (knowledgeSoundness_transcriptExtractor LI)
 
 end
 

@@ -3,18 +3,16 @@
 
   The round-by-round soundness of the deployed WHIR opening as a specification of the verifier
   program: `whirSpec` for `verifyWhir` from "every candidate violates the claim", and
-  `stackedSpec` for `verifyStackedOpening` from "every candidate violates one of the pooled
-  claims", each group of challenges escaping within `εmax` after its grind.
+  `stackedSpec` for `verifyStackedOpening` at the batching challenge from "every bad candidate
+  violates the batched claim", each group of challenges escaping within `εmax` after its grind.
 -/
 
 module
 
 public import LeanVM.Protocol.Whir.Sound.Start
-import LeanVM.Protocol.Verifier.WhirTarget
-public import LeanVM.Protocol.Verifier.Phases
+public import Statement.Verifier.Lib
 public import LeanVM.Protocol.Whir.Sound.LevelFinal
 import LeanVM.Protocol.ToArkLib.Whir.Counting
-import LeanVM.ToMathlib.List
 
 /-!
 # The specification of the WHIR opening
@@ -28,9 +26,10 @@ code per level (`codes i`: message variables `κ_i` after its folds, rate, folds
 * `whirSpec`: **`verifyWhir μ R t w` from `WhirPre`**: the level-0 commitment is the history's
   only one, of level 0's shape, and every candidate of its word at level 0's threshold violates
   `(w, t)`, for `w` multiaffine.
-* `stackedSpec`: **`verifyStackedOpening μ R claims` from `StackedPre`** (every candidate
-  violates one of the claims), with the batching challenge's escape
-  `eBatch J L₀ = (J − 1)·L₀/|E|` as lead, `L₀` a bound on the candidates.
+* `stackedSpec`: **`verifyStackedOpening μ R claims λ` from `StackedPre`** (every bad candidate
+  violates the claims batched by the powers of `λ`). Ring switching draws `λ` (`ringSwitch`), in
+  its packed draw; `card_batch_bad_le` counts the `λ` that let a candidate violating one of the
+  claims satisfy the batch, `(J − 1)` per candidate (`eBatch J L₀ = (J − 1)·L₀/|E|`).
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -217,7 +216,7 @@ theorem dot_powersFrom_map {α : Type*} (ρ : E) (f : α → E) :
   | [], acc => by simp [dot, powersFrom]
   | x :: l, acc => by
     have ih := dot_powersFrom_map ρ f l (acc * ρ)
-    rw [dot, List.foldl_add_eq_add_sum, zero_add] at ih ⊢
+    rw [dot, foldl_add_eq, zero_add] at ih ⊢
     simp only [List.length_cons, powersFrom, List.map_cons, List.zipWith_cons_cons,
       List.sum_cons, ih, Fin.sum_univ_succ, Fin.val_zero, pow_zero, mul_one, Fin.val_succ]
     exact congrArg₂ (· + ·) (by simp) (Finset.sum_congr rfl fun k _ ↦ by
@@ -258,31 +257,55 @@ def ShapeOK₀ (μ R : ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
   cs.length = 1 ∧ ∃ W, cs[0]? = some (μ - laneBits + R, 2 ^ laneBits, W) ∧
     WellShaped (2 ^ laneBits) W
 
-/-- The opening's pooled relation, relativised to the bad stacks `Bad`: the level-0 commitment has
-the right shape and every bad candidate at the threshold `A₀` violates at least one of the
-claims. -/
-def StackedPre (μ R A₀ : ℕ) (claims : List StackClaim) (Bad : Column μ → Prop)
+/-- The stacked opening's checks on its claims, as one condition (`StackedClaims`, `lib.rs`). -/
+def StackedOk (claims : List StackClaim) : Prop := claims.length ≤ maxStackedClaims
+
+instance (claims : List StackClaim) : Decidable (StackedOk claims) :=
+  inferInstanceAs (Decidable (claims.length ≤ maxStackedClaims))
+
+/-- The claims batched by the powers of `λ`: the weight `Σ_t λ^t w_t` and the value
+`Σ_t λ^t v_t` WHIR opens. -/
+def batchedClaim (claims : List StackClaim) (lam : E) : StackClaim :=
+  (fun point ↦ dot (powers lam claims.length) (claims.map fun c ↦ c.1 point),
+    dot (powers lam claims.length) (claims.map (·.2)))
+
+/-- **`verifyStackedOpening`, normal form**: its check (`StackedOk`), then WHIR on the batched
+claim. -/
+theorem verifyStackedOpening_nf (stackLog logInvRate : ℕ) (claims : List StackClaim)
+    (batching : E) :
+    verifyStackedOpening stackLog logInvRate claims batching =
+      (VerifierProgram.require (StackedOk claims)).bind fun _ ↦
+        verifyWhir stackLog logInvRate (batchedClaim claims batching).2
+          (batchedClaim claims batching).1 := by
+  unfold verifyStackedOpening
+  simp only [VerifierProgram.bind_eq]
+  rfl
+
+/-- The opening's relation at the batching challenge `λ`, relativised to the bad stacks `Bad`: the
+level-0 commitment has the right shape and every bad candidate at the threshold `A₀` violates the
+batched claim. -/
+def StackedPre (μ R A₀ : ℕ) (claims : List StackClaim) (lam : E) (Bad : Column μ → Prop)
     (cs : List (ℕ × ℕ × Word)) : Prop :=
   ShapeOK₀ μ R cs ∧
-    ∀ q ∈ Candidates μ R A₀ (wordOf cs 0), Bad q → ∃ c ∈ claims, ¬ StackClaim.Holds μ c q
+    ∀ q ∈ Candidates μ R A₀ (wordOf cs 0), Bad q → ¬ StackClaim.Holds μ (batchedClaim claims lam) q
 
 /-- `verifyStackedOpening`, returning the opening's trace, in the normal form
 `verifyStackedOpening_nf`. -/
-def verifyStackedOpeningG (stackLog logInvRate : ℕ) (claims : List StackClaim) :
+def verifyStackedOpeningG (stackLog logInvRate : ℕ) (claims : List StackClaim) (batching : E) :
     VerifierProgram WhirTrace :=
-  (VerifierProgram.require (StackedOk claims)).bind fun _ ↦ VerifierProgram.sampleChallenge.bind fun c ↦
-    verifyWhirG stackLog logInvRate (dot (powers c claims.length) (claims.map (·.2)))
-      fun point ↦ dot (powers c claims.length) (claims.map fun cl ↦ cl.1 point)
+  (VerifierProgram.require (StackedOk claims)).bind fun _ ↦
+    verifyWhirG stackLog logInvRate (batchedClaim claims batching).2
+      (batchedClaim claims batching).1
 
 /-- The ghost stacked opening, its trace dropped, is the stacked opening. -/
-theorem verifyStackedOpeningG_unit (stackLog logInvRate : ℕ) (claims : List StackClaim) :
-    (verifyStackedOpeningG stackLog logInvRate claims).bind (fun _ ↦ VerifierProgram.ret ()) =
-      verifyStackedOpening stackLog logInvRate claims := by
+theorem verifyStackedOpeningG_unit (stackLog logInvRate : ℕ) (claims : List StackClaim)
+    (batching : E) :
+    (verifyStackedOpeningG stackLog logInvRate claims batching).bind
+        (fun _ ↦ VerifierProgram.ret ()) =
+      verifyStackedOpening stackLog logInvRate claims batching := by
   rw [verifyStackedOpening_nf, verifyStackedOpeningG]
   simp only [VerifierProgram.bind_assoc]
-  refine congrArg (VerifierProgram.bind _) (funext fun _ ↦
-    congrArg (VerifierProgram.bind _) (funext fun c ↦ ?_))
-  exact verifyWhirG_unit _ _ _ _
+  exact congrArg (VerifierProgram.bind _) (funext fun _ ↦ verifyWhirG_unit _ _ _ _)
 
 /-- `ShapeOK₀` is level 0's shape. -/
 theorem shapeOK_of_shapeOK₀ {μ R : ℕ} {P₀ : LevelCode} (hκ₀ : P₀.κ = μ - laneBits)
@@ -327,55 +350,32 @@ theorem card_batch_bad_le {μ : ℕ} (claims : List StackClaim) (C : Set (Column
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hc
     exact card_powerBatch_eq_zero_le (d q) ⟨⟨k, hk⟩, by simp only [d, sub_ne_zero]; exact hnot⟩
 
-open Classical in
-/-- **The specification of the stacked opening.** From `StackedPre` (every candidate at level 0's
-threshold violates one of the `J ≤ 512` claims), the batching challenge escapes with probability
-at most `eBatch J L₀ = (J − 1)·L₀/|E|`, `L₀` a bound on the candidates, and the opening
-(`whirSpec`) follows. -/
+/-- **The specification of the stacked opening** at the batching challenge `λ`, which ring
+switching draws: from `StackedPre` (every bad candidate at level 0's threshold violates the batched
+claim), the opening (`whirSpec`) follows. The challenge's own error is ring switching's
+(`card_batch_bad_le`). -/
 noncomputable def stackedSpec {R : ℕ} {level : Whir.Level} {rest : List Whir.Level}
-    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1)
+    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (lam : E)
     (hc : Whir.ladder μ R = some (level :: rest)) (hℓ : level.fold = laneBits)
     (hμ : laneBits ≤ μ) (hκ₀ : (codes 0).κ = μ - laneBits) (hR₀ : (codes 0).R = R)
     (hthr : (codes 0).deg < (codes 0).thr 0) (RB : ∀ j, RoundBounds (codes j) εmax)
-    (hA : LadderOK codes εmax 0 (level :: rest)) (L₀ : ℕ)
-    (hfin : ∀ W, (Candidates μ R ((codes 0).thr 0) W).Finite)
-    (hL₀ : ∀ W, (Candidates μ R ((codes 0).thr 0) W).ncard ≤ L₀) (Bad : Column μ → Prop) :
-    Spec (verifyStackedOpeningG μ R claims)
-      (fun h ↦ StackedPre μ R ((codes 0).thr 0) claims Bad (commits h))
-      (fun tr h ↦ traceGood codes 0 (lvl0Pred μ Bad) tr (commits h)) εmax
-      (eBatch claims.length L₀) 0 :=
-  by
+    (hA : LadderOK codes εmax 0 (level :: rest)) (Bad : Column μ → Prop) :
+    Spec (verifyStackedOpeningG μ R claims lam)
+      (fun h ↦ StackedPre μ R ((codes 0).thr 0) claims lam Bad (commits h))
+      (fun tr h ↦ traceGood codes 0 (lvl0Pred μ Bad) tr (commits h)) εmax 0 0 := by
   have hℓ₀ : (codes 0).ℓ = laneBits := by rw [← hA.head.1, hℓ]
-  let Pre := fun h ↦ StackedPre μ R ((codes 0).thr 0) claims Bad (commits h)
-  let wρ := fun ρ : E ↦ fun point ↦ dot (powers ρ claims.length) (claims.map fun c ↦ c.1 point)
-  let tρ := fun ρ : E ↦ dot (powers ρ claims.length) (claims.map (·.2))
-  have S0 : Spec VerifierProgram.sampleChallenge Pre
-      (fun ρ h ↦ WhirPre μ R (codes 0) (wρ ρ) (tρ ρ) Bad (commits h))
-      εmax (eBatch claims.length L₀ + 0) 0 :=
-    Spec.sampleE (eBatch claims.length L₀) fun h₀ hp ↦ by
-      have hfinB : {q ∈ Candidates μ R ((codes 0).thr 0) (wordOf (commits h₀) 0) | Bad q}.Finite :=
-        (hfin _).subset fun q hq ↦ hq.1
-      rw [eBatch, ENNReal.div_eq_inv_mul]
-      refine mul_le_mul' le_rfl (Nat.cast_le.mpr ((card_le_card fun ρ hρ ↦ ?_).trans
-        ((card_batch_bad_le claims _ hfinB (by intro q hq; exact hp.2 q hq.1 hq.2)).trans ?_)))
-      · simp only [mem_filter, mem_univ, true_and, commits_sample] at hρ ⊢
-        by_contra hno
-        exact hρ ⟨shapeOK_of_shapeOK₀ hκ₀ hR₀ hℓ₀ hp.1, hp.1.1,
-          fun q hq hb hh ↦ hno ⟨q, ⟨hq, hb⟩, hh⟩⟩
-      · rw [mul_comm]
-        exact Nat.mul_le_mul_left _
-          ((Set.ncard_le_ncard (by intro q hq; exact hq.1) (hfin _)).trans (hL₀ _))
-  have F0 : ∀ ρ, Spec (verifyWhirG μ R (tρ ρ) (wρ ρ))
-      (fun h ↦ WhirPre μ R (codes 0) (wρ ρ) (tρ ρ) Bad (commits h))
+  let Pre := fun h ↦ StackedPre μ R ((codes 0).thr 0) claims lam Bad (commits h)
+  have F0 : Spec (verifyWhirG μ R (batchedClaim claims lam).2 (batchedClaim claims lam).1)
+      (fun h ↦ WhirPre μ R (codes 0) (batchedClaim claims lam).1 (batchedClaim claims lam).2 Bad
+        (commits h))
       (fun tr h ↦ traceGood codes 0 (lvl0Pred μ Bad) tr (commits h)) εmax 0 0 :=
-    fun ρ ↦ whirSpec (codes := codes) hc hℓ hμ hκ₀ hR₀ hthr (isMultiaffine_batched claims hcl ρ)
+    whirSpec (codes := codes) hc hℓ hμ hκ₀ hR₀ hthr (isMultiaffine_batched claims hcl lam)
       RB hA Bad
-  have S1 := Spec.bind S0 F0
-  have S2 : Spec (VerifierProgram.require (StackedOk claims)) Pre (fun _ ↦ Pre)
-      εmax (eBatch claims.length L₀ + 0) (eBatch claims.length L₀ + 0) :=
+  have S2 : Spec (VerifierProgram.require (StackedOk claims)) Pre (fun _ ↦ Pre) εmax 0 0 :=
     Spec.require fun _ hp _ ↦ hp
-  have S3 := Spec.bind S2 fun _ ↦ S1
-  exact S3.mono (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl (by simp) le_rfl
+  exact (Spec.bind S2 fun _ ↦ F0.mono (fun h hp ↦ ⟨shapeOK_of_shapeOK₀ hκ₀ hR₀ hℓ₀ hp.1, hp.1.1,
+    fun q hq hb ↦ hp.2 q hq hb⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono (fun _ h ↦ h)
+    (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 end
 end LeanVM.Protocol.Whir.Sound

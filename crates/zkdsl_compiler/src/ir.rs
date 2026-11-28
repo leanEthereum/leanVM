@@ -143,6 +143,10 @@ pub(crate) struct Lowered {
     pub(crate) rets: std::ops::Range<u32>,
     /// The frame keeps its layout and its copies (an `addr()` names its cells by offset).
     pub(crate) fixed: bool,
+    /// A loop helper's frame: its runs of frames are consecutive, `frame_size` apart.
+    pub(crate) loop_frame: bool,
+    /// The frame starts at a multiple of [`isa::KECCAK_WINDOW`]: it holds a `KECCAK` block.
+    pub(crate) aligned: bool,
 }
 
 impl Lowered {

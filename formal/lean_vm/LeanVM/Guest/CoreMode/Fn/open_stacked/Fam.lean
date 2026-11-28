@@ -23,6 +23,10 @@ def names : List String :=
   [name% «open_stacked__L0»,
     name% «open_stacked__L1»,
     name% «open_stacked__L10»,
+    name% «open_stacked__L11»,
+    name% «open_stacked__L12»,
+    name% «open_stacked__L13»,
+    name% «open_stacked__L14»,
     name% «open_stacked__L2»,
     name% «open_stacked__L3»,
     name% «open_stacked__L4»,
@@ -33,7 +37,7 @@ def names : List String :=
     name% «open_stacked__L9»]
 
 /-- **`e(x) < n`, `x` a value its body pins below `n`** (`valExpB`: `level_rate`'s values, copied from a constant in
-every arm of their top-level `match`). -/
+every arm of each level's rate `match`). -/
 noncomputable def expFam (fn : Fn) : CRes → Bool
   | .lt (.val x) (.num n) => Nat.blt n capE && valExpB fn.body (.n x) 0 n
   | _ => false

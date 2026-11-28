@@ -250,8 +250,7 @@ theorem two_pow_mul_or {s q r : ℕ} (hr : r < 2 ^ s) : 2 ^ s * q ||| r = 2 ^ s 
       (Nat.le_of_not_lt hj)))]
     omega
 
-/-- The disjoint-bit split (`doc/leanvm` §sec:prog-byte-counter): a multiple of `2^s` plus a
-value below `2^s` is their sum. -/
+/-- The disjoint-bit split: a multiple of `2^s` plus a value below `2^s` is their sum. -/
 theorem eOfNat_add_of_lt {s q r : ℕ} (hr : r < 2 ^ s) :
     eOfNat (2 ^ s * q) + eOfNat r = eOfNat (2 ^ s * q + r) := by
   rw [← eOfNat_xor, two_pow_mul_xor hr]

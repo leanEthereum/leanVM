@@ -3,7 +3,7 @@
 //! of a committed table's multilinear extension. A table is indexed little-endian: variable `k` is bit `k` of the index.
 //! Committed data is `K`-valued ([`F64`]) and randomness `E`-valued ([`F128`]).
 
-use crate::field::{F64, F128, F128Unreduced};
+use crate::field::{F64, F128, dot_base};
 
 /// Multilinear interpolation in one variable: `lo + t·(lo+hi)`, the characteristic-2 form of `(1−t)·lo + t·hi`.
 #[inline]
@@ -65,17 +65,6 @@ pub fn eq_table_serial(r: &[F128]) -> Vec<F128> {
     eq
 }
 
-/// Marginalize the highest variable out of an `eq` table, in place, for a sumcheck that binds the top variable
-/// first: `eq(r, 0) + eq(r, 1) = 1`, so summing the two halves drops it without a product.
-pub fn shrink_eq_high(table: &mut Vec<F128>) {
-    let half = table.len() / 2;
-    let (lo, hi) = table.split_at_mut(half);
-    for (l, h) in lo.iter_mut().zip(&*hi) {
-        *l += *h;
-    }
-    table.truncate(half);
-}
-
 /// A polynomial at `point`, by Horner over its coefficients, constant first.
 #[inline]
 pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
@@ -104,7 +93,7 @@ pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
     table
         .chunks_exact(low.len())
         .zip(high)
-        .map(|(row, h)| h * dot(&low, row))
+        .map(|(row, h)| h * dot_base(&low, row))
         .sum()
 }
 
@@ -119,16 +108,8 @@ pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
     let low = eq_table_serial(&point[..low_vars]);
     let high = eq_table(&point[low_vars..]);
     assert!(table.len().is_multiple_of(low.len()));
-    let eval = |row: usize| high[row] * dot(&low, &table[row * low.len()..][..low.len()]);
+    let eval = |row: usize| high[row] * dot_base(&low, &table[row * low.len()..][..low.len()]);
     parallel::map_reduce(table.len() / low.len(), || F128::ZERO, eval, |a, b| a + b)
-}
-
-/// `sum_i w_i * k_i`, reduced once.
-fn dot(w: &[F128], k: &[F64]) -> F128 {
-    w.iter()
-        .zip(k)
-        .fold(F128Unreduced::ZERO, |acc, (w, &k)| acc ^ w.mul_base_unreduced(k))
-        .reduce()
 }
 
 #[cfg(test)]

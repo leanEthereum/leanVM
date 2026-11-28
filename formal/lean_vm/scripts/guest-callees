@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""`Memory/GuestCallees.lean` and `Memory/GuestCalleesOk.lean`: every core function's name and its
+callees' indices, which the memory check (`Memory/MemCheck.lean`) looks a call's arity up by, as
+`scripts/count/gen.py callees` writes them (`count/family.py`). Run from `lean_vm`; `--check` writes
+nothing and fails when a file differs."""
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'count'))
+import core, family  # noqa: E402
+
+D = os.path.join('LeanVM', 'Guest', 'Data')
+LD = os.path.join('LeanVM', 'Guest', 'Memory')
+fns = core.load(D)
+if '--check' in sys.argv[1:]:
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:
+        family.write_callees(t, fns)
+        bad = False
+        for n in ('GuestCallees.lean', 'GuestCalleesOk.lean'):
+            new = open(os.path.join(t, n), encoding='utf-8').read()
+            p = os.path.join(LD, n)
+            old = open(p, encoding='utf-8').read() if os.path.exists(p) else None
+            if old != new:
+                print('%s is stale' % p); bad = True
+        sys.exit(1 if bad else 0)
+family.write_callees(LD, fns)
+print('callees: %d functions' % len(fns))

@@ -7,12 +7,19 @@
 //! scalars wait, up to four, and a permutation takes them all: scalar `i` overwrites lanes
 //! `4i..4i + 4` with its two limbs, a zero and a domain tag, the rate past the last scalar is zeroed, and
 //! the capacity carries over. A fifth scalar, or a challenge, permutes what is waiting; every
-//! challenge takes a permutation of its own and is the first two lanes of its output. A grinding
-//! nonce waits like a scalar, and the challenge drawn next carries the proof of work in its
+//! challenge outside a packed draw takes a permutation of its own and is the first two lanes of its
+//! output. A grinding nonce waits like a scalar, and the challenge drawn next carries the proof of work in its
 //! permutation's third lane, so a grind costs no permutation of its own. So sending
 //! a round's coefficients and drawing its challenge is one permutation, and a guest replays it as
 //! one `KECCAK` instruction whose rate cells are the scalars and whose capacity cells are the
 //! previous output's.
+//!
+//! A packed message ([`FiatShamirState::observe_packed`]) takes eight scalars a permutation, two lanes each and no
+//! tag, and a packed draw ([`FiatShamirState::sample_packed`]) eight challenges a permutation, its whole rate. Their
+//! lengths are fixed by the protocol's schedule and nothing marks them, so a packed message can spell the same
+//! permutation input as tagged scalars, or as a nonce and its permutation: what keeps them apart is that the prover
+//! and every verifier read one fixed schedule, each message's kind and length set by the protocol and the shape
+//! before it, not by the tags.
 
 pub mod merkle;
 mod transcript;
@@ -57,11 +64,12 @@ impl Search for Sequential {
 
 /// The rate's lanes, four per scalar.
 const RATE_LANES: usize = 4 * RATE_SCALARS;
+/// The rate as challenges, two lanes to a cell.
+const RATE_CELLS: usize = RATE_LANES / 2;
 
-// Domain tags, the fourth lane of an absorbed scalar (the third is zero). Nonzero, so a scalar never reads as the
-// zeroed rate past the last one, and distinct, so a grinding nonce never reads as a sent scalar.
-const DS_OBSERVE: u64 = 1;
-const DS_POW_NONCE: u64 = 4;
+// Domain tags, the fourth lane of an absorbed scalar (the third is zero); a packed message has none (see the module
+// docs).
+use verifier::{DS_OBSERVE, DS_POW_NONCE};
 
 /// The shared Fiat-Shamir state (see the module docs). Protocol functions take
 /// `&mut FiatShamirState`; all proof DATA travels on separate transport channels (the
@@ -72,8 +80,9 @@ pub struct FiatShamirState<F> {
     /// `n_pending` scalars absorbed since, then zeros.
     state: [u64; STATE_LANES],
     n_pending: usize,
-    /// The challenge a grind's permutation drew, which the next [`Self::sample`] returns.
-    ground: Option<F>,
+    /// A grind's permutation's rate but the proof of work's cell: its first is the next [`Self::sample`], all seven
+    /// the next [`Self::sample_packed`].
+    ground: Option<[F; RATE_CELLS - 1]>,
 }
 
 impl<F: Scalar> FiatShamirState<F> {
@@ -99,13 +108,18 @@ impl<F: Scalar> FiatShamirState<F> {
         Self::new(Digest(keccak256::hash(label)).words(), [0; 4])
     }
 
-    /// Permute, taking the waiting scalars, and return the output's first two lanes.
-    fn duplex(&mut self) -> F {
+    /// Permute, taking the waiting scalars, and return the output's rate, two lanes to a cell.
+    fn permute(&mut self) -> [F; RATE_CELLS] {
         keccak256::keccak_f(&mut self.state);
-        let out = F::from_limbs([self.state[0], self.state[1]]);
+        let cells = std::array::from_fn(|i| F::from_limbs([self.state[2 * i], self.state[2 * i + 1]]));
         self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
-        out
+        cells
+    }
+
+    /// Permute, taking the waiting scalars, and return the output's first two lanes.
+    fn duplex(&mut self) -> F {
+        self.permute()[0]
     }
 
     fn absorb(&mut self, x: F, tag: u64) {
@@ -133,6 +147,23 @@ impl<F: Scalar> FiatShamirState<F> {
         })
     }
 
+    /// Absorb `xs` eight to a permutation, each over two rate lanes, the last permutation's rate zero past them,
+    /// after a permutation taking whatever waits.
+    pub fn observe_packed(&mut self, xs: &[F]) {
+        assert!(self.ground.is_none(), "a grind is followed by a challenge");
+        if self.n_pending > 0 {
+            self.duplex();
+        }
+        for chunk in xs.chunks(RATE_CELLS) {
+            for (i, x) in chunk.iter().enumerate() {
+                let [c0, c1] = x.to_limbs();
+                self.state[2 * i] = c0;
+                self.state[2 * i + 1] = c1;
+            }
+            self.permute();
+        }
+    }
+
     /// Absorb one scalar.
     pub fn observe(&mut self, x: F) {
         self.absorb(x, DS_OBSERVE);
@@ -143,12 +174,29 @@ impl<F: Scalar> FiatShamirState<F> {
     /// public; soundness comes from each challenge being a random-oracle image of
     /// the entire prior transcript.
     pub fn sample(&mut self) -> F {
-        self.ground.take().unwrap_or_else(|| self.duplex())
+        self.ground.take().map_or_else(|| self.duplex(), |cells| cells[0])
     }
 
     /// Squeeze `n` challenges, in order.
     pub fn sample_vec(&mut self, n: usize) -> Vec<F> {
         (0..n).map(|_| self.sample()).collect()
+    }
+
+    /// Squeeze `n` challenges eight to a permutation: each takes whatever waits, and its output's rate, two lanes to
+    /// a challenge, gives the next eight. Right after a grind, its permutation gives the first seven: every cell but
+    /// the second, which holds the proof of work.
+    pub fn sample_packed(&mut self, n: usize) -> Vec<F> {
+        let mut out = Vec::with_capacity(n);
+        if n > 0
+            && let Some(cells) = self.ground.take()
+        {
+            out.extend(cells.into_iter().take(n));
+        }
+        while out.len() < n {
+            let take = (n - out.len()).min(RATE_CELLS);
+            out.extend_from_slice(&self.permute()[..take]);
+        }
+        out
     }
 
     /// Prover-side PoW grind: find the smallest `u64` nonce whose permutation, the one drawing the next challenge,
@@ -194,7 +242,8 @@ impl<F: Scalar> FiatShamirState<F> {
         };
         let nonce = nonce.expect("a nonce exists");
         self.absorb(F::from_limbs([nonce, 0]), DS_POW_NONCE);
-        self.ground = Some(self.duplex());
+        let cells = self.permute();
+        self.ground = Some(std::array::from_fn(|i| cells[if i == 0 { 0 } else { i + 1 }]));
         Some(nonce)
     }
 }
@@ -255,14 +304,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn grinding_bits_is_the_ceiling_log() {
-        assert_eq!(
-            [0, 1, 2, 8, 9, 31, 46, 64, 65, 1 << 20].map(grinding_bits),
-            [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
-        );
-    }
-
     /// Whether `nonce` passes a `bits` grind from `state`, one permutation at a time.
     fn pow_bits_ok(state: &State, nonce: u64, bits: u32) -> bool {
         let mut probe = state.clone();
@@ -305,5 +346,92 @@ mod tests {
         ground.grind(0);
         assert_eq!(ground.sample(), plain.sample());
         assert!(ground.into_proof().stream.is_empty());
+    }
+
+    /// The prover's and the verifier's transcripts agree on random schedules of sends, packed sends of every length,
+    /// draws, packed draws and grinds of every size, each grind then a packed draw of any length but zero (a grind is
+    /// followed by a challenge) or a single one: the verifier reads back every scalar and draws every challenge the
+    /// prover did.
+    #[test]
+    fn random_schedules_give_the_verifier_the_provers_challenges() {
+        use verifier::__Transcript as Transcript;
+        #[derive(Clone, Copy, Debug)]
+        enum Op {
+            Send(usize),
+            SendPacked(usize),
+            Sample,
+            SamplePacked(usize),
+            // Then a packed draw of that many challenges, or a single one.
+            Grind(u32, Option<usize>),
+        }
+        let mut rng = xorshift(0x5eed);
+        for schedule in 0..200 {
+            let ops: Vec<Op> = (0..40)
+                .map(|_| match rng() % 5 {
+                    0 => Op::Send((rng() % 10) as usize),
+                    1 => Op::SendPacked((rng() % 20) as usize),
+                    2 => Op::Sample,
+                    3 => Op::SamplePacked((rng() % 20) as usize),
+                    _ => Op::Grind((rng() % 7) as u32, (rng() % 2 == 1).then(|| 1 + (rng() % 9) as usize)),
+                })
+                .collect();
+            let (iv, public_input) = (pi(1), pi(5));
+            let mut prover = ProverState::<E, Sequential>::new(iv, public_input);
+            let (mut sent, mut drawn) = (Vec::new(), Vec::new());
+            for &op in &ops {
+                match op {
+                    Op::Send(n) | Op::SendPacked(n) => {
+                        let xs: Vec<E> = (0..n).map(|_| E::new(rng(), rng())).collect();
+                        match op {
+                            Op::Send(_) => prover.add_scalars(&xs),
+                            _ => prover.add_scalars_packed(&xs),
+                        }
+                        sent.push(xs);
+                    }
+                    Op::Sample => drawn.push(prover.sample()),
+                    Op::SamplePacked(n) => drawn.extend(prover.sample_packed(n)),
+                    Op::Grind(bits, packed) => {
+                        prover.grind(bits);
+                        match packed {
+                            Some(n) => drawn.extend(prover.sample_packed(n)),
+                            None => drawn.push(prover.sample()),
+                        }
+                    }
+                }
+            }
+            let proof = prover.into_proof();
+            let digest = |words: [u64; 4]| Digest(std::array::from_fn(|i| words[i / 8].to_le_bytes()[i % 8]));
+            let mut verifier = Transcript::new(&proof, digest(iv), digest(public_input), true);
+            let (mut read, mut redrawn) = (Vec::new(), Vec::new());
+            for &op in &ops {
+                match op {
+                    Op::Send(n) => read.push(verifier.next_scalars(n).unwrap()),
+                    Op::SendPacked(n) => read.push(verifier.next_scalars_packed(n).unwrap()),
+                    Op::Sample => redrawn.push(verifier.sample()),
+                    Op::SamplePacked(n) => redrawn.extend(verifier.samples_packed(n)),
+                    Op::Grind(bits, packed) => {
+                        verifier.grind_check(bits).unwrap();
+                        match packed {
+                            Some(n) => redrawn.extend(verifier.samples_packed(n)),
+                            None => redrawn.push(verifier.sample()),
+                        }
+                    }
+                }
+            }
+            verifier.finish().unwrap();
+            assert_eq!(read, sent, "schedule {schedule}: {ops:?}");
+            assert_eq!(redrawn, drawn, "schedule {schedule}: {ops:?}");
+        }
+    }
+
+    /// A xorshift generator.
+    fn xorshift(seed: u64) -> impl FnMut() -> u64 {
+        let mut x = seed;
+        move || {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x
+        }
     }
 }

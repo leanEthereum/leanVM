@@ -224,36 +224,41 @@ impl LaneRounds {
         let (nt, n, lb) = (self.n_terms, self.n_lanes, self.lane_block);
         let (stack, terms) = (&self.stack, &self.terms);
         let low = terms.low_vars();
-        let rows = tracing::info_span!("Project", lanes = n + n.div_ceil(2)).in_scope(|| {
-            terms.project_rows(
-                n,
-                2,
-                |l, _| &needs[l / 2 * nt..][..nt],
-                |l, blocks, feed| {
-                    let lane = &stack[l * lb..(l + 1) * lb];
-                    // Only an even lane, a pair's `F`, takes `X` times it.
-                    let mut scratch = (l % 2 == 0).then(|| (vec![F64::ZERO; SWEEP << low], [false; SWEEP]));
-                    let tags = terms.lane_repeats(l, blocks.clone());
-                    // The block before's first word of `X F`.
-                    let mut last = None;
-                    for start in blocks.clone().step_by(SWEEP) {
-                        let sweep = start..(start + SWEEP).min(blocks.end);
-                        let words = sweep.start << low..sweep.end << low;
-                        feed(0, start, &lane[words.clone()], terms.lane_repeats(l, sweep.clone()));
-                        let Some((x, x_tags)) = scratch.as_mut() else {
-                            continue;
-                        };
-                        for (k, b) in sweep.clone().enumerate() {
-                            let (first, out) = (b << low, &mut x[k << low..(k + 1) << low]);
-                            mul_x_block(&lane[first..first + out.len()], first, outside(lane), out);
-                            x_tags[k] = last == Some(out[0]) && tags.get(b - blocks.start) == Some(&true);
-                            last = Some(out[0]);
-                        }
-                        feed(1, start, &x[..words.len()], &x_tags[..sweep.len()]);
+        // A lane's own projection onto a ring's terms may be given (the ring piece's bit-slices): it projects the rest.
+        let given = terms.given_terms(n);
+        let own: Vec<bool> = (0..n * nt)
+            .map(|i| needs[i / nt / 2 * nt + i % nt] && !given[i])
+            .collect();
+        let live = |l: usize, slot: usize| match slot {
+            0 => &own[l * nt..][..nt],
+            _ => &needs[l / 2 * nt..][..nt],
+        };
+        let mut rows = tracing::info_span!("Project", lanes = n + n.div_ceil(2)).in_scope(|| {
+            terms.project_rows(n, 2, live, |l, blocks, feed| {
+                let lane = &stack[l * lb..(l + 1) * lb];
+                // Only an even lane, a pair's `F`, takes `X` times it.
+                let mut scratch = (l % 2 == 0).then(|| (vec![F64::ZERO; SWEEP << low], [false; SWEEP]));
+                let tags = terms.lane_repeats(l, blocks.clone());
+                // The block before's first word of `X F`.
+                let mut last = None;
+                for start in blocks.clone().step_by(SWEEP) {
+                    let sweep = start..(start + SWEEP).min(blocks.end);
+                    let words = sweep.start << low..sweep.end << low;
+                    feed(0, start, &lane[words.clone()], terms.lane_repeats(l, sweep.clone()));
+                    let Some((x, x_tags)) = scratch.as_mut() else {
+                        continue;
+                    };
+                    for (k, b) in sweep.clone().enumerate() {
+                        let (first, out) = (b << low, &mut x[k << low..(k + 1) << low]);
+                        mul_x_block(&lane[first..first + out.len()], first, outside(lane), out);
+                        x_tags[k] = last == Some(out[0]) && tags.get(b - blocks.start) == Some(&true);
+                        last = Some(out[0]);
                     }
-                },
-            )
+                    feed(1, start, &x[..words.len()], &x_tags[..sweep.len()]);
+                }
+            })
         });
+        terms.add_given(&mut rows, |l| 2 * l * nt);
         self.p = rows.chunks_exact(nt).step_by(2).flatten().copied().collect();
         // Lane `2m`'s second slot.
         rows.chunks_exact(nt).skip(1).step_by(4).flatten().copied().collect()

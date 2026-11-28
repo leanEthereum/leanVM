@@ -3,7 +3,6 @@
 //! surfaces as a write-once conflict, and the pc is all you get).
 
 use crate::common::compile;
-use isa::pretty_integer;
 use zkdsl_compiler::{disassemble, parse};
 
 #[test]
@@ -34,13 +33,7 @@ def main():
 
     let program = compile(&parse(src).expect("parse"));
 
-    println!("\n=== zkDSL source ===\n{src}");
-    println!(
-        "=== compiled ISA ({} instructions) ===",
-        pretty_integer(program.prog.len())
-    );
     let text = disassemble(&program.prog);
-    print!("{text}");
 
     for mnemonic in ["SET", "XOR", "MUL", "DEREF", "JUMP", "KECCAK"] {
         assert!(text.contains(mnemonic), "disassembly is missing {mnemonic}");

@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fast
 @[expose] public section
 
 /-- **Every configuration's dispatches are the table's.** -/
-theorem callsOK : ∀ j < 44, CallsOK j
+theorem callsOK : ∀ j < 60, CallsOK j
   | 0, _ => callsOK_0
   | 1, _ => callsOK_1
   | 2, _ => callsOK_2
@@ -61,7 +61,23 @@ theorem callsOK : ∀ j < 44, CallsOK j
   | 41, _ => callsOK_41
   | 42, _ => callsOK_42
   | 43, _ => callsOK_43
-  | _ + 44, h => absurd h (by omega)
+  | 44, _ => callsOK_44
+  | 45, _ => callsOK_45
+  | 46, _ => callsOK_46
+  | 47, _ => callsOK_47
+  | 48, _ => callsOK_48
+  | 49, _ => callsOK_49
+  | 50, _ => callsOK_50
+  | 51, _ => callsOK_51
+  | 52, _ => callsOK_52
+  | 53, _ => callsOK_53
+  | 54, _ => callsOK_54
+  | 55, _ => callsOK_55
+  | 56, _ => callsOK_56
+  | 57, _ => callsOK_57
+  | 58, _ => callsOK_58
+  | 59, _ => callsOK_59
+  | _ + 60, h => absurd h (by omega)
 
 end
 end LeanVM.Guest.Fast

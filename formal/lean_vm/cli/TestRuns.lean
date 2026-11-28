@@ -1,16 +1,11 @@
-import LeanVMTests.Cost.DecoderChain
-import LeanVMTests.Cost.DecoderPreTest
-import LeanVMTests.Cost.DecoderReaders
 import LeanVMTests.Guest.CoreDataCheck
-import LeanVMTests.Protocol.EndToEnd.Front.Layout
 import LeanVMTests.Prover.Keccak
-import LeanVMTests.Prover.Whir
 
 /-!
 # `test-runs`: the tests' runs, compiled
 
 `lake exe test-runs` evaluates the checks too slow for the interpreter (`LeanVMTests/Runs.lean`):
-whole decoder runs, toy protocol and prover runs, the guest's core data against its expansion.
+the Keccak prover's runs and the guest's core data against its expansion.
 Their inputs and expected values stay in their test modules; this lists them. They run on a few
 threads, each printed with its time; `test-runs NAME…` runs those whose name contains a `NAME`.
 Run it under `lake env` (as `lake exe` does): the core data is read from its `.olean`. The exit
@@ -21,12 +16,7 @@ open Lean LeanVMTests
 
 /-- Every module's runs, by module. -/
 def modules : List (String × Runs) := [
-  ("Cost.DecoderChain", Cost.DecoderChain.runs ++ Cost.DecoderChain.frameRuns),
-  ("Cost.DecoderPreTest", Cost.DecoderPreTest.runs),
-  ("Cost.DecoderReaders", Cost.DecoderReaders.runs),
-  ("Protocol.EndToEnd.Front.Layout", Protocol.EndToEnd.Front.Layout.runs),
-  ("Prover.Keccak", Prover.Keccak.runs),
-  ("Prover.Whir", Prover.Whir.runs)]
+  ("Prover.Keccak", Prover.Keccak.runs)]
 
 /-- `Guest/CoreDataCheck.lean`'s check, on the environment of `LeanVM.Guest.CoreData`. -/
 def coreData : IO Bool := do

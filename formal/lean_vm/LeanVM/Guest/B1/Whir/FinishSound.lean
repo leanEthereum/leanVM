@@ -101,7 +101,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
     ∃ pt pt1 : E, (osFinishA c st tch).2.map σ =
       [σ (.n st.claim) + T.prod * recsDeficit recs G, pt, pt1,
         (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt ((G ++ T).drop g.foldStart)) 0,
-        multilinearEval (fold.take c.yrLen) T] ∧
+        multilinearEval (fold.take c.yrLen) T, σ (.n st.cb)] ∧
       ReadsAt rd pt (rotPt G T (c.levels.headD default).folds ++
         List.replicate (pointCap - (c.nFolds + c.yrLog)) 0) ∧
       ReadsAt rd pt1 ((rotPt G T (c.levels.headD default).folds).map (1 + ·) ++
@@ -311,7 +311,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   -- the returns
   simp only [allOk_cons, allOk_nil, and_true, stmtOk_atom, holds_load, holds_copy, holds_add, osLd,
     osCp, osAdd] at hE
-  obtain ⟨e0, e1, e2, e3, e4, e5⟩ := hE
+  obtain ⟨e0, e1, e2, e3, e4, e5, e6⟩ := hE
   obtain ⟨x, hx⟩ := osOodWeights_some (c := c) (tch := tch) c.levels.tail ((fun i ↦ (lvA i).logCols) 0) 1
     none rs.2 (by intro h; rw [h] at htl; have := hF.n2; rw [hy, hF.yr] at htl; simp at htl; omega)
   have hacc : σ (.n (od.2.1.getD 0)) = ∑ i ∈ Finset.range y, W i := by
@@ -342,7 +342,7 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   have hrl : recs.length = y := hF.recl
   refine ⟨σ (.n (st.k + 1)), σ (.n (st.k + 1 + 1)), ?_, hrd1, hrd2⟩
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true]
-  refine ⟨?_, e1, e2, ?_, ?_⟩
+  refine ⟨?_, e1, e2, ?_, ?_, e6⟩
   · rw [loadHolds_unique e0 hc1, recsDeficit, sum_list_range, hrl, Finset.mul_sum]
     exact congrArg (_ + ·) (Finset.sum_congr rfl fun i hi ↦ (hterms i (Finset.mem_range.mp hi)).2.1)
   · rw [e4, loadHolds_unique e3 hc0, hacc, inner_sum, hrl, ← Finset.sum_add_distrib]

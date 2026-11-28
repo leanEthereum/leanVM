@@ -16,7 +16,7 @@ mod xmul;
 // Merkle leaves and the ring switch read words as their bytes, which are the little-endian ones the verifier hashes.
 const _: () = assert!(cfg!(target_endian = "little"));
 
-pub use stack_open::{Committed, RingSwitchOpen, StackClaim, commit, open};
+pub use stack_open::{Committed, RingPiece, RingSwitchClaim, RingSwitchOpen, StackClaim, SumPart, commit, open};
 
 /// `len` values written by the pool `N` at a time, `chunk(k)` giving values `N k..N k + N`, those past `len` dropped.
 fn collect_chunks<T: Send, const N: usize>(len: usize, chunk: impl Fn(usize) -> [T; N] + Sync) -> Vec<T> {

@@ -4,12 +4,13 @@ the check without calls leaves uncovered), with the inference's index rules (`id
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
 `extend(out, why, S)` adds them to `callc.results()`'s."""
-import os, re, sys, collections
+import os, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
 import fnrules as R  # noqa: E402
 import heapc  # noqa: E402
+import subrs  # noqa: E402
 from pmap import pmap  # noqa: E402
 sys.modules.setdefault('infer', I)
 
@@ -176,17 +177,90 @@ def expq_bound(k, x):
     return None
 
 
-def dim_ok(k, x, t, p, u):
+def dim_ok(k, x, t, p, u, pw=1):
     """`CoreMode.dimLt`: `x` loaded at the listed base parameter's `[kb]·g^j` by a top-level `load`, `p` the listed
-    bound parameter, a pair `(j, c)`, `t < c + u`."""
+    bound parameter, a pair `(j, c)`, `t < pw·c + u` (the two sides to the power `pw`)."""
     params, body = I.CORE[k]
     atoms = top_atoms(body)
     for f, kbi, gbi, pairs in DIM_FACTS:
-        if f != k or max(kbi, gbi) >= len(params) or params[gbi] != p or not u < 2 ** 33:
+        if f != k or max(kbi, gbi) >= len(params) or params[gbi] != p or not u < 2 ** 33 or not 0 < pw < 2 ** 28:
             continue
         for j, c in pairs:
-            if ('load', x, params[kbi], j) in atoms and t < c + u:
+            if ('load', x, params[kbi], j) in atoms and t < pw * c + u:
                 return True
+    return False
+
+
+def load_of(k, p, d):
+    """`CoreMode.ldAt`: the value the first top-level `load` reads at `[p]·g^d`."""
+    for a in top_atoms(I.CORE[k][1]):
+        if a[0] == 'load' and a[2] == p and a[3] == d:
+            return a[1]
+    return None
+
+
+def gw_vals(k, gw):
+    """Ghost `GB + j` of an own parameter word `([p]·g^d, j)` (`HSig.gw`), `p < GB`, and the value the first top-level
+    `load` reads there (`CoreMode.gwAlias`)."""
+    out = {}
+    for c, j in gw or ():
+        if len(c[0]) == 1 and c[0][0][1] == 1 and c[0][0][0] < I.GB:
+            y = load_of(k, c[0][0][0], c[1])
+            if y is not None and I.GB + j not in out:
+                out[I.GB + j] = y
+    return out
+
+
+def ren_idx(i, m):
+    if i[0] == 'val':
+        return ('val', m.get(i[1], i[1]))
+    if i[0] == 'mono':
+        return ('mono', (tuple((m.get(b, b), e) for b, e in i[1][0]), i[1][1]))
+    return i
+
+
+def ren_res(r, m):
+    """`CRes.renL`: the values of `m` renamed in an `lt` (under its conditions)."""
+    if r[0] == 'lt':
+        return ('lt', ren_idx(r[1], m), ren_idx(r[2], m))
+    if r[0] == 'under':
+        return ('under', r[1], ren_res(r[2], m))
+    return r
+
+
+def res_q(k, r):
+    """`CoreMode.resQ`: the exponent and dimension facts' residuals."""
+    if r[0] == 'under':
+        return res_q(k, r[2])
+    if r[0] != 'lt':
+        return False
+    a, b = r[1], r[2]
+    one = lambda c: len(c[0]) == 1 and c[0][0][1] == 1
+    if a[0] == 'val' and b[0] == 'num':
+        B = expq_bound(k, a[1])
+        return b[1] < CAPE and B is not None and B <= b[1]
+    if a[0] == 'mono' and b[0] == 'num':
+        B = one(a[1]) and expq_bound(k, a[1][0][0][0])
+        return b[1] < CAPE and B is not None and B is not False and B + a[1][1] <= b[1]
+    if a[0] == 'num' and b[0] == 'mono':
+        B = one(b[1]) and expq_bound(k, b[1][0][0][0])
+        return a[1] < b[1][1] and B is not None and B is not False and B + b[1][1] < CAPE
+    if a[0] == 'val' and b[0] == 'mono':
+        return one(b[1]) and dim_ok(k, a[1], 0, b[1][0][0][0], b[1][1])
+    if a[0] == 'mono' and b[0] == 'mono':
+        x, y = a[1][0], b[1][0]
+        return len(x) == 1 and len(y) == 1 and x[0][1] == y[0][1] and \
+            dim_ok(k, x[0][0], a[1][1], y[0][0], b[1][1], x[0][1])
+    return False
+
+
+def gw_alias(k, r, gw):
+    """`CoreMode.gwAlias`: with one own parameter word's ghost renamed the value a top-level `load` reads at its cell,
+    a ghost-free residual of the exponent and dimension facts (`resQ`)."""
+    for g, y in gw_vals(k, gw).items():
+        r2 = ren_res(r, {g: y})
+        if res_q(k, r2) and all(v < I.GB for v in vals(r2)):
+            return True
     return False
 
 
@@ -228,6 +302,20 @@ def expq_facts(EM):
         if one(a) and one(b) and dim_ok(self.k, a[0][0][0], a[1], b[0][0][0], b[1]):
             ra = ('val', a[0][0][0]) if a[1] == 0 else ('mono', a)
             return [self.use(('dim', a, b), ('lt', ra, ('mono', b)))]
+        # `dim` at a power, and over an own parameter word's ghost (`gwAlias`)
+        if len(a[0]) == 1 and len(b[0]) == 1 and a[0][0][1] == b[0][0][1]:
+            m = gw_vals(self.k, getattr(self.H.sig, 'gw', ()))
+            x = m.get(a[0][0][0], a[0][0][0])
+            if dim_ok(self.k, x, a[1], b[0][0][0], b[1], a[0][0][1]):
+                ra = ('val', a[0][0][0]) if a[1] == 0 and a[0][0][1] == 1 else ('mono', a)
+                return [self.use(('dim', a, b), ('lt', ra, ('mono', b)))]
+        if one(a) and not b[0] and b[1] < CAPE:
+            m = gw_vals(self.k, getattr(self.H.sig, 'gw', ()))
+            if a[0][0][0] in m:
+                B = expq_bound(self.k, m[a[0][0][0]])
+                if B is not None and B + a[1] <= b[1]:
+                    ra = ('val', a[0][0][0]) if a[1] == 0 else ('mono', a)
+                    return [self.use(('expq', a, b), ('lt', ra, ('num', b[1])))]
         return None
     return base, fact
 
@@ -401,10 +489,10 @@ def res_fam(k, r, G):
         B = expq_bound(k, c[0][0][0])
         return B is not None and B + c[1] < CAPE
     if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'mono':
-        # `dim`: a loaded `kappa_base` word times `g^t` below `p·g^u`
+        # `dim`: a loaded `kappa_base` word times `g^t` below `p·g^u`, both to a power
         a, c = r[1][1], r[2][1]
-        return len(a[0]) == 1 and a[0][0][1] == 1 and len(c[0]) == 1 and c[0][0][1] == 1 and \
-            dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1])
+        return len(a[0]) == 1 and len(c[0]) == 1 and a[0][0][1] == c[0][0][1] and \
+            dim_ok(k, a[0][0][0], a[1], c[0][0][0], c[1], a[0][0][1])
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'val':
         # `rcn`: `x` range checked against `k = p·w`, `w` the constant `g⁻¹`
         x, p = r[1][1], r[2][1]
@@ -440,23 +528,33 @@ def vals(r):
         return [c[1] for c in r[1]] + vals(r[2])
     if r[0] == 'subP':
         return cell(r[1]) + [b for c in r[2] for b in cell(c)]
+    if r[0] == 'eq':
+        return cell(r[1]) + cell(r[2])
     return []
 
 
-# `CoreMode.stLoops`: the loops reading the proof stream past a cursor, by stable name: (caller's cell `D` holding
-# the stream, the cursor value `v`, the words `S` read past it an iteration), each its function's own
+# `CoreMode.stLoops`: the cursor-run loops, by stable name: (the caller's cell `Dbase` holding the run's base, its cell
+# `Dbound` holding `g^n`, the stride `W`, the cursor value `v`, the words `S` read past it an iteration), each its
+# function's own: the run `[base]·[0, W·n)` as its `W` residues
 ST_LOOPS = R.table('ST_LOOPS') or {}
 # `CoreMode.cmK`: `child_claim_list_mono`'s frame loops, their claims a frame
 CM_LOOPS = R.table('CM_LOOPS') or {}
 
 
 def st_sub(k, c):
-    """`CoreMode.stSub`: a stream-cursor loop's read `[v]·g^c`, `c < S`, a cell of the run `[ghost₀]·[0, 8192)`, or
-    None."""
+    """`CoreMode.stSub`: a cursor-run loop's read `[v]·g^c`, `c < S`, a cell of the residue run
+    `[ghost₀]·g^(c % W)·[0, e(ghost₁))` of stride `W`, or None."""
     p = ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)
-    if p is None or tuple(c[0]) != ((p[1], 1),) or not c[1] < p[2]:
+    if p is None or tuple(c[0]) != ((p[3], 1),) or not c[1] < p[4]:
         return None
-    return ('sub', c, ((((I.GB, 1),), 0), 1, ('num', 0), ('num', 8192)))
+    return ('sub', c, ((((I.GB, 1),), c[1] % p[2]), p[2], ('num', 0), ('val', I.GB + 1)))
+
+
+def st_res(k, r):
+    """`CoreMode.stSub`'s residuals: a read (`st_sub`), or ghost `1`'s exponent `0 < e(ghost₁)`."""
+    if (ST_LOOPS.get(I.callee(k)) or ST_LOOPS.get(k)) is None:
+        return False
+    return (r[0] == 'sub' and st_sub(k, r[1]) == r) or r == ('lt', ('num', 0), ('val', I.GB + 1))
 
 
 def rc_pts(k, r):
@@ -484,11 +582,13 @@ def pow_b(k, bs):
 
 def split_res(sp, cs, r):
     """`CoreMode.splitRes`: under the branch conditions `cs`, an exponent bound of `q^k·g^c` (`k` one or `S`) or of
-    `r·g^c` below a constant; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the stride-`S` run `[b·g^i]` over
-    `[0, e(q))`, `i < S`, inside `[b]·[0, e(n))`."""
+    `r·g^c` below a constant; `n` below a constant from `S·A`; `q^S·g^c` below `n` under the arm `j > c` of `rv`; the
+    stride-`S` run `[b·g^i]` over `[0, e(q))`, `i < S`, inside `[b]·[0, e(n))`."""
     q, rb, rv, n, S, A = sp
     if r[0] == 'under':
         return split_res(sp, cs + list(r[1]), r[2])
+    if r[0] == 'lt' and r[1] == ('val', n) and r[2][0] == 'num':
+        return S * A <= r[2][1] < CAPE
     if r[0] == 'lt' and r[1][0] == 'mono' and r[2][0] == 'num':
         (bs, off), N = r[1][1], r[2][1]
         return N < CAPE and ((bs == q and A - 1 + off < N) or (bs == pow_b(S, q) and S * (A - 1) + off < N) or
@@ -510,11 +610,24 @@ def split_fam(k, r):
 
 
 def res_ok(k, res, S):
-    """`CoreMode.resFamG`: a ghost-free residual of a family, generic or the function's own (`fam`), or of a ghost
-    family, the stream-cursor loops' (`st_sub`) or the function's own (`ghost`)."""
+    """`CoreMode.resOk`: each residual a ghost-free one of a family, generic or the function's own (`fam`), or of a
+    ghost family, the cursor-run loops' (`st_res`) or the function's own (`ghost`) (`resFamG`); or a symbolic run inside a
+    constant run whose bounds the list's own facts give (`subRS`)."""
     return all(((res_fam(k, r, S[k]) or split_fam(k, r) or rc_pts(k, r) or rc_tab(k, r) or R.some('fam', k, r)) and
                 all(v < I.GB for v in vals(r))) or
-               (r[0] == 'sub' and st_sub(k, r[1]) == r) or R.some('ghost', k, r) for r in res)
+               st_res(k, r) or R.some('ghost', k, r) or gw_alias(k, r, own_gw(k, S)) or
+               subrs.sub_rs(res, r) for r in res)
+
+
+def own_gw(k, S):
+    """The function's own parameter words (`HSig.gw`), as `callc.own_sig` gives them."""
+    import callc
+    try:
+        params, body = I.CORE[k]
+        rets = [s[1] for s in body if s[0] == 'ret']
+        return callc.own_sig(S[k], len(params), len(rets[0]) if rets else 0, callc.gl_of(k)).gw
+    except Exception:
+        return ()
 
 
 def sel_facts(EM):
@@ -629,24 +742,104 @@ def fn_facts(EM):
     return base, fact
 
 
+def merged_runs(self, st, EM):
+    """The runs `⟨B, 1, g^0, H^S⟩` a function's rule file names (`merged_runs`: `(B, S)`) whose `S` residue runs
+    `⟨B·g^d, S, g^0, H⟩`, `d < S`, are in scope (a callee's chunks), each with its witnesses (`runOk`: `mrg`)."""
+    out = []
+    for B, S in R.first('merged_runs', self.k) or ():
+        his = collections.defaultdict(set)
+        for base, S2, lo, hi in st.rs.values():
+            if S2 == S and lo == ((), 0) and base[0] == B[0] and 0 <= base[1] - B[1] < S:
+                his[hi].add(base[1] - B[1])
+        for H, ds in sorted(his.items()):
+            if len(ds) == S:
+                Q = (B, 1, ((), 0), EM.C.cpow(H, S))
+                cache = self.__dict__.setdefault('_merged', {})
+                key = (Q, id(st.rs), len(st.rs), id(st.env), len(st.env), tuple(self.X.path))
+                if key not in cache:
+                    cache[key] = self.run(st, Q)
+                if cache[key] is not None:
+                    out.append((Q, cache[key]))
+    return out
+
+
 def cs_reads(EM):
     """The solver's read witnesses also from the families of reads: a cell of a run in scope by a residual `sub c R`
     of the stream-cursor loops' (`st_sub`) or of the function's own (its rule file's `sub`: `column_selector`'s lowest
-    digit, the ghost families, the stream's cursors)."""
+    digit, the ghost families, the stream's cursors); or a cell, a run needed, of a run its rule file's
+    `merged_runs` names, made up from its residues in scope (`der`, `drv`), by a residual `sub c Q`, `subR q Q` its
+    family takes (`fam`)."""
     base = EM.Solver.pt
+    base_drv = getattr(EM.Solver, '_drv0', EM.Solver.drv)
+    EM.Solver._drv0 = base_drv
+    EM.DRV_ALSO[0] = lambda k: bool(R.first('merged_runs', k))
 
     def pt(self, st, c, want=None, depth=0):
+        # a cell over a merged run's base placed in it first: `base`'s `der` would search runs up to the cell, each
+        # witnessed point by point
+        if want is None and not depth and not getattr(self, '_in_stream', False) and \
+                R.some('merged_cell', self.k, c):
+            w = merged_pt(self, st, c)
+            if w is not None:
+                return w
         w = base(self, st, c, want, depth)
         if w is not None or want is not None:
             return w
         r = R.first('sub', self.k, c) or st_sub(self.k, c)
-        if r is None or c != r[1]:
+        if r is not None and c == r[1]:
+            R2 = EM.C.runF(st.env, r[2])
+            for n, R3 in sorted(st.rs.items()):
+                if R3 == R2:
+                    return ('run', n, [self.use(('rd', r), r)])
+        if depth or getattr(self, '_in_stream', False):
             return None
-        R2 = EM.C.runF(st.env, r[2])
-        for n, R3 in sorted(st.rs.items()):
-            if R3 == R2:
-                return ('run', n, [self.use(('rd', r), r)])
+        if not R.some('merged_cell', self.k, c):
+            return None
+        return merged_pt(self, st, c)
+
+    def merged_pt(self, st, c):
+        self._in_stream = True
+        try:
+            for Q, ws in merged_runs(self, st, EM):
+                q = (Q[0], 1, ('num', 0), self.idx(st, Q[3]))
+                g = tuple(dict.fromkeys(self.X.path))
+                res = ('sub', c, q)
+                res = ('under', g, res) if g else res
+                if EM.C.runF(st.env, q) != Q or not R.some('fam', self.k, res):
+                    continue
+                return ('der', Q, [self.use(('stream', c, q, g), res)], tuple(ws))
+        finally:
+            self._in_stream = False
         return None
+
+    def drv_merged(self, st, Q):
+        if not getattr(self, '_in_stream', False) and R.first('merged_runs', self.k) and \
+                R.some('merged_cell', self.k, Q[0]):
+            self._in_stream = True
+            try:
+                b, S, lo, hi = Q
+                q = (b, S, self.idx(st, lo), self.idx(st, hi))
+                for R2, ws in merged_runs(self, st, EM):
+                    Rr = (R2[0], 1, ('num', 0), self.idx(st, R2[3]))
+                    g = tuple(dict.fromkeys(self.X.path))
+                    res = ('subR', q, Rr)
+                    res = ('under', g, res) if g else res
+                    if EM.C.runF(st.env, q) != Q or EM.C.runF(st.env, Rr) != R2 or not R.some('fam', self.k, res):
+                        continue
+                    return [('drv', R2, [self.use(('drv', q, Rr, g), res)])] + list(ws)
+            finally:
+                self._in_stream = False
+        return None
+
+    def drv(self, st, Q):
+        w = drv_merged(self, st, Q)
+        if w is not None:
+            return w
+        if 'der' in I.F or 'chain' in I.F:
+            return base_drv(self, st, Q)
+        return None
+    EM.Solver.drv = drv
+    EM.Solver.drv_merged = drv_merged
     return base, pt
 
 

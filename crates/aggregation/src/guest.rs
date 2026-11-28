@@ -12,7 +12,7 @@ pub(super) const GUEST_SOURCE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"));
 
 /// The aggregation bytecode, compiled to a fixed point on its own size: the one fixed program every node proves, and
-/// whose stacked bytecode every node's bytecode claims are about.
+/// the program every node's deferred claims are about.
 ///
 /// The recursion placeholders are a function of the inner bytecode's log size,
 /// and here the inner bytecode is this one, so the size has to agree with

@@ -20,7 +20,7 @@ its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
   `arms<i>_<t> : armsOkW ..` (the arms' summaries `sum<i>_<t>`) and `W<i>` the join (`joinOk`) and `win<i>` by
-  `winOk_of_arms`;
+  `winOk_of_arms` (`winOkF_of_arms`);
 * `Ok.lean`: `head_ok`, `tail_ok` (a function: `last_ok`, the statements from the last cut on) and
   `Fn.«fn».heap_okW`, the check at the callees' signatures, by `heapOkC_of_wins` (`heapOkC_of_winsF`), which
   `core.py`'s `heap_okC` takes.
@@ -122,6 +122,8 @@ def states(k, H, sigOf):
         st.pushR(r)
     for p in prs:
         st.pushPR(p)
+    st.eqs = C.resEqs(H.res)
+    C.seedEnv(st.env, st.eqs)
     out, costs = [st.copy()], []
     for s in region(k, H):
         with Meter() as mt:
@@ -167,7 +169,7 @@ def fn_cost(k, H, sigOf):
     """The estimated heartbeats (thousands) of `k`'s check in one `decide`: what `emitc.py` compares with `BUDGET`."""
     params, body = I.CORE[k][0], I.arm_body(k)
     with Meter() as mt:
-        C.heapOkC(dict(I.POWS), sigOf, k, params, body, H)
+        C.heapOkC(dict(I.POWS), sigOf, k, params, body, H, path=I.arm_path(k))
     return W_LINE * mt.n + W_ATOM * sum(map(atoms, body)) + fixed_cost(k, H)
 
 
@@ -461,7 +463,7 @@ def emit_arms(k, i, a, split, blk, ns, base, imps, sub='HeapW', smod=None):
         sums = ax.lst(f'sum{i}_{t}_', 'BlkSum', [lblk(b) for b in bl[j:j2]])
         x = HEADER(f'{base}.W{i}A{t}', what=f'Arms {j} to {j2 - 1} of statement {a} of `{k}`\'s heap check.')
         x += f'public import {base}.{smod or "S" + str(i)}\npublic import LeanVM.Guest.CoreMode.HeapCWinM\n' + imps
-        x += f'\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n'
+        x += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n'
         x += f'namespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
         x += ''.join(f'/-- Part of `sum{i}_{t}`. -/\n{d}\n' for d in ax.defs)
         x += f'/-- What the join reads of arms {j} to {j2 - 1}. -/\ndef sum{i}_{t} : List BlkSum := {sums}\n\n'
@@ -622,8 +624,10 @@ def emit(k, H, sts, cs, po, splits, gen):
            'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
     cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
            'hcxHV hcxEQ\n')
-    # the states, in modules of at most `SPART` characters (the first in `Cx`, then `S<j>`, each importing the last),
-    # each sharing the previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
+    cx += f'\nend\nend {ns}.{sub}\n'
+    mods.append(('Cx', repack(cx)))
+    # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
+    # previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
     lits = Lits()
     lits.count(sts[cs[nw]])
     groups, cur, smod = [], [], {}
@@ -635,14 +639,10 @@ def emit(k, H, sts, cs, po, splits, gen):
             cur = []
         cur.append((i, t))
     groups.append(cur)
-    cx += '\n' + ''.join(t for _, t in groups[0]) + f'\nend\nend {ns}.{sub}\n'
-    mods.append(('Cx', repack(cx)))
-    for i, _ in groups[0]:
-        smod[i] = 'Cx'
-    for g, grp in enumerate(groups[1:], 1):
+    for g, grp in enumerate(groups):
         si = HEADER(f'{base}.S{g}', what=f'The states {grp[0][0]} to {grp[-1][0]} of `{k}`\'s '
                            f'windowed heap check.')
-        si += f'public import {base}.{"S" + str(g - 1) if g > 1 else "Cx"}\n\nset_option maxRecDepth 100000\n'
+        si += f'public import {base}.{"S" + str(g - 1) if g else "Cx"}\n\nset_option maxRecDepth 100000\n'
         si += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(t for _, t in grp)
         si += f'\nend\nend {ns}.{sub}\n'
         mods.append((f'S{g}', repack(si)))
@@ -659,9 +659,9 @@ def emit(k, H, sts, cs, po, splits, gen):
             amods = emit_arms(k, i, a, splits[i], blk, ns, base, imps, sub, smod[i])
             mods += amods
             w += ''.join(f'public import {base}.{nm}\n' for nm, _ in amods)
-            w += f'public import LeanVM.Guest.CoreMode.HeapCWinM\n'
+            w += 'public import LeanVM.Guest.CoreMode.HeapCWinM\n'
         w += imps + f'\nset_option Elab.async false\n\nnamespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n'
-        w += f'@[expose] public section\n\n'
+        w += '@[expose] public section\n\n'
         if i in splits:
             bl, ac = splits[i]
             m = len(ac) - 1
@@ -687,7 +687,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     ok = HEADER(f'{base}.Ok', what=f'`{k}`\'s heap check, from its {n} windows.')
     ok += ''.join(f'public import {base}.W{i}\n' for i in range(n))
     if not loop:
-        ok += f'public import LeanVM.Guest.CoreMode.HeapCWinF\n' + ('' if n else f'public import {base}.Cx\n')
+        ok += 'public import LeanVM.Guest.CoreMode.HeapCWinF\n' + ('' if n else f'public import {base}.S0\n')
     ok += f'\nset_option Elab.async false\n\nnamespace {ns}.{sub}\n\nopen LeanVM.Guest.CoreMode\n\n@[expose] public section\n\n'
     if loop:
         lei = E.lidx(H.sig.term[0][1])

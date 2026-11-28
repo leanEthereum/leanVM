@@ -1,10 +1,9 @@
 /-
   LeanVM.Facts.Verifier
 
-  Facts about the verifier's definitions (`Statement/LeanVmVerifier.lean`, `Statement/Verifier/`), proved:
-  the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`; and the verifier's
-  definitions no end statement reaches, moved here from the statement, names kept: `yE`,
-  `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
+  Facts about the verifier's definitions (`Statement/Verifier/`), proved: the selector point's
+  shift; and the verifier's definitions no end statement reaches, moved here from the statement,
+  names kept: `yE`, `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
 -/
 
 module
@@ -23,12 +22,6 @@ open LeanVM.Parameters LeanVM.Semantics
 
 @[expose] public section
 
-/-- The two cases of `qkeccak_slot` (`layout.rs`) are disjoint: no spare-carrying committed
-column is an input lane. -/
-theorem keccakSlotOf_disjoint :
-    ∀ l ∈ keccakCommitted.take qkeccakSpare, ¬ (keccakIn ≤ l ∧ l < keccakIn + 25) := by
-  decide +kernel
-
 /-- Dropping the low `v` coordinates of a selector point leaves the selector point of the
 selector shifted by `v`. -/
 theorem selectorPoint_drop (selector length v : ℕ) :
@@ -36,12 +29,6 @@ theorem selectorPoint_drop (selector length v : ℕ) :
   apply List.ext_getElem (by simp [selectorPoint])
   intro i _ _
   simp [selectorPoint, Nat.shiftRight_add]
-
-/-- `stack_point` as the point, then the selector point's coordinates above the window. -/
-theorem Placement.stackPoint_eq_drop (p : Placement) (point : List E) (stackLog : ℕ) :
-    p.stackPoint point stackLog =
-      point ++ (selectorPoint p.index stackLog).drop p.variableCount := by
-  rw [selectorPoint_drop, Placement.stackPoint]
 
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 

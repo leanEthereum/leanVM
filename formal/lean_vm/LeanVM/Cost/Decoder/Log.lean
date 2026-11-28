@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Extractor.Top
+public import LeanVM.Cost.Decoder.Base
 public import LeanVM.Guest.Fast.DiscreteLog
 
 /-!
@@ -12,9 +12,9 @@ with `g^i` the word's low limb, `0` otherwise). Compiled here through a discrete
 factors of `2^64 − 1`, `Guest/Fast/DiscreteLog.lean`'s `gLog_eq_discreteLog`). This module is the
 decoder chain's one point of contact with the logarithm.
 
-Every module of the chain imports `LeanVM.Cost.Extractor.Top` first, through this one: the
+Every module of the chain imports `LeanVM.Cost.Decoder.Base` first, through this one: the
 compiler allocates function indices from its imports, so the decoder's functions follow the
-extractor's and share its compiled library.
+base's and share its compiled library.
 -/
 
 namespace LeanVM.Cost.Decoder

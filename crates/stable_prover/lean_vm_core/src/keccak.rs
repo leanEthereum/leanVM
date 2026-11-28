@@ -26,7 +26,7 @@ pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
 pub const SLOTS: usize = MIN_SHAPE.slots();
 /// The fewest steps the reduction is sized for, one of its blocks.
 pub const MIN_STEPS: usize = MIN_SHAPE.n();
-/// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
+/// Cells one `KECCAK` row links: thirteen read, then up to thirteen written.
 pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
 
 const fn shape(n_steps: usize) -> Shape {
@@ -76,7 +76,7 @@ pub(crate) fn permute_cells(cells: &[F128; STATE_CELLS], in_odd: bool, out_odd: 
 }
 
 /// The reduction's sizes. Its witness, every round's state of every step, is rebuilt from `q_keccak`'s input states
-/// when it runs: held from the witness build instead, it would sit beside the bus's trees, at the prover's peak.
+/// when it runs: held from the witness build instead, it would sit beside the link's arrays, at the prover's peak.
 pub(crate) struct Reduction {
     shape: Shape,
     steps: usize,

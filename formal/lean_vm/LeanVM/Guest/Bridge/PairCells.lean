@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.PairCells
 
-  The computed hints' `HintOk` lemmas, over destination predicates whose bodies importers see.
+  `Bridge.Cells`' computed hints' `HintOk` lemmas over destination predicates whose bodies importers see.
 -/
 
 module
@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.Cells
 /-!
 # The computed hints' cells, exposed
 
-The reference's and the executor's hold on a destination, `DestR` and `DestM`, are exposed so that importers can build one; from them, each computed hint's `HintOk` (`hintOkR_*`).
+`Bridge.Cells` states the reference's and the executor's hold on a destination (`DestIn`, `DestMem`) without exposing them, so no importer can build one; `DestR` and `DestM` are the same predicates, exposed, with the same lemmas (`hintOkR_*`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -141,13 +141,26 @@ theorem hintOkR_digitsExp {loc : ℕ → ℕ} {v : V} {nbits ndigits digitBits s
     (h : compiles loc (.digitsExp v nbits ndigits digitBits start sc d)
       (.digitDecomposeExp x bd nbits' ndigits' digitBits' start' sc') = true) {C : Ctx}
     {M : ℕ → E} {st : St} {rd : Reader} {σ : Val} (hv : st.mem.peek (st.fp + loc v.idx) = σ v)
-    (hs : ∀ c, sc = some c → st.mem.peek (st.fp + loc c.idx) = σ c) (hpos : 0 < ndigits')
+    (hs : ∀ c, sc = some c → st.mem.peek (st.fp + loc c.idx) = σ c)
+    (hend : ∀ base, bd = .stack base → st.fp + base + ndigits' ≤ maxCells)
     (hd : DestR loc M st rd σ d) (hex : (Core.Hint.digitsExp v nbits ndigits digitBits start sc d).Exact rd σ) :
     HintOk C M st (.digitDecomposeExp x bd nbits' ndigits' digitBits' start' sc') := by
   simp only [compiles, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, rfl⟩, h62⟩, hsc⟩, hd'⟩ := h
   obtain ⟨m, s, hm, hσ, hst, hw⟩ := hex
-  refine ⟨h62, hpos, m, s, ⟨by rw [hv, hσ], hm⟩, ?_, destOk_mono (fun b hb ↦ ?_) (destOk_runR hd' hd)⟩
+  have hr := destOk_runR hd' hd
+  have hend' : DestOk st (fun b ↦ b + ndigits ≤ maxCells ∧ RunOk M (b + 0) (d.words rd σ)) bd := by
+    cases bd with
+    | stack base => exact ⟨hend base rfl, hr⟩
+    | heap ptr =>
+      obtain ⟨b, hpb, hb⟩ := hr
+      refine ⟨b, hpb, ?_, hb⟩
+      by_cases hp : 0 < ndigits
+      · have := hb.end_le (by rw [hw]; simpa using hp)
+        rw [hw] at this
+        simpa using this
+      · have := hpb.2; omega
+  refine ⟨h62, m, s, ⟨by rw [hv, hσ], hm⟩, ?_, destOk_mono (fun b hb ↦ ⟨hb.1, ?_⟩) hend'⟩
   · cases sc with
     | none => cases sc' with
       | none => exact hst
@@ -158,7 +171,8 @@ theorem hintOkR_digitsExp {loc : ℕ → ℕ} {v : V} {nbits ndigits digitBits s
         simp only [startOk, beq_iff_eq] at hsc
         subst hsc
         exact ⟨by rw [hs c rfl, hst.2], hst.1⟩
-  · rwa [Nat.add_zero, hw] at hb
+  · have := hb.2
+    rwa [Nat.add_zero, hw] at this
 
 /-- **`HintOk` of `windowsExp`**: the input at its cell, the destination's words at theirs, the
 atom exact. -/

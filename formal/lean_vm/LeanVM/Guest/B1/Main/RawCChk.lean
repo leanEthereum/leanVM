@@ -1,14 +1,13 @@
 /-
   LeanVM.Guest.B1.Main.RawCChk
 
-  `main`'s raw-signature loop `main_loop3` as a statement list (by kernel evaluation), and the pure
-  set it calls into, for its placed completeness (`main_loop2`'s, its check inline, is `RawAt`'s).
+  `main`'s raw-signature loop `main_loop3` as a statement list (by kernel evaluation), for its completeness.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.Loops
-public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
@@ -18,8 +17,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop3»
 # `main_loop3`'s body
 
 `l4Pre`: `main_loop3`'s statements before its `ret []` (`l4_body`), its parameters `.n 0 …`
-(`l4_params`); `l4_find`; `raw4_pure`: the loop with its signature verifier and `sp_wots`, which it
-calls, places nothing (kernel evaluation). `pureOk`, `pureIn_of_ok`: a pure set by evaluation.
+(`l4_params`); `l4_find`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -58,22 +56,6 @@ theorem l4_idx' : coreProgram.indexOf? name% «main_loop3» = some idx% «main_l
 theorem l4_find : coreProgram.find? name% «main_loop3» = some (coreProgram.getD idx% «main_loop3»
     default) :=
   find_of_idx l4_idx'
-
-/-- Every member's body places nothing and calls members only. -/
-noncomputable def pureOk (S : List String) : Bool :=
-  S.all fun g => match coreProgram.find? g with
-    | some fn => Stmt.pureList S fn.body
-    | none => true
-
-theorem pureIn_of_ok {S : List String} (h : pureOk S = true) : coreProgram.PureIn S := by
-  intro g hg fn hf
-  have h := List.all_eq_true.mp h g hg
-  rw [hf] at h
-  exact h
-
-set_option maxRecDepth 100000 in
-theorem raw4_pure : coreProgram.PureIn [name% «main_loop3», "verify_sig_lean_sphincs", "sp_wots"] :=
-  pureIn_of_ok (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.Main

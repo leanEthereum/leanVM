@@ -98,8 +98,8 @@ impl FnLower<'_> {
         // a heap cell (cell k lives at `buf · g^k`) and would deref a wild
         // address at proving time. Reject it here, where the source is known.
         // An INTEGER index (a literal, a name bound to one, `const(...)`,
-        // `len(...)`, or integer arithmetic of those, `2 * 2`) is rejected even
-        // now that `gaddr_of` reads `2^k` as `g^k` in a pointer: `hb[2]` would
+        // `len(...)`, or integer arithmetic of those, `2 * 2`) is rejected though
+        // `gaddr_of` reads `2^k` as `g^k` in a pointer: `hb[2]` would
         // silently mean cell 1, while slice bounds stayed integer (`hb[2:4]`
         // starts at cell 2), so one spelling would name two different cells. An
         // index built from `GEN` is fine, `1` is `g^0` either way, and a constant

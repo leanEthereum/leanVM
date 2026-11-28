@@ -21,7 +21,7 @@ statements against its code (`cplResD`), which the kernel evaluates (`Pack/*/Cpl
 every part of every window. The check reads the program only as the function's callees see it
 (`cxOfD`, `cplWinD_congr`), so a check over the function's own view (`Check.Glob.ofSigs`) is the
 check over the whole program's (`Cpl.lean`). This module imports none of the guest's data
-(`ViewFirewall.lean`).
+(`CplFirewall.lean`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -717,6 +717,17 @@ noncomputable def endC (st : CW) : RC :=
         | _ => .fail 2
       | .error e => .fail e
 
+/-- An `if`'s first arm ending at `J` joins the other arm's `J'` (`Check.passTo`): at `J'` itself, or
+through the segment at `J`, walked to its end with nothing more to walk, its local jump to `J'` (an
+arm ending in a call returns to a segment that jumps to the join); the counts there. -/
+noncomputable def passC (st : CW) (J J' : ℕ) (c : Cnt) : Option Cnt :=
+  bif Nat.beq J J' then some c else
+  match segAtC X J st with
+  | some s => match endC X { s with cnt := c, fresh := none } with
+    | .join J'' c' _ => bif Nat.beq J'' J' then some c' else none
+    | _ => none
+  | none => none
+
 /-- After a call into the frame `fp[q]` returning to `r`: the position at the return point, its
 callee frame's returns known. -/
 noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args rets : List V) :
@@ -728,7 +739,8 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
     | none => .error 7
   | .error e => .error e
 
-set_option maxRecDepth 20000 in
+set_option maxRecDepth 20000
+
 mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
@@ -747,12 +759,13 @@ noncomputable def cw : List Core.Stmt → CW → RC
             (fileB X.loc X.fs X.nx z st'.book).seq fun Bz ↦ (fileB X.loc X.fs X.nx n st'.book).seq fun Bn ↦
             match cw z { st' with book := Bz }, cw n { sn with book := Bn } with
             | .join J c1 u1, .join J' c2 u2 =>
-              bif Nat.beq J J' then
-                match segAtC X J st' with
-                | some sj => (Cnt.max c1 c2).seq fun c ↦ natSeq (Nat.lor u1 u2) fun u ↦
+              match passC X st' J J' c1 with
+              | some c1' =>
+                match segAtC X J' st' with
+                | some sj => (Cnt.max c1' c2).seq fun c ↦ natSeq (Nat.lor u1 u2) fun u ↦
                     cw ss { sj with cnt := c, uq := u }
                 | none => .fail 10
-              else .fail (1000000000 + J * 100000 + J')
+              | none => .fail (1000000000 + J * 100000 + J')
             | .fail e, _ => .fail e
             | _, .fail e => .fail e
             | _, _ => .fail 12
@@ -952,7 +965,7 @@ end Walk
 /-! ## A function, by windows and parts
 
 Window `i` of function `j` is walked over the segments of the soundness certificate's window
-(`execWinS` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
+(`execWin` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
 by its own kernel evaluation (`Data.cplParts`): part `k` starts at statement `s` of the window at
 the start of the segment at offset `J` (the window's start for the first part), from the facts of
 its statements, no frame in flight, and the counts and set-up site cells its start hands on; it

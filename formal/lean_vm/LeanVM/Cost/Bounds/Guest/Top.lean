@@ -107,7 +107,7 @@ theorem l2ArgsD_cost (hP : Includes P Decoder.l2ArgsDC.costDeps) :
 theorem daWitness_cost (D : DiscreteLogTables) (hP : Includes P Decoder.daWitnessC.costDeps)
     (hG : GLogBound P D G) {wD : List E → List E → LeanVM.Da.MatrixWitness} {wDV : MachineValue}
     (hwD : ∀ a b : List E, RunsApp P wDV [encodeValue a, encodeValue b] (encodeValue (wD a b)))
-    {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 16 →
+    {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 17 →
       appCost P wDV [encodeValue a, encodeValue b] ≤ WD) :
     machineCost P Decoder.daWitnessC.costIdx [encodeValue D, σV, wDV] ≤ 10 * S + G + WD + 181 := by
   rw [Decoder.daWitnessC.costEq P hP D σ σV hσ wD wDV hwD]
@@ -164,14 +164,14 @@ variable {rd : Reader} {rdV : MachineValue}
   {WS : ℕ} (hWS : ∀ a : E, appCost P wSV [encodeValue a] ≤ WS)
   {wD : List E → List E → LeanVM.Da.MatrixWitness} {wDV : MachineValue}
   (hwD : ∀ a b : List E, RunsApp P wDV [encodeValue a, encodeValue b] (encodeValue (wD a b)))
-  {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 16 →
+  {WD : ℕ} (hWD : ∀ a b : List E, a.length + b.length ≤ 17 →
       appCost P wDV [encodeValue a, encodeValue b] ≤ WD)
   {wV : List E → LeanVM.Protocol.Compile.Proof} {wVV : MachineValue}
   (hwV : ∀ a : List E, RunsApp P wVV [encodeValue a] (encodeValue (wV a)))
   {WV : ℕ}
   {wA : List E → LeanVM.Node.BatchingHints} {wAV : MachineValue}
   (hwA : ∀ a : List E, RunsApp P wAV [encodeValue a] (encodeValue (wA a)))
-  {WA : ℕ} (hWA : ∀ a : List E, a.length ≤ 16 → appCost P wAV [encodeValue a] ≤ WA)
+  {WA : ℕ} (hWA : ∀ a : List E, a.length ≤ 17 → appCost P wAV [encodeValue a] ≤ WA)
 include hrd hR hσ hS hwX hWX hwS hWS hwD hWD hwV hwA hWA
 
 /-- The witness's price off the tables: at most `K` children, tables of at most `N` marks, at
@@ -285,7 +285,7 @@ variable {rd : Reader} {rdV : MachineValue}
   (hVn : ∀ (k : ℕ) (a r : List E) (v : V),
     RunsApp P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v]
       (encodeValue (Vn k a r v)))
-  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  {F : ℕ} (hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
     appCost P VnV [encodeValue k, encodeValue a, encodeValue r, encodeValue v] ≤ F)
   {cl : E → E → ℕ} {clV : MachineValue}
   (hcl : ∀ a b : E, RunsApp P clV [encodeValue a, encodeValue b] (encodeValue (cl a b)))
@@ -297,7 +297,7 @@ include hrd hR hσ hS hVn hF hcl hC hL32
 prices, the signatures' readers' `WX`, `WS` given. -/
 @[expose] def decWitNPrice (G R S F C L DW WX WS K N X : ℕ) : ℕ :=
   decWitPrice G R S WX WS (DW + 17)
-    (vsPiPrice R (F + 9) F C L + 23) (48 * F + 47 * R + 142056) K N X + 29
+    (vsPiPrice R (F + 9) F C L + 23) (52 * F + 51 * R + 154692) K N X + 29
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
 tables `Tb` given, the leanSPHINCS reader `wS` of price at most `WS`, `da_verify`'s witness at its
@@ -306,7 +306,7 @@ length (at `verify_sub`'s frame of its arguments, `subArgsK`) at most `L`: at mo
 `decWitNPrice G R S F C L DW WS K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)
     (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
-    (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
+    (hDW : ∀ args rets : List E, args.length + rets.length ≤ 17 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
         VnV] ≤ DW) {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
     (hwX : ∀ a : List E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))

@@ -126,13 +126,16 @@ def cov_runs(G, np):
     return out
 
 
-def bound(b, n, ent, gl=None):
+def bound(b, n, ent, gl=None, gp=None):
     """`CoreMode.idxX`: a run bound as a heap index, a constant or an entry cell's exponent plus a constant below
     `2^28` (`CoreMode.idxO`: `.val`, or the monomial `[b]·g^c`); with `gl` (`CoreMode.idxL`), the exponent of the
-    caller's cell `d` linked to slot `b` times `g^k`."""
+    caller's cell `d` linked to slot `b` times `g^k`; with `gp`, the exponent of the word at cell `d` past frame cell
+    `q`'s (`.hp q d`, `q ≠ 1`) at its ghost slot, plus a constant below `2^28`."""
     if gl and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and b[1][2] in gl:
         sl, k = gl[b[1][2]]
         return I.mk(((gslot(sl, n), 1),), k)
+    if gp and b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] != 1 and b[2] < 2 ** 28 and (b[1][1], b[1][2]) in gp:
+        return I.mk(((gslot(gp[(b[1][1], b[1][2])], n), 1),), b[2])
     if b[0] == 'num':
         if not b[1] < 2 ** 62:
             raise No('run bound')
@@ -150,7 +153,7 @@ def runX(r, n, ent=None, gl=None, gp=None):
     words `gp` as ghost slots)."""
     q, lo, hi, S, d = r
     c = cell(q, n, ent, gl=gl, gp=gp)
-    return norm_run((I.shift(c, d), S, bound(lo, n, ent, gl), bound(hi, n, ent, gl)), c[1] + d)
+    return norm_run((I.shift(c, d), S, bound(lo, n, ent, gl, gp), bound(hi, n, ent, gl, gp)), c[1] + d)
 
 
 def gslot(b, n):
@@ -177,10 +180,11 @@ def gl_of(k):
         return g
     import callcres
     if k in callcres.ST_LOOPS:
-        # a stream-cursor loop (`CoreMode.stGl`, `loopGl`): the caller's cell `D` its first ghost slot, the caller's
-        # frame address (`0`) its second
+        # a cursor-run loop (`CoreMode.stGl`, `loopGl`): the caller's cells `Dbase`, `Dbound` its first ghost slots,
+        # the caller's frame address (`0`) its third
         np = len(CORE[k][0])
-        return {callcres.ST_LOOPS[k][0]: (np, 0), 0: (np + 1, 0)}
+        e = callcres.ST_LOOPS[k]
+        return {e[0]: (np, 0), e[1]: (np + 1, 0), 0: (np + 2, 0)}
     if k in I.IS_LOOP:
         if not _LINKS.get(k):
             return {}
@@ -228,11 +232,13 @@ def hp_bs(G):
         for b, _ in bs:
             if b[0] == 'hp' and (b[1], b[2]) not in out:
                 out.append((b[1], b[2]))
-    # then the caller's cells bounding entry runs (`CoreMode.hpBnd`: `.ex (.hp 1 d) 0`)
+    # then the caller's cells and the arguments' words bounding entry runs (`CoreMode.hpBnd`: `.ex (.hp 1 d) 0`,
+    # `.ex (.hp q d) c`, `q ≠ 1`, `c < 2^28`)
     for r in G['preR']:
         for bd in (r[1], r[2]):
-            if bd[0] == 'ex' and bd[1][0] == 'hp' and bd[1][1] == 1 and bd[2] == 0 and (1, bd[1][2]) not in out:
-                out.append((1, bd[1][2]))
+            if bd[0] == 'ex' and bd[1][0] == 'hp' and ((bd[1][1] == 1 and bd[2] == 0) or (bd[1][1] != 1 and bd[2] < 2 ** 28)) \
+                    and (bd[1][1], bd[1][2]) not in out:
+                out.append((bd[1][1], bd[1][2]))
     return out
 
 
@@ -287,7 +293,8 @@ def callee_sig(G, na, nr, postq=False, ext=True):
             def bx(b):
                 return b[0] == 'num' and b[1] < 2 ** 62 or \
                     (b[0] == 'ex' and b[1][0] == 'fr' and 2 <= b[1][1] and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1])) or \
-                    (b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and (1, b[1][2]) in ps)
+                    (b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] == 1 and b[2] == 0 and (1, b[1][2]) in ps) or \
+                    (b[0] == 'ex' and b[1][0] == 'hp' and b[1][1] != 1 and b[2] < 2 ** 28 and base_c1(G, na, ps, b[1]))
             if not ps or not all(base_c1(G, na, ps, b) for b, _ in r[0][2]) or \
                     not ((r[1][0] == 'num' and r[2][0] == 'num') or (bx(r[1]) and bx(r[2]))):
                 raise
@@ -453,15 +460,26 @@ def own_sig(G, np, nr, gl=None):
         except No as e:
             if gl:
                 return runX(r, np, gl=gl)
-            if str(e) != 'pointer base':
+            if str(e) not in ('pointer base', 'run bound'):
                 raise
-        # over own parameter words (`rngLIs` with `gpOf`): a base `.hp q d`'s word at its ghost slot
+        # over own parameter words (`rngLIs` with `gpOf`): a base `.hp q d`'s word at its ghost slot, a bound the
+        # exponent of one plus a constant (`CoreMode.idxL`)
         fp, k, bs = r[0]
         if fp != 0 or not all(base_okg(b) for b, _ in bs):
             raise No('pointer base')
+        for bd in (r[1], r[2]):
+            if bd[0] == 'ex' and bd[1][0] == 'hp' and not base_okg(bd[1]):
+                raise No('run bound')
         out = [(b[1] - 2, e) if b[0] == 'fr' else (ghost_b(b[1], b[2]), e) for b, e in bs]
         c = I.mk(tuple(out), k)
-        return norm_run((I.shift(c, r[4]), r[3], bound(r[1], np, None), bound(r[2], np, None)), c[1] + r[4])
+
+        def bnd(bd):
+            if bd[0] == 'ex' and bd[1][0] == 'hp':
+                if not bd[2] < 2 ** 28:
+                    raise No('run bound')
+                return I.mk(((ghost_b(bd[1][1], bd[1][2]), 1),), bd[2])
+            return bound(bd, np, None)
+        return norm_run((I.shift(c, r[4]), r[3], bnd(r[1]), bnd(r[2])), c[1] + r[4])
 
     def base_okg(b):
         return 2 <= b[1] and b[1] - 2 < np and b[1] in G['entry'] and b[1] < 2 ** 28 and \
@@ -613,6 +631,9 @@ def own_sig(G, np, nr, gl=None):
                 if m is None and k_own is not None:
                     # a dereferenced address's, a product of such (`addr`, `CoreMode.expM`)
                     m = callcres.addr_bound(k_own, v)
+                if m is None and k_own is not None and v < np:
+                    # a parameter its function's family bounds (`sel_bound`)
+                    m = fnrules.first('sel_bound', k_own, v)
                 if m is not None and m <= 2 ** 62:
                     h.expRes.add((v, m))
                     return ('val', v)
@@ -722,6 +743,15 @@ def ghost_w(body, ks, p):
     return word_nf(body, WORD_FUEL, n) if n is not None else None
 
 
+def ghost_v(body, ks, p):
+    """`CoreMode.ghostV`: the callee's ghost word as the loaded value itself (`⟨[(n, 1)], 0⟩`), `q ≠ 1`."""
+    q, d = p
+    if q == 1 or q - 2 >= len(ks):
+        return None
+    n = hp_val_s(body, ks[q - 2], d)
+    return (((n, 1),), 0) if n is not None else None
+
+
 def top_sels(body):
     """`Res.topSels`: the top-level selectors (a `match`'s or `dispatch`'s value and arm count) up to the first statement
     that may return."""
@@ -754,6 +784,26 @@ def exp_bounds(h, args, body, np, expc, k=None, acc=None):
                     gh = h.ghosts[sl - I.GB] if sl - I.GB < len(h.ghosts) else None
                     if b[1] == 0 and gh and gh[0] == 'hp1' and 2 <= gh[1] and gh[1] - 2 < np and gh[1] in expc:
                         continue
+                    if b[1] > 0 and gh and gh[0] == 'hpw' and k is not None and acc is not None:
+                        # an argument's word the caller names `[v]·g^o` (`ghostW`), `v` a value its residual bounds,
+                        # `e(v) < m`, `m + o + c < 2^62` (`CoreMode.ghostArg`'s `.mono`)
+                        # the certificate may name the word `ghostW`'s monomial or the loaded value itself
+                        # (`ghostV`, a seeded value): a residual for each that has a bound
+                        got = False
+                        for w in (ghost_w(body, args, (gh[1], gh[2])), ghost_v(body, args, (gh[1], gh[2]))):
+                            if w is not None and len(w[0]) == 1 and w[0][0][1] == 1:
+                                v = w[0][0][0]
+                                import callcres, fnrules
+                                B = callcres.expq_bound(k, v)
+                                if B is None:
+                                    B = callcres.addr_bound(k, v) or callcres.rc_bound(callcres.top_atoms(body), v)
+                                if B is None:
+                                    B = fnrules.first('arg_bound', k, v)
+                                if B is not None and B + w[1] + b[1] < 2 ** 62:
+                                    acc.add((v, B))
+                                    got = True
+                        if got:
+                            continue
                     raise No('callee bound not a constant power')
                 a = args[sl]
                 if const_pow(body, a, b[1]) or (b[1] == 0 and a < np and 2 + a in expc):
@@ -864,9 +914,12 @@ def infer_one(k, S, allow=None, hcsig=None):
     # the callees' ghost words, those `hpArgOk` names
     for g, ks, ms in H.gargs:
         Gf = S.get(STABLE.get(g, g)) or S.get(g)
-        if Gf is not None and not any(f == g for f, _, _ in hcs) and \
-                [tuple(m) if m is not None else None for m in ms] != [ghost_w(body, ks, p) for p in hp_bs(Gf)]:
-            raise No('callee ghost words')
+        if Gf is not None and not any(f == g for f, _, _ in hcs):
+            ps = hp_bs(Gf)
+            got = [tuple(m) if m is not None else None for m in ms]
+            if len(got) != len(ps) or any(m is None or (m != ghost_w(body, ks, p) and m != ghost_v(body, ks, p))
+                                          for m, p in zip(got, ps)):
+                raise No('callee ghost words')
     # the selectors' `sel` residuals giving the own guarantees' bounds exponents (`CoreMode.expI`'s `expRes`)
     for x, m in sorted(own.expRes):
         r = ('lt', ('val', x), ('num', m))
@@ -931,6 +984,9 @@ def split_merge(k, certs, x):
         A.rets = [[EM.wit_res(w, f) for w in ws] for ws in Hr.rets]
         A.divs, A.hvs, A.eqs, A.dups = Hr.divs, Hr.hvs, Hr.eqs, Hr.dups
         arms.append(A)
+        for q in Hr.res:
+            if q[0] == 'eq':
+                idx(q)
         for key, w in A.reads.items():
             H.reads.setdefault(key, w)
         for g in Hr.gargs:
@@ -1259,18 +1315,14 @@ def windows(R, po, shared=frozenset()):
                         continue
                     base = 'LeanVM.Guest.CoreMode.GenW.«%s».A%d' % (k, r)
                     ns = 'LeanVM.Guest.Fn.«%s».Arm%d' % (k, r)
+                    files[os.path.join(GENW, k, 'A%d' % r, 'Def.lean')] = arm_def(k, r, H.sel, po, base, ns)
                     gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW', base=base, ns=ns,
                                lpre='a%d_' % r, one=True,
                                pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                                data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
                                sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
-                    d = os.path.join(GENW, k, 'A%d' % r)
-                    arm = {os.path.join(d, 'Def.lean'): arm_def(k, r, H.sel, po, base, ns)}
-                    arm.update((os.path.join(d, name + '.lean'), text) for name, text in heapwin.one(k, Hr, sigOf, epo, gen))
-                    # the arm's definitions in the first module of its context, which imports them
-                    first = 'CxD0' if os.path.join(d, 'CxD0.lean') in arm else 'Cx'
-                    files.update(genfiles.merge(arm, {os.path.join(d, first + '.lean'): (
-                        f'{base}.{first}', None, [os.path.join(d, 'Def.lean'), os.path.join(d, first + '.lean')])}, None))
+                    for name, text in heapwin.one(k, Hr, sigOf, epo, gen):
+                        files[os.path.join(GENW, k, 'A%d' % r, name + '.lean')] = text
             continue
         if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
             continue

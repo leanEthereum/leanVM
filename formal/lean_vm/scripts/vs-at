@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Write `LeanVM/Guest/VsAt.lean`: where `verify_sub`'s obligations (`Guest/Sound.lean`) sit in its body,
-its statements' indices and values' numbers, read off the core IR (`scripts/coredata.py`) and the callees'
+"""Write `LeanVM/Guest/VsAt.lean`: where `verify_sub`'s obligations (`Guest/Sound.lean`) sit in its body
+(its window table `tabs`, the kappas it hands `check_stack_terminal`), its statements' indices and values' numbers, read off the core IR (`scripts/coredata.py`) and the callees'
 parameters (`Data/Source.lean`). Run from `lean_vm` after `guest-core` (`scripts/regen-guest.sh` does):
 
     python3 -I scripts/vs-at [--check]
@@ -48,15 +48,18 @@ def at(pred, what):
     return ks[0]
 
 
-dims_at = at(lambda s: s.startswith('  .call "verify_tables" '), "calls of verify_tables")
-kb_at = at(lambda s: s.startswith('  .call "check_opening_terminal" '), "calls of check_opening_terminal")
-tabs_at = at(lambda s: s.startswith("  .dispatch ") and '["open_stacked__L' in s, "dispatches to open_stacked")
-dims = args(st[dims_at])[runtime_param("verify_tables", "dims_g")]
-kb = args(st[kb_at])[runtime_param("check_opening_terminal", "kappa_base")]
-tabs = args(st[tabs_at])[runtime_param("open_stacked", "tabs")]
-m = re.fullmatch(r"  \.atom \(\.mul \(\.n %d\) \(\.n 4\) \(\.n (\d+)\)\) ::" % tabs, st[tabs_at - 1])
-if not m or not st[tabs_at - 2].startswith("  .atom (.const (.n %s) " % m.group(1)):
-    sys.exit("vs-at: verify_sub's two statements before its dispatch to open_stacked are not `tabs = g_squares·c`")
+# `tabs = g_squares·g^WIN_TAB_AT`, first materialized: a constant, then its product with argument 4
+tabs_at = None
+for k in range(1, len(st)):
+    m = re.fullmatch(r"  \.atom \(\.mul \(\.n (\d+)\) \(\.n 4\) \(\.n (\d+)\)\) ::", st[k])
+    if m and st[k - 1].startswith("  .atom (.const (.n %s) " % m.group(2)):
+        tabs_at, tabs, tabs_c = k, int(m.group(1)), int(m.group(2))
+        break
+if tabs_at is None:
+    sys.exit("vs-at: verify_sub computes no `tabs = g_squares·c`")
+kaps_at = at(lambda s: s.startswith('  .call "check_stack_terminal" '), "calls of check_stack_terminal")
+kaps = args(st[kaps_at])[runtime_param("check_stack_terminal", "kaps")]
+gmv = args(st[kaps_at])[runtime_param("check_stack_terminal", "gmv")]
 text = f"""/-
   LeanVM.Guest.VsAt
 
@@ -70,26 +73,23 @@ namespace LeanVM.Guest.End
 
 @[expose] public section
 
-/-- `verify_sub`'s call of `verify_tables`. -/
-abbrev vsDimsAt : Nat := {dims_at}
+/-- `verify_sub`'s first `tabs = g_squares·c`: the constant `c`, then the product. -/
+abbrev vsTabsAt : Nat := {tabs_at - 1}
 
-/-- That call's argument `dims_g`. -/
-abbrev vsDims : Nat := {dims}
-
-/-- `verify_sub`'s dispatch to `open_stacked`, after the two statements `tabs = g_squares·c`. -/
-abbrev vsTabsAt : Nat := {tabs_at}
-
-/-- That dispatch's argument `tabs`. -/
+/-- That product's value, `tabs`. -/
 abbrev vsTabs : Nat := {tabs}
 
-/-- The constant `c` of `tabs = g_squares·c`. -/
-abbrev vsTabsC : Nat := {m.group(1)}
+/-- The constant `c`. -/
+abbrev vsTabsC : Nat := {tabs_c}
 
-/-- `verify_sub`'s call of `check_opening_terminal`. -/
-abbrev vsKbAt : Nat := {kb_at}
+/-- `verify_sub`'s call of `check_stack_terminal`. -/
+abbrev vsKapsAt : Nat := {kaps_at}
 
-/-- That call's argument `kappa_base`. -/
-abbrev vsKb : Nat := {kb}
+/-- That call's argument `kaps`. -/
+abbrev vsKaps : Nat := {kaps}
+
+/-- That call's argument `gmv`. -/
+abbrev vsGmv : Nat := {gmv}
 
 end
 end LeanVM.Guest.End

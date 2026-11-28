@@ -26,7 +26,7 @@ Everything else exists once, leaves first:
 | `zkdsl_compiler` | zkDSL to ISA (`zkDSL.md`); its tests run the stable prover |
 | `lean_xmss`, `lean_sphincs`, `lean_vrf` | the signature schemes and the VRF tree |
 | `allocator`, `bench_harness` | jemalloc and the benchmark harness; never linked by a shared crate |
-| `lean_da` | Reed-Solomon blob encoding, commitments, membership vectors |
+| `lean_da` | Reed-Solomon blob encoding and commitments |
 | `claims` | `AggregateClaims`, `OutputClaims` and their byte form |
 | `aggregation` | recursive aggregation, generic over the prover |
 | `lean_vm` | the public API, the only crate a user imports |
@@ -36,12 +36,12 @@ Everything else exists once, leaves first:
 - `bindings/`: language bindings of the schemes and aggregation. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
-- `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
+- `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds the statement (`Statement.Theorems` what is proved; the proofs before the Hotwire port are at tag `formal-bus-archive`), `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
 
 Rules:
 
 - Shared crates prove only through `isa::Prover` (`lean_vm_core::StableProver`, `experimental_dispatch::ExperimentalProver`).
-- `aggregation` derives the guest's constants and a child's witness from the stable tree (`lean_vm_core::leaf`, whose term order the guest's arrays follow).
+- `aggregation` takes the guest's structure from `verifier` (`layout`'s tables, stack and stacked bytecode, and the link's pointer width, table heights and grind), and the rest of its constants and a child's witness from the stable tree.
 - Prover crates contain no verifier, tests included: a verdict goes through `crates/verifier`.
 - A new user-facing item is a re-export in `crates/lean_vm/src/lib.rs`, used in `crates/lean_vm/tests/api.rs`. A `pub` method users should not see is `#[doc(hidden)] pub fn __name`.
 - `formal/`'s Rust helpers build against stable, except `whir-fold-table` (only experimental's `pcs` keeps the WHIR security search).
@@ -52,10 +52,12 @@ Rules:
 - **Anything that breaks old proofs or signatures**: `PROTOCOL_VERSION` ("Versions").
 - **A protocol change**: both prover trees, the three verifiers, `formal/`. An optimization: experimental alone.
 - **Rust that `formal/` transcribes** (the verifier, the guest, the schemes' hash inputs, the executor (both trees' `cpu/execute.rs`, in `formal/Statement/Prover/Execute.lean`), the compiler's hint format (`isa::export_hints`), `aggregation`'s witness streams (`node.rs`, `hints.rs`, `child.rs`, `deferred.rs`, in `formal/Statement/LeanVmGuestProver.lean`'s `honestPushes`), the wire encoding in `formal/lean_vm/LeanVM/Wire/Encoding.lean`): its Lean, in the same PR. CI's `lean-vm-formalization` fails until then.
+- **The guest's memory per item** (a child, a claim of a child's list, a raw signature, a blob row): the memory budget's coefficients, `memory_budget` in `crates/aggregation/src/tests.rs` (`guest_memory_within_its_budget`, run with `-- --ignored`) and `NodeWitness.memoryBudget` in `formal/Statement/LeanVmGuestCompleteness.lean`, counted again (`formal/lean_vm`'s `Coefs.checker`, `scripts/count`).
 - **The zkDSL compiler's accepted language or output**: its Lean front end, `formal/lean_vm/LeanVM/Guest/Source.lean` and `Expand.lean`. If the guest's bytecode changes, see "Changing the spec" in `formal/AGENTS.md`.
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
-- **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
+- **The layout** (`placements_of`, `verifier::layout`'s tables): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). Both provers place columns by `verifier::layout::stack_blocks`.
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
+- **The `KECCAK` window** (`verifier::WINDOW_BITS`, from which `isa::KECCAK_WINDOW` and experimental's `link::pointer` take theirs): both executors' fault, the compiler's layout (`opt.rs`), the guest's link constants (`aggregation`'s placeholders), spec §02 and `formal/`.
 - **An experimental crate's manifest, a new one, or `keccak256`'s or `fiat_shamir_prover`'s manifest**: `crates/experimental_tiers/generate.sh`, then run it.
 - **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: the feature in `generate.sh`'s `gated` and in a tier, or, for an architecture's baseline (`sse2`, `neon`), in its exception list; `generate.sh` fails until then.
 - **The shared crates' public API or their dependencies**: `bindings/` (`bindings-ci.yml`), and `bindings/Cargo.lock` for dependencies.
@@ -81,7 +83,7 @@ cargo machete --with-metadata     # unused dependencies
 - One test binary per crate: a new `zkdsl_compiler` integration test is a module of `tests/suite/main.rs`.
 - `aggregate_two_to_one` is the fast end-to-end check.
 - The CPU tiers: `RUSTFLAGS="-C target-cpu=haswell" RUSTC_WRAPPER=$PWD/scripts/tier-rustc cargo test --release -p leanvm-bench --test identical_proofs` checks each tier this machine runs against stable (`target-cpu=generic` on aarch64).
-- Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`.
+- Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`, `widest_pointer_proves_and_a_wider_one_is_refused`.
 - Heavy benches: `cargo bench -p <package> --bench <name>`, with `hash_batch` (`*_keccak_gkr`), `throughput` (`*_pcs`), `hash_throughput` (`keccak256`).
 - Timing is the `tracing` span tree only: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches. A new stage gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
 - Every pull request takes a conventional-commit title (`pr-title.yml`). A breaking change takes `!` (`feat!:`, `fix!:`): a change to a public API or a stored format (keys). A protocol break takes `feat(protocol):` instead ("Versions" below).
@@ -131,7 +133,14 @@ Security and Fiat-Shamir:
 - The PCS folds with the affine combiner of [CWYZ26] (ePrint 2026/2863), Annex B.
 - `verifier::TAG` and every Fiat-Shamir label stay at `v1` until leanVM ships on Ethereum.
 - `ProverState::add_scalar` and `Transcript::next_scalar` bind into the transcript. Never re-observe data that rode the stream.
+- A packed message or draw (`add_scalars_packed` and `next_scalars_packed`, `sample_packed` and `samples_packed`) takes eight scalars a permutation, untagged: only the fixed read schedule keeps it apart from tagged absorption. Right after a grind, a packed draw takes the grind's permutation's cells but the proof of work's.
 - Grinding takes the smallest valid nonce, in parallel too. Exception: the Keccak GKR's `s` in `K` takes the next valid nonce (`ProverState::grind_sample`).
+
+The link (`verifier::link`, the prover's `lean_vm_core::link`):
+
+- Two chained sum-checks, over the index `j`, then the rows and the pointer columns, check every row's one-hot pointers: memory and the program by agreement, the state by one identity, `Σ_j eq(ζ, j)·A(j) + eq(ζ, j + 1)·B(j) = eq(ζ, 0)·ŝ_init + eq(ζ, T)·ŝ_fin`, where `A` and `B` scatter each row's `ŝ = (1, pc, fp)` and its successor at its cycle.
+- JUMP commits its successor (`pc_next`, `fp_next`) and its words (`v_cond`, `v_pc`, `v_fp`), so the state link stays affine; its identities tie the successor to the jump.
+- A pointer's lowest chunk is its window, `min(WINDOW_BITS, W)` bits (`WINDOW_BITS = 4`): a shifted read (a `KECCAK` operand's later cells) stays inside it, with no carry. So every `KECCAK` block (its `tail`, its `cap`, the output cells it writes) lies in one aligned window of `isa::KECCAK_WINDOW` cells: the compiler aligns the frames holding blocks and lays the blocks out to fit (`zkDSL.md`, **Windows**), and both executors fault on a block across one.
 
 The Rust verifier:
 
@@ -144,7 +153,7 @@ The guest:
 
 - Hints are untrusted: every hinted value must be pinned by a constraint.
 - It verifies proofs of itself: `unified_guest` compiles it to a fixed point on its own size.
-- The stacked-bytecode claim is not verified in-circuit. Each node batches its children's, and `AggregateProof::verify` discharges the root's.
+- The claim on the split program (the program's columns split by opcode, at the link's point) is not verified in-circuit. Each node batches its children's, and `AggregateProof::verify` discharges the root's (§sec:deferred-claims).
 - It accepts exactly what the native verifier does: every stack from `2^min_execution_stacked_log(kbc)` to `2^MAX_STACKED_LOG`, at every rate. One opening arm per size, the rate dispatched inside, so a rate's shape goes in a helper specialized on it.
 - Every verifier rotates the opening's terminal point left by `INITIAL_FOLDING_FACTOR` before evaluating the basis (`whir::commit` documents the layout). Every other read of the point stays in round order.
 - A failed `assert` is a write-once conflict naming the function and line. One that `had 0:0` can be a cell read before it was written.
@@ -180,4 +189,5 @@ The guest:
 | `KECCAK_N_LOG`, `KECCAK_DEPTH` | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS` | PCS throughput bench: size, rate, claims |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE` | `print_whir_query_counts`'s shape |
+| `IDENTICAL_PROOFS_THREADS` | `identical_proofs`' thread count, both trees |
 | `DBG_PROF{,_DUMP}`, `DBG_LOOPS`, `DBG_DISASM`, `DBG_LOWER`, `DBG_PLACEHOLDERS` | compiler and guest-cycle attribution |

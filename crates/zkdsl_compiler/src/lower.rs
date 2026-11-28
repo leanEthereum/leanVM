@@ -2,8 +2,8 @@
 //! [`LOp`] instructions (fp-relative offsets, backpatched jump targets).
 //!
 //! This file holds the walk itself, control flow, instruction emission, and
-//! [`Scope`]. The rest is split by the question it answers, because each of the
-//! four has an invariant worth stating once rather than rediscovering:
+//! [`Scope`]. The rest is split by the question it answers, because each has an
+//! invariant worth stating once rather than rediscovering:
 //!
 //! - [`mod@eval`] asks what an expression is worth before anything runs. Every
 //!   function there takes `&self` and emits nothing, which is what lets a caller
@@ -15,6 +15,7 @@
 //!   arity, because they place the return area from their own idea of it.
 //! - [`mod@builtins`] is the precompile and the hints: the two places a value
 //!   arrives without an instruction computing it.
+//! - [`mod@hoist`] moves `HeapBuf` allocation hints into the proof's memory model's order.
 //!
 //! [`Scope`] is what a name means HERE, and it reverts at a branch join, so a
 //! cell whose `SET` sits inside a branch is never trusted outside it.
@@ -160,7 +161,7 @@ struct Scope {
     mat_cells: HashMap<Off, Vec<(u128, Off)>>,
     /// Five consecutive frame cells holding `[pad, 0, 0, 0, 0]`, `pad` the padding's
     /// first byte at the start of a cell: every constant `tail` and `cap` a fresh
-    /// `keccak` block needs is a window of it. Emitted lazily at the first dominating
+    /// `keccak` block needs is a slice of it. Emitted lazily at the first dominating
     /// fresh hash in this control-flow scope.
     keccak_pad: Option<Off>,
 }
@@ -457,7 +458,7 @@ impl FnLower<'_> {
     /// Terminate `main`: jump to the halt sentinel `g^{B-1}` with `fp = g^0`, the
     /// final state the machine halts in (§sec:state). The cell holding `1` doubles
     /// as the (nonzero) jump condition and the new frame pointer `g^0`; the dest
-    /// cell holds `g^{B-1}` (doc §sec:e2e, final state).
+    /// cell holds `g^{B-1}` (§sec:vm, the final state).
     fn halt(&mut self) {
         let one = self.one();
         let dest = self.fresh();
@@ -921,7 +922,7 @@ impl FnLower<'_> {
     /// (`doc/leanvm/body/09-isa-programming.tex` §sec:prog-range-checks). With
     /// `x = g^e`:
     ///
-    /// 1. `DEREF` through `x`, so the bus proves `x = g^e` with `e < 2^h`;
+    /// 1. `DEREF` through `x`, so the memory link proves `x = g^e` with `e < 2^h`;
     /// 2. `MUL x·y` into the write-once cell holding `g^{k-1}`. The complement
     ///    `y = g^{k-1-e}` needs no hint, the result cell being already written,
     ///    so the runner back-solves the one unknown operand;
@@ -1892,6 +1893,8 @@ pub(crate) fn lower_func(
                 keep: abi_end + u32::from(loop_frame),
                 rets: Abi::ret(arg_cells, 0)..abi_end,
                 fixed: lowerer.addr_taken,
+                loop_frame,
+                aligned: false,
             };
         }
         // The pass is abandoned, so everything it left for later goes with it: the helpers and specializations

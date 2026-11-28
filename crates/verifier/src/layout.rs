@@ -1,4 +1,4 @@
-//! The instruction tables, their bus flushes, and where every committed column sits in the stack.
+//! The instruction tables, their links, and where every committed column sits in the stack.
 
 use crate::bytecode::Bytecode;
 use crate::field::{E, GEN, ONE, ZERO};
@@ -9,7 +9,12 @@ use crate::{VerifierError, require};
 use std::collections::BTreeMap;
 use std::ops::Add;
 
-pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
+/// The stacked program has `2^BYTECODE_SLOT_BITS` slots per instruction.
+pub const BYTECODE_SLOT_BITS: usize = 4;
+
+/// The opcode's slot: the link reads slots 1 and 2 as the program's address and presence columns, slot 0 unused, and
+/// the operands follow (§sec:link-targets, §sec:e2e-bc).
+pub const OPCODE_SLOT: usize = 3;
 
 /// A polynomial of degree at most 2 in a table's columns.
 #[derive(Clone, Debug, Default)]
@@ -35,6 +40,11 @@ impl Form {
         forms.into_iter().fold(Form::default(), |acc, form| acc + form)
     }
 
+    /// The monomials and their coefficients: `[]` is 1, `[i]` is `x_i`, `[i, j]` is `x_i·x_j`.
+    pub fn terms(&self) -> impl Iterator<Item = (&[usize], E)> {
+        self.terms.iter().map(|(monomial, &c)| (monomial.as_slice(), c))
+    }
+
     pub fn evaluate(&self, column: &[E]) -> E {
         E::sum(
             self.terms
@@ -52,15 +62,6 @@ impl Add for Form {
     }
 }
 
-/// One block of a bus side, always owned by a table. The three blocks no table owns are the framework, on `BusLayout`.
-#[derive(Clone, Debug)]
-pub struct BusBlock {
-    pub log_rows: usize,        // the owner's height: the block spans 2^log_rows rows
-    pub rows: u64,              // ...of which the first `rows` flush, the rest being padding rows, whose leaves are 1
-    pub coordinates: Vec<Form>, // the tuple flushed, over the owner's OWN local column indices; stays symbolic until its table sumcheck
-    pub owner: usize,           // whose block it is, by opcode
-}
-
 /// The proof system's version, leading the Fiat-Shamir IV's preimage so that no two versions share a
 /// transcript. Its length is fixed and Keccak's padding binds the preimage's, so the bytecode that
 /// follows needs no length field of its own. Nothing derives it from the constants below: any change
@@ -68,28 +69,28 @@ pub struct BusBlock {
 pub const TAG: &[u8] = b"leanvm-v1";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
-pub const NUM_GLOBAL_COLUMNS: usize = 5;
+pub const NUM_GLOBAL_COLUMNS: usize = 3;
 pub const MEMORY_0: usize = 0;
 pub const MEMORY_1: usize = 1;
-pub const MEMORY_FINAL_COUNTERS: usize = 2;
-pub const BYTECODE_FINAL_COUNTERS: usize = 3;
-pub const QKECCAK: usize = 4;
+pub const QKECCAK: usize = 2;
 
 pub const K_BITS: usize = 64;
 
-// The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
-// slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
+/// The Keccak reduction commits a step's state every `KECCAK_DEPTH` rounds but the output, a lane per slot of
+/// `q_keccak` and a word per step: lane `l` of the state after `KECCAK_DEPTH·m` rounds is slot `25m + l`.
 pub const KECCAK_DEPTH: usize = 12;
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
-/// Every size a proof announces or commits is at most `2^30`: a table's rows, the memory, the bytecode and the stack.
+/// The bounds the announced sizes are first checked against, as logs: a table's rows, the memory and the bytecode. The
+/// link's pointer width (`pointer_width`, at most `MAX_POINTER_WIDTH = 24` bits) then binds tighter: an execution
+/// verifies only with at most `2^24` cells of memory and `2^24` instructions, and fewer than `2^24` cycles in all.
 pub const MAX_TABLE_LOG: usize = 30;
 /// The least memory a proof announces, as a log: the public input's two cells.
 pub const MIN_LOG_MEMORY: usize = 1;
 pub const MAX_LOG_MEMORY: usize = 30;
 /// The largest bytecode, as a log of its instructions.
 pub const MAX_LOG_BYTECODE: usize = 30;
-/// The PCS's least stack, as a log.
+/// The PCS's least and largest stacks, as logs.
 pub const MIN_STACKED_LOG: usize = 16;
 pub const MAX_STACKED_LOG: usize = 30;
 
@@ -98,9 +99,7 @@ pub struct Layout<'a> {
     pub log_bytecode: usize,
     pub bytecode: &'a Bytecode,
     pub tables: Vec<Table>,
-    pub push: Vec<BusBlock>,
-    pub pull: Vec<BusBlock>,
-    pub count: Vec<BusBlock>,
+    pub table_rows: Vec<u64>,
     /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
     pub placements: Vec<Option<Placement>>,
     pub stack_log: usize,
@@ -133,68 +132,151 @@ fn prod(a: usize, b: usize, exponent: u64) -> Form {
     Form::term(vec![a.min(b), a.max(b)], gpow(exponent))
 }
 
-pub const SEP_STATE: E = ONE;
-pub const SEP_MEM: E = GEN;
-pub const SEP_BYTECODE: E = E::new(4, 0); // GEN^2
+/// A row's step of the state chain: its cycle pointer, its `(pc, fp)`, and the successor state it derives.
+#[derive(Clone, Debug)]
+pub struct StateLink {
+    pub cycle: usize,
+    pub pc: usize,
+    pub fp: usize,
+    pub next: [Form; 2],
+}
 
+/// A row's read of the program: its pointer, its `pc`, its opcode, and each operand equation `Σ_{s ∈ slots} BC_s = form`
+/// it checks against its instruction, weighed by the first slot's challenge. A slot no equation names is read only
+/// through the accesses' [`Read`]s.
+#[derive(Clone, Debug)]
+pub struct BytecodeLink {
+    pub pointer: usize,
+    pub pc: usize,
+    pub opcode: usize,
+    pub operands: Vec<(Vec<usize>, Form)>,
+}
+
+/// A term of an access's value that the row reads where one of its pointers points, rather than from its columns.
+#[derive(Clone, Debug)]
+pub enum Read {
+    /// `scale·word(σ)`, the word in the cell the row's pointer column `pointer` names; `scale` has degree at most one.
+    Word { pointer: usize, scale: Form },
+    /// `scale·BC_slot(σ_bc)`, a slot of the row's instruction.
+    Slot { slot: usize, scale: E },
+    /// `scale·fp·BC_slot(σ_bc)`.
+    Frame { slot: usize, scale: E },
+    /// `scale·pc·BC_slot(σ_bc)`, where `pc = g^{σ_bc}`.
+    Pc { slot: usize, scale: E },
+}
+
+/// A row's memory access: its pointer and how far past the pointer's cell it reads, the column gating it if any, the
+/// address, and the word `lo + y·hi`. The address is `address + g^e·fp·BC_slot(σ_bc)` for `frame = Some((slot, e))`,
+/// and the word is `value + Σ reads`.
+#[derive(Clone, Debug)]
+pub struct Access {
+    pub pointer: usize,
+    pub shift: usize,
+    pub gate: Option<usize>,
+    pub address: Form,
+    pub frame: Option<(usize, u64)>,
+    pub value: Form,
+    pub reads: Vec<Read>,
+}
+
+/// Everything a table links, over its own local column indices.
 #[derive(Clone, Debug, Default)]
-pub struct Flushes {
-    push: Vec<Vec<Form>>,
-    pull: Vec<Vec<Form>>,
+pub struct Links {
+    state: Option<StateLink>,
+    bytecode: Option<BytecodeLink>,
+    pub memory: Vec<Access>,
 }
 
-impl Flushes {
-    fn pair(&mut self, push: Vec<Form>, pull: Vec<Form>) {
-        self.push.push(push);
-        self.pull.push(pull);
+/// `y`, the generator of `E` over `K`: a word is `lo + y·hi`.
+pub const Y: E = E::new(0, 1);
+
+impl Links {
+    fn state_derived(&mut self, cycle: usize, pc: usize, fp: usize, npc: Form, nfp: Form) {
+        self.state = Some(StateLink {
+            cycle,
+            pc,
+            fp,
+            next: [npc, nfp],
+        });
     }
 
-    fn state_derived(&mut self, pc: usize, fp: usize, npc: Form, nfp: Form) {
-        self.pair(
-            vec![constant(SEP_STATE), npc, nfp],
-            vec![constant(SEP_STATE), col(pc, 0), col(fp, 0)],
-        );
+    fn state_step(&mut self, cycle: usize, pc: usize, fp: usize) {
+        self.state_derived(cycle, pc, fp, col(pc, 1), col(fp, 0));
     }
 
-    fn state_step(&mut self, pc: usize, fp: usize) {
-        self.state_derived(pc, fp, col(pc, 1), col(fp, 0));
+    fn bytecode(&mut self, pc: usize, pointer: usize, opcode: usize, operands: Vec<(Vec<usize>, Form)>) {
+        self.bytecode = Some(BytecodeLink {
+            pointer,
+            pc,
+            opcode,
+            operands,
+        });
     }
 
-    /// A pull at `count` and a push at `counter`, the same otherwise.
-    fn counted(&mut self, prefix: &[Form; 2], counter: Form, count: usize, suffix: &[Form]) {
-        let side = |counter: Form| [&prefix[..], &[counter], suffix].concat();
-        self.pair(side(counter), side(col(count, 0)));
+    /// The access to the cell `shift` past the one `pointer` names, when the column `gate` is 1 if there is one; at
+    /// 0 the access takes part in no link. A gated access reads nothing: its coefficients already hold the gate.
+    #[allow(clippy::too_many_arguments)]
+    fn access(
+        &mut self,
+        pointer: usize,
+        shift: usize,
+        gate: Option<usize>,
+        address: Form,
+        frame: Option<(usize, u64)>,
+        value: Form,
+        reads: Vec<Read>,
+    ) {
+        assert!(gate.is_none() || (frame.is_none() && reads.is_empty()));
+        self.memory.push(Access {
+            pointer,
+            shift,
+            gate,
+            address,
+            frame,
+            value,
+            reads,
+        });
     }
 
-    fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
-        let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
-        self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], col(count, 1), count, &suffix);
+    /// An ungated access to the cell at `fp·BC_slot(σ_bc)`.
+    fn framed(&mut self, pointer: usize, slot: usize, value: Form, reads: Vec<Read>) {
+        self.access(pointer, 0, None, Form::default(), Some((slot, 0)), value, reads);
     }
 
-    fn memory(&mut self, address: Form, count: usize, values: &[Form; 2]) {
-        self.counted(&[constant(SEP_MEM), address], col(count, 1), count, values);
+    pub fn state(&self) -> &StateLink {
+        self.state.as_ref().expect("every table steps the state")
     }
 
-    /// `memory` when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`: `g·count` at 1, and
-    /// the pull's `count` at 0, so the pair cancels and touches no cell.
-    fn memory_if(&mut self, flag: usize, address: Form, count: usize, values: &[Form; 2]) {
-        let counter = col(count, 0) + prod(flag, count, 1) + prod(flag, count, 0);
-        self.counted(&[constant(SEP_MEM), address], counter, count, values);
+    pub fn bytecode_link(&self) -> &BytecodeLink {
+        self.bytecode.as_ref().expect("every table reads the program")
     }
 
-    /// The cell's limbs are the named columns, a missing high one zero.
-    fn memory_cols(&mut self, address: Form, count: usize, columns: &[usize]) {
-        let values = std::array::from_fn(|limb| columns.get(limb).map_or(constant(ZERO), |&column| col(column, 0)));
-        self.memory(address, count, &values);
+    /// The pointer columns, in the order Hotwire numbers them: the cycle, the bytecode, then each access's pointer
+    /// in order of first use.
+    pub fn pointers(&self) -> Vec<usize> {
+        let mut out = vec![self.state().cycle, self.bytecode_link().pointer];
+        for access in &self.memory {
+            if !out[2..].contains(&access.pointer) {
+                out.push(access.pointer);
+            }
+        }
+        out
+    }
+
+    /// The largest shift any access takes.
+    pub fn max_shift(&self) -> usize {
+        self.memory.iter().map(|a| a.shift).max().unwrap_or(0)
     }
 }
 
-/// One instruction's table: its columns, its bus flushes, its constraints.
+/// One instruction's table: its columns, its links, its constraints.
 pub struct Table {
-    pub opcode: usize, // also its index in the table list, so g^opcode is its bytecode tag
+    /// Also its index in the table list, so `g^opcode` is its bytecode tag.
+    pub opcode: usize,
     pub columns: Vec<String>,
-    pub padding: Vec<E>, // the row a padding row holds
-    pub flushes: Flushes,
+    /// The row a padding row holds.
+    pub padding: Vec<E>,
+    pub links: Links,
     pub constraints: fn(&[E]) -> Vec<E>,
 }
 
@@ -206,96 +288,120 @@ impl Table {
     pub fn width(&self) -> usize {
         self.columns.len()
     }
+}
 
-    fn count_columns(&self) -> impl Iterator<Item = usize> {
-        (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
+fn word(pointer: usize) -> Read {
+    Read::Word {
+        pointer,
+        scale: constant(ONE),
     }
 }
 
-fn flushes_arith(opcode: usize, multiply: bool) -> Flushes {
-    let [pc, fp, o_a, o_b, o_c, cnt_a, cnt_b, cnt_c, cnt_bc] = cols(
-        ARITH_COLUMNS,
-        ["pc", "fp", "o_a", "o_b", "o_c", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"],
-    );
-    let va = cols(ARITH_COLUMNS, ["va_0", "va_1"]);
-    let vb = cols(ARITH_COLUMNS, ["vb_0", "vb_1"]);
-    let mut flushes = Flushes::default();
-    flushes.state_step(pc, fp);
-    let operands = vec![col(o_a, 0), col(o_b, 0), col(o_c, 0), constant(ZERO), constant(ZERO)];
-    flushes.bytecode(pc, cnt_bc, opcode, operands);
-    flushes.memory_cols(prod(fp, o_a, 0), cnt_a, &va);
-    flushes.memory_cols(prod(fp, o_b, 0), cnt_b, &vb);
-    // Each product lane's terms `g^e va_j vb_k`, as (j, k, e): y^2 = x y + 1, and x = g.
-    const TOWER_LANES: [&[(usize, usize, u64)]; 2] = [&[(0, 0, 0), (1, 1, 0)], &[(0, 1, 0), (1, 0, 0), (1, 1, 1)]];
-    let result = if multiply {
-        TOWER_LANES.map(|lane| Form::sum(lane.iter().map(|&(j, k, e)| prod(va[j], vb[k], e))))
+// The operands of XOR, MUL, SET, DEREF and JUMP sit in bytecode slots 4, 5, 6, 7 and 8, in the order the ISA lists them.
+
+fn links_arith(opcode: usize, multiply: bool) -> Links {
+    let columns = if multiply { MUL_COLUMNS } else { XOR_COLUMNS };
+    let [pc, fp, ix_a, ix_b, ix_c, ix_bc, ix_cycle] =
+        cols(columns, ["pc", "fp", "ix_a", "ix_b", "ix_c", "ix_bc", "ix_cycle"]);
+    let mut links = Links::default();
+    links.state_step(ix_cycle, pc, fp);
+    links.bytecode(pc, ix_bc, opcode, vec![]);
+    if multiply {
+        // `a` is committed, `b` is read where its pointer points, and `c = a·b` is linear in that read.
+        let [a0, a1] = cols(columns, ["a_0", "a_1"]);
+        let a = col(a0, 0) + Form::term(vec![a1], Y);
+        links.framed(ix_a, 4, a.clone(), vec![]);
+        links.framed(ix_b, 5, Form::default(), vec![word(ix_b)]);
+        links.framed(
+            ix_c,
+            6,
+            Form::default(),
+            vec![Read::Word {
+                pointer: ix_b,
+                scale: a,
+            }],
+        );
     } else {
-        std::array::from_fn(|i| col(va[i], 0) + col(vb[i], 0))
-    };
-    flushes.memory(prod(fp, o_c, 0), cnt_c, &result);
-    flushes
+        links.framed(ix_a, 4, Form::default(), vec![word(ix_a)]);
+        links.framed(ix_b, 5, Form::default(), vec![word(ix_b)]);
+        links.framed(ix_c, 6, Form::default(), vec![word(ix_a), word(ix_b)]);
+    }
+    links
 }
 
-fn flushes_set() -> Flushes {
-    let [pc, fp, o, cnt, cnt_bc] = cols(SET_COLUMNS, ["pc", "fp", "o", "cnt", "cnt_bc"]);
-    let k = cols(SET_COLUMNS, ["k_0", "k_1"]);
-    let mut flushes = Flushes::default();
-    flushes.state_step(pc, fp);
-    let operands = vec![col(o, 0), col(k[0], 0), col(k[1], 0), constant(ZERO), constant(ZERO)];
-    flushes.bytecode(pc, cnt_bc, OP_SET, operands);
-    flushes.memory_cols(prod(fp, o, 0), cnt, &k);
-    flushes
+fn links_set() -> Links {
+    let [pc, fp, ix, ix_bc, ix_cycle] = cols(SET_COLUMNS, ["pc", "fp", "ix", "ix_bc", "ix_cycle"]);
+    let mut links = Links::default();
+    links.state_step(ix_cycle, pc, fp);
+    links.bytecode(pc, ix_bc, OP_SET, vec![]);
+    // The stored immediate's two limbs are slots 5 and 6 of the instruction.
+    let immediate = vec![Read::Slot { slot: 5, scale: ONE }, Read::Slot { slot: 6, scale: Y }];
+    links.framed(ix, 4, Form::default(), immediate);
+    links
 }
 
-fn flushes_deref() -> Flushes {
-    let [pc, fp, o1, o2, o3, f_pc, f_fp, ptr] =
-        cols(DEREF_COLUMNS, ["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr"]);
-    let [cnt_ptr, cnt_target, cnt_local, cnt_bc] =
-        cols(DEREF_COLUMNS, ["cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"]);
-    let v3 = cols(DEREF_COLUMNS, ["v3_0", "v3_1"]);
-
-    let gated = |lane: usize| [col(lane, 0), prod(f_pc, lane, 0), prod(f_fp, lane, 0)];
-
-    // v2 = (1 + f_pc + f_fp)*v3 + f_pc*(g^2*pc) + f_fp*fp, lane-wise: only the low lane takes the two K-valued sources.
-    let store = [
-        Form::sum(gated(v3[0]).into_iter().chain([prod(f_pc, pc, 2), prod(f_fp, fp, 0)])),
-        Form::sum(gated(v3[1])),
-    ];
-    let mut flushes = Flushes::default();
-    flushes.state_step(pc, fp);
-    let operands = vec![col(o1, 0), col(o2, 0), col(o3, 0), col(f_pc, 0), col(f_fp, 0)];
-    flushes.bytecode(pc, cnt_bc, OP_DEREF, operands);
-    flushes.memory_cols(prod(fp, o1, 0), cnt_ptr, &[ptr]);
-    flushes.memory(prod(ptr, o2, 0), cnt_target, &store);
-    flushes.memory_cols(prod(fp, o3, 0), cnt_local, &v3);
-    flushes
-}
-
-fn flushes_jump() -> Flushes {
-    let [pc, fp, o_c, o_d, o_f, cond, dest, frame, b] = cols(
-        JUMP_COLUMNS,
-        ["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "b"],
-    );
-    let [cnt_c, cnt_d, cnt_f, cnt_bc] = cols(JUMP_COLUMNS, ["cnt_c", "cnt_d", "cnt_f", "cnt_bc"]);
-    let mut flushes = Flushes::default();
-    // next_pc = b*dest + (b+1)*g*pc, next_fp = b*frame + (b+1)*fp, both derived.
-    flushes.state_derived(
+fn links_deref() -> Links {
+    let [pc, fp, ptr, o2, s] = cols(DEREF_COLUMNS, ["pc", "fp", "ptr", "o2", "s"]);
+    let [ix_ptr, ix_target, ix_local, ix_bc, ix_cycle] =
+        cols(DEREF_COLUMNS, ["ix_ptr", "ix_target", "ix_local", "ix_bc", "ix_cycle"]);
+    let mut links = Links::default();
+    links.state_step(ix_cycle, pc, fp);
+    // `s = f_pc + f_fp`, which is 1 exactly when a flag is set.
+    links.bytecode(
         pc,
-        fp,
-        prod(b, dest, 0) + prod(b, pc, 1) + col(pc, 1),
-        prod(b, frame, 0) + prod(b, fp, 0) + col(fp, 0),
+        ix_bc,
+        OP_DEREF,
+        vec![(vec![5], col(o2, 0)), (vec![7, 8], col(s, 0))],
     );
-    let operands = vec![col(o_c, 0), col(o_d, 0), col(o_f, 0), constant(ZERO), constant(ZERO)];
-    flushes.bytecode(pc, cnt_bc, OP_JUMP, operands);
-    flushes.memory_cols(prod(fp, o_c, 0), cnt_c, &[cond]);
-    flushes.memory_cols(prod(fp, o_d, 0), cnt_d, &[dest]);
-    flushes.memory_cols(prod(fp, o_f, 0), cnt_f, &[frame]);
-    flushes
+    links.framed(ix_ptr, 4, col(ptr, 0), vec![]);
+    // v2 = (1 + s)*v3 + f_pc*(g^2*pc) + f_fp*fp: only the low lane takes the two K-valued sources.
+    let store = vec![
+        Read::Word {
+            pointer: ix_local,
+            scale: constant(ONE) + col(s, 0),
+        },
+        Read::Pc {
+            slot: 7,
+            scale: gpow(2),
+        },
+        Read::Frame { slot: 8, scale: ONE },
+    ];
+    links.access(ix_target, 0, None, prod(ptr, o2, 0), None, Form::default(), store);
+    links.framed(ix_local, 6, Form::default(), vec![word(ix_local)]);
+    links
 }
 
+fn links_jump() -> Links {
+    let [pc, fp, cond, dest, frame, pc_next, fp_next] = cols(
+        JUMP_COLUMNS,
+        ["pc", "fp", "v_cond", "v_pc", "v_fp", "pc_next", "fp_next"],
+    );
+    let [ix_c, ix_d, ix_f, ix_bc, ix_cycle] = cols(JUMP_COLUMNS, ["ix_c", "ix_d", "ix_f", "ix_bc", "ix_cycle"]);
+    let mut links = Links::default();
+    // The successor is committed, so the state link stays affine; the identities tie it to the jump.
+    links.state_derived(ix_cycle, pc, fp, col(pc_next, 0), col(fp_next, 0));
+    links.bytecode(pc, ix_bc, OP_JUMP, vec![]);
+    // The three words are K-valued on every row, taken or not: committed as one lane, the high one zero.
+    links.framed(ix_c, 4, col(cond, 0), vec![]);
+    links.framed(ix_d, 5, col(dest, 0), vec![]);
+    links.framed(ix_f, 6, col(frame, 0), vec![]);
+    links
+}
+
+/// `b = [cond ≠ 0]` by its inverse `w`, and the successor `b·(v_pc, v_fp) + (1 + b)·(g·pc, fp)` (§sec:tab-jump).
 fn jump_constraints(columns: &[E]) -> Vec<E> {
-    let [condition, inverse, flag] = cols(JUMP_COLUMNS, ["v_cond", "w", "b"]).map(|index| columns[index]);
-    vec![flag + condition * inverse, condition * (flag + ONE)]
+    let [pc, fp, condition, dest, frame, pc_next, fp_next, inverse, flag] = cols(
+        JUMP_COLUMNS,
+        ["pc", "fp", "v_cond", "v_pc", "v_fp", "pc_next", "fp_next", "w", "b"],
+    )
+    .map(|index| columns[index]);
+    let untaken = flag + ONE;
+    vec![
+        flag + condition * inverse,
+        condition * untaken,
+        pc_next + flag * dest + untaken * gpow(1) * pc,
+        fp_next + flag * frame + untaken * fp,
+    ]
 }
 
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
@@ -334,44 +440,57 @@ fn layout_limb(even: Option<usize>, odd: Option<usize>, flag: usize, missing: Op
     )
 }
 
-fn flushes_keccak() -> Flushes {
-    let [pc, fp, free] = cols(KECCAK_HEAD, ["pc", "fp", "free"]);
-    let o_m = cols(KECCAK_HEAD, ["o_m0", "o_m1", "o_m2", "o_m3"]);
-    let [o_tail, o_b8, o_cap, o_out] = cols(KECCAK_HEAD, ["o_tail", "o_b8", "o_cap", "o_out"]);
+/// The bytecode slot of KECCAK's offset operand `i`, in the order `m0..m3, tail, b8, cap, out`.
+pub const fn keccak_offset_slot(i: usize) -> usize {
+    OPCODE_SLOT + 1 + i
+}
+
+fn links_keccak() -> Links {
+    let [pc, fp, free, o_out] = cols(KECCAK_HEAD, ["pc", "fp", "free", "o_out"]);
     let [in_odd, out_odd, out_two, out_all] = cols(KECCAK_HEAD, ["odd_in", "odd_out", "out_two", "out_all"]);
-    let mut flushes = Flushes::default();
-    flushes.state_step(pc, fp);
-    let operands = o_m
+    let mut links = Links::default();
+    links.state_step(KECCAK_CYCLE, pc, fp);
+    // The seven read offsets ride the instruction alone; `out` and the four flags are committed.
+    let operands = [o_out, in_odd, out_odd, out_two, out_all]
         .into_iter()
-        .chain([o_tail, o_b8, o_cap, o_out, in_odd, out_odd, out_two, out_all]);
-    flushes.bytecode(pc, KECCAK_CNT_BC, OP_KECCAK, operands.map(|i| col(i, 0)).collect());
+        .enumerate()
+        .map(|(i, c)| (vec![keccak_offset_slot(7) + i], col(c, 0)))
+        .collect();
+    links.bytecode(pc, KECCAK_IX_BC, OP_KECCAK, operands);
     // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
     // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
     // Output cell 0 is always written, cell 1 when `out_two` is 1, and cells 2..13 when `out_all` is 1.
-    let address = |cell: usize| match cell {
-        0..4 => prod(fp, o_m[cell], 0),
-        4..8 => prod(fp, o_tail, cell as u64 - 4),
-        8 => prod(fp, o_b8, 0),
-        _ => prod(fp, o_cap, cell as u64 - 9),
+    // A cell's operand, as `keccak_offset_slot` orders the eight, and its step past the operand's cell, whose pointer
+    // is `KECCAK_IX + operand`.
+    let part = |cell: usize| match cell {
+        0..4 => (cell, 0),
+        4..8 => (4, cell - 4),
+        8 => (5, 0),
+        _ => (6, cell - 9),
     };
     let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
     for (side, lanes, flag, missing) in [(0, KECCAK_IN, in_odd, Some(free)), (1, KECCAK_OUT, out_odd, None)] {
         let lane = |lane: Option<usize>| lane.map(|lane| lanes + lane);
         for cell in 0..KECCAK_CELLS {
             let limb = |e: Option<usize>, o: Option<usize>| layout_limb(lane(e), lane(o), flag, missing);
-            let values = [limb(even[cell].0, odd[cell].0), limb(even[cell].1, odd[cell].1)];
-            let count = KECCAK_CNT + KECCAK_CELLS * side + cell;
-            match (side, cell) {
-                (0, _) => flushes.memory(address(cell), count, &values),
-                (_, 0) => flushes.memory(prod(fp, o_out, 0), count, &values),
-                _ => {
-                    let flag = if cell == 1 { out_two } else { out_all };
-                    flushes.memory_if(flag, prod(fp, o_out, cell as u64), count, &values);
-                }
+            let mut value = limb(even[cell].0, odd[cell].0);
+            value.add_scaled(&limb(even[cell].1, odd[cell].1), Y);
+            if side == 0 {
+                let (operand, step) = part(cell);
+                let frame = Some((keccak_offset_slot(operand), step as u64));
+                links.access(KECCAK_IX + operand, step, None, Form::default(), frame, value, vec![]);
+            } else {
+                let gate = match cell {
+                    0 => None,
+                    1 => Some(out_two),
+                    _ => Some(out_all),
+                };
+                let address = prod(fp, o_out, cell as u64);
+                links.access(KECCAK_IX + 7, cell, gate, address, None, value, vec![]);
             }
         }
     }
-    flushes
+    links
 }
 
 pub const OP_XOR: usize = 0;
@@ -382,29 +501,31 @@ pub const OP_JUMP: usize = 4;
 pub const OP_KECCAK: usize = 5;
 pub const N_TABLES: usize = 6;
 
+const XOR_COLUMNS: &[&str] = &["pc", "fp", "ix_a", "ix_b", "ix_c", "ix_bc", "ix_cycle"];
+const MUL_COLUMNS: &[&str] = &["pc", "fp", "a_0", "a_1", "ix_a", "ix_b", "ix_c", "ix_bc", "ix_cycle"];
+const SET_COLUMNS: &[&str] = &["pc", "fp", "ix", "ix_bc", "ix_cycle"];
 #[rustfmt::skip]
-const ARITH_COLUMNS: &[&str] = &["pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "vb_0", "vb_1", "cnt_a", "cnt_b", "cnt_c", "cnt_bc"];
-const SET_COLUMNS: &[&str] = &["pc", "fp", "o", "k_0", "k_1", "cnt", "cnt_bc"];
+const DEREF_COLUMNS: &[&str] = &["pc", "fp", "ptr", "o2", "s", "ix_ptr", "ix_target", "ix_local", "ix_bc", "ix_cycle"];
 #[rustfmt::skip]
-const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc"];
-#[rustfmt::skip]
-const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
-// KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, a read count `cnt_c` for each cell
-// read then each written, and `cnt_bc`. The fifty value lanes are not committed in the table: an input lane is one of
-// q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
-#[rustfmt::skip]
-const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
-const KECCAK_CELLS: usize = 13; // a sponge state, read then written
+const JUMP_COLUMNS: &[&str] = &["pc", "fp", "v_cond", "v_pc", "v_fp", "pc_next", "fp_next", "w", "b", "ix_c", "ix_d", "ix_f", "ix_bc", "ix_cycle"];
+// KECCAK's columns: these, then the input lanes `in_l`, the output lanes `out_l`, the eight block pointers
+// (`KECCAK_IX..KECCAK_IX + 8`: the four addressed cells, `tail`, `b8`, `cap`, the output run), `ix_bc` and
+// `ix_cycle`. The fifty value lanes are not committed in the table: an input lane is one of q_keccak's slots, and the
+// output lanes' claims are the Keccak reduction's claim on the output.
+const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
+/// Cells a sponge state occupies, which `KECCAK` reads then writes.
+pub const KECCAK_CELLS: usize = 13;
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
-pub const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
-const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
+pub const KECCAK_IX: usize = KECCAK_OUT + STATE_LANES;
+const KECCAK_IX_BC: usize = KECCAK_IX + 8;
+const KECCAK_CYCLE: usize = KECCAK_IX_BC + 1;
 
 /// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
-/// committed columns in local order, the ones before the value lanes then the read counts
+/// committed columns in local order, the ones before the value lanes then the pointers
 /// after them.
 pub const fn spare_local(k: usize) -> usize {
-    if k < KECCAK_IN { k } else { KECCAK_CNT + (k - KECCAK_IN) }
+    if k < KECCAK_IN { k } else { KECCAK_IX + (k - KECCAK_IN) }
 }
 
 /// Slots of the run the committed states occupy, and the ones they leave over.
@@ -418,7 +539,7 @@ const _: () = {
     while k < QKECCAK_SPARE {
         let local = spare_local(k);
         assert!(k == 0 || spare_local(k - 1) < local);
-        assert!(local < KECCAK_IN || (local >= KECCAK_CNT && local < TABLE_WIDTHS[OP_KECCAK]));
+        assert!(local < KECCAK_IN || (local >= KECCAK_IX && local < TABLE_WIDTHS[OP_KECCAK]));
         k += 1;
     }
 };
@@ -437,25 +558,25 @@ pub fn qkeccak_slot(column: usize) -> Option<usize> {
 
 fn keccak_columns() -> Vec<String> {
     let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
-    let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
+    let pointers = ["m0", "m1", "m2", "m3", "tail", "b8", "cap", "out"].map(|operand| format!("ix_{operand}"));
     let head = KECCAK_HEAD.iter().map(|name| name.to_string());
     head.chain(lanes("in"))
         .chain(lanes("out"))
-        .chain(counts)
-        .chain(["cnt_bc".to_string()])
+        .chain(pointers)
+        .chain(["ix_bc".to_string(), "ix_cycle".to_string()])
         .collect()
 }
 
 pub fn tables() -> Vec<Table> {
-    let table = |opcode, columns: Vec<String>, flushes, constraints| Table {
+    let table = |opcode, columns: Vec<String>, links, constraints| Table {
         opcode,
         padding: vec![ZERO; columns.len()],
         columns,
-        flushes,
+        links,
         constraints,
     };
     let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
-    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
+    let mut keccak = table(OP_KECCAK, keccak_columns(), links_keccak(), |_| vec![]);
     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
     let mut output = [0; STATE_LANES];
     keccak_f(&mut output);
@@ -463,22 +584,22 @@ pub fn tables() -> Vec<Table> {
         *padding = E::new(lane, 0);
     }
     vec![
-        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false), |_| vec![]),
-        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true), |_| vec![]),
-        table(OP_SET, named(SET_COLUMNS), flushes_set(), |_| vec![]),
-        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
-        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
+        table(OP_XOR, named(XOR_COLUMNS), links_arith(OP_XOR, false), |_| vec![]),
+        table(OP_MUL, named(MUL_COLUMNS), links_arith(OP_MUL, true), |_| vec![]),
+        table(OP_SET, named(SET_COLUMNS), links_set(), |_| vec![]),
+        table(OP_DEREF, named(DEREF_COLUMNS), links_deref(), |_| vec![]),
+        table(OP_JUMP, named(JUMP_COLUMNS), links_jump(), jump_constraints),
         keccak,
     ]
 }
 
 pub const TABLE_WIDTHS: [usize; N_TABLES] = [
-    ARITH_COLUMNS.len(),
-    ARITH_COLUMNS.len(),
+    XOR_COLUMNS.len(),
+    MUL_COLUMNS.len(),
     SET_COLUMNS.len(),
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
-    KECCAK_CNT_BC + 1,
+    KECCAK_CYCLE + 1,
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -500,81 +621,96 @@ fn keccak_shape(table_log_heights: &[usize]) -> KeccakShape {
     }
 }
 
-/// A table's height is the least power of two holding its rows, floored at its minimum.
-fn table_log_heights(table_rows: &[u64]) -> Vec<usize> {
-    table_rows
-        .iter()
-        .zip(TABLE_LOG_FLOORS)
-        .map(|(&rows, floor)| log2_ceil(rows).max(floor))
-        .collect()
-}
-
-fn table_bus_blocks(tables: &[Table], table_log_heights: &[usize], table_rows: &[u64]) -> [Vec<BusBlock>; 3] {
-    let mut push = Vec::new();
-    let mut pull = Vec::new();
-    let mut count = Vec::new();
-    for ((table, &height), &rows) in tables.iter().zip(table_log_heights).zip(table_rows) {
-        let block = |coordinates: &Vec<Form>| BusBlock {
-            log_rows: height,
-            rows,
-            coordinates: coordinates.clone(),
-            owner: table.opcode,
-        };
-        push.extend(table.flushes.push.iter().map(block));
-        pull.extend(table.flushes.pull.iter().map(block));
-        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
-    }
-    [push, pull, count]
-}
-
 /// Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
-fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table_log_heights: &[usize]) -> Vec<usize> {
+fn column_kappas(tables: &[Table], log_memory: usize, table_log_heights: &[usize]) -> Vec<usize> {
     let keccak = keccak_shape(table_log_heights);
-    let mut kappas = vec![
-        log_memory,
-        log_memory,
-        log_memory,
-        log_bytecode,
-        keccak.log_steps + keccak.slot_bits(),
-    ];
+    let mut kappas = vec![log_memory, log_memory, keccak.log_steps + keccak.slot_bits()];
     for table in tables {
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
     kappas
 }
 
-/// The columns with a block of their own in the stack, out of `columns`. A column q_keccak carries gets none: it is
-/// one of its slots, 2^height words, whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An
-/// output lane is not committed at all, nothing ever opening it.
-fn stacked_blocks(columns: usize) -> Vec<usize> {
-    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
-    let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
-    (0..columns)
-        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
-        .collect()
+/// What a stack block's log size is, in terms of the announced sizes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SizeSource {
+    Memory,
+    Table(usize),
+}
+
+/// A column with a block of its own in the stack: its log size is its source's plus `adj`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StackBlock {
+    pub column: usize,
+    pub source: SizeSource,
+    pub adj: usize,
+}
+
+/// The stack's blocks, in global column order. A column q_keccak carries gets none: it is one of its slots, 2^height
+/// words, whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An output lane is not
+/// committed at all, nothing ever opening it.
+pub fn stack_blocks() -> Vec<StackBlock> {
+    let outputs =
+        GLOBAL_COLUMN_BASES[OP_KECCAK] + KECCAK_OUT..GLOBAL_COLUMN_BASES[OP_KECCAK] + KECCAK_OUT + STATE_LANES;
+    let mut blocks = vec![
+        StackBlock {
+            column: MEMORY_0,
+            source: SizeSource::Memory,
+            adj: 0,
+        },
+        StackBlock {
+            column: MEMORY_1,
+            source: SizeSource::Memory,
+            adj: 0,
+        },
+        StackBlock {
+            column: QKECCAK,
+            source: SizeSource::Table(OP_KECCAK),
+            adj: log2_ceil(QKECCAK_SLOTS as u64),
+        },
+    ];
+    for table in tables() {
+        let base = GLOBAL_COLUMN_BASES[table.opcode];
+        for local in 0..table.width() {
+            let column = base + local;
+            if qkeccak_slot(column).is_none() && !outputs.contains(&column) {
+                blocks.push(StackBlock {
+                    column,
+                    source: SizeSource::Table(table.opcode),
+                    adj: 0,
+                });
+            }
+        }
+    }
+    blocks
 }
 
 /// The stack of columns of these log sizes: each stacked column's offset, and its log size, floored at the PCS minimum.
 fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
-    let blocks = stacked_blocks(kappas.len());
-    let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
+    let blocks = stack_blocks();
+    let block_kappas: Vec<usize> = blocks.iter().map(|block| kappas[block.column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
     (
-        blocks.into_iter().zip(block_offsets).collect(),
+        blocks.iter().map(|block| block.column).zip(block_offsets).collect(),
         MIN_STACKED_LOG.max(total_log),
     )
 }
 
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
-/// its floor. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one.
-pub fn min_execution_stacked_log(log_bytecode: usize) -> usize {
-    stack(&column_kappas(
-        &tables(),
-        MIN_LOG_MEMORY,
-        log_bytecode,
-        &TABLE_LOG_FLOORS,
-    ))
-    .1
+/// its floor. A recursion guest, whose children are proofs of its own bytecode, need open no smaller one. The program
+/// is public and has no committed column, so the stack does not depend on its size.
+pub fn min_execution_stacked_log(_log_bytecode: usize) -> usize {
+    let tables = tables();
+    stack(&column_kappas(&tables, MIN_LOG_MEMORY, &TABLE_LOG_FLOORS)).1
+}
+
+/// Each table's log height: the least power of two holding its rows, at least its floor.
+pub fn table_log_heights(table_rows: &[u64]) -> Vec<usize> {
+    table_rows
+        .iter()
+        .zip(TABLE_LOG_FLOORS)
+        .map(|(&rows, floor)| log2_ceil(rows).max(floor))
+        .collect()
 }
 
 pub fn build_layout<'a>(
@@ -586,18 +722,17 @@ pub fn build_layout<'a>(
     require(
         (MIN_LOG_MEMORY as u64..=MAX_LOG_MEMORY as u64).contains(&log_memory)
             && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
-            && (BUS_BITS..=MAX_LOG_BYTECODE + BUS_BITS).contains(&log_bytecode),
+            && (BYTECODE_SLOT_BITS..=MAX_LOG_BYTECODE + BYTECODE_SLOT_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
-    let log_bytecode = log_bytecode - BUS_BITS;
+    let log_bytecode = log_bytecode - BYTECODE_SLOT_BITS;
     let log_memory = log_memory as usize;
     let table_log_heights = table_log_heights(table_rows);
 
     let tables = tables();
-    let [push, pull, count] = table_bus_blocks(&tables, &table_log_heights, table_rows);
 
     let keccak = keccak_shape(&table_log_heights);
-    let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
+    let kappas = column_kappas(&tables, log_memory, &table_log_heights);
     let (offsets, stack_log) = stack(&kappas);
     let placement = |(column, &kappa): (usize, &usize)| {
         let index = match qkeccak_slot(column) {
@@ -615,9 +750,7 @@ pub fn build_layout<'a>(
         log_bytecode,
         bytecode,
         tables,
-        push,
-        pull,
-        count,
+        table_rows: table_rows.to_vec(),
         placements,
         stack_log,
         table_log_heights,
@@ -628,41 +761,21 @@ pub fn build_layout<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bus::{bus_block_sizes, framework_log_rows};
 
     /// Block sizes only grow with the size limits, so the limits are the worst case for `stack_offsets`.
     #[test]
     fn stack_offsets_fit_at_size_limits() {
-        let check = |caller: &str, sizes: Vec<usize>| {
-            assert!(sizes.len() >= 2, "{caller} must pass at least two blocks");
-            let mut total = 0u64;
-            for exponent in sizes {
-                assert!(
-                    exponent < u64::BITS as usize,
-                    "{caller} block exponent {exponent} exceeds the shift range"
-                );
-                total = total
-                    .checked_add(1u64 << exponent)
-                    .unwrap_or_else(|| panic!("{caller} block sizes exceed u64"));
-            }
-        };
-
-        let tables = tables();
-        let table_rows = [1u64 << MAX_TABLE_LOG; N_TABLES];
-        let table_log_heights = table_log_heights(&table_rows);
-        let kappas = column_kappas(&tables, MAX_LOG_MEMORY, MAX_LOG_BYTECODE, &table_log_heights);
-        check(
-            "layout",
-            stacked_blocks(kappas.len())
-                .into_iter()
-                .map(|column| kappas[column])
-                .collect(),
-        );
-
-        let framework_log_rows = framework_log_rows(MAX_LOG_MEMORY, MAX_LOG_BYTECODE);
-        let [push, pull, count] = table_bus_blocks(&tables, &table_log_heights, &table_rows);
-        check("bus push", bus_block_sizes(&framework_log_rows, &push));
-        check("bus pull", bus_block_sizes(&framework_log_rows, &pull));
-        check("bus count", bus_block_sizes(&[], &count));
+        let table_log_heights = table_log_heights(&[1u64 << MAX_TABLE_LOG; N_TABLES]);
+        let kappas = column_kappas(&tables(), MAX_LOG_MEMORY, &table_log_heights);
+        let sizes: Vec<usize> = stack_blocks().iter().map(|block| kappas[block.column]).collect();
+        assert!(sizes.len() >= 2, "the stack must have at least two blocks");
+        let mut total = 0u64;
+        for exponent in sizes {
+            assert!(
+                exponent < u64::BITS as usize,
+                "block exponent {exponent} exceeds the shift range"
+            );
+            total = total.checked_add(1u64 << exponent).expect("block sizes exceed u64");
+        }
     }
 }

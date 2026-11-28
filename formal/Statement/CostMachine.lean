@@ -410,10 +410,9 @@ def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Opti
 /-- **The extractor's budget**, for a proof announcing a stack of `2^μ` elements
 (`stackLog = μ`) and a transcript of `N = permutationQueryCount` permutation queries: the most the
 extractor's run may cost, in the machine's price,
-`2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, `D = log₂(N + 2) + 1`. `lean_vm` proves the
-compiled extractor's price within it at every shape the replay admits (stack log-size `16` to `30`,
-rate exponent `1` to `4`, memory and program log-sizes at most `30`). A proof announcing no layout
-is given the budget of `μ = 0`. -/
+`2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`, `D = log₂(N + 2) + 1`; `lean_vm` proves
+the compiled extractor's price within it (`Statement.Theorems`). A proof announcing no layout is
+given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
   2 ^ max 58 (2 * stackLog + 9) +
     (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
@@ -439,8 +438,8 @@ open Common
 @[expose] public section
 
 /-- **The bound on the extractor program's size** (`MachineProgram.size`): the compiled extractor's
-size and a slack of `120`, less than one leanXMSS signature's encoding. -/
-def leanVmKnowledgeExtractorSizeBound : ℕ := 25380
+size, `23855`, and a slack of `120`, less than one leanXMSS signature's encoding. -/
+def leanVmKnowledgeExtractorSizeBound : ℕ := 23975
 
 /-- **The extractor a program computes**: the program, of size at most
 `leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof

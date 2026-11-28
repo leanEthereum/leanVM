@@ -10,8 +10,7 @@
 //! A segment owns its iterations' frames and heap at or above [`LOW`] and writes them in place. It reaches every other
 //! cell through its overlay, which starts from memory as the dispatch found it, from the predicted arguments, or unwritten
 //! for the next segment's first frame. The merge replays each segment against memory in serial order: it checks that the
-//! segment ended where the next one was predicted to start, turns the counts it read on overlay cells into serial ones,
-//! adds the links its own cells hold to memory's, replays its links and stores on overlay cells through the serial
+//! segment ended where the next one was predicted to start, adds the links its own cells hold to memory's, replays its links and stores on overlay cells through the serial
 //! `deref_cell` and `put`, and checks that no cell it saw unwritten had been written before its turn. Once every link is
 //! in place, a class of linked cells holds the one value any of its cells was given, in whatever order the links and
 //! stores came, so the image is the serial one; a segment gives up where its own decisions could depend on that order (a
@@ -24,8 +23,8 @@ use super::execute::{
     Cell, ExecError, FastMap as HashMap, Lanes, MAX_STEPS, Machine, Mem, PAGE, PAGE_LOG, Plan, Run, State, Stop, walk,
 };
 use super::hints::{GPow, MAX_CELLS};
-use super::trace::Table;
 use crate::keccak::Steps;
+use isa::KECCAK_WINDOW;
 use parallel::SendPtr;
 use primitives::field::{F64, F128};
 
@@ -122,7 +121,7 @@ impl Prediction {
 }
 
 fn touched(c: &Cell) -> bool {
-    c.state != State::Unwritten || c.count != 0
+    c.state != State::Unwritten
 }
 
 /// The prediction of the loop at `pc`, which pops `stream`, from iterations 1 and 2.
@@ -141,7 +140,7 @@ fn predict(m: &Mem<'_>, pc: u32, stream: u32, at1: Start, frame1: &[Cell], at2: 
     let mut args = Vec::new();
     for o in 0..stride {
         let (c1, c2) = (frame1[o as usize], m.cell(at2.fp + o));
-        let arg = c1.state == State::Written && c2.state == State::Written && c1.count == c2.count;
+        let arg = c1.state == State::Written && c2.state == State::Written;
         if at1.fp + o < LOW {
             // A range check may have touched the cell; what is not an argument is memory's.
             if !arg {
@@ -172,7 +171,6 @@ fn predict(m: &Mem<'_>, pc: u32, stream: u32, at1: Start, frame1: &[Cell], at2: 
     })
 }
 
-#[cfg(test)]
 thread_local! {
     /// Loops this thread dispatched as segments, and merged.
     pub(super) static LOOPS: std::cell::Cell<(usize, usize)> = const { std::cell::Cell::new((0, 0)) };
@@ -212,11 +210,15 @@ pub(super) fn run(
         // Only a loop whose frames were all reserved before it started: an inner loop's stream, popped across many runs
         // of the loop, predicts frames past them. The segments write their own cells in place and read the shared
         // g-power table, so both have to reach the last iteration's heap before they start: only a heap that grew alike
-        // in iterations 0 and 1, so that one iteration's growth does not reserve memory the serial run never uses.
+        // in iterations 0 and 1, so that one iteration's growth does not reserve memory the serial run never uses. An
+        // aligned frame's padding depends on where the heap starts modulo the window: iterations 1 and 2 starting at the
+        // same residue grow alike, and iteration 0 only by its first padding.
         let j = (n - 3) as u64;
         let reserved = u64::from(pred.at2.fp) + (j + 1) * u64::from(pred.stride) <= u64::from(nf0);
         let reach = u64::from(pred.at2.next_free) + j * u64::from(pred.dnf);
-        if segments < 2 || !reserved || pred.dnf != heap0 || reach >= u64::from(MAX_CELLS) {
+        let alike =
+            pred.dnf == heap0 || (pred.dnf.is_multiple_of(KECCAK_WINDOW) && pred.dnf.abs_diff(heap0) < KECCAK_WINDOW);
+        if segments < 2 || !reserved || !alike || reach >= u64::from(MAX_CELLS) {
             continue;
         }
         let bounds: Vec<usize> = (0..=segments).map(|c| 2 + c * (n - 3) / segments).collect();
@@ -226,7 +228,6 @@ pub(super) fn run(
         m.reserve(reach as usize);
         m.g.grow_to(reach as usize);
         let merged = dispatch(plan, m, run, step, &pred, &bounds);
-        #[cfg(test)]
         LOOPS.with(|l| l.set((l.get().0 + 1, l.get().1 + usize::from(merged))));
         if !merged {
             return Ok(false);
@@ -300,11 +301,7 @@ fn dispatch(
                 overlay: HashMap::default(),
                 links: HashMap::default(),
                 events: Vec::new(),
-                fixups: Vec::new(),
-                pending: Vec::new(),
-                nbump: 0,
                 used: 0,
-                counts: 0,
                 abandoned: false,
                 g: &g,
                 cache: HashMap::default(),
@@ -319,7 +316,7 @@ fn dispatch(
                     s
                 })
                 .collect();
-            let mut r = Run::new(pred.pc, start.fp, start.next_free, streams, run.bytecode_count.len());
+            let mut r = Run::new(pred.pc, start.fp, start.next_free, streams);
             let mut lanes = Vec::new();
             let walked = walk(plan, &mut seg, &mut r, &mut |l: &Lanes| lanes.push(*l), pred.stop(b));
             (matches!(walked, Ok(true)) && !seg.abandoned).then_some((r, seg, lanes))
@@ -329,12 +326,16 @@ fn dispatch(
         let Some(mut outs) = outs.into_iter().collect::<Option<Vec<_>>>() else {
             return false;
         };
-        let merged = (outs.iter_mut().enumerate())
-            .all(|(c, (r, seg, _))| merge(m, run, r, seg, pred, bounds[c + 1], c + 1 == segments).is_some());
+        // Each segment's first step in the serial run: the steps before it.
+        let mut firsts = Vec::with_capacity(segments);
+        let merged = (outs.iter_mut().enumerate()).all(|(c, (r, seg, _))| {
+            firsts.push(run.steps as u32);
+            merge(m, run, r, seg, pred, bounds[c + 1], c + 1 == segments).is_some()
+        });
         if !merged {
             return false;
         }
-        finish(run, &mut outs, step);
+        finish(run, &outs, &firsts, step);
         true
     });
     m.g = g;
@@ -364,19 +365,11 @@ fn merge(
     if !last {
         let next = pred.args(b);
         let cell = |c: Option<&Cell>| c.copied().unwrap_or(Cell::UNWRITTEN);
-        if held
-            .clone()
-            .any(|c| cell(seg.overlay.get(&c).map(|o| &o.cell)) != cell(next.get(&c)))
-        {
+        if held.clone().any(|c| cell(seg.overlay.get(&c)) != cell(next.get(&c))) {
             return None;
         }
     }
     let skip = |c: u32| held.contains(&c);
-    for (&cell, o) in &mut seg.overlay {
-        if !skip(cell) {
-            o.delta = m.cell(cell).count.checked_sub(o.init)?;
-        }
-    }
     // Its own cells and their links go in before its events: an event reads an own cell as written, and a value it
     // stores into one spreads through them, as serially.
     if seg.used > m.used {
@@ -404,14 +397,6 @@ fn merge(
             return None;
         }
     }
-    for (&cell, o) in &seg.overlay {
-        // An instruction's access, which covers the cell as the serial run's would.
-        if o.cell.count != o.init && !skip(cell) {
-            m.at(cell).count = o.cell.count + o.delta;
-            m.counts = m.counts.max(o.cell.count + o.delta);
-        }
-    }
-    m.counts = m.counts.max(seg.counts);
     (run.fp, run.next_free) = (end.fp, end.next_free);
     for (s, &next) in run.streams.iter_mut().zip(&end.cursors) {
         s.next = next;
@@ -419,42 +404,12 @@ fn merge(
     Some(())
 }
 
-/// Append the merged segments' rows to the run's in serial order, their counts made serial, and hand their Keccak
-/// steps on.
-fn finish(run: &mut Run<'_>, outs: &mut [Out], step: &mut dyn Steps) {
-    parallel::for_each_mut(outs, |_, (r, seg, _)| {
-        for f in &seg.fixups {
-            *r.rows.count(f.table, f.row as usize, f.field as usize) += seg.overlay[&f.cell].delta;
-        }
-    });
-    // Each segment's per-pc counts become the serial counts before it, its rows' offsets.
-    const PCS: usize = 1 << 12;
-    let counts: Vec<_> = outs
-        .iter_mut()
-        .map(|o| SendPtr(o.0.bytecode_count.as_mut_ptr()))
-        .collect();
-    parallel::chunks_mut(&mut run.bytecode_count, PCS, |i, total| {
-        for (j, total) in total.iter_mut().enumerate() {
-            for c in &counts {
-                // SAFETY: pc `i * PCS + j` is in every segment's counts, and this task's alone.
-                let c = unsafe { &mut *c.add(i * PCS + j) };
-                (*c, *total) = (*total, *total + *c);
-            }
-        }
-    });
+/// Append the merged segments' rows to the run's in serial order, each segment's steps counted from `firsts`, its
+/// first step in the serial run, and hand their Keccak steps on.
+fn finish(run: &mut Run<'_>, outs: &[Out], firsts: &[u32], step: &mut dyn Steps) {
     step.steps(&outs.iter().map(|o| o.2.as_slice()).collect::<Vec<_>>());
-    let parts: Vec<_> = outs
-        .iter()
-        .map(|o| (&o.0.rows, o.0.bytecode_count.as_slice()))
-        .collect();
+    let parts: Vec<_> = outs.iter().zip(firsts).map(|(o, &first)| (&o.0.rows, first)).collect();
     run.rows.append(&parts);
-}
-
-/// An overlay cell, the count it started from, and what that count was short of the serial one, set by the merge.
-struct Over {
-    cell: Cell,
-    init: u32,
-    delta: u32,
 }
 
 /// What a segment did to an overlay cell that the merge replays, in the segment's order.
@@ -465,14 +420,6 @@ enum Event {
     Link(u32, u32),
     /// A hint or an instruction found it unwritten.
     Unwritten(u32),
-}
-
-/// A count a row read on an overlay cell: the row, the count's place among those it read, and the cell.
-struct Fixup {
-    table: Table,
-    row: u32,
-    field: u8,
-    cell: u32,
 }
 
 /// A segment's machine: its own cells in place, every other one in its overlay.
@@ -486,16 +433,10 @@ struct Segment<'a> {
     par_lo: u32,
     /// Its predicted arguments below `LOW`.
     seeds: HashMap<u32, Cell>,
-    overlay: HashMap<u32, Over>,
+    overlay: HashMap<u32, Cell>,
     links: HashMap<u32, Vec<u32>>,
     events: Vec<Event>,
-    fixups: Vec<Fixup>,
-    /// The overlay counts the current row read, by their place in it.
-    pending: Vec<(u8, u32)>,
-    nbump: u8,
     used: usize,
-    /// One past the highest count on an own cell.
-    counts: u32,
     abandoned: bool,
     g: &'a GPow,
     /// Exponents this segment announced or resolved, which the shared table does not index.
@@ -524,23 +465,14 @@ impl Segment<'_> {
         let foreign = !next && c >= LOW && c >= self.par_lo;
         self.abandoned |= foreign;
         let (seeds, pages) = (&self.seeds, self.pages);
-        &mut self
-            .overlay
-            .entry(c)
-            .or_insert_with(|| {
-                let cell = match seeds.get(&c) {
-                    Some(seed) => *seed,
-                    None if next || foreign => Cell::UNWRITTEN,
-                    // SAFETY: below `par_lo` or `LOW` and in no segment's frame: no segment writes it.
-                    None => cell_ptr(pages, c).map_or(Cell::UNWRITTEN, |p| unsafe { *p }),
-                };
-                Over {
-                    cell,
-                    init: cell.count,
-                    delta: 0,
-                }
-            })
-            .cell
+        self.overlay.entry(c).or_insert_with(|| match seeds.get(&c) {
+            Some(seed) => *seed,
+            None if next || foreign => Cell::UNWRITTEN,
+            // SAFETY: `cell_ptr` reads inside a whole page. Segments write only their `own` cells, at or above
+            // `LOW` and `par_lo`: `Prediction::start` rises with `k` (`run` checks it does not wrap), so each
+            // `own(a, b)` nests in `own(bounds[0], bounds[last])`, whose least start is `par_lo`.
+            None => cell_ptr(pages, c).map_or(Cell::UNWRITTEN, |p| unsafe { *p }),
+        })
     }
 
     /// A hint or an instruction decides on cell `c`'s state.
@@ -614,12 +546,12 @@ impl Machine for Segment<'_> {
         self.observe(cell).word
     }
     #[inline(always)]
-    fn read(&mut self, cell: u32) -> (F128, u32) {
+    fn read(&mut self, cell: u32) -> F128 {
         self.ensure(cell as usize);
         let c = *self.slot(cell);
         // An unconstrained read, which every proof refuses: the serial rerun reports it.
         self.abandoned |= c.state != State::Written;
-        (c.word, self.bump(cell))
+        c.word
     }
     #[inline(always)]
     fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
@@ -628,21 +560,6 @@ impl Machine for Segment<'_> {
             self.spread(cell, v);
         }
         Ok(())
-    }
-    #[inline(always)]
-    fn bump(&mut self, cell: u32) -> u32 {
-        self.ensure(cell as usize);
-        let own = self.own(cell);
-        let c = self.slot(cell);
-        let count = c.count;
-        c.count = count + 1;
-        if own {
-            self.counts = self.counts.max(count + 1);
-        } else {
-            self.pending.push((self.nbump, cell));
-        }
-        self.nbump += 1;
-        count
     }
     #[inline(always)]
     fn deref_cell(&mut self, a2: u32, a3: u32) -> Result<(), ExecError> {
@@ -658,18 +575,6 @@ impl Machine for Segment<'_> {
             self.link(a2, a3);
             Ok(())
         }
-    }
-    #[inline(always)]
-    fn row(&mut self, table: Table, row: usize) {
-        for (field, cell) in self.pending.drain(..) {
-            self.fixups.push(Fixup {
-                table,
-                row: row as u32,
-                field,
-                cell,
-            });
-        }
-        self.nbump = 0;
     }
     #[inline(always)]
     fn abandoned(&self) -> bool {

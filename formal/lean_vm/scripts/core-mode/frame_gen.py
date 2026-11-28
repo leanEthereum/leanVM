@@ -110,8 +110,6 @@ def jt0Of(n):
 
 
 JT0S = {}
-# where a pack of one frame module takes its powers of `g`
-POWS = '\x00pows\x00'
 
 
 def fstLit(A):
@@ -235,12 +233,11 @@ def envDefs(D, n, nzr):
                 'true' if n == 'main' else 'false')]
 
 
-def imports(pack, packs, gens, glue, pows=True):
-    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit',
-           *(['public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack] if pows else ['public import LeanVM.Guest.Pow']),
+def imports(pack, packs, gens, glue):
+    out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
            'public import LeanVM.Guest.CoreMode.Env',
            *['public import LeanVM.Guest.CoreMode.GlueA.«%s»' % q for q in sorted(set(glue) or {pack})],
-           'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
+           'public import LeanVM.Guest.Pack.«%s».B2CData' % pack]
     out += ['public import %s' % pair_mod(g, n) for g, n in sorted(set(gens))]
     out += ['public import LeanVM.Guest.CoreMode.Sig.«%s»' % p for p in sorted(packs | {pack})]
     # the walks read the advice's values, which `Statement/Data` does not expose
@@ -274,8 +271,7 @@ FPOWS = None
 
 def fpowsDef(k):
     """`k`'s frame walk's powers of `g`: the immediates of its code's `SET`s that `Data.powTree` names (code
-    pointers among them: glue, `CoreMode/GlueP/<pack>.lean`, or the pack's frame module when it has one), checked by
-    the kernel."""
+    pointers among them: glue, `CoreMode/GlueP/<pack>.lean`), checked by the kernel."""
     global FPOWS
     if FPOWS is None:
         import pows as PW
@@ -329,6 +325,7 @@ def main(argv):
            if n not in ROUTE and (not fns_only or n in fns_only)]
     if off:
         raise SystemExit('frame_gen: off the core route: %s' % ', '.join(sorted(off)))
+    OFF = set(off)
     D = FD.load()
     files = {}
     stats = collections.Counter()
@@ -337,7 +334,7 @@ def main(argv):
         p, names = item
         files, stats = {}, collections.Counter()
         if only and p not in only: return files, stats
-        names = [n for n in names if not fns_only or n in fns_only]
+        names = [n for n in names if (not fns_only or n in fns_only) and n not in OFF]
         if not names: return files, stats
         groups = []; cur = []; size = 0; long_ = []
         for n in names:
@@ -356,14 +353,11 @@ def main(argv):
                 # one `frame_fn%` a function: a short one has no cuts
                 body.append(qual(ns_, ''.join(defs)) + lit)
                 stats['fns'] += 1
-            # a pack of one module holds its powers of `g` itself, `GlueP` otherwise
-            alone = len(groups) == 1 and not long_
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (
-                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') +
-                imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}, not alone) +
+                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}) +
                 '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
-                '@[expose] public section\n\n' + (POWS if alone else '') + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
+                '@[expose] public section\n\n' + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
         for k, n in enumerate(long_):
             cuts = cutsFor(D, n)
             lit, defs, packs = fnData(D, n, cuts)
@@ -418,18 +412,14 @@ def main(argv):
         stats.update(st)
     for p, names in sorted(MG.packs().items()):
         if only and p not in only: continue
-        defs = ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns']))
-        f0 = os.path.join(OUT, p, 'Frame0.lean')
-        if POWS in files.get(f0, ''):
-            files[f0] = files[f0].replace(POWS, re.sub(r'^(?=noncomputable def |theorem )', 'set_option linter.all false in\n',
-                                                       defs, flags=re.M) + '\n')
-            continue
         files[os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '%s.lean' % p)] = (
             header('LeanVM.Guest.CoreMode.GlueP.«%s»' % p, 'The powers of `g` the code of each function of the pack names, '
                    'code pointers among them.') +
             'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n'
             'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
-            '@[expose] public section\n\n' + defs + '\nend\n\nend LeanVM.Guest\n')
+            '@[expose] public section\n\n' +
+            ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
+            '\nend\n\nend LeanVM.Guest\n')
     files = {path: wrap(text) for path, text in files.items()}
     # a window, module or pack no longer written (fewer windows, a function moved, a pack gone)
     have = [] if only or fns_only else (glob.glob(os.path.join(OUT, '*', 'Frame*.lean')) +

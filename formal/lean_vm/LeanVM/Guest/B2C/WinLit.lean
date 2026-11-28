@@ -99,6 +99,10 @@ def pairOf {α β : Type} (f : Expr → MetaM α) (g : Expr → MetaM β) (e : E
   let (_, xs) ← ctorOf e 2
   return (← f xs[0]!, ← g xs[1]!)
 
+def optionOf {α : Type} (f : Expr → MetaM α) (e : Expr) : MetaM (Option α) := do
+  let (c, xs) ← ctorOf e 1
+  if c == ``Option.some then return some (← f xs[0]!) else return none
+
 def symOf (e : Expr) : MetaM Sym := do
   let (c, xs) ← ctorOf e 0
   match c with
@@ -242,8 +246,7 @@ syntax (name := winLit) (docComment)? "win_lit " ident ppSpace num ppSpace num :
     let idxE := trieE segTy (fun s ↦ byStart.getD s.start (toExpr s)) idx
     let field (f : Name) : TermElabM Expr := do
       nfOf (← `(($(mkIdent f) (winPre $j $i))))
-    let v := mkAppN (mkConst ``WinPre.mk) #[segsE, idxE, ← field ``WinPre.stat, ← field ``WinPre.nv,
-      ← field ``WinPre.pst, ← field ``WinPre.wst, toExpr lw]
+    let v := mkAppN (mkConst ``WinPre.mk) #[segsE, idxE, ← field ``WinPre.wst, toExpr lw]
     let e ← Term.elabTerm (← `(winPre $j $i)) none
     Term.synthesizeSyntheticMVarsNoPostponing
     return (← instantiateMVars e, v)

@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Mode.InvCert
+public import LeanVM.Guest.Mode.InvCode
 import all Statement.Data.Bytecode
 
 /-!

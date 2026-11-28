@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Bits.Log2
 
-  B1 for `log2_ceil_in_the_exponent`: the hinted `log2Ceil`, pinned by two small g-powers, at both
-  floors the guest compiles.
+  B1 for `log2_ceil_in_the_exponent`: the hinted `log2Ceil`, pinned by two small g-powers, at the floor the
+  guest compiles (`STK_MIN_LOG = 16`).
 -/
 
 module
@@ -21,9 +21,9 @@ import LeanVM.Guest.Value.FieldBits
 `log2_holds`). On `g_N = g^N`, `N < 2^60`, the two bounds are `N ≤ 2^L` and `2^(L-1) < N`, so
 `L = max floor (log2Ceil N)` (`meaningLog2CeilExp_pow`).
 
-Each specialization (`__L0_L34`, `__L16_L34`) is its forward condition `LcCond floor` by `vc`
-(`lc_L0_iff`, `lc_L16_iff`), which `lc_iff` takes to the meaning. The expansion as a template
-(`lcBody`), which the placed run walks, is in `Log2Placed.lean`.
+The one specialization, `__L16_L34` (`certify_stack`'s), is its forward condition `LcCond 16` by
+`vc` (`lc_L16_iff`), which `lc_iff` takes to the meaning. The expansion as a template
+(`lcBody`) belongs to completeness, not restored.
 -/
 
 namespace LeanVM.Guest.B1
@@ -50,11 +50,6 @@ theorem gen_pow_mul_invGen (L : ℕ) : gen ^ (L + 1) * invGenWord = gen ^ L := b
 /-! ## The specializations -/
 
 set_option maxRecDepth 100000 in
-theorem find_lce_L0 : coreProgram.find? "log2_ceil_in_the_exponent__L0_L34" = some
-    fn% «log2_ceil_in_the_exponent__L0_L34» :=
-  coreProgram_find?_at (j := idx% «log2_ceil_in_the_exponent__L0_L34») rfl
-
-set_option maxRecDepth 100000 in
 theorem find_lce_L16 :
     coreProgram.find? "log2_ceil_in_the_exponent__L16_L34" = some
         fn% «log2_ceil_in_the_exponent__L16_L34» :=
@@ -73,12 +68,6 @@ def LcCond (fl : ℕ) (rd : Reader) (gN q : E) (rets : List E) : Prop :=
             (gL + word (2 ^ fl) 0 ≠ 0 → ∃ s', LoadHolds rd (q * (gL * invGenWord)) 0 s' ∧
               ∃ e', gN * invGenWord = e' * s' ∧
                 coreProgram.Rel rd "assert_small_g_power" [e', q] [] ∧ [gL] = rets)
-
-theorem lc_L0_iff (rd : Reader) (gN q : E) (rets : List E) :
-    coreProgram.Rel rd "log2_ceil_in_the_exponent__L0_L34" [gN, q] rets ↔ LcCond 0 rd gN q rets := by
-  rw [rel_iff_fnSem find_lce_L0]
-  vc
-  exact Iff.rfl
 
 theorem lc_L16_iff (rd : Reader) (gN q : E) (rets : List E) :
     coreProgram.Rel rd "log2_ceil_in_the_exponent__L16_L34" [gN, q] rets ↔ LcCond 16 rd gN q rets := by
@@ -203,11 +192,9 @@ theorem lc_iff (fl : ℕ) (hfl : fl < 34) {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6
       obtain ⟨e', he', hm, hl⟩ := hmin hne
       exact ⟨_, hl, _, hm, (hsmall _).2 ⟨⟨_, he', rfl⟩, rfl⟩, rfl⟩
 
-/-- **`log2_ceil_in_the_exponent`'s core IR is its meaning**, at both floors. -/
+/-- **`log2_ceil_in_the_exponent`'s core IR is its meaning**, at the floor `16`. -/
 theorem log2_holds : log2_Spec :=
-  ⟨fun hκ hκ6 Lm _ _ ht rets => (lc_L0_iff _ _ _ rets).trans (lc_iff 0 (by decide) hκ hκ6 Lm ht rets),
-    fun hκ hκ6 Lm _ _ ht rets =>
-      (lc_L16_iff _ _ _ rets).trans (lc_iff 16 (by decide) hκ hκ6 Lm ht rets)⟩
+  fun hκ hκ6 Lm _ _ ht rets => (lc_L16_iff _ _ _ rets).trans (lc_iff 16 (by decide) hκ hκ6 Lm ht rets)
 
 end
 end LeanVM.Guest.B1

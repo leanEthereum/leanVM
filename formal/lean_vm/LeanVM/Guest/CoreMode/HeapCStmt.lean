@@ -326,6 +326,7 @@ theorem hvDef_ok {st : CSt} (hs : StOk rd W σ st) {c : CCell} {d : V} (hd : rd 
   | .wnil => hs
   | .wcons _ _ => hs
   | .drv _ _ _ _ _ => hs
+  | .ptsU _ _ => hs
 
 /-- **The runs at a word read**: the cell `c` holding `m`'s word, its runs at words into the run scope. -/
 theorem promoteQ_ok {st : CSt} (hs : StOk rd W σ st) {c m : CCell} (hm : rd (c.addr σ) = some (m.valW (vw σ))) :
@@ -1198,7 +1199,7 @@ theorem condE_nth {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : List S
     exact ⟨by simpa using hk, by simpa using h⟩
 
 theorem addCd_ok {st : CSt} (hs : StOk rd W σ st) {l : List CdE} (hl : CdOk rd W σ l) : StOk rd W σ (st.addCd l) :=
-  ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, hs.src, hs.pf, hs.pr, fun e he ↦ (List.mem_append.mp he).elim (fun h ↦ hs.cd e (List.mem_filter.mp h).1) (hl e), hs.eqs, hs.dq⟩
+  ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, hs.src, hs.pf, hs.pr, fun e he ↦ (List.mem_append.mp he).elim (hs.cd e) (hl e), hs.eqs, hs.dq⟩
 
 /-- **A dispatch's returned pointers hold** in `W'`: each returned word `j`'s cells at the offsets. -/
 def VpOk (W' : K → Prop) (σ : Val) (rets : List V) (vps : List (ℕ × List ℕ)) : Prop :=
@@ -1747,7 +1748,7 @@ theorem retC1_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
                   have h1 := hmv k m hmk
                   rw [slotW, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hk,
                     Option.map_some, Option.getD_some] at h1
-                  rw [← h1, CCell.beq_eq hkc', instC_ok hmp' hic, hX.params]
+                  rw [← h1, eqV_ok hs.eqs hkc', instC_ok hmp' hic, hX.params]
             · unfold retVC at hV
               have hi := List.all_eq_true.mp hV (i, m) him
               dsimp only at hi

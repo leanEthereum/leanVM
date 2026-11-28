@@ -10,7 +10,7 @@ small, and its frame lies below `maxCells`. `HintOk C M s h` states what hint `h
 state `s` it runs from: its pointers and exponents written as powers in range, the stream entry
 it pops of the right length, a run's length positive and the cells it reads below `maxCells` (a
 pointer's or an exponent's is, being written), and the values it writes equal to `M` at their cells
-below `maxCells`; an allocation's `M` holding `g^nextFree` at its pointer with the reservation in range
+below `maxCells`; an allocation's `M` holding `g^base` at its pointer, `base` the next free cell or, aligned, the next multiple of the window from it, with the reservation in range
 (a late one's pointer written, or that). Then the hint succeeds, keeps `Fine` and the registers, and extends the
 memory (`runHint_complete`).
 -/
@@ -161,37 +161,40 @@ theorem expOf_complete {s : St} {c n nbits : ℕ} {what : String} (h : ExpAt s c
   rw [h.1, inK_ofK, ok_bind, boundedDlog_complete h.2 hn]
   rfl
 
-/-- An allocation of `size` cells with its pointer at `fp + ptr`: `M` holding `g^nextFree` there
-and the reservation's last cell below `maxCells`. -/
-def AllocOk (M : ℕ → E) (s : St) (ptr size : ℕ) : Prop :=
-  s.fp + ptr < maxCells ∧ s.nextFree + size ≤ maxCells ∧ M (s.fp + ptr) = ofK (g ^ s.nextFree)
+/-- An allocation of `size` cells, `aligned` or not, with its pointer at `fp + ptr`: `M` holding
+`g^base` there, `base = allocBase aligned nextFree`, and the reservation's last cell below
+`maxCells`. -/
+def AllocOk (M : ℕ → E) (s : St) (ptr size : ℕ) (aligned : Bool) : Prop :=
+  s.fp + ptr < maxCells ∧ allocBase aligned s.nextFree + size ≤ maxCells ∧
+    M (s.fp + ptr) = ofK (g ^ allocBase aligned s.nextFree)
 
-theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ}
-    (h : AllocOk M s ptr size) : ∃ s', allocate s ptr size = .ok s' ∧ Moves M s s' := by
+theorem allocate_complete {M : ℕ → E} {s : St} (hs : Fine M s) {ptr size : ℕ} {aligned : Bool}
+    (h : AllocOk M s ptr size aligned) : ∃ s', allocate s ptr size aligned = .ok s' ∧ Moves M s s' := by
   obtain ⟨hcu, hnu, hM⟩ := h
+  unfold allocate
+  generalize allocBase aligned s.nextFree = base at hnu hM ⊢
   have hcell : cellAt s.fp ptr = .ok (s.fp + ptr) := cellAt_eq hcu
-  have hm0 : Agree (if s.nextFree < s.nextFree + size then s.mem.ensure (s.nextFree + size - 1)
+  have hm0 : Agree (if base < base + size then s.mem.ensure (base + size - 1)
       else s.mem) M := by
     split_ifs
     · exact hs.agree.ensure (by omega)
     · exact hs.agree
-  have hle0 : s.mem ≤ (if s.nextFree < s.nextFree + size then s.mem.ensure (s.nextFree + size - 1)
+  have hle0 : s.mem ≤ (if base < base + size then s.mem.ensure (base + size - 1)
       else s.mem) := by
     split_ifs
     · exact Mem.le_ensure _ _
     · exact Mem.le_refl _
   obtain ⟨m', e, h', le', -⟩ := hm0.put hM hcu
-  have hD := (hs.dl.grow (s.nextFree + size)).note s.nextFree
-  have hS := (hs.small.grow (n := s.nextFree + size) (by unfold maxCells at hnu; omega)).note
-    (k := s.nextFree) (by unfold maxCells at hnu; omega)
+  have hD := (hs.dl.grow (base + size)).note base
+  have hS := (hs.small.grow (n := base + size) (by unfold maxCells at hnu; omega)).note
+    (k := base) (by unfold maxCells at hnu; omega)
   refine ⟨{ s with
-    mem := m', nextFree := s.nextFree + size,
-    dl := (s.dl.grow (s.nextFree + size)).note s.nextFree },
+    mem := m', nextFree := base + size,
+    dl := (s.dl.grow (base + size)).note base },
     ?_,
     ⟨⟨h', hD, hS, hs.fp⟩, Mem.le_trans hle0 le', rfl, rfl, rfl⟩⟩
-  unfold allocate
   rw [hcell, ok_bind]
-  simp only [show ¬maxCells < s.nextFree + size by omega, ↓reduceIte]
+  simp only [show ¬maxCells < base + size by omega, ↓reduceIte]
   rw [St.withMem_eq e]
   rfl
 
@@ -205,13 +208,14 @@ def log2CeilOf (m : Mem) (b nbits : ℕ) : ℕ :=
 /-- What hint `h` needs from the state it runs from. -/
 def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
   | .frameAddress offset => s.fp + offset < maxCells
-  | .alloc ptr size => AllocOk M s ptr size
-  | .allocDyn ptr size => ∃ n, PtrAt s (s.fp + size) n ∧ AllocOk M s ptr n
-  | .allocArm ptr sel sizes => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧ AllocOk M s ptr n
+  | .alloc ptr size aligned => AllocOk M s ptr size aligned
+  | .allocDyn ptr size => ∃ n, PtrAt s (s.fp + size) n ∧ AllocOk M s ptr n false
+  | .allocArm ptr sel sizes aligned => ∃ k n, PtrAt s (s.fp + sel) k ∧ sizes[k]? = some n ∧
+    AllocOk M s ptr n aligned
   | .cellAddress ptr cell => s.fp + cell < maxCells ∧ s.fp + ptr < maxCells ∧
     M (s.fp + ptr) = ofK (g ^ (s.fp + cell))
-  | .allocFrames ptr size stop startInverse tail => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
-    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail)
+  | .allocFrames ptr size stop startInverse tail aligned => ∃ v n, s.mem.peek (s.fp + stop) = ofK v ∧
+    v * startInverse = g ^ n ∧ n < maxCells ∧ AllocOk M s ptr (size * n + tail) aligned
   | .witnessStack name base len => ∃ e, StreamNext C s name e ∧ e.length = len ∧ 0 < len ∧
     RunOk M (s.fp + base) e
   | .witnessHeap name ptr lo len => ∃ b e, PtrAt s (s.fp + ptr) b ∧ StreamNext C s name e ∧
@@ -227,12 +231,12 @@ def HintOk (C : Ctx) (M : ℕ → E) (s : St) : Hint → Prop
     DestOk s (fun b ↦ RunOk M (b + pos)
     ((List.range count).map fun i ↦
       ofK (g ^ ((wordNat (s.mem.peek (s.fp + value)) >>> (start + i * width)) % 2 ^ width)))) dest
-  | .digitDecomposeExp value dst nbits ndigits digitBits start startCell => nbits ≤ 62 ∧ 0 < ndigits ∧
+  | .digitDecomposeExp value dst nbits ndigits digitBits start startCell => nbits ≤ 62 ∧
     ∃ n st, ExpAt s (s.fp + value) n nbits ∧
       (match startCell with
         | none => st = start
         | some c => ExpAt s (s.fp + c) st 7) ∧
-      DestOk s (fun b ↦ RunOk M b ((List.range ndigits).map fun j ↦ ofK (g ^
+      DestOk s (fun b ↦ b + ndigits ≤ maxCells ∧ RunOk M b ((List.range ndigits).map fun j ↦ ofK (g ^
         (if 128 ≤ st + digitBits * j then 0 else (n >>> (st + digitBits * j)) % 2 ^ digitBits))))
         dst
   | .fieldLimbs value base len => s.fp + value < maxCells ∧ 0 < len ∧
@@ -262,7 +266,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq hh, ok_bind]
     rfl
-  | alloc ptr size => exact allocate_complete hs hh
+  | alloc ptr size aligned => exact allocate_complete hs hh
   | allocDyn ptr size =>
     obtain ⟨n, hp, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
@@ -273,7 +277,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq (hp.lt hs), ok_bind, hp.1, inK_ofK, ok_bind, e, ok_bind]
     exact e'
-  | allocArm ptr sel sizes =>
+  | allocArm ptr sel sizes aligned =>
     obtain ⟨k, n, hp, hk, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
       (f := .notAGPower "dispatch selector" (g ^ k))
@@ -291,7 +295,7 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     simp only [runHint]
     rw [cellAt_eq hc, ok_bind, cellAt_eq hp, ok_bind]
     exact e
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse tail aligned =>
     obtain ⟨v, n, hv, hvn, hn, ha⟩ := hh
     obtain ⟨D', e, h1, h2⟩ := St.logOr_complete hs.dl hs.small
       (f := .notAGPower "loop bound" (g ^ n))
@@ -383,11 +387,11 @@ theorem runHint_complete {C : Ctx} {M : ℕ → E} {s : St} (hs : Fine M s) {h :
     rw [cellAt_eq hv, ok_bind, e1, ok_bind]
     exact e2
   | digitDecomposeExp value dst nbits ndigits digitBits start startCell =>
-    obtain ⟨hn, hpos, n, st, he, hst, hd⟩ := hh
+    obtain ⟨hn, n, st, he, hst, hd⟩ := hh
     obtain ⟨b, s1, e1, hr, m1, hmem⟩ :=
       bitsBase_complete hs (len := ndigits) (what := "hint_decompose_digits_exponent pointer") hd
-        fun _ h ↦ by simpa using h.end_le (by simpa using hpos)
-    obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr
+        fun _ h ↦ h.1
+    obtain ⟨s2, e2, m2⟩ := putRun_moves m1.fine hr.2
     refine ⟨s2, ?_, m1.trans m2⟩
     have hvc := cellAt_eq (hs.lt_of_peek (by rw [he.1]; exact ofK_gpow_ne n))
     cases startCell with

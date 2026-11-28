@@ -23,7 +23,7 @@ checks a relation on the words it reads, so all nondeterminism is the choice of 
 
 namespace LeanVM.Parameters
 
-/-- The six instructions, in bus-code order (`crates/lean_vm_core/src/tables.rs`). -/
+/-- The six instructions, in opcode order (`crates/lean_vm_core/src/tables.rs`). -/
 inductive Opcode
   /-- `XOR`: an addition in `E`. -/
   | xor
@@ -39,8 +39,9 @@ inductive Opcode
   | keccak
   deriving DecidableEq
 
-/-- The bus code of an opcode: `g^0, …, g^5` in constructor order (specification §6.4). -/
-def Opcode.busCode : Opcode → K
+/-- The code of an opcode, its bytecode slot 3: `g^0, …, g^5` in constructor order (specification
+§8.1, `sec:e2e-bc`). -/
+def Opcode.code : Opcode → K
   | .xor => addressOfIndex 0
   | .mulNative => addressOfIndex 1
   | .setConstant => addressOfIndex 2
@@ -183,7 +184,7 @@ words' limbs `0` and `1`, one lane per limb (specification §2, the `KECCAK` par
 A limb `·` holds no lane: it is ignored when read and zero when written. -/
 
 /-- The lanes cell `c` holds in limbs `0` and `1`, in the layout `odd`; `none` marks a limb that
-holds no lane (`keccak_cell_lanes`, `layout.rs`, which the verifier's flushes read
+holds no lane (`keccak_cell_lanes`, `layout.rs`, which the verifier's link reads
 too). -/
 def cellLanes (odd : Bool) (c : ℕ) : Option ℕ × Option ℕ :=
   if 9 ≤ c ∨ (odd ∧ 1 ≤ c) then (some (2 * c - 1), some (2 * c))
@@ -225,7 +226,7 @@ instance {input : Fin 13 → E} {inOdd : Bool} {output : Fin 13 → E} {outOdd :
   unfold KeccakCellsRelation; infer_instance
 
 /-- The address of read cell `c` relative to the frame: `o_m₀, …, o_m₃`, then `g^k · o_tail`
-(`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`flushes_keccak`'s `address`,
+(`k < 4`), `o_b8`, then `g^k · o_cap` (`k < 4`) (`links_keccak`'s `part`,
 `layout.rs`). -/
 def keccakInputCellOffset (om : Fin 4 → K) (otail ob8 ocap : K) (c : Fin 13) : K :=
   if h : c.val < 4 then om ⟨c.val, h⟩
@@ -281,8 +282,8 @@ return the next registers; `none` if a read or a check fails. A taken `JUMP` mov
 be powers `g^k`, the target's `k` inside the bytecode and the frame's below `MAX_CELLS = 2^28`, its
 own address space: it finds `k` in its table of powers or by a discrete logarithm bounded below the
 bound (`crates/lean_vm_core/src/cpu/execute.rs`, `cpu/hints.rs`), and
-stops after `MAX_STEPS` (`2^30 / 7`: `2^30` committed words over the narrowest table's `7` columns,
-`execute.rs`) steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
+stops after `MAX_STEPS` (`2^30 / 5`: `2^30` committed words over the narrowest table's `5` columns,
+`MIN_COMMITTED_COLUMNS`, `execute.rs`) steps, which nothing here bounds: those are the executor's limits, not the statement's. -/
 def executeWith (read : K → Option E) (registers : Registers K) :
     LeanIsaInstruction → Option (Registers K)
   | .xor oA oB oC => do
@@ -433,28 +434,28 @@ cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`Ou
 def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
   (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
 
-/-- The bus entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
+/-- The entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
 §8.1, the thirteen public columns of `encode` (`crates/isa/src/program.rs`): offsets as
 g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout and output flags as `0` or `1`, unused slots zero. -/
-def busEntry : LeanIsaInstruction → Vector K 13
-  | .xor oA oB oC => #v[Opcode.xor.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  | .mulNative oA oB oC => #v[Opcode.mulNative.busCode, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+def instructionEntry : LeanIsaInstruction → Vector K 13
+  | .xor oA oB oC => #v[Opcode.xor.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  | .mulNative oA oB oC => #v[Opcode.mulNative.code, oA, oB, oC, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   | .setConstant o k =>
-      #v[Opcode.setConstant.busCode, o, k.limb 0, k.limb 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      #v[Opcode.setConstant.code, o, k.limb 0, k.limb 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   | .deref o1 o2 o3 mode =>
-      #v[Opcode.deref.busCode, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0,
+      #v[Opcode.deref.code, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2, 0, 0, 0, 0,
         0, 0, 0]
-  | .jump oc od of => #v[Opcode.jump.busCode, oc, od, of, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  | .jump oc od of => #v[Opcode.jump.code, oc, od, of, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   | .keccak om otail ob8 ocap oout inOdd outOdd outCells =>
-      #v[Opcode.keccak.busCode, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout,
+      #v[Opcode.keccak.code, om 0, om 1, om 2, om 3, otail, ob8, ocap, oout,
         layoutFlagWord inOdd, layoutFlagWord outOdd, (keccakOutputFlags outCells).1,
         (keccakOutputFlags outCells).2]
 
 /-- The sixteen slots of an instruction (specification §8.1; `OPCODE_SLOT = 3`,
 `crates/isa/src/program.rs`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
-  let e := busEntry i
+  let e := instructionEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]]
 
 end LeanVM.Arithmetization

@@ -9,7 +9,7 @@ import LeanVM.Facts.Verifier
 # `guest-run`: the guest's prover in Lean, from a node's statement and witness
 
 `lake exe guest-run [--rust DIR] [--prove] <case>...` reads cases written by the exporter's test
-`guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 5`: a real aggregation's seed,
+`guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 6`: a real aggregation's seed,
 statement and witness) and, from the statement and the witness alone, runs the statement's
 witness generation and prover (`Statement/LeanVmGuestProver.lean`) on the guest program, as
 `guestArray` (equal to `guestProgram`, its instructions read from an array):
@@ -22,8 +22,10 @@ witness generation and prover (`Statement/LeanVmGuestProver.lean`) on the guest 
   and `trace.txt` (`LEANVM_GUEST_EXEC=DIR` on the exporter writes them): the memory's size, every
   cell and the step count;
 * with `--prove`, runs the guest's prover end to end (`LeanVM.Guest.guestProve`, at inverse rate
-  `2`, its `prove` compiled as `leanvm-prove` runs it) and verifies the proof with the deployed
-  verifier (`Verifier.verify`) on the guest's bytecode and the statement's digest.
+  `2`, its `prove` compiled as `leanvm-prove` runs it) and verifies the proof on the guest's
+  bytecode and the statement's digest with the deployed verifier's body (`Verifier.verify`'s,
+  `runProofWithHash` of `leanVmVerifierProgram` from `Verifier.seed`) written out here, so that it
+  compiles where the verifier's fast copies (`Prover/Fast/`) replace its definitions.
 
 It prints each stage's time and exits with `1` if a stage fails or differs.
 -/
@@ -88,7 +90,11 @@ def main (args : List String) : IO UInt32 := do
         | none => IO.println s!"  proved: FAIL, no proof ({time} s)"; ok := false
         | some π =>
           IO.println s!"  proved: {π.stream.length} scalars ({time} s)"
-          let (v, time) ← timed fun _ => Verifier.verify (LeanVM.bytecodeWords guestArray) digest π
+          -- `Verifier.verify`'s body, compiled here, where the fast copies act (`Prover/Fast/`):
+          -- `Verifier.verify` itself is compiled with the statement's `splitAt`.
+          let bytecode := LeanVM.bytecodeWords guestArray
+          let (v, time) ← timed fun _ => Id.run (runProofWithHash (m := Id) keccak256 keccakF1600
+            (leanVmVerifierProgram bytecode digest) (Verifier.seed bytecode digest) π)
           IO.println s!"  verified: {if v then "accepted" else "REJECTED"} ({time} s)"
           ok := ok && v
     (← IO.getStdout).flush

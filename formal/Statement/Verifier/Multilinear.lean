@@ -42,8 +42,7 @@ def gpow (index : ℕ) : E := gen ^ index
 /-- `E::sum(values)`: the sum from `ZERO`, left to right (`field.rs`). -/
 def sumE (values : List E) : E := values.foldl (· + ·) 0
 
-/-- The product from `ONE`, left to right, as the GKR step takes a child's
-(`crates/verifier/src/bus.rs`). -/
+/-- The product from `ONE`, left to right (`product`, `crates/verifier/src/link.rs`). -/
 def prodE (values : List E) : E := values.foldl (· * ·) 1
 
 /-- `acc, acc·base, acc·base², …`, `count` terms. -/

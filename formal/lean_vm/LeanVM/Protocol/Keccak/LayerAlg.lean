@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Protocol.Keccak.Rmfe
 public import LeanVM.Protocol.Keccak.Multilinear
-import LeanVM.ToMathlib.Finset
 
 /-!
 # A layer: the product polynomial
@@ -24,14 +23,14 @@ segment coordinate of §`keccak:segments`) is
 `z = y + 2^P·m` (pack `y`, segment `m`), step `x = i + 16y`. For a layer at `step`, the states
 after the round are `roundB (layerRC step m)` of the states `T` before it (`afterRound`); with
 `b = L(T)` the bits entering χ and `S_{z,j} = Σ_i b(z, i, j)·emb_i` the honest product polynomial
-is (`Gpoly`, eq. `keccak:eq:product`)
+is (`Gpoly`, `doc/leanvm` §`keccak:idea`, step 1)
 
   `G = Σ_z eq(point, z) Σ_j w_j (κ·S_{z,j} + (κ + S_{z,j+1})·S_{z,j+2})`,  `κ = Σ_i emb_i`.
 
 * `claimSum_round`: the claim's sum on the states after the round is
   `Σ_i μ_i · projE_i(G) + (Σ_m eq(point_P, m)·ι_m(w)) · Σ_i μ_i` (eq. `keccak:eq:projection`);
 * `iota_eq`: the verifier's `iota` is `Σ_m eq(point_P, m)·ι_m(w)`;
-* `eval_Gpoly`: `G(s)` is the χ of the packs' states at `s` (eq. `keccak:eq:at-s`);
+* `eval_Gpoly`: `G(s)` is the χ of the packs' states at `s` (§`keccak:idea`, step 2);
 * `natDegree_Gpoly`: `G` has degree at most `46`.
 -/
 
@@ -165,7 +164,7 @@ theorem sum_segment {P : ℕ} {point : List E} (hpt : point.length = P + 1) (f :
       ∑ m ∈ range 2, eqAt (point.drop P) m * f m := by
   have hsplit : point = point.take P ++ point.drop P := (List.take_append_drop P point).symm
   have htl : (point.take P).length = P := by simp [hpt]
-  rw [pow_succ, mul_comm, Finset.sum_range_mul]
+  rw [pow_succ, mul_comm, sum_range_mul]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
   have hm' := Finset.mem_range.1 hm
   have h1 : ∀ y ∈ range (2 ^ P), eqAt point (2 ^ P * m + y) * f ((2 ^ P * m + y) / 2 ^ P) =
@@ -241,7 +240,7 @@ theorem iota_eq (step P : ℕ) (point w : List E) (hpt : point.length = P + 1) :
             some (w.getD z 0) else none)) =
       ∑ m ∈ range 2, eqAt (point.drop P) m * iotaW (layerRC step m) w := by
   have hl : (point.drop P).length = 1 := by simp [hpt]
-  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range, show keccakSegments = 2 from rfl]
+  rw [sumE_eq_sum, list_sum_range, show keccakSegments = 2 from rfl]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
   rw [eqKernel_getD, hl, ite_eq_left (by simpa using hm), sumE_filterMap_range]
   rfl
@@ -255,7 +254,7 @@ noncomputable def Shat0 (T : States) (P : ℕ) (s : E) (z j : ℕ) : E :=
 /-- `κ(s) = Σ_i emb_i(s)`. -/
 noncomputable def kappaAt (s : E) : E := ∑ i ∈ range 16, (embP i).eval s
 
-/-- **`G(s)`** is χ of the packs' states at `s` (eq. `keccak:eq:at-s`). -/
+/-- **`G(s)`** is χ of the packs' states at `s` (§`keccak:idea`, step 2). -/
 theorem eval_Gpoly (T : States) (P : ℕ) (point w : List E) (s : E) :
     (Gpoly T P point w).eval s =
       ∑ z ∈ range (2 ^ (P + 1)), eqAt point z * ∑ j ∈ range 1600, w.getD j 0 *

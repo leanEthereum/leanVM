@@ -95,7 +95,7 @@ pub fn padding_weight(point: &[E], n: u64) -> E {
     (ONE + bit(point.len())) * low
 }
 
-/// MLE of `[1, g, g^2, ...]` at an LSB-first point.
+/// MLE of `[1, g, g^2, ...]` at an LSB-first point (§sec:idxcol).
 pub fn index_mle(point: &[E]) -> E {
     let mut result = ONE;
     let mut generator_power = GEN;
@@ -111,7 +111,8 @@ pub fn poly_eval(coefficients: &[E], point: E) -> E {
     coefficients.iter().rev().fold(ZERO, |acc, &c| acc * point + c)
 }
 
-/// Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest.
+/// Where a column sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index`
+/// (a multiple of `2^variables`) fixing the rest.
 #[derive(Clone, Copy, Debug)]
 pub struct Placement {
     pub variables: usize,
@@ -119,12 +120,14 @@ pub struct Placement {
 }
 
 impl Placement {
+    /// The stack point of a claim at row `point`, in a stack of `2^stack_log` words.
     pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {
+        assert_eq!(point.len(), self.variables, "a column's row point");
         let above = selector_point(self.index >> self.variables, stack_log - self.variables);
         [point, &above].concat()
     }
 
-    /// eq weight of the coordinates above the window.
+    /// eq weight of the coordinates above the column's own `variables`.
     pub fn eq_above(&self, point: &[E]) -> E {
         let bits = selector_point(self.index >> self.variables, point.len() - self.variables);
         eq_eval(&bits, &point[self.variables..])

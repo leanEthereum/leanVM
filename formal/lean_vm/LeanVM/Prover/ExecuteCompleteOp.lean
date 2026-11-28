@@ -9,7 +9,8 @@ public import LeanVM.Prover.ExecuteKeccak
 `RefRd rd M`: the reference reader reads `M` at every power below `2^62` it reads, those cells
 lying below `maxCells`. `OpModed M s op`: the cells instruction `op` reads at state `s` are written
 (for a `MUL`, both operands, or the result and one operand, nonzero in `M`), a `DEREF`'s pointer
-times `g^o` is a power below `maxCells`, and so is a taken `JUMP`'s frame. Then, if the reference executes the
+times `g^o` is a power below `maxCells`, and so is a taken `JUMP`'s frame, and a `KECCAK`'s blocks
+each lie in one window of `keccakWindow` cells (`KeccakInWindows`). Then, if the reference executes the
 instruction at the state's registers on `M` to registers whose `pc` is in the program, the
 executor's instruction succeeds, keeps `Fine`, extends the memory and moves to those registers
 (`runOp_complete`).
@@ -28,6 +29,14 @@ def RefRd (rd : K → Option E) (M : ℕ → E) : Prop :=
 /-- Registers whose `pc` is in the program. -/
 def NextOk (C : Ctx) (r : Registers K) : Prop := ∃ k < C.ops.size, r.pc = g ^ k
 
+/-- `n` cells from cell `c` lie in one window of `keccakWindow` cells. -/
+def InWindow (c n : ℕ) : Prop := c % keccakWindow + n ≤ keccakWindow
+
+/-- A `KECCAK`'s blocks at frame `fp` each in one window (`keccakWindows`): its `tail` (input cell
+`4` on), its `cap` (input cell `9` on) and its `count` written outputs. -/
+def KeccakInWindows (fp : ℕ) (ins : Array ℕ) (out count : ℕ) : Prop :=
+  InWindow (fp + ins.getD 4 0) 4 ∧ InWindow (fp + ins.getD 9 0) 4 ∧ InWindow (fp + out) count
+
 /-- What an instruction needs from the state it runs at. -/
 def OpModed (M : ℕ → E) (s : St) : Op → Prop
   | .xor a b _ => s.mem.written (s.fp + a) = true ∧ s.mem.written (s.fp + b) = true
@@ -40,7 +49,8 @@ def OpModed (M : ℕ → E) (s : St) : Op → Prop
   | .jump c d f => s.mem.written (s.fp + c) = true ∧ s.mem.written (s.fp + d) = true ∧
     s.mem.written (s.fp + f) = true ∧
     (M (s.fp + c) ≠ 0 → ∃ k < maxCells, (M (s.fp + f)).limb 0 = g ^ k)
-  | .keccak ins _ _ _ _ => ∀ i ∈ ins.toList, s.mem.written (s.fp + i) = true
+  | .keccak ins out _ _ count => (∀ i ∈ ins.toList, s.mem.written (s.fp + i) = true) ∧
+    KeccakInWindows s.fp ins out count
 
 /-- What a completed instruction gives. -/
 structure OpDone (C : Ctx) (M : ℕ → E) (s s' : St) (r' : Registers K) : Prop where

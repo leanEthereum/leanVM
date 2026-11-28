@@ -15,7 +15,8 @@ public import LeanVM.Cost.Prices
 /-!
 # Bounds on the guest decoder's prices: within the budget
 
-**`decoderPriceWithinBudget : DecoderPriceWithinBudget`**: on every valid execution of the guest,
+**`decoderPriceWithinBudget hb2 hsub : DecoderPriceWithinBudget`**: given B2 (`B2SoundL`) and
+`verify_sub`'s statement (`SubSoundW bytecode vsPiOf`), on every valid execution of the guest,
 the decoder program's price is within `guestDecoderPriceAt (2^κ)` (`Cost/Prices.lean`,
 `decoderPrice_le_exact`), within the statement's `guestWitnessDecoderBudget` (`Statement/LeanVmGuest.lean`;
 `guestDecoderPriceAt_le_budget_add`). The composition (`decTop_cost`, `Bounds/Guest/DecTop.lean`) at:
@@ -31,7 +32,7 @@ the decoder program's price is within `guestDecoderPriceAt (2^κ)` (`Cost/Prices
   `guestDecoderPreconditionPrice = 436638 ≈ 2^18.74`), the pc table
   (`pcTableT_get_cost`, `pcTableT_getD_length`): per state
   `guestDecoderStateFilingPrice` (`entryArrayStatePrice_eq`);
-* the frame map (`frameAtA_cost`, one binary search, calls of at most `16` words): within
+* the frame map (`frameAtA_cost`, one binary search, calls of at most `17` words): within
   `guestDecoderFramePrice` (`frameAtAPrice_le`); the cursor's length (`cursorLength_cost`, value
   at most `8192` at each child's frame on a valid run, `valid_cursor`), the witness
   (`frameWit_cost`);
@@ -86,15 +87,15 @@ theorem entryArrayStatePrice_eq (e : ℕ) :
     guestDecoderEntryTablePositionLimbs wl
   ring
 
-/-- A frame lookup of at most `16` words on the sorted array, within the statement's (equal at
-`16` words). -/
-theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 16) :
+/-- A frame lookup of at most `17` words on the sorted array, within the statement's (equal at
+`17` words). -/
+theorem frameAtAPrice_le (e n : ℕ) (hn : n ≤ 17) :
     (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 1271 + 1584 ≤ guestDecoderFramePrice e := by
   have hw : wl e = limbsBelowTwoPow (e + 1) := rfl
   rw [hw]
   unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
   have h1 : (64 * n + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) ≤
-      (64 * 16 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) :=
+      (64 * 17 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) :=
     Nat.mul_le_mul_right _ (by omega)
   omega
 
@@ -106,13 +107,13 @@ theorem frameFpAPrice_le64 (e n : ℕ) (hn : n ≤ 64) :
   rw [hw]
   unfold guestDecoderFramePrice guestDecoderEntryTablePositionLimbs
   have h1 : (64 * n + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2) ≤
-      4 * ((64 * 16 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2)) := by
+      4 * ((64 * 17 + 78 + 9 * limbsBelowTwoPow (e + 1)) * (e + 2)) := by
     rw [← Nat.mul_assoc]; exact Nat.mul_le_mul_right _ (by omega)
   omega
 
-/-- A frame search of at most `16` words on the sorted array (`frameFpA_cost`), within the
+/-- A frame search of at most `17` words on the sorted array (`frameFpA_cost`), within the
 statement's frame lookup. -/
-theorem frameFpAPrice_le (e n : ℕ) (hn : n ≤ 16) :
+theorem frameFpAPrice_le (e n : ℕ) (hn : n ≤ 17) :
     (64 * n + 78 + 9 * wl e) * (e + 2) + 27 * n + 49 ≤ guestDecoderFramePrice e :=
   le_trans (by omega) (frameAtAPrice_le e n hn)
 
@@ -135,7 +136,9 @@ variable (P : MachineProgram)
 
 /-- **On an execution of the guest whose counts are at most `M` (`ValidCounts`) and which is
 otherwise valid, the decoder program's price is within `guestDecoderPriceAt M`.** -/
-theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
+theorem decoderPrice_le_at (hb2 : LeanVM.Guest.End.B2SoundL)
+    (hsub : LeanVM.Guest.B1.Main.SubSoundW LeanVM.Guest.End.bytecode
+      LeanVM.Guest.B1.VerifySub.vsPiOf) (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     (t : Execution LeanVM.Guest.guestProgram)
     (hv : ValidExecution LeanVM.Guest.guestProgram input t)
     (hcv : ValidCounts discreteLogTables (Decoder.mainVal
@@ -195,7 +198,7 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     (Decoder.memoryVector t.memory)) (preTestAt discreteLogTables preTable genPows
     (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
     Decoder.pcTableT 2 pcTableT_getD_lt pcTableT_getD_length states
-  have hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 16 →
+  have hF : ∀ (k : ℕ) (a r : List E) (v : V), k < 2 ^ 64 → a.length + r.length ≤ 17 →
       machineCost compiledGuestWitnessDecoder Decoder.frameAtAC.costIdx
         [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
@@ -204,7 +207,7 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     fun k a r v hk hl ↦ (frameAtA_cost compiledGuestWitnessDecoder _ _ hrd 1271 hR
         includes_budget_frameAtA e _
       hok (by omega) k hk a r v).trans (frameAtAPrice_le e _ hl)
-  have hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 16 →
+  have hFp : ∀ (j : ℕ) (args rets : List E), j < 2 ^ 64 → args.length + rets.length ≤ 17 →
       machineCost compiledGuestWitnessDecoder Decoder.frameFpAC.costIdx
         [encodeValue (Decoder.entryArrayT Decoder.pcTableT
           (preTestAt discreteLogTables preTable genPows (Decoder.memReader (powTable t.logMemorySize) (Decoder.memoryVector t.memory)))
@@ -236,7 +239,7 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
     _ (guestDecoderFramePrice e) hF hFp (4 * guestDecoderFramePrice e) hFp4 125634
     (fun p q ↦ cursorLength_cost compiledGuestWitnessDecoder includes_budget_cursorLength discreteLogTables 122420 hLg
       discreteLogWith_lt p q)
-    hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hv c hck)
+    hc 8192 (by norm_num) (fun c hck ↦ valid_cursor hb2 hsub hv c hck)
   have hT := decTop_cost compiledGuestWitnessDecoder hP LeanVM.Guest.guestProgram hκ (Decoder.memoryVector t.memory) _ 22021176 _ _
     (preTable_cost compiledGuestWitnessDecoder includes_budget_preTable).le (pcTableT_cost compiledGuestWitnessDecoder includes_budget_pcTableT)
     hE hW hc
@@ -252,14 +255,16 @@ theorem decoderPrice_le_at (M : ℕ) (hM : M ≤ 2 ^ 34) (input : PublicInput)
 /-- **On every valid execution of the guest, the decoder program's price is within its exact
 price at its counts' bound** (`guestDecoderPriceAt`, `Cost/Prices.lean`): `decoderPrice_le_at` at
 the bound a valid execution gives (`valid_counts`: the memory's size `2^κ`). -/
-theorem decoderPrice_le_exact (input : PublicInput) (t : Execution LeanVM.Guest.guestProgram)
+theorem decoderPrice_le_exact (hb2 : LeanVM.Guest.End.B2SoundL)
+    (hsub : LeanVM.Guest.B1.Main.SubSoundW LeanVM.Guest.End.bytecode
+      LeanVM.Guest.B1.VerifySub.vsPiOf) (input : PublicInput) (t : Execution LeanVM.Guest.guestProgram)
     (hv : ValidExecution LeanVM.Guest.guestProgram input t) :
     decoderProgramPrice LeanVM.Guest.guestProgram t ≤
       guestDecoderPriceAt (2 ^ t.logMemorySize) t.logMemorySize LeanVM.Guest.guestProgram.logSize
         t.stepCount := by
   have hκ : t.logMemorySize ≤ 30 := hv.1.2.1
-  exact decoderPrice_le_at _ (Nat.pow_le_pow_right (by norm_num) (by omega)) input t hv
-    (valid_counts hv)
+  exact decoderPrice_le_at hb2 hsub _ (Nat.pow_le_pow_right (by norm_num) (by omega)) input t hv
+    (valid_counts hb2 hv)
 
 /-- The entry table's key exponent is `log₂(steps + 1) + 2`. -/
 theorem keyExponent_eq (steps : ℕ) :
@@ -269,11 +274,11 @@ theorem keyExponent_eq (steps : ℕ) :
 
 /-- **The price at counts at most `M` beyond the statement's budget**, at the guest's `ℓ = 19`, a
 memory of at most `2^30` words and fewer than `2^128` steps: the budget and
-`(6476658 + 9032·log₂(steps + 1))·M`, the witness's and its frame lookups' share of each count. -/
+`(6478922 + 9544·log₂(steps + 1))·M`, the witness's and its frame lookups' share of each count. -/
 theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (hs : steps < 2 ^ 128) :
     guestDecoderPriceAt M κ 19 steps ≤ (steps + 1) * (2 ^ 21 + 2 ^ 13 * Nat.log2 (steps + 1)) +
       (70 * κ + 374) * 2 ^ κ + 2 ^ 37 * (Nat.log2 (steps + 1) + 16) +
-      (6476658 + 9032 * Nat.log2 (steps + 1)) * M := by
+      (6478922 + 9544 * Nat.log2 (steps + 1)) * M := by
   have hlg : Nat.log2 (steps + 1) < 129 :=
     (Nat.log2_lt (by omega)).2 (lt_of_le_of_lt (Nat.succ_le_of_lt hs) (by norm_num))
   unfold guestDecoderPriceAt
@@ -286,24 +291,24 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
     unfold runnerStepPrice guestDecoderStateFilingPrice guestDecoderPreconditionPrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2) hL]
-  have hframe : guestDecoderFramePrice (lg + 2) ≤ 1129 * lg + 7803 := by
+  have hframe : guestDecoderFramePrice (lg + 2) ≤ 1193 * lg + 8086 := by
     unfold guestDecoderFramePrice
     generalize guestDecoderEntryTablePositionLimbs (lg + 2) = L at hL ⊢
     nlinarith [Nat.mul_le_mul_right (lg + 2 + 2) hL]
   calc _ ≤ (2 ^ 21 + 2 ^ 13 * lg) * (steps + 1) + 17940 + 23146593 +
           guestDecoderAddressTablesPrice κ 19 + guestDecoderWitnessPriceAt M +
-          guestDecoderFrameLookupCountAt M * (1129 * lg + 7803) + 39 := by gcongr
+          guestDecoderFrameLookupCountAt M * (1193 * lg + 8086) + 39 := by gcongr
     _ ≤ _ := by
       have hκ' : (74 * κ + 121) * 2 ^ κ ≤ (70 * κ + 374) * 2 ^ κ :=
         Nat.mul_le_mul_right _ (by omega)
-      have h0 : 3525073 * (1129 * lg + 7803) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 2946849400 - 17940 -
+      have h0 : 3590181 * (1193 * lg + 8086) ≤ 2 ^ 37 * lg + 2 ^ 37 * 16 - 3017977468 - 17940 -
           23146593 - (74 * 19 + 121) * 2 ^ 19 - 42 - 39 := by omega
       unfold guestDecoderAddressTablesPrice guestDecoderWitnessPriceAt
         guestDecoderFrameLookupCountAt
       rw [Nat.mul_comm _ (steps + 1)]
-      have e1 : (3525073 + 8 * M) * (1129 * lg + 7803) =
-          3525073 * (1129 * lg + 7803) + (9032 * lg + 62424) * M := by ring
-      have e2 : (6476658 + 9032 * lg) * M = 6414234 * M + (9032 * lg + 62424) * M := by ring
+      have e1 : (3590181 + 8 * M) * (1193 * lg + 8086) =
+          3590181 * (1193 * lg + 8086) + (9544 * lg + 64688) * M := by ring
+      have e2 : (6478922 + 9544 * lg) * M = 6414234 * M + (9544 * lg + 64688) * M := by ring
       rw [e1, e2]
       omega
 
@@ -311,8 +316,10 @@ theorem guestDecoderPriceAt_le_budget_add {M κ steps : ℕ} (hκ : κ ≤ 30) (
 budget**: within the exact price at counts below `2^κ` (`decoderPrice_le_exact`), within the
 budget (`guestDecoderPriceAt_le_budget_add` at `M = 2^κ`: `κ ≤ 30` and fewer than `2^128` steps on
 a valid execution, each count's share within the budget's `2^23 + 2^14·log₂(steps + 1)`). -/
-theorem decoderPriceWithinBudget : DecoderPriceWithinBudget := fun input t hv ↦ by
-  have h := decoderPrice_le_exact input t hv
+theorem decoderPriceWithinBudget (hb2 : LeanVM.Guest.End.B2SoundL)
+    (hsub : LeanVM.Guest.B1.Main.SubSoundW LeanVM.Guest.End.bytecode
+      LeanVM.Guest.B1.VerifySub.vsPiOf) : DecoderPriceWithinBudget := fun input t hv ↦ by
+  have h := decoderPrice_le_exact hb2 hsub input t hv
   rw [LeanVM.Guest.guest_logSize] at h
   have h2 := guestDecoderPriceAt_le_budget_add (M := 2 ^ t.logMemorySize) hv.1.2.1
     (steps_lt_of_valid hv)

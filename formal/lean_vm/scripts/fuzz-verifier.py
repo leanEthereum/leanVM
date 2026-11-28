@@ -18,13 +18,16 @@ mutation class. A Rust panic or a Lean crash counts as a rejection but is report
 
 The stream's mutation positions come from the Lean verifier's traced run of the honest proof
 (`leanvm-verify --events`, cli/LeanvmVerify.lean): the stream offset where every phase of
-`verifyExecution` starts, every commitment root's two halves and every proof-of-work nonce; the
-openings' from the phases file itself. Each structured case changes one thing:
+`verifyExecution` starts, every commitment root's two halves, every proof-of-work nonce and every
+packed message; the openings' from the phases file itself. Each structured case changes one thing:
 
   phase       one bit of the first, middle or last scalar of a phase (low bit of limb 0, top bit
               of limb 1), of a repeated phase (the Keccak layers) its first and last instances;
   root        the low bit of either limb of a root half;
   nonce       the low bit, the top bit, or a bit of limb 1, of a proof-of-work nonce;
+  packed      one bit of a packed message's first scalar, of the last of its first permutation
+              and the first of its second (scalars 7 and 8), and of its last (low bit of limb 0,
+              top bit of limb 1);
   opening     one bit of a phase's first or last leaf word, its first sibling, its top sibling,
               and of a random path of the phase;
   position    a path's `leaf_index`: its low bit, its top bit, the next path's position, the
@@ -52,18 +55,17 @@ again.
 
 Usage (from lean_vm; the two verifiers built first, see below):
   python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier \\
-      [--mutations 250] [--seed 1] [--jobs 8] [--keep <dir>] [fixture ...]
+      [--random 100] [--seed 1] [--jobs 8] [--keep <dir>] [fixture ...]
 
   ( ulimit -v 40000000; lake build leanvm-verify )
   cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 
 The Rust verifier is this repository's (`crates/verifier`).
 
-`--mutations` is the number of cases per fixture, structured ones first, then random ones up to
-it. Every child process runs under an address-space limit (`--memory-gb`, default 40). The
-mutated files of every case on which the verifiers disagree are kept under `--keep` (default: a
-new directory under the system temporary directory), with a `case.txt` saying what was changed;
-`--log` writes one line per case.
+Every structured case runs, then `--random` random ones, per fixture. Every child process runs
+under an address-space limit (`--memory-gb`, default 40). The mutated files of every case on
+which the verifiers disagree are kept under `--keep` (default: a new directory under the system
+temporary directory), with a `case.txt` saying what was changed; `--log` writes one line per case.
 """
 
 import argparse
@@ -93,15 +95,16 @@ RUST_EXE = ROOT / "scripts" / "rust-verifier-cli" / "target" / "release" / "lean
 
 def instrument(exe: Path, directory: Path) -> dict:
     """The Lean verifier's traced run of the honest proof (`leanvm-verify --events`): where each phase
-    starts, where each root and nonce is read, and the stream's length."""
+    starts, where each root, nonce and packed message is read, and the stream's length."""
     run = subprocess.run([str(exe), "--events", *(str(directory / name) for name in STRUCTURED)],
                          capture_output=True, text=True)
     if run.returncode != 0:
         sys.exit(f"{directory}: leanvm-verify --events failed: {run.stderr.strip()}")
     traced = json.loads(run.stdout)
     events = {"phase": [tuple(p) for p in traced["phase"]], "root": traced["root"],
-              "nonce": [tuple(n) for n in traced["nonce"]], "stream_length": traced["stream_length"]}
-    # The root and its out-of-domain sample are read between the sizes and the bus; give them a
+              "nonce": [tuple(n) for n in traced["nonce"]], "packed": [tuple(p) for p in traced["packed"]],
+              "stream_length": traced["stream_length"]}
+    # The root and its out-of-domain sample are read between the sizes and the link; give them a
     # phase of their own.
     events["phase"].insert(1, ("root", events["root"][0]))
     return events
@@ -255,6 +258,10 @@ def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) 
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) low bit", [flip(S, at)]))
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) bit 63", [flip(S, at + 7, 7)]))
         cases.append(("nonce", f"nonce at scalar {position} ({bits} bits) limb 1 bit 0", [flip(S, at + 8)]))
+    for first, length in events["packed"]:
+        for position in sorted({first + i for i in (0, 7, 8, length - 1) if i < length}):
+            cases.append(("packed", f"packed message at {first} scalar {position} limb 0 bit 0", [flip(S, 16 * position)]))
+            cases.append(("packed", f"packed message at {first} scalar {position} limb 1 bit 63", [flip(S, 16 * position + 15, 7)]))
     for at in (0, 15, 16, 31):
         cases.append(("public", f"public input byte {at}", [flip("public_input.bin", at)]))
     stream = data[S]
@@ -406,7 +413,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("fixtures", type=Path, help="directory of fixtures (tests/fixtures/verifier)")
     parser.add_argument("only", nargs="*", help="fixtures to fuzz (default: every one)")
-    parser.add_argument("--mutations", type=int, default=250, help="cases per fixture, the honest one included")
+    parser.add_argument("--random", type=int, default=100, help="random cases per fixture, after the structured ones")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--jobs", type=int, default=8, help="Lean verifiers run at once")
     parser.add_argument("--lean-exe", type=Path, default=LEAN_EXE)
@@ -438,8 +445,12 @@ def main() -> None:
                   f"{[len(phase['paths']) for phase in events['phases']]} paths, "
                   f"{sizes[W]} wire bytes", file=sys.stderr)
             rng = random.Random(arguments.seed * 1_000_003 + zlib.crc32(name.encode()))
-            generated = structured_cases(events, sizes, data, rng)[:arguments.mutations]
-            while len(generated) < arguments.mutations:
+            for kind in ("root", "nonce", "packed"):
+                if not events[kind]:
+                    sys.exit(f"{directory}: the traced run reads no {kind}: its cases would be missing")
+            generated = structured_cases(events, sizes, data, rng)
+            target = len(generated) + arguments.random
+            while len(generated) < target:
                 case = random_case(events, sizes, data, rng)
                 # A random edit can leave the proof as it was (a zero scalar zeroed, equal scalars
                 # swapped); draw again, so that every random case is a different proof.

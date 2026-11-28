@@ -9,9 +9,12 @@
 //!     ring:   Phi(e(x) * s(l)),   e(x) = e_lo(x_lo) * e_hi(h)
 //! ```
 //!
-//! `Phi` is F_2-linear, so a ring claim is `sum_w bit_w(e(x)) * Phi(b_w * s(l))` over the coordinate basis `b_w` of
-//! `E`. The weight is then `W(l, x) = sum_t A(l, t) * K_t(x)` over one term per claim and 128 per ring claim, and level
-//! 0's rounds take a lane's projections `P(t) = sum_x lane(x) * K_t(x)` in place of the lane.
+//! A ring is the pieces of one ring claim at one point and one in-lane offset: they differ only in their lanes, so
+//! `s(l)` sums their scaled lane weights.
+//!
+//! `Phi` is F_2-linear, so a ring is `sum_w bit_w(e(x)) * Phi(b_w * s(l))` over the coordinate basis `b_w` of `E`. The
+//! weight is then `W(l, x) = sum_t A(l, t) * K_t(x)` over one term per claim and 128 per ring, and level 0's rounds
+//! take a lane's projections `P(t) = sum_x lane(x) * K_t(x)` in place of the lane.
 //!
 //! Two savings keep the projections cheap: the claims with one `pi` (a [`Pattern`]) share its dot with each block, and
 //! a block equal to the one before it shares that block's dots and ring folds.
@@ -22,8 +25,8 @@ use primitives::bit_fold::BitFold;
 use primitives::field::lanes::transpose_bits;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
-use super::StackClaim;
-use crate::ring_switch::{DEGREE_E, RingFold, RingWeight, transpose_s_hat};
+use super::{RingSwitchOpen, StackClaim};
+use crate::ring_switch::{DEGREE_E, RingFold, apply, transpose_s_hat};
 
 /// Bits of a block's low part: a block is the 64 bit rows a ring claim folds at once.
 pub(crate) const LOW_VARS: usize = 6;
@@ -130,20 +133,28 @@ impl Terms {
     }
 
     /// The projections of `n` items onto the terms, each item `S` sequences of `2^lane_vars` words: `blocks(i, h, out)`
-    /// writes block `h` of each of item `i`'s sequences. A row of [`Self::n_terms`] per sequence, item by item.
+    /// writes block `h` of each of item `i`'s sequences. A row of [`Self::n_terms`] per sequence, item by item, holding
+    /// the terms `live` marks, laid out alike, and zero on the others.
     pub(crate) fn project<const S: usize>(
         &self,
         n: usize,
+        live: &[bool],
         blocks: impl Fn(usize, usize, &mut [[F64; BLOCK]; S]) + Sync,
     ) -> Vec<F128> {
-        let (row, n_blocks) = (S * self.n_terms(), self.n_blocks());
+        let (nt, n_blocks) = (self.n_terms(), self.n_blocks());
+        let row = S * nt;
         // Each item's blocks in ranges, enough tasks to balance the pool.
         let per = n_blocks.div_ceil((8 * parallel::num_threads()).div_ceil(n.max(1)));
         let n_ranges = n_blocks.div_ceil(per);
         let parts = parallel::map_collect(n * n_ranges, |task| {
             let (item, k) = (task / n_ranges, task % n_ranges);
+            let lives: [Live; S] = core::array::from_fn(|i| Live::new(self, &live[(S * item + i) * nt..][..nt]));
+            if lives.iter().all(Live::is_empty) {
+                return Vec::new();
+            }
             let range = k * per..((k + 1) * per).min(n_blocks);
-            let mut sequences: [Projection; S] = core::array::from_fn(|_| Projection::new(self, range.clone()));
+            let mut sequences: [Projection; S] =
+                core::array::from_fn(|i| Projection::new(self, &lives[i], range.clone()));
             let mut words = [[F64::ZERO; BLOCK]; S];
             for h in range {
                 blocks(item, h, &mut words);
@@ -203,9 +214,33 @@ impl Terms {
     }
 }
 
-/// One sequence's projections over a range of blocks.
+/// The patterns and rings with a term a sequence projects.
+struct Live {
+    patterns: Vec<usize>,
+    rings: Vec<usize>,
+}
+
+impl Live {
+    fn new(terms: &Terms, live: &[bool]) -> Self {
+        Self {
+            patterns: (0..terms.patterns.len())
+                .filter(|&p| terms.patterns[p].claims.iter().any(|&c| live[c]))
+                .collect(),
+            rings: (0..terms.rings.len())
+                .filter(|&r| live[terms.rings[r].first..][..DEGREE_E].contains(&true))
+                .collect(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.patterns.is_empty() && self.rings.is_empty()
+    }
+}
+
+/// One sequence's projections over a range of blocks, onto the live patterns and rings.
 struct Projection<'a> {
     terms: &'a Terms,
+    live: &'a Live,
     blocks: Range<usize>,
     /// The block before, and its dot with each pattern and fold by each ring once one is needed: an equal block
     /// shares them.
@@ -220,10 +255,11 @@ struct Projection<'a> {
 }
 
 impl<'a> Projection<'a> {
-    fn new(terms: &'a Terms, blocks: Range<usize>) -> Self {
-        let (n_patterns, n_rings) = (terms.patterns.len(), terms.rings.len());
+    fn new(terms: &'a Terms, live: &'a Live, blocks: Range<usize>) -> Self {
+        let (n_patterns, n_rings) = (live.patterns.len(), live.rings.len());
         Self {
             terms,
+            live,
             last: None,
             dots: vec![None; n_patterns],
             folds: vec![None; n_rings],
@@ -235,22 +271,27 @@ impl<'a> Projection<'a> {
     }
 
     fn feed(&mut self, h: usize, words: &[F64; BLOCK]) {
+        if self.live.is_empty() {
+            return;
+        }
         if self.last.as_ref() != Some(words) {
             self.end_run();
             self.last = Some(*words);
             self.dots.fill(None);
         }
         let terms = self.terms;
-        for (p, pattern) in terms.patterns.iter().enumerate() {
+        for (i, &p) in self.live.patterns.iter().enumerate() {
+            let pattern = &terms.patterns[p];
             if pattern.active[h] {
-                let dot = *self.dots[p].get_or_insert_with(|| dot_block(&pattern.pi, words));
-                self.q[p * self.blocks.len() + h - self.blocks.start] = dot;
+                let dot = *self.dots[i].get_or_insert_with(|| dot_block(&pattern.pi, words));
+                self.q[i * self.blocks.len() + h - self.blocks.start] = dot;
             }
         }
-        for (r, ring) in terms.rings.iter().enumerate() {
+        for (i, &r) in self.live.rings.iter().enumerate() {
+            let ring = &terms.rings[r];
             if ring.e_hi[h] != F128::ZERO {
-                self.masses[r] += ring.e_hi[h];
-                self.folds[r].get_or_insert_with(|| ring.fold(words));
+                self.masses[i] += ring.e_hi[h];
+                self.folds[i].get_or_insert_with(|| ring.fold(words));
             }
         }
     }
@@ -275,8 +316,8 @@ impl<'a> Projection<'a> {
         let (terms, blocks) = (self.terms, &self.blocks);
         let mut row = vec![F128::ZERO; terms.n_terms()];
         // `P(c) = sum_h gamma_c(h) * Q(h)` over the claim's blocks, `Q(h)` its pattern's dot with block `h`.
-        for (q, pattern) in self.q.chunks_exact(blocks.len()).zip(&terms.patterns) {
-            for &c in &pattern.claims {
+        for (q, &p) in self.q.chunks_exact(blocks.len()).zip(&self.live.patterns) {
+            for &c in &terms.patterns[p].claims {
                 let claim = &terms.claims[c];
                 let range = claim.range.start.max(blocks.start)..claim.range.end.min(blocks.end);
                 if !range.is_empty() {
@@ -288,10 +329,10 @@ impl<'a> Projection<'a> {
             }
         }
         // A ring's 128 terms are the transpose of its 64 bit slices.
-        for (ring, sigma) in terms.rings.iter().zip(&self.sigmas) {
+        for (&r, sigma) in self.live.rings.iter().zip(&self.sigmas) {
             let slices: [[F128; 8]; LANES] = sigma.map(|s| s.reduce().to_array());
             let slices = slices.as_flattened().try_into().expect("a block");
-            for (term, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(slices)) {
+            for (term, k) in row[terms.rings[r].first..].iter_mut().zip(transpose_s_hat(slices)) {
                 *term = F128::from(k);
             }
         }
@@ -302,21 +343,26 @@ impl<'a> Projection<'a> {
 /// The opening's weight as terms, and its table `A`: a row of [`Terms::n_terms`] for each of the
 /// `2^(log_n - lane_vars)` lanes.
 ///
-/// `lane_vars` must be at least [`LOW_VARS`], and every claim must lie inside `2^log_n` words. The ring claims lie at
-/// `ring_offset`.
+/// `claims` are points (sums flattened), `lambdas` their scalars, and `maps[j]` the coordinate
+/// weights of ring claim `j`. `lane_vars` must be at least [`LOW_VARS`], and every claim must lie inside `2^log_n`
+/// words.
 pub(super) fn initial_basis(
     log_n: usize,
     lane_vars: usize,
     claims: &[StackClaim],
     lambdas: &[F128],
-    ring_offset: usize,
-    rings: &[RingWeight],
+    ring: &RingSwitchOpen,
+    maps: &[[F128; DEGREE_E]],
 ) -> (Terms, Vec<F128>) {
     assert_eq!(claims.len(), lambdas.len());
+    assert_eq!(ring.claims.len(), maps.len());
     assert!(lane_vars >= LOW_VARS, "a lane block holds at least one block");
     let factors: Vec<Vec<Factor>> = claims
         .iter()
-        .map(|StackClaim { offset, low_point }| point_factors(low_point, *offset, log_n))
+        .map(|claim| match claim {
+            StackClaim::Point { offset, low_point } => point_factors(low_point, *offset, log_n),
+            StackClaim::Sum { .. } => unreachable!("sums are flattened first"),
+        })
         .collect();
     let mut terms = Terms {
         lane_vars,
@@ -350,17 +396,38 @@ pub(super) fn initial_basis(
             pattern.active[terms.claims[c].range.clone()].fill(true);
         }
     }
-    let mut ring_lanes = Vec::new();
-    for (i, weight) in rings.iter().enumerate() {
-        let factors = point_factors(&weight.point, ring_offset, log_n);
-        terms.rings.push(Ring {
-            fold: BitFold::new(&table(&factors[..LOW_VARS])),
-            e_hi: table(&factors[LOW_VARS..lane_vars]),
-            point: weight.point.clone(),
-            x_offset: ring_offset & ((1 << lane_vars) - 1),
-            first: claims.len() + DEGREE_E * i,
-        });
-        ring_lanes.push(table(&factors[lane_vars..]));
+    // One ring per claim, point and in-lane offset, its map that of its claim and its lane weights `s(l)` the sum of
+    // its pieces' scaled ones.
+    let mut ring_maps: Vec<&[F128; DEGREE_E]> = Vec::new();
+    let mut ring_lanes: Vec<Vec<F128>> = Vec::new();
+    let x_mask = (1 << lane_vars) - 1;
+    for (claim, map) in ring.claims.iter().zip(maps) {
+        let first_ring = terms.rings.len();
+        for piece in &claim.pieces {
+            let factors = point_factors(&piece.point, piece.offset, log_n);
+            let x_offset = piece.offset & x_mask;
+            let shared = terms.rings[first_ring..]
+                .iter()
+                .position(|r| r.x_offset == x_offset && r.point == piece.point);
+            let r = match shared {
+                Some(k) => first_ring + k,
+                None => {
+                    terms.rings.push(Ring {
+                        fold: BitFold::new(&table(&factors[..LOW_VARS])),
+                        e_hi: table(&factors[LOW_VARS..lane_vars]),
+                        point: piece.point.clone(),
+                        x_offset,
+                        first: claims.len() + DEGREE_E * ring_maps.len(),
+                    });
+                    ring_maps.push(map);
+                    ring_lanes.push(vec![F128::ZERO; 1 << (log_n - lane_vars)]);
+                    terms.rings.len() - 1
+                }
+            };
+            for (s, l) in ring_lanes[r].iter_mut().zip(table(&factors[lane_vars..])) {
+                *s += piece.scale * l;
+            }
+        }
     }
 
     // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
@@ -371,10 +438,10 @@ pub(super) fn initial_basis(
         for ((term, lanes), &lambda) in row.iter_mut().zip(&claim_lanes).zip(lambdas) {
             *term = lambda * lanes[l];
         }
-        for ((ring, weight), lanes) in terms.rings.iter().zip(rings).zip(&ring_lanes) {
+        for ((ring, map), lanes) in terms.rings.iter().zip(&ring_maps).zip(&ring_lanes) {
             if lanes[l] != F128::ZERO {
                 for (w, term) in row[ring.first..][..DEGREE_E].iter_mut().enumerate() {
-                    *term = weight.apply(F128::from(1u128 << w) * lanes[l]);
+                    *term = apply(map, F128::from(1u128 << w) * lanes[l]);
                 }
             }
         }

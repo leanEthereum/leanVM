@@ -7,8 +7,7 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Complete.Tables
-public import LeanVM.Protocol.EndToEnd.Complete.TableMath
+public import LeanVM.Protocol.Tables
 public import Mathlib.Algebra.Polynomial.Roots
 import LeanVM.ToMathlib.Finset
 
@@ -33,7 +32,8 @@ polynomial has degree at most two, and a nonzero one has at most two roots
 
 namespace LeanVM.Guest.Batch
 
-open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd Finset
+open LeanVM.Parameters LeanVM.Protocol.Verifier Finset
+open LeanVM.Protocol.Tables (boolPoint)
 
 @[expose] public section
 
@@ -52,7 +52,7 @@ theorem cubeSum_split {n : ℕ} {f : List E → E} {pre : List E} (h : pre.lengt
   rw [cubeSum, cubeSum, cubeSum, hk, hk', hk'', pow_succ', Finset.sum_range_two_mul,
     ← sum_add_distrib]
   refine sum_congr rfl fun y _ ↦ ?_
-  rw [Protocol.Whir.Complete.boolPoint_two_mul, Protocol.Whir.Complete.boolPoint_two_mul_add_one]
+  rw [Protocol.Tables.boolPoint_two_mul, Protocol.Tables.boolPoint_two_mul_add_one]
   simp
 
 /-- At a full point, the cube sum is the value. -/
@@ -111,19 +111,19 @@ theorem multilinear_eqEval {n : ℕ} {p : List E} (hp : p.length = n) :
     | cons z p₂ => exact ⟨z, p₂, rfl⟩
   have hl : (p.take pre.length).length = pre.length := by simp; omega
   rw [hp', hz]
-  simp only [Protocol.Whir.Complete.eqEval_append _ _ _ _ hl, Protocol.Whir.Complete.eqEval_cons]
+  simp only [Protocol.Tables.eqEval_append _ _ _ _ hl, Protocol.Tables.eqEval_cons]
   linear_combination (-(x * (1 + z)) * eqEval (List.take pre.length p) pre * eqEval p₂ post) *
-    Protocol.Whir.Complete.two_eq_zero_E
+    Protocol.Tables.two_eq_zero_E
 
 /-- The multilinear extension of a table of `2^n` entries is multilinear. -/
 theorem multilinear_multilinearEval {n : ℕ} {t : List E} (ht : t.length = 2 ^ n) :
     Multilinear n (multilinearEval t) := by
   intro pre post hlen x
   have hl : ∀ y : E, (pre ++ y :: post).length = n := fun y ↦ by simp; omega
-  simp only [Protocol.Whir.Complete.multilinearEval_eq_sum n t _ ht (hl _), mul_sum,
+  simp only [Protocol.Tables.multilinearEval_eq_sum n t _ ht (hl _), mul_sum,
     ← sum_add_distrib]
   refine sum_congr rfl fun i _ ↦ ?_
-  rw [multilinear_eqEval (Protocol.Whir.Complete.length_boolPoint n i) pre post hlen x]
+  rw [multilinear_eqEval (Protocol.Tables.length_boolPoint n i) pre post hlen x]
   ring
 
 theorem Multilinear.add {n : ℕ} {f g : List E → E} (hf : Multilinear n f) (hg : Multilinear n g) :
@@ -147,7 +147,7 @@ theorem multilinear_sumE {α : Type} {n : ℕ} (l : List α) {g : α → List E 
   | cons a l ih =>
     have h := (hg a List.mem_cons_self).add (ih fun b hb ↦ hg b (List.mem_cons_of_mem a hb))
     intro pre post hlen x
-    simp only [List.map_cons, Protocol.Whir.Complete.sumE_eq, List.sum_cons] at h ⊢
+    simp only [List.map_cons, Protocol.Tables.sumE_eq, List.sum_cons] at h ⊢
     exact h pre post hlen x
 
 /-- A product of two multilinear functions is quadratic along each coordinate. -/
@@ -187,7 +187,7 @@ theorem quadratic_cubeSum {n : ℕ} {f : List E → E} (hf : QuadraticIn n f) {p
   have hk : ∀ x : E, n - (pre ++ [x]).length = n - pre.length - 1 := fun x ↦ by simp; omega
   simp only [cubeSum, hk, List.append_assoc, List.singleton_append]
   refine quadratic_sum _ fun y _ ↦ hf pre _ ?_
-  rw [Protocol.Whir.Complete.length_boolPoint]
+  rw [Protocol.Tables.length_boolPoint]
   omega
 
 end

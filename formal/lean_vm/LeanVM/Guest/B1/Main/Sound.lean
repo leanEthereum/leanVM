@@ -50,8 +50,8 @@ theorem gLog_lg (σ : Val) (v : ℕ) : gLog (σ (.n v)) = lg σ v := (lg_eq_gLog
 
 /-- The DA digest at the slot `da_pick` holds the cells `statement_digest` reads. -/
 theorem pick_cells (MF : MainFacts C rd σ) :
-    LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * lg σ 405) (σ (.n (val% «main» "own_0~2"))) ∧
-      LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * lg σ 405 + 1) (σ (.n (val% «main» "own_0~3"))) := by
+    LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * lg σ (val% «main» "da_pick")) (σ (.n (val% «main» "own_0~2"))) ∧
+      LoadHolds rd (σ (.n (val% «main» "da_digests"))) (2 * lg σ (val% «main» "da_pick") + 1) (σ (.n (val% «main» "own_0~3"))) := by
   obtain ⟨h0, h1⟩ := MF.dacells
   rw [MF.picked, loadHolds_gen_pow_iff] at h0 h1
   rw [Nat.add_zero] at h0
@@ -71,7 +71,7 @@ theorem own_digest (MF : MainFacts C rd σ) :
   have eS : (decStmt σ rd).claims.sphincs =
       (List.range (lg σ 3)).map (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table")))) := by
     unfold decStmt; simp only [gLog_lg]
-  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ 405) := by
+  have eD : (decStmt σ rd).claims.daDigest = daDigestAt rd σ (lg σ (val% «main» "da_pick")) := by
     unfold decStmt; simp only [gLog_lg]
   have hdef : (decStmt σ rd).deferredClaim.cells = cells := by
     unfold decStmt; simp only; rw [readCells_of_readsAt hreads hlen]; exact deferOfCells_cells hlen
@@ -124,13 +124,13 @@ theorem kid_digest (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ
     rw [hs]; exact digestBytes_of_cells k.sdig
   have hda := (daDigestAt_of_loads k.da0 k.da1).2
   have hdef :
-      (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).cells = (K c).defer := by
+      (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (26 * c)) 26)).cells = (K c).defer := by
     rw [readCells_of_readsAt k.defreads k.deflen]; exact deferOfCells_cells k.deflen
   have hst := statementDigest_parts (seed := decSeed σ)
     (s := ⟨⟨(List.range (K c).ex).map fun j => xmssAt rd (σ (.n (val% «main» "lx_table"))) ((K c).ox j),
         (List.range (K c).es).map fun j => sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table"))) ((K c).os j),
         daDigestAt rd σ c⟩,
-       deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)⟩)
+       deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (26 * c)) 26)⟩)
     (digestBytes_decSeed σ) hxd hsd hda hdef
   rw [k.pdig, hst]
 

@@ -146,18 +146,19 @@ name = "guest-cert"
 root = "GuestCert"
 srcDir = "cli"
 
+# The guest's memory-layer facts for its completeness (`Memory/GuestMem*`, `GuestCallees*`): the
+# kernel's checks of `Memory.memF` on its core IR (cli/GuestMemory.lean), by `regen-guest.sh`'s
+# `complete` step.
+[[lean_exe]]
+name = "guest-memory"
+root = "GuestMemory"
+srcDir = "cli"
+
 # The guest's mirror and honest hint generator against real aggregations (cli/GuestDiff.lean): on
 # the cases the exporter's ignored test `guest_diff` writes; not a default target.
 [[lean_exe]]
 name = "guest-diff"
 root = "GuestDiff"
-srcDir = "cli"
-
-# Writes the guest's kernel-checked memory check (`LeanVM/Guest/Memory/GuestMem*`); `--check` fails
-# when it is stale.
-[[lean_exe]]
-name = "guest-memory"
-root = "GuestMemory"
 srcDir = "cli"
 
 # The statement's proof wire encoding (`Proof.fromBytes`, `Proof.toBytes`), compiled, on byte files
@@ -169,8 +170,8 @@ root = "WireDiff"
 srcDir = "cli"
 
 # The tests' runs too slow for the interpreter, compiled (cli/TestRuns.lean, `LeanVMTests/Runs.lean`):
-# check-all runs it, under `lake env` (it reads the guest's core data from its `.olean`), after
-# `lake test`.
+# the guest's core data, the Keccak prover's runs; check-all runs it, under `lake env` (it reads the
+# guest's core data from its `.olean`), after `lake test`.
 [[lean_exe]]
 name = "test-runs"
 root = "TestRuns"

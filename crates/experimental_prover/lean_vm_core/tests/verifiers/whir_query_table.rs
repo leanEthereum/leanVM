@@ -60,7 +60,15 @@ fn lean_query_table_matches_rust() {
     let source = lean_verifier();
     assert_lean_constants(
         &source,
-        &[("minLogStack", MIN_STACKED_LOG), ("maxLogStack", MAX_STACKED_LOG)],
+        &[
+            ("minLogStack", MIN_STACKED_LOG),
+            ("maxLogStack", MAX_STACKED_LOG),
+            ("initialFold", verifier::INITIAL_FOLDING_FACTOR),
+            ("subsequentFold", verifier::SUBSEQUENT_FOLDING_FACTOR),
+            ("initialReduction", verifier::RS_DOMAIN_INITIAL_REDUCTION_FACTOR),
+            ("subsequentReduction", verifier::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR),
+            ("residualMaxLog", verifier::RESIDUAL_MAX_LOG),
+        ],
     );
     let head = "def queryTable : List (List (List ℕ)) :=";
     let body = &source[source.find(head).expect("`queryTable` in the Lean verifier") + head.len()..];
@@ -131,7 +139,6 @@ fn grinding_constants_match_the_prover() {
         lean_vm_core::SECURITY_BITS,
         "crates/verifier's security target"
     );
-    assert_eq!(verifier::MAX_STACKED_CLAIMS, prover::MAX_STACKED_CLAIMS);
     assert_lean_constants(
         &lean_verifier(),
         &[

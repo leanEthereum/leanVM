@@ -103,6 +103,8 @@ inductive CRes where
   | under (g : List CCond) (r : CRes)
   /-- The cell is one of the cells (its address among theirs). -/
   | subP (c : CCell) (cs : List CCell)
+  /-- The two monomials name one word (the pass's first kept equations, `HeapC.lean`'s `resEqs`). -/
+  | eq (a b : CCell)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **Why a read's cell is written.** -/
@@ -192,6 +194,9 @@ inductive Wit where
   /-- Leading the witnesses of a run needed (`runOkD`): it lies in the run `⟨b, S, lo, hi⟩` (by these residuals'
   facts, or a residual `subR`), whose witnesses follow. -/
   | drv (b : CCell) (S : ℕ) (lo hi : CCell) (res : List ℕ)
+  /-- A run needed with a constant lower bound `lo` and an upper bound whose exponent a fact of these residuals puts
+  at most `n` (`hasFU`, `(hi, g^h)`, `h ≤ n + 1`): one point witness per cell `lo ≤ j < n` follows. -/
+  | ptsU (n : ℕ) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written

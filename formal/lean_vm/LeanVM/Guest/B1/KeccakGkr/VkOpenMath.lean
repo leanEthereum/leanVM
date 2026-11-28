@@ -10,12 +10,12 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkSpec
 public import LeanVM.Guest.B1.KeccakGkr.KFormMath
 public import LeanVM.Guest.B1.KeccakGkr.FormT
-public import LeanVM.Protocol.Whir.Complete.Tables
+public import LeanVM.Protocol.Tables
 
 namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
-open LeanVM.Protocol.KeccakGkr LeanVM.Protocol.Whir.Complete Finset
+open LeanVM.Protocol.KeccakGkr LeanVM.Protocol.Tables Finset
 
 @[expose] public section
 

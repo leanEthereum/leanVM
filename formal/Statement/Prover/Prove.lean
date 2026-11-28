@@ -1,10 +1,8 @@
 module
 
 public import Statement.Prover.Run
-public import Statement.Prover.Columns
+public import Statement.Prover.Link
 public import Statement.Prover.Ntt
-public import Statement.Prover.Bus
-public import Statement.Prover.Table
 public import Statement.Prover.Keccak
 public import Statement.Prover.Whir
 
@@ -41,26 +39,32 @@ def oodFast (μ : ℕ) (stack : Array K) : Script (List E × E) :=
 /-- **The honest script** of an execution's witness `W` at the rate `ρ` and the public input
 `publicInput`: the moves of `verify_execution` (its `walk`, `crates/verifier/src/lib.rs`),
 each phase's executable prover beside the verifier's phase (`Script.alongside`), which hands the
-next phase its result. The public-input phase sends nothing; the output lanes' claims, on no
-committed column, do not reach the stack (`ColumnClaim.onStack`); the commitment's out-of-domain
-claim joins the stacked opening's claims last. -/
-def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit :=
+next phase its result. The public-input phase sends nothing; the ring switch sends nothing either,
+and draws the opening's batching challenge; the opening's claims are the verifier's, in its
+order: the ring-switched claim (the Keccak reduction's slices on `q_keccak`, then the link's on the
+pointer columns), the memory term, the column claims with a placement (the link's, the public
+input's, the Keccak reduction's on `q_keccak`) and the out-of-domain claim. -/
+def honestScript (W : Witness) (ρ : ℕ) (publicInput : Digest) : Script Unit := do
   let layout := W.layout
-  (Script.sendList (W.announce ρ)).bind fun _ ↦
-  (Script.commitS (stackWordFast layout.stackLog ρ W.stack)).bind fun _ ↦
-  (oodFast layout.stackLog W.stack).bind fun ood ↦
-  (Script.alongside (verifyBusBalance computedBytecodeValue layout) (busFast layout W.cols)).bind
-    fun bus ↦
-  (Script.alongside (tablePhase layout bus) (tableFast W.cols layout.tableLogHeights bus)).bind
-    fun evaluations ↦
-  (Script.alongside (publicInputPhase layout publicInput) Script.sampleE).bind fun publicClaims ↦
-  (Script.alongside (keccakPhase layout evaluations) (KeccakGkr.keccakPhaseProve
-    (layout.tableLogHeights.getD opKeccak 0) W.cols evaluations)).bind fun keccak ↦
-  (ringFast keccak.2.1 keccak.2.2).bind fun r ↦
-  let claims := (bus.claims ++ tableColumnClaims evaluations ++ publicClaims).filter
-    (fun c ↦ c.column ∉ keccakOutputColumns) ++ keccak.1
+  Script.sendList (W.announce ρ)
+  Script.commitS (stackWordFast layout.stackLog ρ W.stack)
+  let ood ← oodFast layout.stackLog W.stack
+  let link ← Script.alongside (verifyLink computedSplit layout) (linkProve W)
+  let publicClaims ← Script.alongside (bindPublicInput layout publicInput) Script.sampleE
+  let (outputs, keccakPoint, keccakSlices) ← Script.alongside (keccakValidity layout link)
+    (KeccakGkr.keccakPhaseProve (layout.tableLogHeights.getD opKeccak 0) W.cols link)
+  let qkeccakPlacement := (layout.placements.getD qkeccak none).getD default
+  let ring ← ringFast true
+  let placed := fun (column : ℕ) ↦ (layout.placements.getD column none).getD default
+  let columnClaims := (linkColumnClaims link ++ publicClaims ++ outputs).filterMap fun c ↦
+    (layout.placements.getD c.column none).map fun p ↦ ClaimDesc.cells [(p, c.point, 1)]
   openingFast layout.stackLog ρ W.stack
-    (r.claim layout :: claims.map (ClaimDesc.column layout) ++ [.ood ood.1 ood.2])
+    (.ring [keccakRingClaim qkeccakPlacement keccakPoint keccakSlices, link.ring] ring.f ring.g
+        ring.rho ::
+      .cells [(placed memory0, link.memoryPoint, link.memoryScales.1),
+        (placed memory1, link.memoryPoint, link.memoryScales.2)] ::
+      columnClaims ++ [.ood ood.1])
+    ring.batching
 
 /-- **leanVM's honest prover.** The proof of the execution `t` of `prog` on `input` at the rate
 `2^-ρ`, trying `fuel` nonces per proof of work; `none` for a trace that is no valid execution

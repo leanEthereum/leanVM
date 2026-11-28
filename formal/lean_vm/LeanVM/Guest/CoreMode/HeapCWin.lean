@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapC
-public import LeanVM.Guest.Memory.StaticRun
+public import LeanVM.Guest.Memory.StaticCut
 
 /-!
 # The heap check in windows
@@ -360,7 +360,7 @@ noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
       | some endc => (loopTail f endc).isSome
       | none => false) &&
     decide ((loopBody f).length ≤ N) &&
-    withCx pows sigOf f H fun X ↦ decide (initC X = some S0)
+    withCx pows sigOf f H fun X ↦ decide (initC X (resEqs H.res) = some S0)
 
 /-- **The tail of a loop helper's check**: from the state `Sn` after its body without the tail, the tail call
 and the guarantees at its `ret []`. -/

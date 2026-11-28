@@ -38,6 +38,21 @@ theorem iotaIdx_sub : ∀ s < 12, ∀ m < 2, ∀ i ∈ iotaIdx s m, i ∈ iotaUs
 theorem word_g22 : word 4194304 0 = gen ^ 22 := by
   rw [show (4194304 : ℕ) = 2 ^ 22 from rfl]; exact word_two_pow (by decide)
 
+/-- The words of `g^(22 s)` (the claim records' offsets; `VerifySub` reads `vkGw 5`). -/
+def vkGw : ℕ → ℕ
+  | 1 => 4194304
+  | 2 => 17592186044416
+  | 3 => 108
+  | 4 => 452984832
+  | 5 => 1899956092796928
+  | 6 => 5200
+  | 7 => 21810380800
+  | 8 => 91479367430963200
+  | 9 => 486848
+  | 10 => 2041988513792
+  | 11 => 8564720591351840768
+  | _ => 0
+
 /-! ## Chains of additions -/
 
 theorem addChainT_holds {vs : List ℕ} (hne : vs ≠ []) {b : ℕ} {next : Prop}
@@ -234,7 +249,7 @@ theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 �
 `stepEnd s b - 7`). -/
 theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 cur cb pn : ℕ}
     {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
-    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
+    (h33 : σ (.n 29) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))
     (hcb : σ (.n cb) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * (s - 1)))
     (hpn : σ (.n pn) = σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s)) {c : KeccakClaim}
     (hcr : ClaimRec rd ((0 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims")) * gen ^ (22 * s)) c (τ - 3))
@@ -294,7 +309,7 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
 /-- **Step `0`**: the first claim, its `ι` term, and `keccak_layer` with the
 committed outputs' value waiting in the sponge, writing the next claim at `claims·g^22`. -/
 theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
-    (h33 : σ (.n (val% «verify_keccak» "step_g@2")) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n (val% «verify_keccak» "rem_g@3")) = gen ^ ((τ - 3) % krStep))
+    (h33 : σ (.n 29) = gen ^ ((τ - 3) / krStep)) (h47 : σ (.n 48) = gen ^ ((τ - 3) % krStep))
     {c : KeccakClaim} {L0 : E}
     (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n (val% «verify_keccak» "claims"))) c (τ - 3))
     (hL0 : ∀ v, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) 30 v → v = L0)

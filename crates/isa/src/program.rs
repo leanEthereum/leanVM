@@ -4,20 +4,18 @@ use crate::{CompiledProgram, Op};
 use std::ops::Deref;
 use std::sync::OnceLock;
 use verifier::K;
-use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
+use verifier::layout::{BYTECODE_SLOT_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, OPCODE_SLOT};
 
 /// Operand slots of a bytecode tuple, after the opcode.
 const BYTECODE_OPERANDS: usize = 12;
 
-/// The bus tuple coordinate of the opcode: a bytecode tuple leads with its tag, pc and read count.
-const OPCODE_SLOT: usize = 3;
-const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
+const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BYTECODE_SLOT_BITS);
 
 /// A compiled program and its stacked bytecode.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
-    /// Bus coordinate `s` of every instruction at `s * prog.len()`, for `s < 2^BUS_BITS`.
+    /// Slot `s` of every instruction at `s * prog.len()`, for `s < 2^BYTECODE_SLOT_BITS`.
     stacked_bytecode: Vec<u64>,
     /// `stacked_bytecode` prepared for the verifier.
     bytecode: verifier::Bytecode,
@@ -30,7 +28,7 @@ impl From<CompiledProgram> for Program {
     fn from(compiled: CompiledProgram) -> Self {
         let n = compiled.prog.len();
         assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
-        let mut stacked = vec![0; n << BUS_BITS];
+        let mut stacked = vec![0; n << BYTECODE_SLOT_BITS];
         for (pc, op) in compiled.prog.iter().enumerate() {
             for (i, word) in encode(op).into_iter().enumerate() {
                 stacked[(OPCODE_SLOT + i) * n + pc] = word;

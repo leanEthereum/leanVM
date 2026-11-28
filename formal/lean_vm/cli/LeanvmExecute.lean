@@ -1,5 +1,5 @@
 import Statement.Prover.Execute
-import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Files
 import LeanVM.Cli.Common
 import LeanVM.Prover.Advice
 
@@ -10,7 +10,9 @@ import LeanVM.Prover.Advice
 (`scripts/export-prover-traces-rust.sh` writes them), `bytecode.bin`, `public_input.bin` and
 `advice.txt` (`CompiledProgram::export_hints`, `crates/isa/src/export_hints.rs`), runs
 `LeanVM.Prover.Exec.execute`, and compares its execution with the Rust interpreter's, `memory.bin` and `trace.txt`: the memory's size, every cell
-and the step count. It prints each case's time and exits with `1` if a case differs or fails.
+and the step count. A case whose Rust run faults has `fault.txt` in their place, `<pc> <fault>`
+(`keccakAcrossWindow <cell> <cells>`, `conflict <cell>`, `outOfMemory` or `stepLimit`), and the
+run must fault there alike. It prints each case's time and exits with `1` if a case differs or fails.
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Prover LeanVM.Prover.Exec LeanVM.Protocol.Verifier LeanVM.Cli
@@ -33,6 +35,17 @@ def describe : Fault → String
   | .haltOutsideMain fp => s!"halt outside main (fp {fp})"
   | .stepLimit => "step limit"
   | .badInstruction => "instruction does not decode"
+  | .keccakAcrossWindow c n => s!"KECCAK block of {n} cells at cell {c} crosses a window"
+
+/-- Whether the run's fault at `pc` is `fault.txt`'s. -/
+def faultIs (expected : List String) (pc : ℕ) (f : Fault) : Bool :=
+  match expected, f with
+  | [p, "keccakAcrossWindow", c, n], .keccakAcrossWindow c' n' =>
+    p.toNat? == some pc && c.toNat? == some c' && n.toNat? == some n'
+  | [p, "conflict", c], .conflict c' _ _ => p.toNat? == some pc && c.toNat? == some c'
+  | [p, "outOfMemory"], .outOfMemory => p.toNat? == some pc
+  | [p, "stepLimit"], .stepLimit => p.toNat? == some pc
+  | _, _ => false
 
 /-- One case: `true` when the executions agree. -/
 def runCase (dir : String) : IO Bool := do
@@ -43,6 +56,14 @@ def runCase (dir : String) : IO Bool := do
   let prog ← IO.ofExcept (decodeProgram words.toArray)
   let input : PublicInput := ⟨fun i ↦ K.ofLane digest[i]⟩
   let adv ← IO.ofExcept (parseAdvice (← IO.FS.readFile (dir ++ "/advice.txt")))
+  if ← System.FilePath.pathExists (dir ++ "/fault.txt") then
+    let text ← IO.FS.readFile (dir ++ "/fault.txt")
+    let expected := (text.splitToList Char.isWhitespace).filter (· ≠ "")
+    let (ok, got) := match execute prog input adv with
+      | .error (pc, f) => (faultIs expected pc f, s!"fault at pc {pc}: {describe f}")
+      | .ok t => (false, s!"{t.stepCount} steps")
+    IO.println s!"{dir}: {if ok then "OK" else "DIFFERS"}: Rust `{text.trimAscii}`, Lean {got}"
+    return ok
   let some mem := decodeScalars (← read "memory.bin") | throw (IO.userError "bad memory")
   let mem := mem.toArray
   let nums := ((← IO.FS.readFile (dir ++ "/trace.txt")).trimAscii.toString.splitOn " ").filterMap

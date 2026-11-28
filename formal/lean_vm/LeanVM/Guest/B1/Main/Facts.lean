@@ -100,10 +100,10 @@ structure MainFacts (C : CallRel) (rd : Reader) (σ : Val) : Prop where
     (σ (.n (val% «main» "lean_sphincs_table"))) (σ (.n (val% «main» "sp_cover"))) (σ (.n (val% «main» "lean_sphincs_slots_g"))) (σ (.n (val% «main» "child_carried"))) (σ (.n (val% «main» "da_digests"))) (σ (.n (val% «main» "fs_seed[0]"))) (σ (.n (val% «main» "fs_seed[1]")))
     (σ (.n (val% «main» "child_pi"))) (σ (.n (val% «main» "g_squares"))) (σ (.n (val% «main» "child_fresh"))) (gen ^ c)
   writtenN : LoadHolds rd (σ (.n (val% «main» "written"))) (lg σ 6) (σ (.n (val% «main» "n_total_g")))
-  pick : σ (.n (val% «main» "da_pick")) = gen ^ lg σ 405 ∧ lg σ 405 ≤ lg σ 6 ∧ (lg σ 7 = 1 → lg σ 405 = lg σ 6)
-  picked : σ (.n (val% «main» "da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 405)
-  leaf : lg σ 6 = 0 → ∀ k < 23, LoadHolds rd (σ (.n (val% «main» "defer_stmt"))) k 0
-  agg : lg σ 6 ≠ 0 → σ (.n (val% «main» "s63.e.s0#1")) = σ (.n (val% «main» "g_squares")) * word 133823759239872512 0 ∧ C "aggregate_claims"
+  pick : σ (.n (val% «main» "da_pick")) = gen ^ lg σ (val% «main» "da_pick") ∧ lg σ (val% «main» "da_pick") ≤ lg σ 6 ∧ (lg σ 7 = 1 → lg σ (val% «main» "da_pick") = lg σ 6)
+  picked : σ (.n (val% «main» "da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ (val% «main» "da_pick"))
+  leaf : lg σ 6 = 0 → ∀ k < 25, LoadHolds rd (σ (.n (val% «main» "defer_stmt"))) k 0
+  agg : lg σ 6 ≠ 0 → σ (.n (val% «main» "s63.e.s0#1")) = σ (.n (val% «main» "g_squares")) * word 365917469723852800 0 ∧ C "aggregate_claims"
     [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))] []
   dacells : LoadHolds rd (σ (.n (val% «main» "da"))) 0 (σ (.n (val% «main» "own_0~2"))) ∧ LoadHolds rd (σ (.n (val% «main» "da"))) 1 (σ (.n (val% «main» "own_0~3")))
   stmt : coreProgram.Rel rd "statement_digest"

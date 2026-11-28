@@ -7,9 +7,13 @@ public import Statement.Prover.Witness
 
 From the rows of a run (`rowsOf`, `Witness.lean`) and the verifier's layout of its sizes
 (`buildLayout`): every column of the instance as an array, by the verifier's global column number
-(`colsOf`), the `KECCAK` states computed once per row for `QKECCAK` and the output lanes; and the
-stack, each column written at its placement.
-`witness?` puts them together.
+(`colsOf`): the memory's two limbs, `q_keccak`, then each table's columns at its height, a padding
+row past its executed rows (`Table.padding`); and the stack, each column with a block of its own
+written whole at its placement (`stackOffsets`), as `build` writes it
+(`crates/lean_vm_core/src/cpu/layout.rs`). `q_keccak` holds, a slot of `2^τ` words per lane, every `KECCAK` step's input state and its state after twelve rounds, the
+padding steps' those of the zero state (`commit_states`, `crates/keccak_gkr/src/witness.rs`), then
+in its spare slots the `KECCAK` table's columns that ride there (`spareLocal`). `witness?` puts
+them together.
 -/
 
 @[expose] public section
@@ -24,9 +28,12 @@ open LeanVM.Protocol.Verifier
 /-- Cell `i` of row `x` of a table, `0` when missing. -/
 def cellAt (R : Array (Array K)) (x i : ℕ) : K := ((R[x]?).bind (·[i]?)).getD 0
 
-/-- Column `i` of a table at the height `2^h`: its rows' cells, zero past them. -/
-def tableColumn (R : Array (Array K)) (h i : ℕ) : Array K :=
-  Array.ofFn (n := 2 ^ h) fun x ↦ cellAt R x.val i
+/-- The padding row of table `t` as `K` words (every padding value is `K`-valued). -/
+def paddingRow (t : ℕ) : Array K := ((tables.getD t default).padding.map (·.limb 0)).toArray
+
+/-- Column `i` of a table at the height `2^h`: its rows' cells, the padding row's past them. -/
+def tableColumn (R : Array (Array K)) (pad : Array K) (h i : ℕ) : Array K :=
+  Array.ofFn (n := 2 ^ h) fun x ↦ if x.val < R.size then cellAt R x.val i else pad.getD i 0
 
 /-- Rounds `12m` to `12m + 11` of Keccak-f[1600]. -/
 def segment (m : ℕ) (a : KeccakState) : KeccakState :=
@@ -35,115 +42,114 @@ def segment (m : ℕ) (a : KeccakState) : KeccakState :=
 /-- The zero state. -/
 def zeroState : KeccakState := Vector.replicate 25 0
 
-/-- The input state of row `x` of the `KECCAK` table: its cells `15 … 39`. -/
+/-- The input state of row `x` of the `KECCAK` table: its input lanes, columns `KECCAK_IN …`. -/
 def inState (R : Array (Array K)) (x : ℕ) : KeccakState :=
-  Vector.ofFn fun l : Fin 25 ↦ (cellAt R x (15 + l.val)).lane
+  Vector.ofFn fun l : Fin 25 ↦ (cellAt R x (keccakIn + l.val)).lane
 
-/-- The state after twelve rounds of every step of the `KECCAK` table at the height `2^h`, once
-per row; a padding row's is that of the zero state, computed once. -/
-def midStates (R : Array (Array K)) (h : ℕ) : Array KeccakState :=
-  let zMid := segment 0 zeroState
-  Array.ofFn (n := 2 ^ h) fun x ↦ if x.val < R.size then segment 0 (inState R x.val) else zMid
-
-/-- The state after twenty-four rounds of every step, from its state after twelve. -/
-def outStates (R : Array (Array K)) (mids : Array KeccakState) : Array KeccakState :=
-  let zOut := segment 1 (segment 0 zeroState)
-  Array.ofFn (n := mids.size) fun x ↦ if x.val < R.size then segment 1 mids[x] else zOut
-
-/-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
-`l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, slot `50 + k` its cell of
-the column `k`, `pc` through `out_all` (`spare_local` and `qkeccak_slot`,
-`crates/verifier/src/layout.rs`). -/
-def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : Array K :=
+/-- **`q_keccak`** of the `KECCAK` table's rows `R` at the height `2^h`, slot by slot, `2^h` words a
+slot: slot `l < 25` is input lane `l` of every step, slot `25 + l` lane `l` of its state after
+twelve rounds (a padding step's those of the zero state, computed once), slot `50 + k` the column
+`spareLocal k` (`qkeccak_slot`, `layout.rs`; `build`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
+def qkeccakColumn (R : Array (Array K)) (h : ℕ) : Array K :=
   let p := 2 ^ h
-  Array.ofFn (n := 2 ^ (h + 6)) fun i ↦
+  let pad := paddingRow opKeccak
+  let zMid := segment 0 zeroState
+  let mids : Array KeccakState :=
+    Array.ofFn (n := p) fun x ↦ if x.val < R.size then segment 0 (inState R x.val) else zMid
+  Array.ofFn (n := 2 ^ (h + qkeccakSlotBits)) fun i ↦
     let x := i.val % p
     let k := i.val / p
-    if k < 25 then cellAt R x (15 + k)
-    else if k < 50 then laneK (mids.getD x zeroState) (k - 25)
-    else cellAt R x (k - 50)
+    if k < keccakStateLanes then (if x < R.size then cellAt R x (keccakIn + k) else 0)
+    else if k < qkeccakSlots then laneK (mids.getD x zMid) (k - keccakStateLanes)
+    else if x < R.size then cellAt R x (spareLocal (k - qkeccakSlots))
+    else pad.getD (spareLocal (k - qkeccakSlots)) 0
 
-/-- The opcode table of a global column from `5` on (by `GLOBAL_COLUMN_BASES`). -/
-def tableIndexOf (c : ℕ) : ℕ :=
-  if c < 18 then 0 else if c < 31 then 1 else if c < 38 then 2 else if c < 52 then 3
-  else if c < 66 then 4 else 5
+/-- The table a global column from `NUM_GLOBAL_COLUMNS` on belongs to (`GLOBAL_COLUMN_BASES`). -/
+def tableOf (c : ℕ) : ℕ :=
+  ((List.range nTables).reverse.find? fun t ↦ globalColumnBases.getD t 0 ≤ c).getD 0
 
-/-- The column of global number `c`: the memory's two limbs and finalize counts `0 … 2`, `BYTECODE_FINAL_COUNTERS`
-`3`, `QKECCAK` `4`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
-(its columns `40 … 64`) derived from the twelve-round states `mids`, through the twenty-four-round
-states `outs`. -/
-def columnAt {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ)
-    (mids outs : Array KeccakState) (c : ℕ) : Array K :=
-  if c = 0 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 0
-  else if c = 1 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 1
-  else if c = 2 then acc.mem
-  else if c = 3 then acc.bc
-  else if c = 4 then qkeccakColumn (acc.tabs.getD 5 #[]) (logs.getD 5 0) mids
-  else
-    let j := tableIndexOf c
-    let i := c - globalColumnBases.getD j 0
-    if j = 5 ∧ 40 ≤ i ∧ i < 65 then
-      Array.ofFn (n := 2 ^ logs.getD 5 0) fun x ↦ laneK (outs.getD x.val zeroState) (i - 40)
-    else tableColumn (acc.tabs.getD j #[]) (logs.getD j 0) i
+/-- The number of global columns (`N_COLUMNS`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
+def nColumns : ℕ := numGlobalColumns + tableWidths.sum
 
-/-- **Every column of the instance**, by its global column number (`158` of them); the
-`KECCAK` states computed once per row, for `QKECCAK` and the output lanes. -/
-def colsOf {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (logs : List ℕ) : Array (Array K) :=
-  let mids := midStates (acc.tabs.getD 5 #[]) (logs.getD 5 0)
-  let outs := outStates (acc.tabs.getD 5 #[]) mids
-  Array.ofFn (n := 158) fun c ↦ columnAt img acc logs mids outs c.val
+/-- **Every column of the instance**, by its global column number: the memory's two limbs
+(`MEMORY_0`, `MEMORY_1`), `q_keccak`, then each table's columns at its log-height `logs[t]`. A
+column `q_keccak` carries is also a column of its table here, as the Rust's views of it read the
+same words. -/
+def colsOf {κ : ℕ} (img : MemoryImage κ) (tabs : Array (Array (Array K))) (logs : List ℕ) :
+    Array (Array K) :=
+  let pads := Array.ofFn (n := nTables) fun t ↦ paddingRow t
+  Array.ofFn (n := nColumns) fun c ↦
+    if c.val = memory0 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 0
+    else if c.val = memory1 then Array.ofFn (n := 2 ^ κ) fun x ↦ (img x).limb 1
+    else if c.val = qkeccak then qkeccakColumn (tabs.getD opKeccak #[]) (logs.getD opKeccak 0)
+    else
+      let t := tableOf c.val
+      tableColumn (tabs.getD t #[]) (pads.getD t #[]) (logs.getD t 0)
+        (c.val - globalColumnBases.getD t 0)
 
 /-! ## The stack -/
 
-/-- **The stack**: every placed column written from its placement's index on, over `2 ^ stackLog`
-zeros (`Placement.stack_point`'s cells); a column with a `q_keccak` slot writes again cells of
-`QKECCAK`. -/
+/-- **The stack**: every column with a block of its own (`stackBlocks`: not one `q_keccak` carries,
+not a `KECCAK` output lane) written at its placement over `2 ^ stackLog` zeros, row `i` at
+`index + i` (`split_stack`). -/
 def stackArray (layout : Layout) (cols : Array (Array K)) : Array K :=
-  (layout.placements.zip cols.toList).foldl (init := Array.replicate (2 ^ layout.stackLog) 0)
-    fun stack (placement?, col) ↦ match placement? with
-      | some placement =>
+  (layout.placements.zip cols.toList).zipIdx.foldl (init := Array.replicate (2 ^ layout.stackLog) 0)
+    fun stack ((placement?, col), c) ↦ match placement?, qkeccakSlot c with
+      | some placement, none =>
         Nat.fold col.size (fun i _ stack ↦ stack.set! (placement.index + i) col[i]) stack
-      | none => stack
+      | _, _ => stack
 
 /-! ## The witness -/
 
-/-- The prover's data of an execution: the announced row counts, the verifier's layout, every
-column by global number, and the stack. -/
+/-- The prover's data of an execution: the announced row counts, the verifier's layout, the
+pointers' chunks, every column by global number, and the stack. -/
 structure Witness where
-  /-- The six opcode tables' row counts, in the ensemble's order. -/
+  /-- The six tables' row counts, in opcode order. -/
   rows : List ℕ
   /-- The verifier's layout of the announced sizes. -/
   layout : Layout
+  /-- The pointers' chunks (`Chunks::new(pointer_width)`). -/
+  chunks : Chunks
   /-- Every column, by global column number. -/
   cols : Array (Array K)
   /-- The stack, `2 ^ layout.stackLog` cells. -/
   stack : Array K
 
-/-- The prover's data of the rows `acc` of a run on the memory `img`, at the layout `layout`. -/
-def buildWitness {κ : ℕ} (img : MemoryImage κ) (acc : Rows) (layout : Layout) : Witness :=
-  let cols := colsOf img acc layout.tableLogHeights
-  ⟨acc.tabs.toList.map (·.size), layout, cols, stackArray layout cols⟩
-
 /-- **The prover's data of an execution**: `none` unless the trace has the public boundary of
-`input`, its run ends in the final state, its committed size is at most `2^30`, and its sizes pass
-`build_layout`. -/
+`input` and its run ends in the final state, its sizes pass `build_layout` with a stack of at most
+`2^MAX_STACKED_LOG` words (`Execution.committedSize ≤ 2^30`, `Statement/LeanVm.lean`), and its
+pointers fit one word (`Chunks.new`): exactly the sizes the verifier accepts, as `prove` refuses the
+others (`WitnessOutOfRange`, `PointerWidth`, `crates/lean_vm_core/src/cpu/mod.rs`). -/
 def witness? (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog) : Option Witness :=
   if boundaryOK input t then
     let memIdx := powIndex t.logMemorySize
     match runSteps memIdx (powIndex prog.logSize) prog t with
     | some steps =>
-      if committedSizeOf prog.logSize t.logMemorySize (opCount steps) ≤ maxCommitted then
-        let acc := rowsOf memIdx t.memory prog.logSize steps
-        (buildLayout (bytecodeWords prog) t.logMemorySize (acc.tabs.toList.map (·.size))).map
-          (buildWitness t.memory acc)
-      else none
+      let rows := rowCounts steps
+      match buildLayout (bytecodeWords prog) t.logMemorySize rows with
+      | some layout =>
+        if layout.stackLog ≤ Whir.maxLogStack then
+          match Chunks.new (pointerWidth t.logMemorySize prog.logSize rows.sum) with
+          | some chunks =>
+            let tabs := rowsOf ⟨memIdx, t.memory, chunks⟩ steps
+            let cols := colsOf t.memory tabs layout.tableLogHeights
+            some ⟨rows, layout, chunks, cols, stackArray layout cols⟩
+          | none => none
+        else none
+      | none => none
     | none => none
   else none
 
-/-- The eight scalars announcing the sizes and the rate `ρ` (`announce`): the memory log-size,
-the six row counts, the rate, each the word `n` in limb `0` (`eOfNat`). -/
+/-- The eight scalars announcing the sizes and the rate `ρ` (`announce_public`,
+`crates/lean_vm_core/src/cpu/mod.rs`): the memory log-size, the six row counts, the rate, each the
+word `n` in limb `0` (`eOfNat`). -/
 def Witness.announce (W : Witness) (ρ : ℕ) : List E :=
   (W.layout.logMemory :: W.rows ++ [ρ]).map eOfNat
+
+/-- The local columns of table `t`, from the global ones. -/
+def Witness.tableCols (W : Witness) (t : ℕ) : Array (Array K) :=
+  W.cols.extract (globalColumnBases.getD t 0)
+    (globalColumnBases.getD t 0 + tableWidths.getD t 0)
 
 end LeanVM.Prover
 

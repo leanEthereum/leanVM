@@ -14,7 +14,6 @@ public import LeanVM.Protocol.Whir.NovelBasis
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
 public import VCVio.OracleComp.Constructions.SampleableType
-import LeanVM.ToMathlib.Array
 
 /-!
 # Multiplication by `X` in the novel basis
@@ -29,10 +28,12 @@ A_s Ŵ_s` (`telescope`), hence for `d` with `s` trailing ones
 Regrouped by the index of the result, this is the rule of `mul_x` (`crates/pcs/src/xmul.rs`):
 `(X h)[0] = 0`, `(X h)[c] = A_t (h[c-1] + h[c+2^t-1])`, `t` the trailing zeros of `c`
 (`trailingZeros`, `trailingZeros_two_pow_mul_odd`); `sum_mxE` is the identity
-`Σ_c (X h)[c] X_c(x) = x Σ_d h[d] X_d(x)`.
+`Σ_c (X h)[c] X_c(x) = x Σ_d h[d] X_d(x)`, and `sum_mulXA` its form on the prover's tables.
 -/
 
 namespace LeanVM.Protocol.Whir.Complete
+
+open LeanVM.Protocol.Tables
 
 open LeanVM.Parameters LeanVM.Protocol.Whir LeanVM.Prover Finset
 
@@ -94,7 +95,7 @@ theorem foldl_xmul (n : ℕ) (hn : n ≤ 63) :
 /-- **The prover's `xmulConsts` are the `A_t`.** -/
 theorem xmulConsts_getD {t : ℕ} (ht : t < 64) : xmulConsts.getD t 0 = AK t := by
   rw [show xmulConsts = Array.ofFn (n := 63 + 1) fun t ↦ AK t from foldl_xmul 63 le_rfl,
-    Array.getD_ofFn _ (by omega)]
+    Enc.getD_ofFn _ _ _ (by omega)]
 
 /-! ## Trailing zeros -/
 

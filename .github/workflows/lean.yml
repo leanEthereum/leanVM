@@ -47,14 +47,6 @@ jobs:
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # The statement imports Mathlib, VCVio, CompPoly, `fast_fields` and itself, nothing of the proofs (and `fast_fields` only Mathlib, CompPoly and itself), and
-      # `import all` only of its own generated data (`Statement.Data`); an indented import line counts too.
-      - name: Keep the statement apart from the proofs
-        run: |
-          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)' &&
-          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/fast_fields \
-              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4
@@ -74,6 +66,12 @@ jobs:
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # The statement imports Mathlib, VCVio, CompPoly, `fast_fields` and itself, nothing of the proofs (and
+      # `fast_fields` only Mathlib, CompPoly and itself), and `import all` only of its own generated data
+      # (`Statement.Data`), every header read by Lean's parser.
+      - name: Keep the statement apart from the proofs
+        working-directory: formal
+        run: python3 -I tools/statement-imports.py
       # The generated guest data's modules are heavy: `lake-build.py` admits them by memory. Fails on
       # any warning.
       - name: Build
@@ -354,6 +352,7 @@ jobs:
             formal/lean_vm/scripts/whir-fold-table
             formal/lean_vm/scripts/rust-verifier-cli
             formal/lean_vm/scripts/wire-diff
+            formal/lean_vm/scripts/executor-faults
             . -> target
           save-if: ${{ github.ref == 'refs/heads/main' }}
       # The files derived from the guest are not committed (`formal/.gitignore`): `regen-guest.sh`
@@ -382,8 +381,8 @@ jobs:
         run: |
           set -o pipefail
           lake env bash ../tools/axiom-footprint.sh lean_vm LeanVM \
-            LeanVM.theorems_hold LeanVM.corollaries_hold LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding \
-            LeanVM.Wire.proveWithHash_wireDecodable 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
+            LeanVM.theorems_hold LeanVM.aggregateSound_holds LeanVM.corollaries_of_theorems LeanVM.corollaries_hold \
+            LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
       # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
       - name: The private-import firewall holds (firewall-canary)
         run: python3 -I ../tools/firewall-canary.py
@@ -468,3 +467,10 @@ jobs:
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/prover-cases/*/
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
+      # The statement's executor against both Rust trees' on runs that fault: `KECCAK` window cases and the
+      # compiler suite's programs, aligned and not; the Rust trees must agree, and the Lean executor must halt
+      # where they halt and fault where they fault.
+      - name: The statement's executor on faults (executor-faults)
+        run: |
+          cargo run --release --manifest-path scripts/executor-faults/Cargo.toml -- "$RUNNER_TEMP/fault-cases"
+          .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/fault-cases/*/

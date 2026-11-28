@@ -10,8 +10,10 @@ module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Guest.Pack.P26.Core
+public import LeanVM.Guest.Pack.P48.Core
 public import LeanVM.Guest.Pack.P60.Core
 public import LeanVM.Guest.Pack.P44.Core
+public import LeanVM.Guest.Pack.P42.Core
 public import LeanVM.Guest.Pack.P6.Core
 public import LeanVM.Guest.Pack.P0.Core
 public import LeanVM.Guest.Pack.P14.Core
@@ -25,6 +27,14 @@ open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
+theorem qwBody_L10_L4 : (Fn.«decode_query_windows__L10_L4».core).body = qwBody 10 4 :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem qwBody_L11_L5 : (Fn.«decode_query_windows__L11_L5».core).body = qwBody 11 5 :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
 theorem qwBody_L12_L6 : (Fn.«decode_query_windows__L12_L6».core).body = qwBody 12 6 :=
   stmtsEqb_sound (by decide +kernel)
 
@@ -34,6 +44,10 @@ theorem qwBody_L13_L7 : (Fn.«decode_query_windows__L13_L7».core).body = qwBody
 
 set_option maxRecDepth 100000 in
 theorem qwBody_L14_L2 : (Fn.«decode_query_windows__L14_L2».core).body = qwBody 14 2 :=
+  stmtsEqb_sound (by decide +kernel)
+
+set_option maxRecDepth 100000 in
+theorem qwBody_L14_L8 : (Fn.«decode_query_windows__L14_L8».core).body = qwBody 14 8 :=
   stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in

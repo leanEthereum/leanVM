@@ -33,7 +33,7 @@ The GKR reduction of `verifyKeccak` (`crates/verifier/src/keccak.rs` at leanVM `
   `rhoPiSrc j` of `θ(a)`), `chiB`, `roundB`;
 * the stages of `Keccak.round` as functions (`Stage.theta`, `Stage.rhoPi`, `Stage.chi`,
   `Stage.iota`; `Keccak.round` is their composition by `rfl`) and the bits of each;
-* the rounds of a segment (`roundsFrom`).
+* the rounds of a segment (`roundsFrom`) and `keccakF` as two segments of twelve.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -336,6 +336,12 @@ theorem roundsFrom_succ {start e : ℕ} (h : start + e < 24) (a : KeccakState) :
     List.getElem?_eq_getElem (by omega)]
   simp only [Option.toList_some, List.foldl_cons, List.foldl_nil]
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
+
+/-- `keccakF` is twelve rounds, then the twelve others. -/
+theorem keccakF_eq (a : KeccakState) : keccakF1600 a = roundsFrom 12 12 (roundsFrom 0 12 a) := by
+  unfold keccakF1600 roundsFrom
+  rw [← List.foldl_append]
+  rfl
 
 end
 end LeanVM.Protocol.KeccakGkr

@@ -2,7 +2,7 @@
   LeanVM.Protocol.Rpm.Coins
 
   Private coins do not help an adversary against lazily sampled oracles: in the two-oracle
-  random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`) and in the random-permutation
+  random-oracle model (`romExperiment`, `LeanVM/Protocol/ToVCVio/Rom/Potential.lean`) and in the random-permutation
   experiments of `Statement/LeanVm.lean`.
 -/
 
@@ -11,7 +11,7 @@ module
 public import Statement.LeanVm
 import Common.Prob
 public import LeanVM.Protocol.WithHash
-public import LeanVM.Protocol.Rom.Statement
+public import LeanVM.Protocol.ToVCVio.Rom.Potential
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import ArkLib.Data.CodingTheory.ReedSolomon
 public import ArkLib.Data.Polynomial.FrobeniusContraction
@@ -149,14 +149,6 @@ theorem exists_det {α γ : Type} (g : α × KeccakCalls.QueryCache → ProbComp
       obtain ⟨u, -, rfl⟩ := hz
       rfl)
     (fun _ _ _ hz ↦ snd_eq_stepCache hz) hashCalls (fun _ ↦ rfl) (fun _ ↦ rfl) g E X
-
-/-- The random-oracle experiment (`LeanVM/Protocol/Rom/Statement.lean`) against an adversary that also has private coins. -/
-noncomputable def experimentCoins (B : OracleComp (unifSpec + KeccakCalls) (ProgramAndInput × Proof)) :
-    ProbComp Outcome := do
-  let (z, adversaryCache) ← (simulateQ KeccakCalls.romImpl B).run ∅
-  let (verdict, cache) ←
-    (simulateQ KeccakCalls.randomOracle (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run adversaryCache
-  return ((z, verdict), cache, adversaryCache)
 
 /-! ## The random-permutation experiments -/
 

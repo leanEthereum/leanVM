@@ -91,11 +91,8 @@ def main():
     assert!(parse(&body("x < y")).unwrap_err().contains("order facts come from"));
 }
 
-/// A stack store whose value IS its own destination recorded `alias[dst] = dst`,
-/// and `word_src` chased that forever: a compiler that never returns, with no
-/// output at all. Two stores could close the same loop in two steps. Both are
-/// now no-ops (write-once makes a second write of the same value one), and the
-/// documented swap must keep working.
+/// A stack store whose value is its own destination, or two closing such a cycle, is a no-op (write-once makes a
+/// second write of the same value one) and terminates; the documented swap keeps working.
 #[test]
 fn a_self_referential_stack_store_terminates() {
     let cases = [
@@ -518,13 +515,8 @@ def main():
 /// then chooses, so an `assert` reading it proved nothing. The first also read
 /// the NEXT buffer and its assert passed.
 ///
-/// They are one omission each, in three places that each had a checked
-/// counterpart: the store path's `copy_alias` did not bounds-check its stack
-/// index although the identical read in expression position did; `lower_call`
-/// did not compare a call's argument count against the callee's parameters
-/// although `try_inline` did; and a runtime-start heap slice bounds-checked one
-/// cell rather than its length although the compile-time-bounds arm beside it
-/// checked the whole span.
+/// The three: a stack store's index out of bounds, a call's argument count not the callee's, and a runtime-start
+/// heap slice past its buffer.
 #[test]
 fn a_program_cannot_reach_a_cell_it_does_not_own() {
     let rejected = |src: &str, want: &str| {

@@ -182,7 +182,7 @@ def l5Ok (fn : Fn) : Bool :=
   hasCall P "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")] &&
   isMul A (.n (val% «main_loop4» "cs_0~2")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "child_meta[0]")) &&
   hasCall P "child_claim_list_digest" [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")] [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")] &&
-  monoIs A (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "xc")) 24 &&
+  monoIs A (.n (val% «main_loop4» "carried")) (.n (val% «main_loop4» "child_carried")) (.n (val% «main_loop4» "xc")) 26 &&
   monoIs A (.n (val% «main_loop4» "child_da")) (.n (val% «main_loop4» "da_digests")) (.n (val% «main_loop4» "xc")) 2 &&
   isLoad A (.n (val% «main_loop4» "pi_0~2")) (.n (val% «main_loop4» "child_da")) 0 &&
   isLoad A (.n (val% «main_loop4» "pi_0~3")) (.n (val% «main_loop4» "child_da")) 1 &&
@@ -192,8 +192,8 @@ def l5Ok (fn : Fn) : Bool :=
   isLoad A (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0 &&
   monoIs A (.n (val% «main_loop4» "s17#0")) (.n (val% «main_loop4» "child_pi")) (.n (val% «main_loop4» "xc")) 2 &&
   isLoad A (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1 &&
-  monoIs A (.n (val% «main_loop4» "s18#5")) (.n (val% «main_loop4» "child_fresh")) (.n (val% «main_loop4» "xc")) 24 &&
-  hasCall P "verify_sub" [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#5")] [] &&
+  monoIs A (.n (val% «main_loop4» "s18#9")) (.n (val% «main_loop4» "child_fresh")) (.n (val% «main_loop4» "xc")) 55 &&
+  hasCall P "verify_sub" [.n (val% «main_loop4» "pi_0"), .n (val% «main_loop4» "pi_1"), .n (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "s18#9")] [] &&
   isMul A (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "base")) (.n (val% «main_loop4» "nsub_g")) &&
   isMul A (.n (val% «main_loop4» "s19#1")) (.n (val% «main_loop4» "written")) (.n (val% «main_loop4» "xc")) &&
   isLoad A (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1

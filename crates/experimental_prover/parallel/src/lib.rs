@@ -526,41 +526,6 @@ unsafe fn task_chunks<'a, T, const N: usize>(views: &[Chunks<T>; N], i: usize) -
     })
 }
 
-/// Parallel `dst.chunks_mut(chunk).zip(src.chunks(chunk))`, for a kernel that
-/// writes one table while reading another of the same length.
-pub fn chunks_mut_zip<T: Send, S: Sync, F>(dst: &mut [T], src: &[S], chunk: usize, f: F)
-where
-    F: Fn(usize, &mut [T], &[S]) + Sync,
-{
-    assert_eq!(dst.len(), src.len(), "chunks_mut_zip: slices differ in length");
-    chunks_mut(dst, chunk, |i, sub| {
-        let start = i * chunk;
-        f(i, sub, &src[start..start + sub.len()]);
-    });
-}
-
-/// Parallel `data.iter_mut().enumerate().for_each(f)`, chunked by
-/// [`recommended_chunk_size`]. Hands the closure each element's **global** index.
-#[inline]
-pub fn for_each_mut<T: Send, F>(data: &mut [T], f: F)
-where
-    F: Fn(usize, &mut T) + Sync,
-{
-    let chunk = recommended_chunk_size(data.len());
-    chunks_mut(data, chunk, |chunk_index, values| {
-        for (offset, slot) in values.iter_mut().enumerate() {
-            f(chunk_index * chunk + offset, slot);
-        }
-    });
-}
-
-/// Parallel `for (i, slot) in dst.iter_mut().enumerate() { *slot = build(i) }`.
-/// The in-place counterpart of [`map_collect`], which allocates.
-#[inline]
-pub fn fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
-    for_each_mut(dst, |i, slot| *slot = build(i));
-}
-
 /// Parallel `(0..n_tasks).map(f).collect::<Vec<_>>()`: runs `f(i)` across the
 /// pool and writes each result straight into the output at its own index: one
 /// allocation, no `Option` slots, no per-worker intermediate vectors.

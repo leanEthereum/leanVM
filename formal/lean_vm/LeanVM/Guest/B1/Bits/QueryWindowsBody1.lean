@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
+public import LeanVM.Guest.Pack.P41.Core
 public import LeanVM.Guest.Pack.P9.Core
 public import LeanVM.Guest.Pack.P59.Core
 public import LeanVM.Guest.Pack.P47.Core
@@ -23,6 +24,10 @@ namespace LeanVM.Guest.B1
 open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest
 
 @[expose] public section
+
+set_option maxRecDepth 100000 in
+theorem qwBody_L9_L3 : (Fn.«decode_query_windows__L9_L3».core).body = qwBody 9 3 :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem qwBody_L20_L2 : (Fn.«decode_query_windows__L20_L2».core).body = qwBody 20 2 :=

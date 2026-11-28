@@ -16,9 +16,12 @@ use std::collections::HashMap;
 use verifier::{E, K};
 
 /// Cells a sponge state occupies.
-pub const STATE_CELLS: usize = 13;
+pub const STATE_CELLS: usize = verifier::layout::KECCAK_CELLS;
 /// The rate cells of a state, the nine a block of a message laid out in cells covers.
 pub const RATE_CELLS: usize = 9;
+/// Cells of the aligned window each `KECCAK` block (its `tail`, its `cap`, the output cells it writes) lies in: a
+/// block's cells share every index bit above a pointer's lowest chunk ([`verifier::WINDOW_BITS`]).
+pub const KECCAK_WINDOW: u32 = 1 << verifier::WINDOW_BITS;
 
 /// Frame-relative offset operand.
 pub type Off = u32;
@@ -183,22 +186,30 @@ pub enum RHint {
     /// Announce a pointer into a reserved run of frames.
     FrameAddress { offset: Off },
     /// Reserve `log_g(m[end] * start_inverse)` consecutive frames of `size` cells, then `tail`
-    /// cells more, the final, untaken call's frame, of which the call writes only those.
+    /// cells more, the final, untaken call's frame, of which the call writes only those. `aligned`
+    /// as for [`Self::Alloc`]: then `size` is a multiple of the window, so each frame starts aligned.
     AllocFrames {
         ptr: Off,
         size: u32,
         end: Off,
         start_inverse: K,
         tail: u32,
+        aligned: bool,
     },
-    /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell.
-    Alloc { ptr: Off, size: u32 },
+    /// Allocate a fresh region of `size` cells and write `g^{base}` to the cell. An `aligned` region
+    /// starts at a multiple of [`KECCAK_WINDOW`]: a frame that holds `KECCAK` blocks.
+    Alloc { ptr: Off, size: u32, aligned: bool },
     /// `Alloc` with the cell count read at runtime as the g-power exponent of
     /// `m[fp+size]`.
     AllocDyn { ptr: Off, size: Off },
     /// `Alloc` of `sizes[k]` cells, where `m[fp+sel] = g^k`: a dispatched call's frame, sized
-    /// by the arm it selects.
-    AllocArm { ptr: Off, sel: Off, sizes: Vec<u32> },
+    /// by the arm it selects, `aligned` as for [`Self::Alloc`].
+    AllocArm {
+        ptr: Off,
+        sel: Off,
+        sizes: Vec<u32>,
+        aligned: bool,
+    },
     /// Write the address of frame cell `cell`, `g^{fp+cell}`, to `fp+ptr`.
     CellAddress { ptr: Off, cell: Off },
     /// Pop stream `name`'s next entry (`len` values) into frame cells `fp+base+k`.

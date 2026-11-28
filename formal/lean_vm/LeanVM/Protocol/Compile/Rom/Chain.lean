@@ -24,6 +24,10 @@ the log, so is every later one, and the state the replay ends with is a verifier
 * `FirstAt ℓ j x`: the entry `j` is the first to answer `x`.
 * `ChainIn ℓ i i' ys`: every input of `ys` is first answered strictly after `i` and at most at
   `i'`.
+
+A packed message's chunks and a packed draw's chunks are links of the chain too
+(`absorbChunks_chain`, `observe_chain`, `squeezeChunks_chain`, `samples_chain`): each input carries
+the capacity of the answer before it.
 -/
 
 namespace LeanVM.Protocol.Compile.Rom
@@ -115,6 +119,93 @@ theorem squeeze_chain (hf : ¬ Fail σ ℓ) {i : ℕ} {sp : Sponge} {r : E × Sp
     subst hy
     exact ⟨j, hij, le_rfl, hj⟩
 
+theorem absorbChunks_chain (hf : ¬ Fail σ ℓ) :
+    ∀ (fuel : ℕ) (state : KeccakState) (vals : List E) {st : KeccakState} {i : ℕ},
+      OutAt ℓ i state → absorbPackedChunks (m := Option) (lookF ℓ) fuel state vals = some st →
+      ∃ i', i ≤ i' ∧ OutAt ℓ i' st ∧ ChainIn ℓ i i' (absorbChunksIn (lookF ℓ) fuel state vals)
+  | 0, state, _, st, i, hs, h => by
+    simp only [absorbPackedChunks, pure, Option.some.injEq] at h
+    subst h
+    exact ⟨i, le_rfl, hs, by simp [absorbChunksIn, ChainIn.nil]⟩
+  | _ + 1, state, [], st, i, hs, h => by
+    simp only [absorbPackedChunks, pure, Option.some.injEq] at h
+    subst h
+    exact ⟨i, le_rfl, hs, by simp [absorbChunksIn, ChainIn.nil]⟩
+  | fuel + 1, state, v :: vs, st, i, hs, h => by
+    simp only [absorbPackedChunks, bind, Option.bind_eq_some_iff] at h
+    obtain ⟨st1, h1, h⟩ := h
+    obtain ⟨j, hij, hfirst, hout⟩ := chain_step hf hs
+      (by rw [packedInput_eq, capOf_packedOf]) h1
+    obtain ⟨i', hi', hout', hc'⟩ := absorbChunks_chain hf fuel st1 _ hout h
+    refine ⟨i', by omega, hout', ?_⟩
+    simp only [absorbChunksIn, h1]
+    intro y hy
+    rcases List.mem_cons.mp hy with rfl | hy
+    · exact ⟨j, hij, hi', hfirst⟩
+    · obtain ⟨j', h1', h2', h3'⟩ := hc' y hy
+      exact ⟨j', by omega, h2', h3'⟩
+
+theorem observe_chain (hf : ¬ Fail σ ℓ) {i : ℕ} {sp sp' : Sponge} {vals : List E}
+    (hs : OutAt ℓ i sp.state) (h : observePacked (m := Option) (lookF ℓ) sp vals = some sp') :
+    ∃ i', i ≤ i' ∧ OutAt ℓ i' sp'.state ∧ ChainIn ℓ i i' (observeIn (lookF ℓ) sp vals) := by
+  unfold observePacked at h
+  unfold observeIn
+  split at h
+  · rename_i he
+    simp only [he, ↓reduceIte]
+    simp only [bind, pure, Option.bind_some, Option.bind_eq_some_iff, Option.some.injEq] at h
+    obtain ⟨st, hst, rfl⟩ := h
+    exact absorbChunks_chain hf _ _ _ hs hst
+  · rename_i he
+    simp only [he, Bool.false_eq_true, ↓reduceIte]
+    simp only [duplex, bind, pure, Option.bind_eq_some_iff, Option.some.injEq] at h
+    obtain ⟨_, ⟨u, hu, rfl⟩, st, hst, rfl⟩ := h
+    obtain ⟨j, hij, hfirst, hout⟩ := chain_step hf hs (capOf_duplexInput sp) hu
+    obtain ⟨i', hi', hout', hc'⟩ := absorbChunks_chain hf _ _ _ hout hst
+    refine ⟨i', by omega, hout', ?_⟩
+    simp only [hu]
+    intro y hy
+    rcases List.mem_cons.mp hy with rfl | hy
+    · exact ⟨j, hij, hi', hfirst⟩
+    · obtain ⟨j', h1', h2', h3'⟩ := hc' y hy
+      exact ⟨j', by omega, h2', h3'⟩
+
+theorem squeezeChunks_chain (hf : ¬ Fail σ ℓ) :
+    ∀ (fuel : ℕ) (sp : Sponge) (missing : ℕ) {r : List E × Sponge} {i : ℕ},
+      OutAt ℓ i sp.state → squeezePackedChunks (m := Option) (lookF ℓ) fuel sp missing = some r →
+      ∃ i', i ≤ i' ∧ OutAt ℓ i' r.2.state ∧
+        ChainIn ℓ i i' (squeezeChunksIn (lookF ℓ) fuel sp missing)
+  | 0, sp, _, r, i, hs, h => by
+    simp only [squeezePackedChunks, pure, Option.some.injEq] at h
+    subst h
+    exact ⟨i, le_rfl, hs, by simp [squeezeChunksIn, ChainIn.nil]⟩
+  | _ + 1, sp, 0, r, i, hs, h => by
+    simp only [squeezePackedChunks, pure, Option.some.injEq] at h
+    subst h
+    exact ⟨i, le_rfl, hs, by simp [squeezeChunksIn, ChainIn.nil]⟩
+  | fuel + 1, sp, missing + 1, r, i, hs, h => by
+    simp only [squeezePackedChunks, duplex, bind, pure, Option.bind_eq_some_iff,
+      Option.some.injEq] at h
+    obtain ⟨_, ⟨u, hu, rfl⟩, r', hr', rfl⟩ := h
+    obtain ⟨j, hij, hfirst, hout⟩ := chain_step hf hs (capOf_duplexInput sp) hu
+    obtain ⟨i', hi', hout', hc'⟩ := squeezeChunks_chain hf fuel _ _ (i := j) hout hr'
+    refine ⟨i', by omega, hout', ?_⟩
+    simp only [squeezeChunksIn, hu]
+    intro y hy
+    rcases List.mem_cons.mp hy with rfl | hy
+    · exact ⟨j, hij, hi', hfirst⟩
+    · obtain ⟨j', h1', h2', h3'⟩ := hc' y hy
+      exact ⟨j', by omega, h2', h3'⟩
+
+theorem samples_chain (hf : ¬ Fail σ ℓ) {i : ℕ} {sp : Sponge} {count : ℕ} {r : List E × Sponge}
+    (hs : OutAt ℓ i sp.state) (h : samplesPacked (m := Option) (lookF ℓ) sp count = some r) :
+    ∃ i', i ≤ i' ∧ OutAt ℓ i' r.2.state ∧ ChainIn ℓ i i' (samplesIn (lookF ℓ) sp count) := by
+  unfold samplesPacked at h
+  unfold samplesIn
+  rcases count with _ | c <;> rcases hg : sp.ground with _ | g <;> simp only [hg] at h ⊢ <;>
+    simp only [bind, pure, Option.bind_eq_some_iff, Option.some.injEq] at h <;>
+    obtain ⟨r', hr', rfl⟩ := h <;> exact squeezeChunks_chain hf _ _ _ (r := r') hs hr'
+
 /-- **The replay's chain**: without failure, a replay on the log's answers from a state holding
 the answer of the entry `i` ends holding the answer of an entry `i' ≥ i`, and every permutation
 input it makes is first answered past `i` and at most at `i'`. -/
@@ -143,6 +234,26 @@ theorem replay_chain (hf : ¬ Fail σ ℓ) {α : Type} :
     simp only [replayIn]
     obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
     obtain ⟨i₁, hi₁, hout₁, hc₁⟩ := squeeze_chain hf hs hr
+    obtain ⟨i', hi', hout', hc'⟩ := replay_chain hf (k r.1) _ h hout₁
+    rw [hr]
+    exact ⟨i', by omega, hout', hc₁.append hc' hi₁ hi'⟩
+  | .readPacked n k, s, _, _, i, h, hs => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · rename_i hc
+      simp only [hc, and_self, ↓reduceIte]
+      obtain ⟨sp, hsp, h⟩ := Option.bind_eq_some_iff.mp h
+      obtain ⟨i₁, hi₁, hout₁, hc₁⟩ := observe_chain hf hs hsp
+      obtain ⟨i', hi', hout', hc'⟩ := replay_chain hf _ _ h hout₁
+      rw [hsp]
+      exact ⟨i', by omega, hout', hc₁.append hc' hi₁ hi'⟩
+    · simp at h
+  | .samplePacked n k, s, _, _, i, h, hs => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨i₁, hi₁, hout₁, hc₁⟩ := samples_chain hf hs hr
     obtain ⟨i', hi', hout', hc'⟩ := replay_chain hf (k r.1) _ h hout₁
     rw [hr]
     exact ⟨i', by omega, hout', hc₁.append hc' hi₁ hi'⟩

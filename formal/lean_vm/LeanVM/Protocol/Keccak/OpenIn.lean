@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Protocol.Keccak.OpenOut
-import LeanVM.ToMathlib.Finset
 
 /-!
 # The inputs' opening
@@ -110,7 +109,7 @@ noncomputable def Gin (col : ℕ → K) (claim : KeccakClaim) (m x : ℕ) : E :=
 theorem Gin_eq (col : ℕ → K) (claim : KeccakClaim) (m x : ℕ) :
     Gin P col claim m x = ∑ l ∈ range 25, ∑ z ∈ range 64, claim.weights.getD (64 * l + z) 0 *
       bitE ((col (x + 2 ^ (P + 4) * (25 * m + l))).toBitVec.getLsbD z) := by
-  rw [Gin, show 1600 = 25 * 64 from rfl, Finset.sum_range_mul 25 64]
+  rw [Gin, show 1600 = 25 * 64 from rfl, sum_range_mul 25 64]
   refine Finset.sum_congr rfl fun l _ ↦ Finset.sum_congr rfl fun z hz ↦ ?_
   have hz' := Finset.mem_range.1 hz
   rw [show (64 * l + z) / 64 = l by omega, show (64 * l + z) % 64 = z by omega]
@@ -140,7 +139,7 @@ theorem phi_eq (col : ℕ → K) (claim : KeccakClaim) (hshape : ClaimShape P cl
     exact Finset.sum_congr rfl fun z _ ↦ Finset.sum_congr rfl fun i _ ↦ by ring
   rw [hphi, sum_split hlow hb (Gin P col claim)]
   -- the slots: `o = 25m + ℓ` for `o < 50`, nothing above
-  rw [show 2 ^ 6 = 2 * 25 + 14 from rfl, Finset.sum_range_add, Finset.sum_range_mul 2 25]
+  rw [show 2 ^ 6 = 2 * 25 + 14 from rfl, Finset.sum_range_add, sum_range_mul 2 25]
   have hzero : ∑ x ∈ range 14, ∑ z ∈ range 64,
       slotW (eqKernel (claim.point.drop P)) claim.weights 0 2 (2 * 25 + x) z *
         sliceMle P col (low ++ claim.point.take P) (2 * 25 + x) z = 0 :=

@@ -20,8 +20,8 @@ with its bodies `deps`:
 * the indices increase from the entry's `0` (`increasingFrom 0 (deps.map (·.1))`, by
   `decide +kernel`): the program holds its bodies and its entry (`decoderProgramOf_includes`,
   `decoderProgramOf_entry`);
-* its size is exactly the bodies' sizes and two per index without a body (a literal `0`), the
-  indices being distinct (`size_ofList_add_length`, `decoderProgramOf_size_le_of_increasing`): at
+* its size is exactly the bodies' sizes and one per index without a body (a position), the
+  indices being distinct (`size_ofListPos_add_length`, `decoderProgramOf_size_le_of_increasing`): at
   most a measured number, then `guestWitnessDecoderSizeBound`. The guest's frame cells' packed
   literal (`guestLocsTableC`: the table's `guestLanesRowSize`, generated, and two for the array and
   its `Term.literal` node, `Decoder/Lanes.lean`) is its rows' sizes: the slots' row by evaluation,
@@ -34,7 +34,7 @@ with its bodies `deps`:
 
 For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (the frame cells'
 `guestLanesRowSize + 2` and the others', the entry's among them, `otherBodiesSize`, each exact)
-plus two per index without a body, the indices up to the top's, `decTopC`'s own (the last index
+plus one per index without a body, the indices up to the top's, `decTopC`'s own (the last index
 allocated), less the bodies (`costIdx - costDeps.length`; so the bound names no index, which moves
 when a module before it in the chain gains a function): the program's exact size
 (`LeanVMTests/Cost/DecoderSize.lean`). The guest's frame cells are packed four to a number, the
@@ -114,16 +114,16 @@ theorem decoderProgramBodies_filter_locs :
       [(guestLocsTableC.costIdx, guestLocsTableC.costBody)] := by
   rfl
 
-/-- The bound of `size_ofList_add_length` on bodies `L`, from one body's size at index `i` and
-the others', with `d + 1` bodies up to index `k`: their sizes and two per index without a body.
+/-- The bound of `size_ofListPos_add_length` on bodies `L`, from one body's size at index `i` and
+the others', with `d + 1` bodies up to index `k`: their sizes and one per index without a body.
 Stated for any list: on the program's bodies, a ground term, `rw` and `omega` would evaluate
 them. -/
 theorem bodies_size_bound_of_split (L : List (ℕ × Term)) (i k n r s d : ℕ) (b : Term)
     (hf : L.filter (fun p ↦ p.1 == i) = [(i, b)]) (hb : b.size = n)
     (hrest : ((L.filter fun p ↦ !(p.1 == i)).map fun p ↦ p.2.size).sum ≤ r)
     (hmax : (L.map (·.1)).foldr max 0 = k) (hs : n + r = s) (hd : d ≤ k) :
-    (L.map fun p ↦ p.2.size).sum + 2 * ((L.map (·.1)).foldr max 0 + 1) ≤
-      s + 2 * (k - d) + 2 * (d + 1) := by
+    (L.map fun p ↦ p.2.size).sum + ((L.map (·.1)).foldr max 0 + 1) ≤
+      s + (k - d) + (d + 1) := by
   rw [sum_map_filter_add _ (fun p ↦ p.1 == i), hf, hmax, List.map_singleton, List.sum_singleton,
     hb]
   omega
@@ -134,12 +134,12 @@ theorem bodies_size_bound_of_split (L : List (ℕ × Term)) (i k n r s d : ℕ) 
     fun p ↦ p.2.size).sum
 
 /-- **The program's size**, evaluated: the bodies' sizes, the frame cells' literal
-(`guestLocsTable_size`) and the others (`otherBodiesSize`), and two
+(`guestLocsTable_size`) and the others (`otherBodiesSize`), and one
 per index without a body: the indices up to the top's, `decTopC.costIdx + 1`, less the bodies,
 the entry and `decTopC.costDeps`. -/
 theorem decoderProgram_size_le_measured :
     (decoderProgramOf decTopC.costIdx decTopC.costDeps).size ≤
-      guestLanesRowSize + 2 + otherBodiesSize + 2 * (decTopC.costIdx - decTopC.costDeps.length) :=
+      guestLanesRowSize + 2 + otherBodiesSize + (decTopC.costIdx - decTopC.costDeps.length) :=
   decoderProgramOf_size_le_of_increasing decoderProgram_indices_increasing
     (bodies_size_bound_of_split _ guestLocsTableC.costIdx decTopC.costIdx _ otherBodiesSize _
       decTopC.costDeps.length _ decoderProgramBodies_filter_locs guestLocsTable_size

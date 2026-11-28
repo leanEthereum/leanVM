@@ -160,7 +160,7 @@ theorem commitStack_eq {logN logInvRate : ℕ} {level : Whir.Level} {rest : List
 /-! ## The specializations -/
 
 /-- `ligNSizes`: `open_stacked`'s specializations, one per stack log. -/
-abbrev openArms : ℕ := 11
+abbrev openArms : ℕ := 15
 
 /-- `open_stacked`'s specializations, in dispatch order. -/
 def openNames : List String :=
@@ -168,7 +168,7 @@ def openNames : List String :=
 
 /-- The smallest stack log a child's opening takes (`verifier::min_execution_stacked_log` of the
 guest's bytecode). -/
-abbrev minOpenLog : ℕ := 20
+abbrev minOpenLog : ℕ := 16
 
 /-- The specialization of `open_stacked` for the stack log `μ`: `μ - minOpenLog` in dispatch
 order. -/

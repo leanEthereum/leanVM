@@ -158,8 +158,8 @@ theorem withRun_sound {s s' : St} {b : ℕ} {vs : List E} (h : s.mem.Sound)
   obtain ⟨m, hm, rfl⟩ := St.withMem_ok e
   exact h.putRun hb hm
 
-theorem allocate_sound {s s' : St} {ptr size : ℕ} (h : s.mem.Sound)
-    (e : allocate s ptr size = .ok s') : s'.mem.Sound := by
+theorem allocate_sound {s s' : St} {ptr size : ℕ} {aligned : Bool} (h : s.mem.Sound)
+    (e : allocate s ptr size aligned = .ok s') : s'.mem.Sound := by
   unfold allocate at e
   rw [bind_ok] at e
   obtain ⟨cell, hcell, e⟩ := e
@@ -185,12 +185,12 @@ theorem runHint_sound {C : Ctx} {s s' : St} {hint : Hint} (h : s.mem.Sound)
     simp only [runHint, bind_ok, pure_ok] at e
     obtain ⟨c, -, rfl⟩ := e
     exact h
-  | alloc ptr size => exact allocate_sound h e
+  | alloc ptr size aligned => exact allocate_sound h e
   | allocDyn ptr size =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, sz, -, ⟨n, s1⟩, h1, e⟩ := e
     exact allocate_sound (by rw [St.logOr_mem h1]; exact h) e
-  | allocArm ptr sel sizes =>
+  | allocArm ptr sel sizes aligned =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, x, -, ⟨k, s1⟩, h1, e⟩ := e
     split at e
@@ -200,7 +200,7 @@ theorem runHint_sound {C : Ctx} {s s' : St} {hint : Hint} (h : s.mem.Sound)
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, p, hp, e⟩ := e
     exact withPut_sound h (cellAt_ok hp).2 e
-  | allocFrames ptr size stop startInverse tail =>
+  | allocFrames ptr size stop startInverse tail aligned =>
     simp only [runHint, bind_ok] at e
     obtain ⟨c, -, sp, -, e⟩ := e
     split_ifs at e
@@ -370,7 +370,7 @@ theorem runOp_sound {C : Ctx} {s s' : St} {op : Op} (hs : s.Good) (h : s.mem.Sou
       exact h1
   | keccak ins out inOdd outOdd count =>
     simp only [runOp, bind_ok] at e
-    obtain ⟨cells, hcells, input, -, outs, houts, s1, hs1, e⟩ := e
+    obtain ⟨-, -, cells, hcells, input, -, outs, houts, s1, hs1, e⟩ := e
     simp only [pure_ok] at e; subst e
     obtain ⟨m, hm, rfl⟩ := St.withMem_ok hs1
     rw [bind_ok] at hm

@@ -20,7 +20,8 @@ public import LeanVM.Guest.Sound
 (`Covers`), every node instance's frame holds the
 header, its path's values, temporaries, fixed cells, frame addresses, table targets and call
 sites, and its callees' frames their headers, arguments and frame pointers (`Frame`'s reads),
-given that the completeness check keeps a path's call sites apart (`SitesApart`).
+given that the completeness check keeps a path's call sites apart (`SitesApart`); on the honest
+memory itself, `frameHolds_all`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -29,6 +30,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 @[expose] public section
+
+variable {al : String → Bool}
 
 theorem idxOf_of_find {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) : ∃ j, idxOf f = some j := by
   have h' : List.find? (fun g ↦ g.name == f) coreProgram = some fn := h
@@ -57,10 +60,10 @@ theorem H_eq_kidHdr {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids :
 /-- **A call site's cells hold its callee frame and target**, on a memory covering the honest writes. -/
 theorem read_siteL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {j : ℕ} {G : Glob}
     {fc : CompiledFunction} {main : Bool}
-    (h : Honest coreProgram fs H C hdr T rd args rets) {κ : ℕ} {L : MemoryImage κ}
-    (hL : Covers coreProgram fs H C hdr T L) (hS : ShareOk j) (hC : ChainApart j)
+    (h : HonestA coreProgram fs al H C hdr T rd args rets) {κ : ℕ} {L : MemoryImage κ}
+    (hL : Covers coreProgram fs al H C hdr T L) (hS : ShareOk j) (hC : ChainApart j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {I : Inst} (hI : I ∈ honestInstsA coreProgram fs al H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
     {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
     (hw : walk σ (coreOf j).body = .ret es vs) (hsa : SitesApart j es)
     (i : ℕ) (c : Call) (kfp : ℕ) (s : Site) (hc : (calls es)[i]? = some c) (hp : I.kidFps[i]? = some kfp)
@@ -132,6 +135,21 @@ theorem read_siteL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} 
         · exact absurd hxc.symm ((hsa i i' c c' s s' (Ne.symm hii) hc hc' hs hs').2 ht0).1
     rw [addressOfIndex, pow_add]
     exact hL.read_C h hI hmem
+
+/-- **A call site's cells hold its callee frame and target.** -/
+theorem read_site {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} {j : ℕ} {G : Glob}
+    {fc : CompiledFunction} {main : Bool}
+    (h : HonestA coreProgram fs al H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {I : Inst} (hI : I ∈ honestInstsA coreProgram fs al H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) (hsa : SitesApart j es)
+    (i : ℕ) (c : Call) (kfp : ℕ) (s : Site) (hc : (calls es)[i]? = some c) (hp : I.kidFps[i]? = some kfp)
+    (hs : siteOf j c = some s) :
+    (2 ≤ s.q → s.q < fsN j → (honestA coreProgram fs al H C hdr T).read (addressOfIndex (I.fp + s.q)) = some (ofK (addressOfIndex kfp))) ∧
+    (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
+      (honestA coreProgram fs al H C hdr T).read (addressOfIndex (I.fp + s.tgt)) = some (ofK (addressOfIndex (entryOf c.f)))) := by
+  apply read_siteL h h.covers <;> assumption
 
 /-- A callee's instance, as the reads take it: a node on its path, or a phantom, with its
 parameters' words the arguments. -/
@@ -209,17 +227,18 @@ theorem tailArgs_last {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} (hw : wa
 covering the honest writes, the check keeping each path's call sites apart. -/
 theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (coreOf j).body = .ret es vs →
       SitesApart j es) (hca : ∀ j, 1 ≤ j → j < nFns → ChainApart j) :
-    ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" → HonestAt coreProgram fs H C hdr T cert rd [] [] →
-      ∀ {κ : ℕ} (L : MemoryImage κ), Covers coreProgram fs H C hdr T L → ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ j,
+    ∀ (al : String → Bool) hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
+      HonestAtA coreProgram fs al H C hdr T cert rd [] [] →
+      ∀ {κ : ℕ} (L : MemoryImage κ), Covers coreProgram fs al H C hdr T L → ∀ I ∈ honestInstsA coreProgram fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ j,
         idxOf f = some j → ∀ es vs, walk σ (coreOf j).body = .ret es vs →
           FrameHolds L j I.fp σ es vs I.kidFps I.hdr := by
-  intro hdr rd T hT h κ L hL I hI f σ bufs kids ht j hj es vs hw
-  have hH := h.toHonest
+  intro al hdr rd T hT h κ L hL I hI f σ bufs kids ht j hj es vs hw
+  have hH := h.toHonestA
   obtain ⟨n, rfl, hn0, hn1, hf, hc, hfs, hcert, h1, h2⟩ := fn_of_idx hj
   have hS := shareOk_of h1 h2
   have hC := hca _ h1 h2
   have hchk := End.winOk_of h1 h2
-  obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (insts_good T _ hdr hH.valid I hI)
+  obtain ⟨es', vs', hw', he, hk⟩ := node_valid ht hj (instsA_good T _ hdr hH.valid I hI)
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ : es = es' ∧ vs = vs' := by cases hw'; exact ⟨rfl, rfl⟩
   have hgp : ∀ a o, L.read (addressOfIndex a * addressOfIndex o) = L.read (addressOfIndex (a + o)) := fun a o ↦ by rw [addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
@@ -289,6 +308,17 @@ theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ
     have e : I.fp + (fsN (n + 1) + (2 + k)) = kfp + (2 + k) := by rw [hkt]; omega
     rw [e, hvw]
     exact (hkid i c kfp hc hkfp).2.2.1 k hk2
+
+/-- **Every node instance's frame holds what the completeness check reads**, on the honest
+memory. -/
+theorem frameHolds_all (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ (coreOf j).body = .ret es vs →
+      SitesApart j es) (hca : ∀ j, 1 ≤ j → j < nFns → ChainApart j) :
+    ∀ (al : String → Bool) hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
+      HonestAtA coreProgram fs al H C hdr T cert rd [] [] →
+      ∀ I ∈ honestInstsA coreProgram fs al H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ j,
+        idxOf f = some j → ∀ es vs, walk σ (coreOf j).body = .ret es vs →
+          FrameHolds (honestA coreProgram fs al H C hdr T) j I.fp σ es vs I.kidFps I.hdr :=
+  fun al hdr rd T hT h => frameHolds_cover hsa hca al hdr rd T hT h _ h.toHonestA.covers
 
 end
 end LeanVM.Guest.B2C

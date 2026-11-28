@@ -3,7 +3,8 @@ module
 public import LeanVM.Guest.ExecDecodable
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.CoreMode.GlueG
+public import LeanVM.Guest.Data.FrameSizes
+public import LeanVM.Guest.Mode.InvCert
 
 /-!
 # What each certificate contributes
@@ -27,8 +28,8 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- The certificate's facts the kernel decides: its length, a code, an entry past `__jump_tables`'s, the guest's jump table and
 halting pc, its termination facts' cells. -/
 noncomputable def staticB (K : Cert) : Bool :=
-  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == CoreMode.jtLo &&
-    K.E.jtHi == CoreMode.jtHi && K.E.halt == CoreMode.haltPc && termFr K.F.sig
+  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == Data.mainCells &&
+    K.E.jtHi == Data.mainCells + Data.f0.instructionCount && K.E.halt == 2 ^ 19 - 1 && termFr K.F.sig
 
 /-- **A certificate's static facts**: `staticB`, and the guest's powers and jump table. -/
 structure CertSt (K : Cert) : Prop where
@@ -41,8 +42,8 @@ def FnLink (K : Cert) : Prop :=
   (∃ f ∈ Data.functions, K.code = f.code ∧ K.F.entry = f.entryPc) ∧ K.code.all offSmall = true
 
 theorem staticB_spec {K : Cert} (h : staticB K = true) :
-    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = CoreMode.jtLo ∧ K.E.jtHi = CoreMode.jtHi ∧
-      K.E.halt = CoreMode.haltPc ∧ termFr K.F.sig = true := by
+    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = Data.mainCells ∧
+      K.E.jtHi = Data.mainCells + Data.f0.instructionCount ∧ K.E.halt = 2 ^ 19 - 1 ∧ termFr K.F.sig = true := by
   simpa only [staticB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, and_assoc] using h
 
 /-- **A function on the core route meets its frame interface**: its core data among `T` at its entry, its
