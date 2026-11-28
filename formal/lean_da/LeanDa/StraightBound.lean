@@ -28,6 +28,10 @@ open OracleComp OracleSpec Common Common.SeedDuplex PqDas
 open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
 
+-- `QueryCostAtMost` stays folded: unfolded, the elaborator compares two bounds by walking the free
+-- monad of the computation they bound.
+attribute [local irreducible] QueryCostAtMost
+
 namespace LeanDa
 
 /-! ## The simulated world with a verdict -/
