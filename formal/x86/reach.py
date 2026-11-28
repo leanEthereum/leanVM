@@ -96,6 +96,7 @@ def main():
     plt = collections.defaultdict(set)
     indirect = collections.Counter()
     loops = collections.Counter()  # backward jumps within the function: each a loop to give an invariant
+    op_at = {}  # the mnemonic at each address, to tell a loop from a jump back to a shared abort
     mnemonics = collections.defaultdict(set)
     refs = collections.defaultdict(set)
     current = None
@@ -112,9 +113,11 @@ def main():
         op, operands = m.group(2), m.group(3)
         insns[current] += 1
         mnemonics[current].add(op)
+        op_at[int(m.group(1), 16)] = op
         if op.startswith("j"):
             back = re.match(r"^([0-9a-f]+) <", operands)
-            if back and current <= int(back.group(1), 16) < int(m.group(1), 16):
+            target = int(back.group(1), 16) if back else None
+            if target is not None and current <= target < int(m.group(1), 16) and op_at.get(target) != "ud2":
                 loops[current] += 1
         if op.startswith(("call", "j")):
             t = re.match(r"^([0-9a-f]+) <([^>]*)>", operands)

@@ -8,7 +8,7 @@
 //! odd-depth tree starts with one binary layer.
 //!
 //! The layer below a claim is held as rows of four children, row `x` holding `V_{i-2}(·, ·, x)`, and only as the
-//! prefix that covers its non-identity rows, padded with the identity to whole blocks of [`BLOCK`] values. An identity
+//! prefix that covers its non-identity rows, padded with the identity to whole blocks of `BLOCK` values. An identity
 //! pair of rows adds only its eq weight to a round polynomial's constant, which never travels, and folds to an
 //! identity row, so no pass reads past the prefix. The bus's padding rows make long runs of identity leaves inside it,
 //! which the bus hands over as `Ones`: no pass reads them either.
