@@ -931,18 +931,6 @@ theorem topAtoms_on_path {σ : Val} : ∀ {body : List Stmt} {es : List Ev} {vs 
           | ret _ => simp [Memory.Stmt.noRet] at hn
       · rw [h1] at h; simp [Out.seq] at h
 
-theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT l t) k).isSome = true →
-    k ∈ l ∨ (getF t k).isSome = true
-  | [], _, _, h => Or.inr h
-  | a :: l, t, k, h => by
-    rw [keysT, Trie.seq_eq] at h
-    rcases getF_keysT l _ h with h | h
-    · exact Or.inl (List.mem_cons_of_mem _ h)
-    · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp h
-      rcases Check.getF_setF hu with ⟨rfl, -⟩ | hu
-      · exact Or.inl List.mem_cons_self
-      · exact Or.inr (by rw [hu]; rfl)
-
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
 its value defined by one of them, or past a nonempty run. -/
 theorem faOk_spec {as : List Atom} {fas : List (ℕ × ℕ)} (h : faOk as (dstKeys as) fas = true) :

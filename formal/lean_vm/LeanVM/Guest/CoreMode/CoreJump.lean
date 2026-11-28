@@ -208,13 +208,16 @@ theorem matchLens_mem {body : List Stmt} {x : V} {arms : List (List Stmt)} (h : 
 theorem armsCover_at {X : AlignCtx} {e : ℕ} {ml : List (ℕ × ℕ)} {a : ℕ × ℕ} {ts : List ℕ}
     (h : armsCover X e ml a ts = true) {p : ℕ × ℕ} (hp : p ∈ ml) (hpa : p.1 = a.1) {j : ℕ} (hj : j < p.2) :
     ∃ t, getF X.jt (a.2 + j) = some t ∧ e ≤ t ∧ t < 2 ^ 30 ∧ t - e ∈ ts := by
+  rw [armsCover, Exec.Trie.seq_eq] at h
   have h1 := List.all_eq_true.mp h p hp
   simp only [hpa, Nat.beq_refl, Bool.not_true, Bool.false_or, List.all_eq_true, List.mem_range] at h1
   have h2 := h1 j hj
   split at h2
   · rename_i t ht
-    simp only [Bool.and_eq_true, decide_eq_true_eq, List.contains_iff_mem] at h2
-    exact ⟨t, ht, h2.1.1, h2.1.2, h2.2⟩
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h2
+    obtain ⟨⟨he, h30⟩, hk⟩ := h2
+    refine ⟨t, ht, he, h30, (getF_keysT ts .nil hk).resolve_right ?_⟩
+    simp [getF]
   · cases h2
 
 theorem tgtGo_at {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : List OffsetInstruction},

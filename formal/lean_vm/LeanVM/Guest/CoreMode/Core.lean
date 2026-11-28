@@ -1176,10 +1176,11 @@ noncomputable def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × Lis
     | _ => none) body
 
 /-- The slots of table `a` that every `match` of the selector it reads has, at offsets of `ts` past
-the entry `e`. -/
+the entry `e`, looked up among `ts`'s keys (`keysT`). -/
 noncomputable def armsCover (X : AlignCtx) (e : ℕ) (ml : List (ℕ × ℕ)) (a : ℕ × ℕ) (ts : List ℕ) : Bool :=
-  ml.all fun p ↦ !Nat.beq p.1 a.1 || (List.range p.2).all fun j ↦ match Check.getF X.jt (a.2 + j) with
-    | some t => decide (e ≤ t) && decide (t < 2 ^ 30) && ts.contains (t - e)
+  (keysT ts .nil).seq fun T ↦ ml.all fun p ↦ !Nat.beq p.1 a.1 || (List.range p.2).all fun j ↦
+    match Check.getF X.jt (a.2 + j) with
+    | some t => decide (e ≤ t) && decide (t < 2 ^ 30) && (getF T (t - e)).isSome
     | none => false
 
 /-- **A dispatch's `JUMP`**: through a target cell, not `0` and no pc, of a call site at its callee

@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.CoreMode.HeapCSig
 public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.Memory.SelArm
+import LeanVM.Guest.TrieFacts
 
 /-!
 # The heap check with calls and loops
@@ -1618,6 +1619,18 @@ theorem selArmsOk_cons {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : 
 
 theorem selArmsOk_nil {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {r : ℕ} :
     selArmsOk pows sigOf f H r [] = true := rfl
+
+theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT l t) k).isSome = true →
+    k ∈ l ∨ (getF t k).isSome = true
+  | [], _, _, h => Or.inr h
+  | a :: l, t, k, h => by
+    rw [keysT, Trie.seq_eq] at h
+    rcases getF_keysT l _ h with h | h
+    · exact Or.inl (List.mem_cons_of_mem _ h)
+    · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp h
+      rcases Check.getF_setF hu with ⟨rfl, -⟩ | hu
+      · exact Or.inl List.mem_cons_self
+      · exact Or.inr (by rw [hu]; rfl)
 
 end
 
