@@ -18,12 +18,15 @@ Comments (`--` to the end of the line, `/- ... -/` nested, docstrings included) 
 before the search, keeping the lines, so a forbidden word in a comment passes and one in code
 after a comment on the same line does not. String, raw string (`r"..."`, `r#"..."#`) and character
 literals are kept as code (a `--` or `/-` inside one opens no comment). Directories named `.lake`
-are skipped, and symbolic links are not followed. `.lean` files only, so `lake-build.py`'s `--dev`,
-which names `skipKernelTC`, is exempt. The CI (`.github/workflows/lean.yml`) and `check-all.sh` both
-run it.
+(Lake's fetched packages and build outputs) are not searched, but any file git tracks under one
+fails the scan, since Lake builds a module there like any other (`import Pkg.«.lake».Hidden`): the
+scan therefore needs a git work tree and fails without one. Symbolic links are not followed.
+`.lean` files only, so `lake-build.py`'s `--dev`, which names `skipKernelTC`, is exempt. The CI
+(`.github/workflows/lean.yml`) and `check-all.sh` both run it.
 """
 import os
 import re
+import subprocess
 import sys
 
 WORDS = ("sorry|sorryAx|admit|admitGoal|native_decide|unsafe|implemented_by|skipKernelTC|addDeclCore|"
@@ -114,12 +117,34 @@ def scan(path: str) -> list[str]:
     return hits
 
 
+def tracked_under_lake(path: str) -> list[str]:
+    """The files git tracks at or under `path` with a `.lake` directory in their path in the repo."""
+    if os.path.isdir(path):
+        base, spec = path, "."
+    else:
+        base, spec = os.path.dirname(path) or ".", os.path.basename(path)
+    outputs = []
+    for args in (["rev-parse", "--show-prefix"], ["ls-files", "-z", "--", spec]):
+        try:
+            r = subprocess.run(["git", "-C", base, *args], capture_output=True, encoding="utf-8",
+                               errors="surrogateescape")
+        except OSError as e:
+            raise SystemExit(f"error: {path}: cannot run git to list its tracked files: {e}")
+        if r.returncode != 0:
+            raise SystemExit(f"error: {path}: not in a git work tree: {r.stderr.strip()}")
+        outputs.append(r.stdout)
+    prefix = outputs[0].rstrip("\n")
+    return [os.path.join(base, f) if spec == "." else path
+            for f in outputs[1].split("\0") if f and ".lake" in (prefix + f).split("/")]
+
+
 def main(dirs: list[str]) -> int:
     if not dirs:
         print(__doc__, file=sys.stderr)
         return 2
     hits = []
     for d in dirs:
+        hits += [f"{f}: tracked by git under a `.lake` directory" for f in tracked_under_lake(d)]
         if os.path.isfile(d):
             hits += scan(d)
             continue
