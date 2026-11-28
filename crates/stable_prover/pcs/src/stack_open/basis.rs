@@ -24,15 +24,13 @@ use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
 use super::StackClaim;
 use crate::ring_switch::{DEGREE_E, RingFold, RingWeight, transpose_s_hat};
+use crate::whir_lanes::Sequences;
 
 /// Bits of a block's low part: a block is the 64 bit rows a ring claim folds at once.
 pub(crate) const LOW_VARS: usize = 6;
 const BLOCK: usize = 1 << LOW_VARS;
 /// A block in lanes of eight.
 const LANES: usize = BLOCK / 8;
-
-/// Writes block `h` of each of item `i`'s sequences ([`Terms::project`]).
-type Blocks<'a> = dyn Fn(usize, usize, &mut [[F64; BLOCK]]) + Sync + 'a;
 
 /// A block's `E` values, eight to a lane.
 fn in_lanes(v: &[F128; BLOCK]) -> [F128x8; LANES] {
@@ -52,10 +50,16 @@ fn dot_block(pi: &[F128x8; LANES], words: &[F64; BLOCK]) -> F128 {
 type Factor = [F128; 2];
 
 /// `prod_i factors[i](bit i of x)` for every `x`.
+#[inline(never)]
 fn table(factors: &[Factor]) -> Vec<F128> {
-    let mut out = vec![F128::ONE];
-    for &[lo, hi] in factors {
-        out = out.iter().map(|&v| v * lo).chain(out.iter().map(|&v| v * hi)).collect();
+    let mut out = vec![F128::ZERO; 1 << factors.len()];
+    out[0] = F128::ONE;
+    for (i, &[lo, hi]) in factors.iter().enumerate() {
+        let (low, high) = out[..2 << i].split_at_mut(1 << i);
+        for (l, h) in low.iter_mut().zip(high) {
+            *h = *l * hi;
+            *l *= lo;
+        }
     }
     out
 }
@@ -133,31 +137,25 @@ impl Terms {
         self.claims.len() + DEGREE_E * self.rings.len()
     }
 
-    /// The projections of `n` items onto the terms, each item `s` sequences of `2^lane_vars` words: `blocks(i, h, out)`
-    /// writes block `h` of each of item `i`'s sequences. A row of [`Self::n_terms`] per sequence, item by item.
-    pub(crate) fn project(&self, n: usize, s: usize, blocks: &Blocks<'_>) -> Vec<F128> {
-        let (row, n_blocks) = (s * self.n_terms(), self.n_blocks());
-        // Each item's blocks in ranges, enough tasks to balance the pool.
-        let per = n_blocks.div_ceil((8 * parallel::num_threads()).div_ceil(n.max(1)));
+    /// The projections of `n` items onto the terms, each item `s` sequences of `2^lane_vars` words read from
+    /// `sequences`. A row of [`Self::n_terms`] per sequence, item by item.
+    pub(crate) fn project(&self, n: usize, s: usize, sequences: &Sequences) -> Vec<F128> {
+        let (row, n_blocks, n_sequences) = (self.n_terms(), self.n_blocks(), n * s);
+        // Each sequence's blocks in ranges, enough tasks to balance the pool.
+        let per = n_blocks.div_ceil((8 * parallel::num_threads()).div_ceil(n_sequences.max(1)));
         let n_ranges = n_blocks.div_ceil(per);
-        let parts = parallel::map_collect(n * n_ranges, |task| {
-            let (item, k) = (task / n_ranges, task % n_ranges);
+        let parts = parallel::map_collect(n_sequences * n_ranges, |task| {
+            let (sequence, k) = (task / n_ranges, task % n_ranges);
             let range = k * per..((k + 1) * per).min(n_blocks);
-            let mut sequences: Vec<Projection> = (0..s).map(|_| Projection::new(self, range.clone())).collect();
-            let mut words = vec![[F64::ZERO; BLOCK]; s];
+            let mut projection = Projection::new(self, range.clone());
+            let mut words = [F64::ZERO; BLOCK];
             for h in range {
-                blocks(item, h, &mut words);
-                for (sequence, words) in sequences.iter_mut().zip(&words) {
-                    sequence.feed(h, words);
-                }
+                sequences.block(sequence / s, sequence % s, h, &mut words);
+                projection.feed(h, &words);
             }
-            let mut part = Vec::with_capacity(row);
-            for sequence in sequences {
-                part.extend_from_slice(&sequence.finish());
-            }
-            part
+            projection.finish()
         });
-        let mut rows = vec![F128::ZERO; n * row];
+        let mut rows = vec![F128::ZERO; n_sequences * row];
         for (task, part) in parts.iter().enumerate() {
             let rows = &mut rows[task / n_ranges * row..][..row];
             rows.iter_mut().zip(part).for_each(|(r, &p)| *r += p);
@@ -263,14 +261,13 @@ impl<'a> Projection<'a> {
     #[inline(never)]
     fn end_run(&mut self) {
         for ((fold, mass), sigma) in self.folds.iter_mut().zip(&mut self.masses).zip(&mut self.sigmas) {
-            if let Some(fold) = fold.take() {
+            if let Some(fold) = fold {
                 let mass = F128x8::splat(*mass);
-                sigma
-                    .iter_mut()
-                    .zip(fold)
-                    .for_each(|(s, f)| *s += f.mul_unreduced(mass));
+                for (s, f) in sigma.iter_mut().zip(fold) {
+                    *s += f.mul_unreduced(mass);
+                }
             }
-            *mass = F128::ZERO;
+            (*fold, *mass) = (None, F128::ZERO);
         }
     }
 
@@ -355,34 +352,31 @@ pub(super) fn initial_basis(
             pattern.active[terms.claims[c].range.clone()].fill(true);
         }
     }
-    let mut ring_lanes = Vec::new();
+    // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
+    let n_terms = claims.len() + DEGREE_E * rings.len();
+    let mut a = vec![F128::ZERO; n_terms << (log_n - lane_vars)];
+    for (c, (factors, &lambda)) in factors.iter().zip(lambdas).enumerate() {
+        for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
+            a[l * n_terms + c] = lambda * lane;
+        }
+    }
     for (i, weight) in rings.iter().enumerate() {
         let factors = point_factors(&weight.point, ring_offset, log_n);
+        let first = claims.len() + DEGREE_E * i;
+        for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
+            if lane != F128::ZERO {
+                for (w, term) in a[l * n_terms + first..][..DEGREE_E].iter_mut().enumerate() {
+                    *term = weight.apply(F128::from(1u128 << w) * lane);
+                }
+            }
+        }
         terms.rings.push(Ring {
             fold: BitFold::new(&table(&factors[..LOW_VARS])),
             e_hi: table(&factors[LOW_VARS..lane_vars]),
             point: weight.point.clone(),
             x_offset: ring_offset & ((1 << lane_vars) - 1),
-            first: claims.len() + DEGREE_E * i,
+            first,
         });
-        ring_lanes.push(table(&factors[lane_vars..]));
-    }
-
-    // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
-    let claim_lanes: Vec<Vec<F128>> = factors.iter().map(|factors| table(&factors[lane_vars..])).collect();
-    let n_terms = terms.n_terms();
-    let mut a = vec![F128::ZERO; n_terms << (log_n - lane_vars)];
-    for (l, row) in a.chunks_exact_mut(n_terms).enumerate() {
-        for ((term, lanes), &lambda) in row.iter_mut().zip(&claim_lanes).zip(lambdas) {
-            *term = lambda * lanes[l];
-        }
-        for ((ring, weight), lanes) in terms.rings.iter().zip(rings).zip(&ring_lanes) {
-            if lanes[l] != F128::ZERO {
-                for (w, term) in row[ring.first..][..DEGREE_E].iter_mut().enumerate() {
-                    *term = weight.apply(F128::from(1u128 << w) * lanes[l]);
-                }
-            }
-        }
     }
     (terms, a)
 }

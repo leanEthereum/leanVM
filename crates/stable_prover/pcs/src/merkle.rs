@@ -31,6 +31,7 @@ impl LeafHasher {
     }
 
     /// The leaf digests of `rows`, one per row, into `out`.
+    #[inline(never)]
     pub(crate) fn hash(&self, rows: &[F64], out: &mut [Hash]) {
         let (row_bytes, image) = (self.row_bytes, self.image);
         let rows: &[u8] = primitives::cast_slice(rows);

@@ -167,7 +167,7 @@ pub(crate) trait FoldRounds {
 }
 
 /// A level's `k` fold rounds: each round's table, then `(alpha, beta)` after a grind.
-fn fold_rounds(ps: &mut ProverState, lanes: &mut dyn FoldRounds, k: usize) {
+fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, k: usize) {
     for _ in 0..k {
         ps.add_scalars(&lanes.table());
         ps.grind(FOLD_GRINDING_BITS);
@@ -226,8 +226,9 @@ impl FoldRounds for Dense {
                     let (f, g) = (F128x8::load(&lf[c..][..8]), F128x8::load(&lg[c..][..8]));
                     let (w0, w1) = (F128x8::load(&lw0[c..][..8]), F128x8::load(&lw1[c..][..8]));
                     let xf = F128x8::from_array(&core::array::from_fn(|j| x_at(lf, c + j)));
-                    for (acc, (w, v)) in acc.iter_mut().zip([(w0, g), (w0 + w1, f), (w0, xf), (w1, xf)]) {
-                        *acc += w.mul_unreduced(v);
+                    let w01 = w0 + w1;
+                    for (acc, (w, v)) in acc.iter_mut().zip([(&w0, &g), (&w01, &f), (&w0, &xf), (&w1, &xf)]) {
+                        *acc += w.mul_unreduced(*v);
                     }
                 }
                 acc.map(Acc8::sum)
@@ -304,14 +305,14 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
         oracle = next;
 
         // (next level) `W += lambda eq(z, .) + sum_q lambda^(q+2) W_(x_q)`.
-        let scalars = &powers(lambda, queries.len() + 2)[2..];
-        let induced = induce_basis(mu, &queries, scalars);
-        parallel::chunks_mut(&mut w, CHUNK, |i, w| {
-            let at = i * CHUNK;
-            for (j, w) in w.iter_mut().enumerate() {
-                *w += lambda * eq[at + j] + induced[at + j];
-            }
-        });
+        induce_basis(
+            &mut w,
+            lambda,
+            &eq,
+            mu,
+            &queries,
+            &powers(lambda, queries.len() + 2)[2..],
+        );
     }
 }
 

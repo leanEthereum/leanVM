@@ -25,6 +25,7 @@ use crate::xmul::x_at;
 const BLOCK: usize = 1 << LOW_VARS;
 
 /// Row `l` of a table of rows of `n` values, empty past the table: a lane without data.
+#[inline(never)]
 fn row<T>(v: &[T], n: usize, l: usize) -> &[T] {
     v.get(l * n..(l + 1) * n).unwrap_or_default()
 }
@@ -129,6 +130,39 @@ impl Lanes {
     }
 }
 
+/// The `K` sequences a round projects ([`Terms::project`]), two or one per pair `m` of lanes `F`, `G`: the stack's
+/// `F` and `G`, the stack's `X F`, or a folded `X F` as its two limbs.
+pub(crate) enum Sequences<'a> {
+    Lanes(&'a [F64], usize),
+    StackXf(&'a [F64], usize),
+    FoldedXf(&'a Folded),
+}
+
+impl Sequences<'_> {
+    /// Block `h` of pair `m`'s sequence `j`.
+    pub(crate) fn block(&self, m: usize, j: usize, h: usize, out: &mut [F64; BLOCK]) {
+        let at = h * BLOCK;
+        match *self {
+            Sequences::Lanes(words, len) => match row(words, len, 2 * m + j).get(at..at + BLOCK) {
+                Some(lane) => out.copy_from_slice(lane),
+                None => out.fill(F64::ZERO),
+            },
+            Sequences::StackXf(words, len) => {
+                let f = row(words, len, 2 * m);
+                for (i, o) in out.iter_mut().enumerate() {
+                    *o = x_at(f, at + i);
+                }
+            }
+            Sequences::FoldedXf(lanes) => {
+                let f = lanes.lane(2 * m);
+                for (i, o) in out.iter_mut().enumerate() {
+                    o.0 = x_at(f, at + i).to_limbs()[j];
+                }
+            }
+        }
+    }
+}
+
 pub(crate) struct LaneRounds {
     terms: Terms,
     /// `A`: a row of `n_terms` for every lane of the round, absent ones included.
@@ -175,36 +209,11 @@ impl FoldRounds for LaneRounds {
         let (nt, n_pairs) = (self.terms.n_terms(), self.lanes.count().div_ceil(2));
         match &self.lanes {
             Lanes::Stack { words, len } => {
-                // Each pair's `F`, `G` and `X F`, in one pass over the pair.
-                let rows = self.terms.project(n_pairs, 3, &|m, h, out| {
-                    let [f_out, g_out, xf_out] = out else {
-                        unreachable!("three sequences")
-                    };
-                    let (f, g) = (row(words, *len, 2 * m), row(words, *len, 2 * m + 1));
-                    f_out.copy_from_slice(&f[h * BLOCK..][..BLOCK]);
-                    match g.get(h * BLOCK..(h + 1) * BLOCK) {
-                        Some(g) => g_out.copy_from_slice(g),
-                        None => g_out.fill(F64::ZERO),
-                    }
-                    for (i, o) in xf_out.iter_mut().enumerate() {
-                        *o = x_at(f, h * BLOCK + i);
-                    }
-                });
-                (self.p, self.pxf) = (Vec::with_capacity(2 * nt * n_pairs), Vec::with_capacity(nt * n_pairs));
-                for r in rows.chunks_exact(3 * nt) {
-                    self.p.extend_from_slice(&r[..2 * nt]);
-                    self.pxf.extend_from_slice(&r[2 * nt..]);
-                }
+                self.p = self.terms.project(n_pairs, 2, &Sequences::Lanes(words, *len));
+                self.pxf = self.terms.project(n_pairs, 1, &Sequences::StackXf(words, *len));
             }
             Lanes::Folded(lanes) => {
-                // `X F` as its two limbs, each a `K` sequence.
-                let rows = self.terms.project(n_pairs, 2, &|m, h, out| {
-                    let [lo, hi] = out else { unreachable!("two sequences") };
-                    let f = lanes.lane(2 * m);
-                    for (i, (lo, hi)) in lo.iter_mut().zip(hi).enumerate() {
-                        [lo.0, hi.0] = x_at(f, h * BLOCK + i).to_limbs();
-                    }
-                });
+                let rows = self.terms.project(n_pairs, 2, &Sequences::FoldedXf(lanes));
                 self.pxf = (0..nt * n_pairs)
                     .map(|i| rows[i / nt * 2 * nt + i % nt] + F128::Y * rows[i / nt * 2 * nt + nt + i % nt])
                     .collect();

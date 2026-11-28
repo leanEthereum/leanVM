@@ -10,13 +10,21 @@ use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
 use crate::xmul::novel_basis_at;
 
-/// `basis_poly[j] = sum_i w_i X_j(q_i)` over the `2^log_msg_cols` coefficients `j`: the queries' column weights,
-/// batched by `weights`.
+/// `basis[j] += lambda eq[j] + sum_i w_i X_j(q_i)` over the `2^log_msg_cols` coefficients `j`: the OOD claim's
+/// weight and the queries' column weights, batched by `weights`.
 ///
 /// `X_j` is the product of `What_k` over the bits `k` of `j`, so it splits into a factor `L(j_lo)` on the low bits
 /// and `H(j_hi)` on the high ones, and a run of coefficients that share `j_hi` is `sum_i (w_i H_i(j_hi)) L_i(j_lo)`.
-pub(crate) fn induce_basis(log_msg_cols: usize, queries: &[usize], weights: &[F128]) -> Vec<F128> {
+pub(crate) fn induce_basis(
+    basis: &mut [F128],
+    lambda: F128,
+    eq: &[F128],
+    log_msg_cols: usize,
+    queries: &[usize],
+    weights: &[F128],
+) {
     assert_eq!(queries.len(), weights.len());
+    assert!(basis.len() == 1 << log_msg_cols && eq.len() == basis.len());
     let lo = log_msg_cols / 2;
     let tables = parallel::map_collect(queries.len(), |i| {
         let what = novel_basis_at(log_msg_cols, queries[i]);
@@ -25,8 +33,7 @@ pub(crate) fn induce_basis(log_msg_cols: usize, queries: &[usize], weights: &[F1
         low.resize(low.len().next_multiple_of(8), F64::ZERO);
         (low, tensor(&what[lo..log_msg_cols]))
     });
-    let mut basis = parallel::filled(1 << log_msg_cols, F128::ZERO);
-    parallel::chunks_mut(&mut basis, 1 << lo, |j_hi, out| {
+    parallel::chunks_mut(basis, 1 << lo, |j_hi, out| {
         let mut acc = vec![Acc8::ZERO; out.len().div_ceil(8)];
         for ((low, high), &w) in tables.iter().zip(weights) {
             let scale = F128x8::splat(w.mul_base(high[j_hi]));
@@ -34,11 +41,14 @@ pub(crate) fn induce_basis(log_msg_cols: usize, queries: &[usize], weights: &[F1
                 *acc += scale.mul_base_unreduced(F64x8::from_array(low));
             }
         }
-        for (o, acc) in out.chunks_mut(8).zip(acc) {
-            o.copy_from_slice(&acc.reduce().to_array()[..o.len()]);
+        let eq = &eq[j_hi << lo..];
+        for (k, (o, acc)) in out.chunks_mut(8).zip(acc).enumerate() {
+            let induced = acc.reduce().to_array();
+            for (i, o) in o.iter_mut().enumerate() {
+                *o += lambda * eq[8 * k + i] + induced[i];
+            }
         }
     });
-    basis
 }
 
 /// `t[j] = prod_k s[k]^(bit k of j)`.
@@ -73,7 +83,7 @@ pub(crate) mod tests {
     }
 
     /// The induced basis is the query weights times each coefficient's basis polynomial at the query, written out,
-    /// repeated positions included.
+    /// repeated positions included, added with the scaled `eq` to the weight.
     #[test]
     fn induce_matches_the_basis_written_out() {
         let mut rng = Rng::new(9);
@@ -83,19 +93,23 @@ pub(crate) mod tests {
             queries.push(queries[0]);
             let weights = powers(rng.ext(), queries.len());
             let what: Vec<Vec<F64>> = queries.iter().map(|&q| novel_basis_at(log_msg_cols, q)).collect();
+            let (mut basis, lambda, eq) = (
+                rng.ext_vec(1 << log_msg_cols),
+                rng.ext(),
+                rng.ext_vec(1 << log_msg_cols),
+            );
             let want: Vec<F128> = (0..1usize << log_msg_cols)
                 .map(|j| {
-                    what.iter()
+                    let induced: F128 = what
+                        .iter()
                         .zip(&weights)
                         .map(|(what, &w)| w.mul_base(novel_x_c(j, what)))
-                        .sum()
+                        .sum();
+                    basis[j] + lambda * eq[j] + induced
                 })
                 .collect();
-            assert_eq!(
-                induce_basis(log_msg_cols, &queries, &weights),
-                want,
-                "log_msg_cols={log_msg_cols}, rate={log_inv_rate}"
-            );
+            induce_basis(&mut basis, lambda, &eq, log_msg_cols, &queries, &weights);
+            assert_eq!(basis, want, "log_msg_cols={log_msg_cols}, rate={log_inv_rate}");
         }
     }
 }

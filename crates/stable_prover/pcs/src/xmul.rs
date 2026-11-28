@@ -73,7 +73,8 @@ pub(crate) fn x_coef<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
     }
 }
 
-/// `(X h)[c]`.
+/// `(X h)[c]`. Out of line: every fold and projection of `X F` calls it.
+#[inline(never)]
 pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
     x_coef(|i| h.get(i).copied().unwrap_or_default(), c)
 }

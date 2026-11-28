@@ -65,6 +65,7 @@ fn zip_rows(
 }
 
 /// [`forward`] over a pair of rows.
+#[inline(never)]
 fn butterfly(top: &mut [F64], bot: &mut [F64], t: F64) {
     zip_rows(top, bot, t, forward, forward);
 }
