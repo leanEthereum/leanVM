@@ -41,7 +41,7 @@ pub fn powers(x: F128, n: usize) -> Vec<F128> {
     (0..n)
         .map(|_| {
             let power = p;
-            p *= x;
+            p = mul(p, x);
             power
         })
         .collect()
@@ -71,7 +71,7 @@ pub fn dot(a: &[F128], b: &[F128]) -> F128 {
     let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
         acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
     });
-    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + mul(a, b))
 }
 
 /// `a * b`, out of line: for the scalar arithmetic between passes, which needs no copy of its own.
@@ -87,16 +87,4 @@ pub fn axpy(y: &mut [F128], a: F128, x: &[F128]) {
     for (y, &x) in y.iter_mut().zip(x) {
         *y += a * x;
     }
-}
-
-/// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube, evaluated at an `E`-point:
-/// `∏_k (1 + ζ_k·(1 + g^{2^k}))` (§sec:idxcol), one mixed product per term.
-pub fn index_mle(zeta: &[F128]) -> F128 {
-    let mut acc = F128::ONE;
-    let mut g2k = F64::G; // g^{2^0} = g
-    for &z in zeta {
-        acc *= F128::ONE + z.mul_base(F64::ONE + g2k);
-        g2k = g2k * g2k;
-    }
-    acc
 }

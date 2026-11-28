@@ -24,7 +24,7 @@
 //! nonzero error in the slices survives with probability at most `2 / |E|` (`coordinate_weights`).
 
 use primitives::bit_fold::BitFold;
-use primitives::field::{F64, F128};
+use primitives::field::{F64, F128, mul};
 use primitives::multilinear::eq_table_serial;
 
 /// The degree of `E` over F_2.
@@ -59,7 +59,7 @@ fn apply_map(value: F128, challenges: &[F128; MAP_CHALLENGES]) -> F128 {
     for (coefs, squarings) in [(g, 1), (f, 8)] {
         let mut acc = F128::ZERO;
         for &c in coefs {
-            acc += c * base;
+            acc += mul(c, base);
             for _ in 0..squarings {
                 base = base.square();
             }
@@ -124,7 +124,7 @@ impl RingFold {
             let len = (block_len - lo).min(out.len() - done);
             let e_hi = self.eq_hi[index / block_len];
             for (out, &e_lo) in out[done..done + len].iter_mut().zip(&self.eq_lo[lo..lo + len]) {
-                *out += self.fold.fold_row(&u128::from(e_lo * e_hi).to_le_bytes());
+                *out += self.fold.fold_row(&u128::from(mul(e_lo, e_hi)).to_le_bytes());
             }
             done += len;
         }

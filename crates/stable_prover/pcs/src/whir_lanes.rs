@@ -216,12 +216,11 @@ impl FoldRounds for LaneRounds {
             }
             Lanes::Folded(lanes) => {
                 let rows = self.terms.project(n_pairs, 2, &Sequences::FoldedXf(lanes));
-                self.pxf = Vec::with_capacity(nt * n_pairs);
-                for limbs in rows.chunks_exact(2 * nt) {
+                self.pxf = vec![F128::ZERO; nt * n_pairs];
+                for (out, limbs) in self.pxf.chunks_exact_mut(nt).zip(rows.chunks_exact(2 * nt)) {
                     let (lo, hi) = limbs.split_at(nt);
-                    let at = self.pxf.len();
-                    self.pxf.extend_from_slice(lo);
-                    axpy(&mut self.pxf[at..], F128::Y, hi);
+                    out.copy_from_slice(lo);
+                    axpy(out, F128::Y, hi);
                 }
             }
         }
@@ -248,13 +247,12 @@ impl FoldRounds for LaneRounds {
         let (nt, n_pairs) = (self.terms.n_terms(), self.lanes.count().div_ceil(2));
         let FoldChallenges { alpha, beta } = *ch;
         self.a = fold(&self.a, nt, alpha);
-        let mut p = Vec::with_capacity(n_pairs * nt);
-        for m in 0..n_pairs {
-            let at = p.len();
-            p.extend_from_slice(row(&self.p, nt, 2 * m + 1));
-            p.resize(at + nt, F128::ZERO);
-            axpy(&mut p[at..], alpha, row(&self.p, nt, 2 * m));
-            axpy(&mut p[at..], beta, row(&self.pxf, nt, m));
+        let mut p = vec![F128::ZERO; n_pairs * nt];
+        for (m, out) in p.chunks_exact_mut(nt).enumerate() {
+            let g = row(&self.p, nt, 2 * m + 1);
+            out[..g.len()].copy_from_slice(g);
+            axpy(out, alpha, row(&self.p, nt, 2 * m));
+            axpy(out, beta, row(&self.pxf, nt, m));
         }
         self.p = p;
         self.lanes = Lanes::Folded(self.lanes.fold(ch));

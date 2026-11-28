@@ -1,6 +1,6 @@
 //! The sumcheck of a product of two tables.
 
-use primitives::field::F128;
+use primitives::field::{F128, mul};
 use primitives::multilinear::fold;
 use primitives::transcript::ProverState;
 
@@ -24,7 +24,7 @@ pub fn product_sumcheck(
                 infinity += (a0 + a1) * (b0 + b1);
             }
         }
-        ps.add_round_poly(&[scale * zero, F128::ZERO, scale * infinity], false);
+        ps.add_round_poly(&[mul(scale, zero), F128::ZERO, mul(scale, infinity)], false);
         let challenge = ps.sample();
         point.push(challenge);
         a = fold(&a, width, challenge);

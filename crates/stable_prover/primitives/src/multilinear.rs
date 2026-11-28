@@ -3,7 +3,7 @@
 //! of committed columns' multilinear extensions. A table is indexed little-endian: variable `k` is bit `k` of the index.
 //! Committed data is `K`-valued ([`F64`]) and randomness `E`-valued ([`F128`]).
 
-use crate::field::{F64, F64x8, F128, F128Unreduced, F128x8};
+use crate::field::{F64, F64x8, F128, F128Unreduced, F128x8, mul};
 
 /// Multilinear interpolation in one variable: `lo + t·(lo+hi)`, the characteristic-2 form of `(1−t)·lo + t·hi`.
 #[inline]
@@ -19,13 +19,6 @@ pub fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
         out.extend(lo.iter().zip(hi).map(|(&lo, &hi)| interp(lo, hi, challenge)));
     }
     out
-}
-
-/// `eq(r, x) = ∏_i (1 + r_i + x_i)`: for Boolean `r` the indicator of `x = r`, for any `r` the multilinear
-/// interpolation weight of `x`.
-pub fn eq_eval(r: &[F128], x: &[F128]) -> F128 {
-    debug_assert_eq!(r.len(), x.len());
-    r.iter().zip(x).map(|(&ri, &xi)| F128::ONE + ri + xi).product()
 }
 
 /// Tables of at least this many variables are built in parallel.
@@ -139,7 +132,7 @@ pub fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
             for (sum, column) in sums.iter_mut().zip(columns).filter(|(_, c)| c.len() > z0) {
                 let row = (lo.iter().zip(&column[z0..]))
                     .fold(F128Unreduced::ZERO, |acc, (w, &k)| acc ^ w.mul_base_unreduced(k));
-                *sum += hi[h] * row.reduce();
+                *sum += mul(hi[h], row.reduce());
             }
         }
     };

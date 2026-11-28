@@ -20,7 +20,7 @@ use std::ops::Range;
 
 use primitives::bit_fold::BitFold;
 use primitives::field::lanes::transpose_bits;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, mul};
 use primitives::multilinear::eq_table_serial;
 
 use super::{RingSwitchOpen, StackClaim};
@@ -39,10 +39,10 @@ fn in_lanes(v: &[F128; BLOCK]) -> [F128x8; LANES] {
 }
 
 /// `sum_x pi[x] * words[x]` over a block, reduced once.
-fn dot_block(pi: &[F128x8; LANES], words: &[F64; BLOCK]) -> F128 {
+fn dot_block(pi: &[F128; BLOCK], words: &[F64; BLOCK]) -> F128 {
     let mut acc = Acc8::ZERO;
-    for (p, w) in pi.iter().zip(words.as_chunks::<8>().0) {
-        acc += p.mul_base_unreduced(F64x8::from_array(w));
+    for (p, w) in pi.as_chunks::<8>().0.iter().zip(words.as_chunks::<8>().0) {
+        acc += F128x8::from_array(p).mul_base_unreduced(F64x8::from_array(w));
     }
     acc.sum()
 }
@@ -66,11 +66,10 @@ struct ClaimBlocks {
     range: Range<usize>,
 }
 
-/// The claims that share one low part `pi`, and the blocks where one of them is nonzero.
+/// The claims that share one low part `pi`.
 struct Pattern {
-    pi: [F128x8; LANES],
+    pi: [F128; BLOCK],
     claims: Vec<usize>,
-    active: Vec<bool>,
 }
 
 /// A ring claim's block structure and where its terms sit.
@@ -117,6 +116,11 @@ impl Terms {
 
     pub(crate) fn n_terms(&self) -> usize {
         self.claims.len() + DEGREE_E * self.rings.len()
+    }
+
+    /// Whether one of `pattern`'s claims is nonzero on block `h`.
+    fn active(&self, pattern: &Pattern, h: usize) -> bool {
+        pattern.claims.iter().any(|&c| self.claims[c].range.contains(&h))
     }
 
     /// The projections of `n` items onto the terms, each item `s` sequences of `2^lane_vars` words read from
@@ -167,12 +171,12 @@ impl Terms {
                     .claims
                     .iter()
                     .filter(|&&c| self.claims[c].range.contains(&h))
-                    .map(|&c| a[c] * self.claims[c].gamma[h])
+                    .map(|&c| mul(a[c], self.claims[c].gamma[h]))
                     .sum();
                 if g != F128::ZERO {
                     let g = F128x8::splat(g);
-                    for (o, pi) in out.as_chunks_mut::<8>().0.iter_mut().zip(&pattern.pi) {
-                        (F128x8::load(o) + *pi * g).store(o);
+                    for (o, pi) in out.as_chunks_mut::<8>().0.iter_mut().zip(pattern.pi.as_chunks::<8>().0) {
+                        (F128x8::load(o) + F128x8::from_array(pi) * g).store(o);
                     }
                 }
             }
@@ -189,7 +193,6 @@ impl Terms {
 
 /// A ring's part of a [`Projection`]: its fold of the run's block once one is needed, its `e_hi` summed over the run
 /// of equal blocks, and its folds weighted by those sums.
-#[derive(Clone)]
 struct RingRun {
     fold: Option<[F128x8; LANES]>,
     mass: F128,
@@ -209,7 +212,7 @@ struct Projection<'a> {
 
 impl<'a> Projection<'a> {
     fn new(terms: &'a Terms, blocks: Range<usize>) -> Self {
-        let run = RingRun {
+        let run = |_| RingRun {
             fold: None,
             mass: F128::ZERO,
             sigma: [Acc8::ZERO; LANES],
@@ -218,7 +221,7 @@ impl<'a> Projection<'a> {
             terms,
             last: None,
             q: vec![F128::ZERO; terms.patterns.len() * blocks.len()],
-            rings: vec![run; terms.rings.len()],
+            rings: terms.rings.iter().map(run).collect(),
             blocks,
         }
     }
@@ -231,10 +234,10 @@ impl<'a> Projection<'a> {
         }
         let terms = self.terms;
         for (p, pattern) in terms.patterns.iter().enumerate() {
-            if pattern.active[h] {
+            if terms.active(pattern, h) {
                 let i = p * self.blocks.len() + h - self.blocks.start;
                 // Block `h - 1` was fed just before.
-                self.q[i] = if same && pattern.active[h - 1] {
+                self.q[i] = if same && terms.active(pattern, h - 1) {
                     self.q[i - 1]
                 } else {
                     dot_block(&pattern.pi, words)
@@ -325,21 +328,10 @@ pub(super) fn initial_basis(
         rings: Vec::new(),
     };
     for (c, claim) in claims.iter().enumerate() {
-        let pi = part(claim, 0..LOW_VARS);
-        let same = |p: &&mut Pattern| p.pi.iter().zip(pi.as_chunks::<8>().0).all(|(p, v)| p.to_array() == *v);
-        match terms.patterns.iter_mut().find(same) {
+        let pi = part(claim, 0..LOW_VARS).try_into().expect("a block");
+        match terms.patterns.iter_mut().find(|p| p.pi == pi) {
             Some(pattern) => pattern.claims.push(c),
-            None => terms.patterns.push(Pattern {
-                pi: in_lanes(pi.as_slice().try_into().expect("a block")),
-                claims: vec![c],
-                active: Vec::new(),
-            }),
-        }
-    }
-    for pattern in &mut terms.patterns {
-        pattern.active = vec![false; 1 << (lane_vars - LOW_VARS)];
-        for &c in &pattern.claims {
-            pattern.active[terms.claims[c].range.clone()].fill(true);
+            None => terms.patterns.push(Pattern { pi, claims: vec![c] }),
         }
     }
     // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
@@ -347,7 +339,7 @@ pub(super) fn initial_basis(
     let mut a = vec![F128::ZERO; n_terms << (log_n - lane_vars)];
     for (c, (claim, &lambda)) in claims.iter().zip(lambdas).enumerate() {
         for (l, lane) in part(claim, lane_vars..log_n).into_iter().enumerate() {
-            a[l * n_terms + c] = lambda * lane;
+            a[l * n_terms + c] = mul(lambda, lane);
         }
     }
     for (i, (point, &lambda)) in ring.points.iter().zip(ring_lambdas).enumerate() {
@@ -356,7 +348,7 @@ pub(super) fn initial_basis(
         for (l, lane) in part(lane_vars..log_n).into_iter().enumerate() {
             if lane != F128::ZERO {
                 for (w, term) in a[l * n_terms + first..][..DEGREE_E].iter_mut().enumerate() {
-                    *term = lambda * ring_switch::apply(phi, F128::from(1u128 << w) * lane);
+                    *term = mul(lambda, ring_switch::apply(phi, mul(F128::from(1u128 << w), lane)));
                 }
             }
         }

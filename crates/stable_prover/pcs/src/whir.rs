@@ -263,16 +263,16 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
             None
         } else {
             // (commit) The low part is the next level's message, and the high part is sent.
-            let high = p.split_off(1 << mu);
+            let (low, high) = p.split_at(1 << mu);
             let k = config.folds[level + 1];
-            let next = commit_ext(&p, mu - k, k, config.log_inv_rates[level + 1]);
+            let next = commit_ext(low, mu - k, k, config.log_inv_rates[level + 1]);
             ps.add_root(&next.tree.root());
-            ps.add_scalars(&high);
+            ps.add_scalars(high);
 
             // (ood) The message's value at a point the next level's list is bound by.
             ps.grind(OOD_GRINDING_BITS);
             let eq = eq_table(&ps.sample_vec(mu));
-            ps.add_scalar(dot(&p, &eq));
+            ps.add_scalar(dot(low, &eq));
             Some((next, eq))
         };
 
@@ -281,8 +281,8 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
         ps.grind(QUERY_GRINDING_BITS);
         let queries = sample_queries(ps, block_len, config.queries[level]);
         ps.hint_merkle(oracle.open(&queries));
+        p.truncate(1 << mu);
         let Some((next, eq)) = next else {
-            p.truncate(1 << mu);
             product_sumcheck(ps, p, w, 1, F128::ONE);
             return;
         };

@@ -26,24 +26,26 @@ pub(crate) fn induce_basis(
     assert_eq!(queries.len(), weights.len());
     assert!(basis.len() == 1 << log_msg_cols && eq.len() == basis.len());
     let lo = log_msg_cols / 2;
+    // Per query, `L` and `w H`.
     let tables = parallel::map_collect(queries.len(), |i| {
         let what = novel_basis_at(log_msg_cols, queries[i]);
         let mut low = tensor(&what[..lo]);
         // Whole lanes of eight, zero past the table.
         low.resize(low.len().next_multiple_of(8), F64::ZERO);
-        (low, tensor(&what[lo..log_msg_cols]))
+        let high: Vec<F128> = tensor(&what[lo..log_msg_cols])
+            .into_iter()
+            .map(|h| weights[i].mul_base(h))
+            .collect();
+        (low, high)
     });
     parallel::chunks_mut(basis, 1 << lo, |j_hi, out| {
-        let mut acc = vec![Acc8::ZERO; out.len().div_ceil(8)];
-        for ((low, high), &w) in tables.iter().zip(weights) {
-            let scale = F128x8::splat(w.mul_base(high[j_hi]));
-            for (acc, low) in acc.iter_mut().zip(low.as_chunks::<8>().0) {
-                *acc += scale.mul_base_unreduced(F64x8::from_array(low));
-            }
-        }
         axpy(out, lambda, &eq[j_hi << lo..][..out.len()]);
-        for (o, acc) in out.chunks_mut(8).zip(acc) {
-            for (o, induced) in o.iter_mut().zip(acc.reduce().to_array()) {
+        for (k, out) in out.chunks_mut(8).enumerate() {
+            let mut acc = Acc8::ZERO;
+            for (low, high) in &tables {
+                acc += F128x8::splat(high[j_hi]).mul_base_unreduced(F64x8::load(&low[8 * k..][..8]));
+            }
+            for (o, induced) in out.iter_mut().zip(acc.reduce().to_array()) {
                 *o += induced;
             }
         }
