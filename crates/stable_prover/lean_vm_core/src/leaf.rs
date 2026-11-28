@@ -132,13 +132,10 @@ pub(crate) fn prove_balance<'a>(
     ps: &mut ProverState,
 ) -> BusProof<'a> {
     let (cols, public) = columns.split_at(columns.len() - (1 << BUS_BITS));
-    let mut layouts = blocks.map(layout);
-    let mu = layouts[0].mu;
-    assert_eq!(
-        layouts[1].mu, mu,
-        "push and pull blocks are paired, so their layouts match"
-    );
-    assert!(layouts[2].mu <= mu, "the count tree is the shortest");
+    let [push, pull, mut count] = blocks.map(layout);
+    let mu = push.mu;
+    assert_eq!(pull.mu, mu, "push and pull blocks are paired, so their layouts match");
+    assert!(count.mu <= mu, "the count tree is the shortest");
     debug_assert!(
         blocks
             .iter()
@@ -147,35 +144,24 @@ pub(crate) fn prove_balance<'a>(
         "a tuple's coordinates index its slots"
     );
 
-    let bits = verifier::bus_grinding_bits(mu);
-    ps.grind(bits);
+    ps.grind(verifier::bus_grinding_bits(mu));
     let alpha = ps.sample_vec(1 << BUS_BITS);
     let beta = ps.sample();
     // The count tree's leaf is the count itself: weight one in slot 0, `β = 0`. Its leaves are a prefix of the push
     // tree's depth, at which `ζ` splits.
     let mut count_alpha = vec![F128::ZERO; 1 << BUS_BITS];
     count_alpha[0] = F128::ONE;
-    layouts[2].mu = mu;
-    let [push, pull, count] = layouts;
+    count.mu = mu;
+    let tree = |blocks, layout, alpha, beta| Tree {
+        blocks,
+        layout,
+        alpha,
+        beta,
+    };
     let trees = [
-        Tree {
-            blocks: blocks[0],
-            layout: push,
-            alpha: alpha.clone(),
-            beta,
-        },
-        Tree {
-            blocks: blocks[1],
-            layout: pull,
-            alpha,
-            beta,
-        },
-        Tree {
-            blocks: blocks[2],
-            layout: count,
-            alpha: count_alpha,
-            beta: F128::ZERO,
-        },
+        tree(blocks[0], push, alpha.clone(), beta),
+        tree(blocks[1], pull, alpha, beta),
+        tree(blocks[2], count, count_alpha, F128::ZERO),
     ];
 
     let leaves = trees.each_ref().map(|tree| build_leaves(tree, columns, cols.len()));
