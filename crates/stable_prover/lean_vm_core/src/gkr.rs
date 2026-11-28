@@ -84,7 +84,7 @@ pub(crate) fn prove_products(
         ps.grind(fiat_shamir::grinding_bits(N_BUS_TREES as u128 - 1));
         let lambda = ps.sample();
         let (chi, mut children) = layer.sumcheck(&point, lambda, ps);
-        for children in &mut children {
+        for (children, _) in &mut children {
             // The rows are padded, so they hold the whole row the layer folded to.
             children.truncate(1 << step);
             ps.add_scalars(children);
@@ -92,7 +92,7 @@ pub(crate) fn prove_products(
         ps.grind(y_grind(step, levels[0].is_empty()));
         let mut u = ps.sample_vec(step);
         let weights = eq_table(&u);
-        values = children.each_ref().map(|c| dot(&weights, c));
+        values = children.each_ref().map(|c| dot(&weights, &c.0));
         u.extend_from_slice(&chi);
         point = u;
     }
@@ -169,10 +169,8 @@ fn add_messages(mut a: Messages, b: Messages) -> Messages {
 /// The three trees' layer below the claim, during its sumcheck. A round binds the lowest row variable: a fold makes
 /// row `i` `interp(row 2i, row 2i + 1, χ)`, child by child.
 struct Layer {
-    /// Each tree's held rows, four children a row, padded.
-    rows: [Vec<F128>; N_BUS_TREES],
-    /// Each tree's rows known to be the identity.
-    ones: [Ones; N_BUS_TREES],
+    /// Each tree's held rows, four children a row, padded, and its rows known to be the identity.
+    trees: [(Vec<F128>, Ones); N_BUS_TREES],
     /// Each tree's buffer the next fold writes, reused round after round.
     spare: [Vec<F128>; N_BUS_TREES],
 }
@@ -181,18 +179,19 @@ struct Layer {
 const GROUP: usize = 16;
 
 impl Layer {
-    fn new(levels: [(Vec<F128>, Ones); N_BUS_TREES]) -> Self {
-        let [a, b, c] = levels;
-        Self {
-            rows: [a.0, b.0, c.0],
-            ones: [a.1, b.1, c.1],
-            spare: Default::default(),
-        }
+    fn new(trees: [(Vec<F128>, Ones); N_BUS_TREES]) -> Self {
+        let spare = Default::default();
+        Self { trees, spare }
     }
 
     /// The sumcheck rounds of the claim on `Ṽ_i(point)`, the trees batched by `λ`: their challenges `χ`, and each
     /// tree's children at the end, its rows folded to one.
-    fn sumcheck(mut self, point: &[F128], lambda: F128, ps: &mut ProverState) -> (Vec<F128>, [Vec<F128>; N_BUS_TREES]) {
+    fn sumcheck(
+        mut self,
+        point: &[F128],
+        lambda: F128,
+        ps: &mut ProverState,
+    ) -> (Vec<F128>, [(Vec<F128>, Ones); N_BUS_TREES]) {
         let rounds = point.len();
         let (mut chi, mut r) = (Vec::with_capacity(rounds), None);
         // Round `j` binds `point[j]`'s variable and weights each pair of rows by `eq(point[j + 1..], ·)`; the
@@ -215,7 +214,7 @@ impl Layer {
             chi.push(ps.sample());
             r = chi.last().copied();
         }
-        (chi, self.rows)
+        (chi, self.trees)
     }
 
     /// Each tree's round polynomial, the pairs of its rows weighted by `eq`: with `r`, of the rows with the lowest row
@@ -224,7 +223,7 @@ impl Layer {
     fn pass(&mut self, r: Option<F128>, eq: Option<&SplitEq>) -> Messages {
         let span = 2 * GROUP;
         let mut groups = 0;
-        for (rows, spare) in self.rows.iter().zip(&mut self.spare) {
+        for ((rows, _), spare) in self.trees.iter().zip(&mut self.spare) {
             let len = (rows.len() / 2).next_multiple_of(BLOCK);
             if spare.len() < len {
                 *spare = crate::filled(len, F128::ONE);
@@ -234,7 +233,7 @@ impl Layer {
         }
         let width = 4 * GROUP * crate::chunk(groups);
         let chunk = width / (4 * GROUP);
-        let (rows, ones, r) = (&self.rows, &self.ones, r.map(F128x8::splat));
+        let (trees, r) = (&self.trees, r.map(F128x8::splat));
         let [a, b, c] = &mut self.spare;
         let messages = parallel::map_reduce_chunks_mut(
             [a.as_mut_slice(), b, c],
@@ -242,25 +241,26 @@ impl Layer {
             || [[F128::ZERO; 4]; N_BUS_TREES],
             |messages, task, outs| {
                 for (t, out) in outs.into_iter().enumerate() {
+                    let (rows, ones) = &trees[t];
                     let mut acc = [Acc8::ZERO; 4];
                     for (j, group) in out.as_chunks_mut().0.iter_mut().enumerate() {
                         let k = task * chunk + j;
                         // A group past the rows pads the folded ones.
-                        if 4 * span * k >= rows[t].len() || known(&ones[t], span * k, span) {
+                        if 4 * span * k >= rows.len() || known(ones, span * k, span) {
                             group.fill(F128::ONE);
                             continue;
                         }
                         match (r, eq) {
                             (Some(r), eq) => {
-                                fold_rows(&rows[t], 4 * span * k, r, group);
+                                fold_rows(rows, 4 * span * k, r, group);
                                 if let Some(eq) = eq {
                                     add_message(group, eq.lanes(k), &mut acc);
                                 }
                             }
                             (None, Some(eq)) => {
                                 for k in [2 * k, 2 * k + 1] {
-                                    if !known(&ones[t], GROUP * k, GROUP) {
-                                        let group = rows[t][4 * GROUP * k..][..4 * GROUP].try_into().unwrap();
+                                    if !known(ones, GROUP * k, GROUP) {
+                                        let group = rows[4 * GROUP * k..][..4 * GROUP].try_into().unwrap();
                                         add_message(group, eq.lanes(k), &mut acc);
                                     }
                                 }
@@ -276,9 +276,9 @@ impl Layer {
             add_messages,
         );
         if r.is_some() {
-            for t in 0..N_BUS_TREES {
-                std::mem::swap(&mut self.rows[t], &mut self.spare[t]);
-                self.ones[t] = coarsen(&self.ones[t], 2);
+            for ((rows, ones), spare) in self.trees.iter_mut().zip(&mut self.spare) {
+                std::mem::swap(rows, spare);
+                *ones = coarsen(ones, 2);
             }
         }
         messages

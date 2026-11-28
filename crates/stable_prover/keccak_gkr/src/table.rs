@@ -148,7 +148,13 @@ pub(crate) fn prove_rounds(
         let challenge = sumcheck.round(ps, values[0], None, values[1], claim.point[i]);
         let eq = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
         let len = src.len() / 2;
-        values = fold_rows(summand, src, &mut dst[..len], challenge, &eq);
+        // Bind the leading variable into `dst`, summing the next round's values over the rows written, zero once a
+        // single row is left.
+        let source = Source::Table {
+            table: src,
+            challenge: F128x8::splat(challenge),
+        };
+        values = write_pairs(summand, &source, &mut dst[..len], &eq);
         (src, dst) = (&mut dst[..len], src);
     }
     src.to_vec()
@@ -203,17 +209,6 @@ impl Source<'_> {
             }
         }
     }
-}
-
-/// Bind the leading variable of `table`, rows of positions, at `challenge` into `out`, and sum the next round's
-/// values over the rows written while they are at hand, each pair of rows `p` weighted by `eq[p]`: zero once a
-/// single row is left.
-fn fold_rows(summand: &Summand, table: &[F128], out: &mut [F128], challenge: F128, eq: &[F128]) -> [F128; 2] {
-    let source = Source::Table {
-        table,
-        challenge: F128x8::splat(challenge),
-    };
-    write_pairs(summand, &source, out, eq)
 }
 
 /// Write each pair of rows `p` of `out` from `source`, and sum the next round's values over the pairs while they are

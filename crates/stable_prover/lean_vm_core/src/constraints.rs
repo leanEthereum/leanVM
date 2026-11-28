@@ -137,11 +137,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
         // The joined tables' `p(Y)`: an endpoint and its quadratic coefficient.
         let mut p = [F128::ZERO; 2];
         for t in tables.iter_mut().filter(|t| t.tau > m) {
-            let first = t.state.is_none();
-            if first {
-                t.join(m);
-            }
-            let [end, quadratic] = t.message(&eqr, m, zeta[m], first, &mut u);
+            let [end, quadratic] = t.message(&eqr, m, zeta[m], &mut u);
             p = [p[0] + mul(t.weight, end), p[1] + mul(t.weight, quadratic)];
         }
         shrink_eq_high(&mut eqr);
@@ -196,25 +192,23 @@ struct Table<'a> {
 }
 
 impl Table<'_> {
-    /// Join in the round binding variable `m`: the state of every row, from the `K` columns.
-    fn join(&mut self, m: usize) {
-        let (rows, state) = (2 << m, expand(&self.form, self.cols, 2 << m));
-        self.state = Some(if rows <= 8 {
-            unpack(&state, self.form.width(), rows)
-        } else {
-            state
-        });
-    }
-
     /// `[Σ_i eqr[i]·P(end_i), Σ_i eqr[i]·Q(lo_i + hi_i)]` for the round binding variable `m` (of weight `half`): `P`
     /// the summand, `Q` its quadratic part, `lo` and `hi` the rows `i` and `i + half`, `end` the upper ones when
-    /// `ζ_m = 0`. `eqr` sums to one, so the form's constant is added once. The `first` round, from both endpoints,
-    /// adds the table's `weight·σ` to `u`.
-    fn message(&self, eqr: &[F128], m: usize, zeta: F128, first: bool, u: &mut F128) -> [F128; 2] {
-        let c = self.form.constant;
-        let state = self.state.as_ref().expect("a table joins before its first message");
+    /// `ζ_m = 0`. `eqr` sums to one, so the form's constant is added once. The table joins in its first round, its
+    /// state written from the `K` columns, and that round, from both endpoints, adds the table's `weight·σ` to `u`.
+    fn message(&mut self, eqr: &[F128], m: usize, zeta: F128, u: &mut F128) -> [F128; 2] {
+        let (first, form, rows) = (self.state.is_none(), &self.form, 2 << m);
+        let state = &*self.state.get_or_insert_with(|| {
+            let state = expand(form, self.cols, rows);
+            if rows <= 8 {
+                unpack(&state, form.width(), rows)
+            } else {
+                state
+            }
+        });
+        let c = form.constant;
         let at_one = zeta.is_zero();
-        let [p0, p1, quadratic] = message_joined(&self.form, state, eqr, 1 << m, [first || !at_one, first || at_one]);
+        let [p0, p1, quadratic] = message_joined(form, state, eqr, 1 << m, [first || !at_one, first || at_one]);
         let (p0, p1) = (p0 + c, p1 + c);
         if first {
             // `(1 + ζ)·p0 + ζ·p1`
@@ -471,12 +465,12 @@ mod tests {
                 let naive = [false, true].map(|at_one| naive_message(&pows, &naive_cols, &eqr, half, at_one));
                 // The first message also adds `σ = (1 + ζ)·p(0) + ζ·p(1)`, affine in `ζ`, so its ends pin it.
                 let first = table.state.is_none();
-                if first {
-                    table.join(var);
-                }
                 for (zeta, at_one) in [(F128::ONE, false), (F128::ZERO, true)] {
+                    if first {
+                        table.state = None;
+                    }
                     let mut u = F128::ZERO;
-                    let message = table.message(&eqr, var, zeta, first, &mut u);
+                    let message = table.message(&eqr, var, zeta, &mut u);
                     assert_eq!(message, naive[usize::from(at_one)], "m {m} half {half}");
                     let sigma = if first {
                         naive[usize::from(!at_one)][0]
