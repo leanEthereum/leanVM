@@ -491,7 +491,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     -- a parameter at its cell
     intro k hk
     have hc := hcells k (List.mem_range.mpr hk)
-    simp only [Nat.beq_eq, decide_eq_true_eq] at hc
+    simp only [Nat.beq_eq, CoreMode.FnV.of_fs] at hc
+    have hfs : 2 + k < fsN j := of_decide_eq_true hc.2
     have hpe := CoreMode.paramsN_eq _ 0 hpar
     have hnamed : V.n k ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
       simp only [namedOf, List.mem_append]

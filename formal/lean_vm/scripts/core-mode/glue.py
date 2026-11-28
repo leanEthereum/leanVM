@@ -6,7 +6,8 @@ names a function by its stable key (`Fn.«k»`).
   jump-table slot (the pairing's states name their tables from it).
 * `CoreMode/GlueC/<pack>.lean`: for each function of the pack with a link (`Checked.code{j}`),
   `Fn.«k».code_mem`, that its code is the program's, and with its alignment tables' entries too
-  (`Bridge.ProgAl.tab{j}`) `Fn.«k».tie`, the tables at its index its data (`CoreMode.cfOk_of_tie`, `Gen/*/Route`).
+  (`Bridge.ProgAl.tab{j}`) `Fn.«k».tie`, the tables at its index its data (`CoreMode.cfOk_of_tie`, `Gen/*/Route`), and
+  `Fn.«k».fsEq`, its frame size (`Checked.fsEq{j}`, `CoreMode.FnV.of_tie`).
 
 An added or removed function renumbers `j` and moves the jump table's slots here only.
 
@@ -33,13 +34,14 @@ def main(check=False):
     adv = {m.group(1): int(m.group(2)) for m in
            re.finditer(r'/-- `([^`]*)`: its entry, length and hints by pc\. -/\ndef adviceFn(\d+)', t)}
     # each function's plumbing equation: `Checked`'s, or for a long one `Bridge.ProgAl`'s; its namespace and module
-    link, plumb = {}, {}
+    link, plumb, fseq = {}, {}, set()
     for f in glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')):
         mod = 'LeanVM.Guest.Checked.' + os.path.basename(f)[:-5]
         t = open(f, encoding='utf-8').read()
         for j in re.findall(r'^kernel_rfl code(\d+) :', t, re.M):
             link[int(j)] = mod
         plumb.update((int(j), ('Checked', mod)) for j in re.findall(r'^kernel_rfl plumbEq(\d+) :', t, re.M))
+        fseq.update(int(j) for j in re.findall(r'^kernel_rfl fsEq(\d+) :', t, re.M))
     # each function's alignment tables' entries (`Bridge.ProgAl.tab{j}`): their module, the entries
     tab = {}
     for f in glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')):
@@ -81,7 +83,7 @@ def main(check=False):
         a.append('\n/-! Each function\'s entry, length and hints by pc (`advice`) and its index in the program (`idx`). -/\n\n'
                  'namespace LeanVM.Guest\n\n@[expose] public section\n\n')
         c.append('\n/-! Each function\'s code is the program\'s (`code_mem`); the program\'s tables at its index are its data '
-                 '(`tie`). -/\n\nnamespace LeanVM.Guest\n\npublic section\n\n')
+                 '(`tie`), its frame size its own (`fsEq`). -/\n\nnamespace LeanVM.Guest\n\npublic section\n\n')
         for k in ks:
             j = adv[name[k]]
             a.append(f'abbrev Fn.«{k}».advice := Data.adviceFn{j}\nabbrev Fn.«{k}».idx : ℕ := {j}\n')
@@ -94,6 +96,8 @@ def main(check=False):
                          f'B2C.plumbOf idx = plumb ∧ (Bridge.extraOf idx, Bridge.entsOf idx, Bridge.adviceOf idx) = '
                          f'({tab[j][1]}, {tab[j][2]}, advice) :=\n  ⟨Checked.code{j}, Checked.core{j}, Checked.cert{j}, '
                          f'{plumb[j][0]}.plumbEq{j}, Bridge.ProgAl.tab{j}⟩\n')
+            if j in fseq:
+                c.append(f'theorem Fn.«{k}».fsEq : B2C.fsN idx = fs := Checked.fsEq{j}\n')
         a.append('\nend\n\nend LeanVM.Guest\n')
         c.append('\nend\n\nend LeanVM.Guest\n')
         want[os.path.join(GUEST, 'CoreMode', 'GlueA', pack + '.lean')] = ''.join(a)
