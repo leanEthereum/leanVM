@@ -345,46 +345,6 @@ theorem listGo_spec {k c : ℕ} : ∀ (i : ℕ) (l : List ℕ) (t : Trie ℕ), g
       rw [show k - i = k - (i + 1) + 1 by omega, List.getElem?_cons_succ]
       exact h
 
-/-- **Function `j`'s values' cells**, by value number (`B2C.cellJ`). -/
-noncomputable def locT (j : ℕ) : Trie ℕ := listGo 0 (certOf j).locs .nil
-
-theorem cellJ_of_locT {j : ℕ} {v : V} {c : ℕ} (h : getF (locT j) v.idx = some c) : B2C.cellJ j v = c := by
-  rcases listGo_spec 0 _ _ h with h | ⟨-, h⟩
-  · cases h
-  · unfold B2C.cellJ
-    rw [Nat.sub_zero] at h
-    rw [List.getD_eq_getElem?_getD, h, Option.getD_some]
-
-/-- `ptrCellB`, a pointer's cell looked up in `L` (`locT j`) first. -/
-noncomputable def ptrCellT (L : Trie ℕ) (j : ℕ) : Stmt → Bool
-  | .atom a => match ptrOf a with
-    | some p => ((Bridge.extraOf j).lookup p.idx).isNone && decide (p.idx < 2 ^ 30) &&
-        match getF L p.idx with
-        | some c => decide (2 ≤ c) && decide (c < B2C.fsN j)
-        | none => decide (2 ≤ B2C.cellJ j p) && decide (B2C.cellJ j p < B2C.fsN j)
-    | none => true
-  | _ => true
-
-theorem ptrCellB_of_T {j : ℕ} {s : Stmt} (h : ptrCellT (locT j) j s = true) : ptrCellB j s = true := by
-  cases s with
-  | atom a =>
-    simp only [ptrCellT] at h
-    simp only [ptrCellB]
-    cases hp : ptrOf a with
-    | none => rfl
-    | some p =>
-      rw [hp] at h
-      simp only at h ⊢
-      cases hl : getF (locT j) p.idx with
-      | none => rw [hl] at h; simpa only [Bool.and_assoc] using h
-      | some c => rw [hl, ← cellJ_of_locT hl] at h; simpa only [Bool.and_assoc] using h
-  | _ => rfl
-
-/-- `ptrCellB` over statements, by `ptrCellT` at `locT j`. -/
-theorem all_ptrCellB_of_T {j : ℕ} {l : List Stmt} (h : l.all (ptrCellT (locT j) j) = true) :
-    l.all (ptrCellB j) = true :=
-  List.all_eq_true.2 fun s hs ↦ ptrCellB_of_T (List.all_eq_true.1 h s hs)
-
 end
 
 end LeanVM.Guest.CoreMode

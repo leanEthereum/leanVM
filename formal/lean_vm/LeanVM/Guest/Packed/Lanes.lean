@@ -26,6 +26,7 @@ written with these operations directly, and each spec states its test lane by la
 * `le w n a b`: lane-wise `≤` of fitting guarded vectors, by the guard bits of `b + G - a`
   (`G = guard w n`, every lane's top bit).
 * `addEq a b c`: `a + b = c`, lane-wise when no lane carries.
+* `lanesEq w cs L`: the lanes of `L` are the list `cs`, then `0` (`lanesEq_getD`), by one pass over `cs`.
 
 `nonzero w n v` is not a test but a vector: the top bit of each nonzero lane of a guarded `v`, by
 the carry of `v + (2^(w-1) - 1)` into it.
@@ -48,6 +49,11 @@ def fld (x o w : ℕ) : ℕ := Nat.mod (Nat.shiftRight x o) (Nat.pow 2 w)
 
 /-- Lane `i` of `v`, in lanes of `w` bits. -/
 def lane (v w i : ℕ) : ℕ := Nat.mod (Nat.shiftRight v (Nat.mul w i)) (Nat.pow 2 w)
+
+/-- **Lane `i` of `L` is `cs[i]`, and `0` past `cs`**: one pass over `cs`, one division a step, by the recursor. -/
+def lanesEq (w : ℕ) (cs : List ℕ) (L : ℕ) : Bool :=
+  List.rec (motive := fun _ ↦ ℕ → Bool) (fun L ↦ Nat.beq L 0)
+    (fun c _ ih L ↦ Nat.beq (Nat.mod L (Nat.pow 2 w)) c && ih (Nat.div L (Nat.pow 2 w))) cs L
 
 /-- The vector of lanes `f 0, …, f (n - 1)`. -/
 def pack (f : ℕ → ℕ) (w : ℕ) : ℕ → ℕ
@@ -111,6 +117,22 @@ public theorem lane_succ (v w i : ℕ) : lane v w (i + 1) = lane (v / 2 ^ w) w i
   simp only [lane_eq, Nat.div_div_eq_div_mul, ← pow_add, Nat.mul_succ, Nat.add_comm (w * i)]
 
 @[simp] public theorem lane_zero_left (w i : ℕ) : lane 0 w i = 0 := by simp [lane_eq]
+
+public theorem lanesEq_getD : ∀ {cs : List ℕ} {L : ℕ}, lanesEq w cs L = true → ∀ i, cs.getD i 0 = lane L w i
+  | [], L, h, i => by
+    have h0 : L = 0 := Nat.eq_of_beq_eq_true h
+    subst h0
+    simp
+  | c :: cs, L, h, i => by
+    change (Nat.beq (Nat.mod L (Nat.pow 2 w)) c && lanesEq w cs (Nat.div L (Nat.pow 2 w))) = true at h
+    rw [Bool.and_eq_true] at h
+    cases i with
+    | zero =>
+      rw [lane_zero_right, List.getD_cons_zero]
+      exact (Nat.eq_of_beq_eq_true h.1).symm
+    | succ i =>
+      rw [lane_succ, List.getD_cons_succ]
+      exact lanesEq_getD h.2 i
 
 public theorem lane_shiftRight (v w i : ℕ) : lane (v >>> w) w i = lane v w (i + 1) := by
   rw [lane_succ, Nat.shiftRight_eq_div_pow]

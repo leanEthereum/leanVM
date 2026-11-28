@@ -150,17 +150,17 @@ theorem selBr_at {j : ℕ} {B : List Stmt} {x : V} {arms : List (List Stmt)} {S 
     ∀ {seen : List Atom} {Q : List Stmt}, selBr j B seen (Q ++ .match_ x arms :: S) = true →
       cellB j x = true ∧ (∃ a ∈ seenF seen Q, x ∈ Memory.atomUses a) ∧ onceAfter B S = true
   | seen, [], h => by
-    simp only [List.nil_append, selBr, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    simp only [List.nil_append, selBr, selBrK, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
     obtain ⟨⟨⟨⟨hc, a, ha, hu⟩, -⟩, ho⟩, -⟩ := h
     exact ⟨hc, ⟨a, ha, hu⟩, ho⟩
   | seen, s :: Q, h => by
     cases s with
     | atom b => exact selBr_at (seen := b :: seen) (Q := Q) h
     | match_ y as =>
-      simp only [List.cons_append, selBr, Bool.and_eq_true] at h
+      simp only [List.cons_append, selBr, selBrK, Bool.and_eq_true] at h
       exact selBr_at (seen := seen) (Q := Q) h.2
     | ite c z n =>
-      simp only [List.cons_append, selBr, Bool.and_eq_true] at h
+      simp only [List.cons_append, selBr, selBrK, Bool.and_eq_true] at h
       exact selBr_at (seen := seen) (Q := Q) h.2
     | _ => exact selBr_at (seen := seen) (Q := Q) h
 
@@ -173,20 +173,20 @@ theorem selBr_sub {j : ℕ} {B : List Stmt} : ∀ {seen : List Atom} {l : List S
       cases u with
       | atom b => exact ⟨_, h⟩
       | match_ y as =>
-        simp only [selBr, Bool.and_eq_true] at h
+        simp only [selBr, selBrK, Bool.and_eq_true] at h
         exact ⟨_, h.2⟩
       | ite c z n =>
-        simp only [selBr, Bool.and_eq_true] at h
+        simp only [selBr, selBrK, Bool.and_eq_true] at h
         exact ⟨_, h.2⟩
       | _ => exact ⟨_, h⟩
     rcases List.mem_cons.mp hv with rfl | hv
     · subst he
       cases v with
       | match_ y as =>
-        simp only [selBr, Bool.and_eq_true] at h
+        simp only [selBr, selBrK, Bool.and_eq_true] at h
         exact noMatch_mem h.1.1.2 hs
       | ite c z n =>
-        simp only [selBr, Bool.and_eq_true] at h
+        simp only [selBr, selBrK, Bool.and_eq_true] at h
         rw [stmtsSub, List.mem_append] at hs
         rcases hs with hs | hs
         · exact noMatch_mem h.1.1 hs
@@ -200,18 +200,18 @@ theorem selGo_cons {j : ℕ} {ps : List V} {B : List Stmt} {seen : List Atom} {u
   cases u with
   | atom b => exact Or.inl ⟨_, h⟩
   | ret vs =>
-    simp only [selGo, Bool.and_eq_true] at h
+    simp only [selGo, selGoK, Bool.and_eq_true] at h
     exact Or.inr h.1
   | match_ y as =>
-    simp only [selGo, Bool.and_eq_true] at h
+    simp only [selGo, selGoK, Bool.and_eq_true] at h
     exact Or.inl ⟨_, h.2⟩
   | ite c z n =>
-    simp only [selGo, Bool.and_eq_true] at h
+    simp only [selGo, selGoK, Bool.and_eq_true] at h
     exact Or.inl ⟨_, h.2⟩
   | call f a r => exact Or.inl ⟨_, h⟩
   | callIf c f a => exact Or.inl ⟨_, h⟩
   | dispatch x fs a r =>
-    simp only [selGo, Bool.and_eq_true] at h
+    simp only [selGo, selGoK, Bool.and_eq_true] at h
     exact Or.inl ⟨_, h.2⟩
 
 /-- **`selGo` before a top-level `ite` with a `match` in a branch**: no `ret` before it, its branches' `selBr`. -/
@@ -220,27 +220,27 @@ theorem selGo_split {j : ℕ} {ps : List V} {B R : List Stmt} {c : V} {z n : Lis
     ∀ {seen : List Atom} {P : List Stmt}, selGo j ps B seen (P ++ .ite c z n :: R) = true →
       noRetTop P = true ∧ selBr j B (seenF seen P) z = true ∧ selBr j B (seenF seen P) n = true
   | seen, [], h => by
-    simp only [List.nil_append, selGo, Bool.and_eq_true] at h
+    simp only [List.nil_append, selGo, selGoK, Bool.and_eq_true] at h
     exact ⟨rfl, h.1.1, h.1.2⟩
   | seen, s :: P, h => by
     cases s with
     | atom b => exact selGo_split hm (seen := b :: seen) (P := P) h
     | ret vs =>
-      simp only [List.cons_append, selGo, Bool.and_eq_true] at h
+      simp only [List.cons_append, selGo, selGoK, Bool.and_eq_true] at h
       obtain ⟨x, arms, hx⟩ := hm
       refine (noMatch_mem h.1 (x := x) (arms := arms) ?_).elim
       rw [stmtsOf_append, stmtsOf, stmtsSub]
       exact List.mem_append_right _ (List.mem_cons_of_mem _ (List.mem_append_left _ hx))
     | match_ y as =>
-      simp only [List.cons_append, selGo, Bool.and_eq_true] at h
+      simp only [List.cons_append, selGo, selGoK, Bool.and_eq_true] at h
       exact selGo_split hm (seen := seen) (P := P) h.2
     | ite c' z' n' =>
-      simp only [List.cons_append, selGo, Bool.and_eq_true] at h
+      simp only [List.cons_append, selGo, selGoK, Bool.and_eq_true] at h
       exact selGo_split hm (seen := seen) (P := P) h.2
     | call f a r => exact selGo_split hm (seen := seen) (P := P) h
     | callIf c' f a => exact selGo_split hm (seen := seen) (P := P) h
     | dispatch x fs a r =>
-      simp only [List.cons_append, selGo, Bool.and_eq_true] at h
+      simp only [List.cons_append, selGo, selGoK, Bool.and_eq_true] at h
       exact selGo_split hm (seen := seen) (P := P) h.2
 
 /-- **No `match` two levels below the top** (`selGo`). -/
@@ -251,10 +251,10 @@ theorem selGo_deep {j : ℕ} {ps : List V} {B : List Stmt} : ∀ {seen : List At
     rcases List.mem_cons.mp hu with rfl | hu
     · cases u with
       | match_ y as =>
-        simp only [selGo, Bool.and_eq_true] at h
+        simp only [selGo, selGoK, Bool.and_eq_true] at h
         exact noMatch_mem h.1.2 (sub_stmtsArms hw hs)
       | ite c z n =>
-        simp only [selGo, Bool.and_eq_true] at h
+        simp only [selGo, selGoK, Bool.and_eq_true] at h
         rw [stmtsSub, List.mem_append] at hw
         rcases hw with hw | hw
         · rcases stmtsOf_cases hw with hw | ⟨v', hv', hw⟩
@@ -275,7 +275,7 @@ theorem selGo_arms {j : ℕ} {ps : List V} {B : List Stmt} : ∀ {seen : List At
   | seen, v :: ss, h, y, as, hu, x, arms, hs => by
     rcases List.mem_cons.mp hu with he | hu
     · subst he
-      simp only [selGo, Bool.and_eq_true] at h
+      simp only [selGo, selGoK, Bool.and_eq_true] at h
       exact noMatch_mem h.1.2 hs
     · rcases selGo_cons h with ⟨seen', h'⟩ | h'
       · exact selGo_arms h' y as hu x arms hs

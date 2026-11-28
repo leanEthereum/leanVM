@@ -30,13 +30,30 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- A dereferenced pointer (`ptrOf`) at its certificate cell, within the frame, not a hint-only value. -/
-noncomputable def ptrCellB (j : ℕ) : Stmt → Bool
+/-- A value at its cell `c v` within function `j`'s frame, not a hint-only value. -/
+noncomputable def valCell (c : V → ℕ) (j : ℕ) (v : V) : Bool :=
+  ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) && decide (2 ≤ c v) && decide (c v < B2C.fsN j)
+
+/-- A dereferenced pointer (`ptrOf`) at its cell `c`, within the frame, not a hint-only value. -/
+noncomputable def ptrCellAt (c : V → ℕ) (j : ℕ) : Stmt → Bool
   | .atom a => match ptrOf a with
-    | some p => ((Bridge.extraOf j).lookup p.idx).isNone && decide (p.idx < 2 ^ 30) &&
-      decide (2 ≤ B2C.cellJ j p) && decide (B2C.cellJ j p < B2C.fsN j)
+    | some p => valCell c j p
     | none => true
   | _ => true
+
+/-- A `ret`'s values at their cells `c`, within the frame, not hint-only values. -/
+noncomputable def retCellAt (c : V → ℕ) (j : ℕ) : Stmt → Bool
+  | .ret vs => vs.all (valCell c j)
+  | _ => true
+
+/-- A value at its certificate cell within the frame, not a hint-only value. -/
+noncomputable abbrev cellB (j : ℕ) : V → Bool := valCell (B2C.cellJ j) j
+
+/-- A dereferenced pointer at its certificate cell. -/
+noncomputable abbrev ptrCellB (j : ℕ) : Stmt → Bool := ptrCellAt (B2C.cellJ j) j
+
+/-- A `ret`'s values at their certificate cells. -/
+noncomputable abbrev retCellB (j : ℕ) : Stmt → Bool := retCellAt (B2C.cellJ j) j
 
 /-- A frame run's first value at its certificate cell, not a hint-only value. -/
 noncomputable def faCellB (j : ℕ) : Stmt → Bool
@@ -45,17 +62,6 @@ noncomputable def faCellB (j : ℕ) : Stmt → Bool
 
 /-- Where frame run cells are guaranteed (`faNeed`), the frame runs' first values at their cells (`HonB.fa`). -/
 noncomputable def faOkB (j : ℕ) (Cf : CFun) : Bool := !faNeed Cf || stmtsAll (faCellB j) Cf.fn.body
-
-/-- A `ret`'s values at their certificate cells, within the frame, not hint-only values. -/
-noncomputable def retCellB (j : ℕ) : Stmt → Bool
-  | .ret vs => vs.all fun v ↦ ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) &&
-      decide (2 ≤ B2C.cellJ j v) && decide (B2C.cellJ j v < B2C.fsN j)
-  | _ => true
-
-/-- A value at its certificate cell within the frame, not a hint-only value. -/
-noncomputable def cellB (j : ℕ) (v : V) : Bool :=
-  ((Bridge.extraOf j).lookup v.idx).isNone && decide (v.idx < 2 ^ 30) && decide (2 ≤ B2C.cellJ j v) &&
-    decide (B2C.cellJ j v < B2C.fsN j)
 
 /-- No `match` among the statements. -/
 def noMatch (l : List Stmt) : Bool :=
@@ -84,34 +90,51 @@ def onceAfter (B ss : List Stmt) : Bool :=
     | _ => false
 
 /-- **The `match`es of a branch of a top-level `ite`**, `B` the body: at the branch's top level, each on a
-selector at its cell used by a top-level atom before it (`seen`, the body's then the branch's), no `match`
-in its arms, and a top-level atom after it in the branch once in `B` (a path through the other branch walks
-none of its events). -/
-noncomputable def selBr (j : ℕ) (B : List Stmt) : List Atom → List Stmt → Bool
+selector at its cell used by a top-level atom before it (`seen`, the body's then the branch's, each atom remembered
+by `up`), no `match` in its arms, and a top-level atom after it in the branch once in `B` (a path through the other
+branch walks none of its events). -/
+noncomputable def selBrK (j : ℕ) (B : List Stmt) (up : Atom → List Atom → List Atom) :
+    List Atom → List Stmt → Bool
   | _, [] => true
-  | seen, .atom a :: ss => selBr j B (a :: seen) ss
+  | seen, .atom a :: ss => selBrK j B up (up a seen) ss
   | seen, .match_ x arms :: ss => cellB j x && seen.any (fun a ↦ decide (x ∈ Memory.atomUses a)) &&
-      noMatch (Bridge.stmtsArms arms) && onceAfter B ss && selBr j B seen ss
-  | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selBr j B seen ss
-  | seen, .ret _ :: ss => selBr j B seen ss
-  | seen, .call .. :: ss => selBr j B seen ss
-  | seen, .callIf .. :: ss => selBr j B seen ss
-  | seen, .dispatch .. :: ss => selBr j B seen ss
+      noMatch (Bridge.stmtsArms arms) && onceAfter B ss && selBrK j B up seen ss
+  | seen, .ite _ z n :: ss => noMatch (Bridge.stmtsOf z) && noMatch (Bridge.stmtsOf n) && selBrK j B up seen ss
+  | seen, .ret _ :: ss => selBrK j B up seen ss
+  | seen, .call .. :: ss => selBrK j B up seen ss
+  | seen, .callIf .. :: ss => selBrK j B up seen ss
+  | seen, .dispatch .. :: ss => selBrK j B up seen ss
 
 /-- **Each `match` and `dispatch` of a body at its top level, or a `match` at the top level of a top-level
-`ite`'s branch** (`selBr`), `B` the body: its selector used by a top-level atom before it (`seen`; a
-dispatch's, or a parameter of `ps`) and at its certificate cell; no other `match` nested, none past a `ret`. -/
-noncomputable def selGo (j : ℕ) (ps : List V) (B : List Stmt) : List Atom → List Stmt → Bool
+`ite`'s branch** (`selBrK`), `B` the body: its selector used by a top-level atom before it (`seen`, each atom
+remembered by `up`; a dispatch's, or a parameter of `ps`) and at its certificate cell; no other `match` nested, none
+past a `ret`. -/
+noncomputable def selGoK (j : ℕ) (ps : List V) (B : List Stmt) (up : Atom → List Atom → List Atom) :
+    List Atom → List Stmt → Bool
   | _, [] => true
-  | seen, .atom a :: ss => selGo j ps B (a :: seen) ss
+  | seen, .atom a :: ss => selGoK j ps B up (up a seen) ss
   | seen, .match_ x arms :: ss => cellB j x && seen.any (fun a ↦ decide (x ∈ Memory.atomUses a)) &&
-      noMatch (Bridge.stmtsArms arms) && selGo j ps B seen ss
-  | seen, .ite _ z n :: ss => selBr j B seen z && selBr j B seen n && selGo j ps B seen ss
+      noMatch (Bridge.stmtsArms arms) && selGoK j ps B up seen ss
+  | seen, .ite _ z n :: ss => selBrK j B up seen z && selBrK j B up seen n && selGoK j ps B up seen ss
   | _, .ret _ :: ss => noMatch (Bridge.stmtsOf ss) && noDsp (Bridge.stmtsOf ss)
-  | seen, .call .. :: ss => selGo j ps B seen ss
-  | seen, .callIf .. :: ss => selGo j ps B seen ss
+  | seen, .call .. :: ss => selGoK j ps B up seen ss
+  | seen, .callIf .. :: ss => selGoK j ps B up seen ss
   | seen, .dispatch x .. :: ss => cellB j x && (ps.contains x || seen.any fun a ↦ decide (x ∈ Memory.atomUses a)) &&
-      selGo j ps B seen ss
+      selGoK j ps B up seen ss
+
+/-- `selBrK` remembering every top-level atom. -/
+noncomputable abbrev selBr (j : ℕ) (B : List Stmt) : List Atom → List Stmt → Bool := selBrK j B List.cons
+
+/-- `selGoK` remembering every top-level atom. -/
+noncomputable abbrev selGo (j : ℕ) (ps : List V) (B : List Stmt) : List Atom → List Stmt → Bool :=
+  selGoK j ps B List.cons
+
+/-- An atom using a value of the bitset `S`. -/
+def keepB (S : ℕ) (a : Atom) : Bool := (Memory.atomUses a).any fun v ↦ Nat.testBit S v.idx
+
+/-- `seen` with `a` when it uses a value of the bitset `S`, the selectors the generator names: a long body's
+selectors' check remembers only those top-level atoms (`selGo_of_keep`), not every one. -/
+def keepIn (S : ℕ) (a : Atom) (seen : List Atom) : List Atom := bif keepB S a then a :: seen else seen
 
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
 at their cells; `j` not the prologue. -/
@@ -136,6 +159,68 @@ theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true
   obtain ⟨⟨⟨r1, r2⟩, r3⟩, r4⟩ := h5
   simp only [honB, stmtsAll_eq, Bool.and_eq_true]
   exact ⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, h4⟩
+
+/-! ## The selectors' check, remembering fewer atoms -/
+
+/-- `up` remembers no atom but the one it is given. -/
+def UpSub (up : Atom → List Atom → List Atom) : Prop := ∀ a s, ∀ b ∈ up a s, b ∈ a :: s
+
+theorem keepIn_sub (S : ℕ) : UpSub (keepIn S) := fun a s b hb ↦ by
+  unfold keepIn at hb
+  generalize keepB S a = c at hb
+  cases c
+  · exact List.mem_cons_of_mem _ hb
+  · exact hb
+
+private theorem up_mono {up : Atom → List Atom → List Atom} (hu : UpSub up) {a : Atom} {s s' : List Atom}
+    (h : ∀ b ∈ s', b ∈ s) : ∀ b ∈ up a s', b ∈ a :: s := fun b hb ↦
+  (List.mem_cons.mp (hu a s' b hb)).elim (fun e ↦ e ▸ List.mem_cons_self) fun hb ↦ List.mem_cons_of_mem _ (h b hb)
+
+private theorem any_mono {p : Atom → Bool} {s s' : List Atom} (h : ∀ b ∈ s', b ∈ s) (ha : s'.any p = true) :
+    s.any p = true :=
+  let ⟨b, hb, hp⟩ := List.any_eq_true.mp ha; List.any_eq_true.mpr ⟨b, h b hb, hp⟩
+
+theorem selBr_of_up {j : ℕ} {B : List Stmt} {up : Atom → List Atom → List Atom} (hu : UpSub up) :
+    ∀ (ss : List Stmt) (s s' : List Atom), (∀ b ∈ s', b ∈ s) → selBrK j B up s' ss = true → selBr j B s ss = true
+  | [], _, _, _, _ => by simp [selBrK]
+  | st :: ss, s, s', hs, h => by
+    cases st with
+    | atom a => simp only [selBr, selBrK] at h ⊢; exact selBr_of_up hu ss _ _ (up_mono hu hs) h
+    | match_ x arms =>
+      simp only [selBr, selBrK, Bool.and_eq_true] at h ⊢
+      exact ⟨⟨⟨⟨h.1.1.1.1, any_mono hs h.1.1.1.2⟩, h.1.1.2⟩, h.1.2⟩, selBr_of_up hu ss _ _ hs h.2⟩
+    | ite c z n =>
+      simp only [selBr, selBrK, Bool.and_eq_true] at h ⊢
+      exact ⟨h.1, selBr_of_up hu ss _ _ hs h.2⟩
+    | ret _ => simp only [selBr, selBrK] at h ⊢; exact selBr_of_up hu ss _ _ hs h
+    | call f a r => simp only [selBr, selBrK] at h ⊢; exact selBr_of_up hu ss _ _ hs h
+    | callIf c f a => simp only [selBr, selBrK] at h ⊢; exact selBr_of_up hu ss _ _ hs h
+    | dispatch x fs a r => simp only [selBr, selBrK] at h ⊢; exact selBr_of_up hu ss _ _ hs h
+
+theorem selGo_of_up {j : ℕ} {ps : List V} {B : List Stmt} {up : Atom → List Atom → List Atom} (hu : UpSub up) :
+    ∀ (ss : List Stmt) (s s' : List Atom), (∀ b ∈ s', b ∈ s) → selGoK j ps B up s' ss = true →
+      selGo j ps B s ss = true
+  | [], _, _, _, _ => by simp [selGoK]
+  | st :: ss, s, s', hs, h => by
+    cases st with
+    | atom a => simp only [selGo, selGoK] at h ⊢; exact selGo_of_up hu ss _ _ (up_mono hu hs) h
+    | match_ x arms =>
+      simp only [selGo, selGoK, Bool.and_eq_true] at h ⊢
+      exact ⟨⟨⟨h.1.1.1, any_mono hs h.1.1.2⟩, h.1.2⟩, selGo_of_up hu ss _ _ hs h.2⟩
+    | ite c z n =>
+      simp only [selGo, selGoK, Bool.and_eq_true] at h ⊢
+      exact ⟨⟨selBr_of_up hu z _ _ hs h.1.1, selBr_of_up hu n _ _ hs h.1.2⟩, selGo_of_up hu ss _ _ hs h.2⟩
+    | ret _ => simp only [selGo, selGoK] at h ⊢; exact h
+    | call f a r => simp only [selGo, selGoK] at h ⊢; exact selGo_of_up hu ss _ _ hs h
+    | callIf c f a => simp only [selGo, selGoK] at h ⊢; exact selGo_of_up hu ss _ _ hs h
+    | dispatch x fs args rets =>
+      simp only [selGo, selGoK, Bool.and_eq_true, Bool.or_eq_true] at h ⊢
+      exact ⟨⟨h.1.1, h.1.2.imp id (any_mono hs)⟩, selGo_of_up hu ss _ _ hs h.2⟩
+
+/-- **The selectors' check of a body, remembering only the atoms using a selector of `S`.** -/
+theorem selGo_of_keep {j : ℕ} {ps : List V} {B : List Stmt} (S : ℕ) (h : selGoK j ps B (keepIn S) [] B = true) :
+    selGo j ps B [] B = true :=
+  selGo_of_up (keepIn_sub S) B [] [] (fun _ h ↦ h) h
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=

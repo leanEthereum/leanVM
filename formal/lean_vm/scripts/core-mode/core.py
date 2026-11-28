@@ -1056,19 +1056,18 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
-                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list; its
-                # pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
+                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list
                 walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
                 # the cells read from a lane vector checked against the certificate's (`CoreMode.lanesEq`)
                 lanes = f'(L := {cell_lanes(k)}) (by decide +kernel)'
                 prf = {'ptr': f'CoreMode.all_ptrCellB_of_P {lanes} (by {walk})',
                        'ret': f'CoreMode.all_retCellB_of_P {lanes} (by {walk})',
-                       # the atoms remembered cut to those using a selector (`CoreMode.selGoW`)
-                       'sel': f'by rw [CoreMode.selGo_nil_of_W (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
+                       # the atoms remembered cut to those using a selector (`CoreMode.keepIn`)
+                       'sel': f'by rw [CoreMode.selGo_of_keep (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
                               f'{sel_bits(heap.CORE[k][1])} (by decide +kernel), Bool.true_or]'}
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
-                rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.SelGoW', 'LeanVM.Guest.CoreMode.CellLanes'}
+                rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.CellLanes'}
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
