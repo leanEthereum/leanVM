@@ -87,17 +87,13 @@ pub(crate) fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec
     let mut windows: Vec<&mut [F64]> = Vec::with_capacity(placements.len());
     windows.resize_with(placements.len(), || &mut []);
     let mut rest = q;
-    let mut placed = 0usize;
-    for _ in placements.iter().filter(|p| !p.is_virtual()) {
-        // Each column has at least one word, so the column at each next offset is a new one.
-        let i = placements
-            .iter()
-            .position(|p| !p.is_virtual() && p.offset == placed)
-            .expect("the stacked columns must tile from 0 with no gap");
-        let (window, tail) = rest.split_at_mut(1 << placements[i].n_vars);
-        windows[i] = window;
-        rest = tail;
-        placed += 1 << placements[i].n_vars;
+    // In `verifier::stack_offsets`' order: largest first, each size's columns in column order.
+    for n_vars in (0..=crate::pcs::MAX_STACKED_LOG).rev() {
+        for (window, p) in windows.iter_mut().zip(placements) {
+            if p.n_vars == n_vars {
+                (*window, rest) = std::mem::take(&mut rest).split_at_mut(1 << n_vars);
+            }
+        }
     }
     windows
 }
