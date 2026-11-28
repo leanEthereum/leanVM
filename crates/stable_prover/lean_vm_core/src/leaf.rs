@@ -262,7 +262,7 @@ impl Formula {
                 Term::Col(i) => (w, load(cols[i])),
                 Term::Prod(i, j) => (w, load(cols[i]) * load(cols[j])),
                 // `g^z` rides the weight.
-                Term::Index => (w.mul_base(F64(isa::g_pow(z as u32))), F64x8::from_array(&G_POWERS)),
+                Term::Index => (w.mul_base(index_power(z)), F64x8::from_array(&G_POWERS)),
             };
             acc + F128x8::splat(w).mul_base_unreduced(k)
         });
@@ -275,6 +275,16 @@ impl Formula {
 
 /// Eight identities.
 const ONES: [F128; 8] = [F128::ONE; 8];
+
+/// `g^z`: a lookup below `2^16`, then a product by `g^{2^16}` per further `2^16`, as a row index stays small.
+fn index_power(z: usize) -> F64 {
+    const G_2_16: F64 = crate::tables::g_pow(1 << 16);
+    let mut power = F64(isa::g_pow((z & 0xFFFF) as u32));
+    for _ in 0..z >> 16 {
+        power *= G_2_16;
+    }
+    power
+}
 
 /// `g^0` to `g^7`, which step a row's index to the next seven's.
 const G_POWERS: [F64; 8] = {
