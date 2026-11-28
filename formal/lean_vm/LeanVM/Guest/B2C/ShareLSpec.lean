@@ -172,6 +172,7 @@ structure CheckL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) 
   stat : statOk T P.stat = true
   tmps : tmpsOk T P.tmps = true
   locs : locsOk T C.locs = true
+  nv : T.nv = C.locs.length
   params : ∀ v ∈ cf.params, fld (tget wV 8 5 T.vl v.idx) 0 16 < fs
   e : T.e = 1 + sizeL cf.body
   run : ∃ (n0 : ℕ) (f : ℕ → ℕ × ℕ), paramsOk (fnK cf C P fs main mc T) cf.params = some n0 ∧ f 1 = (n0, 0) ∧
@@ -181,7 +182,8 @@ structure CheckL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) 
 theorem checkL_spec (h : shareCheckL cf C P fs main mc T = true) : CheckL cf C P fs main mc T := by
   unfold shareCheckL staticL at h
   simp only [Bool.and_eq_true, allR_eq, List.all_eq_true, Nat.blt_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hl, ha⟩, hs⟩, har⟩, hst⟩, ht⟩, hlo⟩, hp⟩, h⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hl, ha⟩, hs⟩, har⟩, hst⟩, ht⟩, hlo⟩, hnv⟩, hp⟩, h⟩ := h
+  have hnv : T.nv = C.locs.length := Nat.eq_of_beq_eq_true hnv
   unfold walkL at h
   split at h
   · rename_i n0 hn0
@@ -195,8 +197,8 @@ theorem checkL_spec (h : shareCheckL cf C P fs main mc T = true) : CheckL cf C P
       simp only at h1 h2 h3 h4
       subst h1 h4
       obtain ⟨hsz, f, hf1, hfe, hsteps⟩ := fold_body (c := c0 T) (p := 1) hr
-      exact ⟨hl, ha, hs, har, hst, ht, hlo, hp, by rw [← hsz]; rfl, n0, f, hn0, hf1,
-        by rw [show T.e = (c0 T).e from rfl, hfe]; exact Prod.ext h2 h3, hsteps⟩
+      exact ⟨hl, ha, hs, har, hst, ht, hlo, hnv, hp, by rw [← hsz]; rfl, n0, f, hn0, hf1,
+        by rw [show T.e = (c0 T).e from rfl, hfe]; exact Prod.ext (h2.trans hnv) h3, hsteps⟩
     · cases h
   · cases h
 

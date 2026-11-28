@@ -320,6 +320,7 @@ theorem cell_prev (H : CheckL cf C P fs main mc T) {c u : ℕ} (hu : InCell cf C
   simp only [SLv, keyOf] at *
   obtain ⟨g1, g2, g3, -, -, h6, -⟩ := sharedOk_spec _ hsh
   obtain ⟨w1, w2, w3, w4, w5, w6, w7⟩ := h6 hp
+  replace w1 : _ < C.locs.length := lt_of_lt_of_eq w1 H.nv
   have hcw := hcw0 _ w1 w2
   have hj1 := sHj_lt (tget wS 6 5 (fnK cf C P fs main mc T).T.sl (vSh (vlane (fnK cf C P fs main mc T)
     (sPrev (tget wS 6 5 (fnK cf C P fs main mc T).T.sl (vSh (vlane (fnK cf C P fs main mc T) u) - 1)) - 1)) - 1))

@@ -88,6 +88,8 @@ structure Tabs where
   an : List (List ℕ)
   nst : ℕ
   nat : ℕ
+  /-- The number of values (`Cert.locs`'s length, checked once). -/
+  nv : ℕ
   /-- The body's end, one past its last position (the body starting at `1`, the parameters at
   `0`). -/
   e : ℕ
@@ -410,7 +412,7 @@ noncomputable def apartOkL (C : Cert) (P : Plumb) (main : Bool) (mc : ℕ) : Boo
 noncomputable def fnK (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) :
     FnK :=
   ⟨T, fs, nextCells C.locs fs (tailArgs cf), fpgCells P, byCell P.tmps, P.runs,
-    bif main then mc else 65536, C.locs.length⟩
+    bif main then mc else 65536, T.nv⟩
 
 /-- The parameters' occurrences, at position `0`. -/
 noncomputable def paramsOk (K : FnK) (params : List V) : Option ℕ :=
@@ -460,7 +462,7 @@ noncomputable def segArity (ss : List Stmt) (m n : ℕ) : Bool :=
 /-- The once-per-function parts of the check. -/
 noncomputable def staticL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) : Bool :=
   listsOk P fs && apartOkL C P main mc && freeOk T (siteCells P) && freeOk T (P.arms.map fun a ↦ a.2.1) &&
-  statOk T P.stat && tmpsOk T P.tmps && locsOk T C.locs &&
+  statOk T P.stat && tmpsOk T P.tmps && locsOk T C.locs && Nat.beq T.nv C.locs.length &&
   allR (fun v ↦ Nat.blt (fld (tget wV 8 5 T.vl v.idx) 0 16) fs) cf.params
 
 /-- The walk of the parameters and the body. -/

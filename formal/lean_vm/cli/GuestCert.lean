@@ -3100,7 +3100,7 @@ def tabs (name : String) (cf : Core.Fn) (locs : Array ℕ) (stat : List (ℕ × 
     s!"/-- `{name}`'s sharing certificate: the arms' ends. -/\n" ++
     s!"noncomputable def shareEnds : List ℕ := data% {listText (ends.toList.map toString)}\n\n" ++
     s!"/-- `{name}`'s sharing certificate. -/\n" ++
-    s!"noncomputable def shareTabs : B2C.ShareL.Tabs :=\n  ⟨shareVl, shareSl, shareOt, shareSt, shareAn, {st.size}, {an.size}, {E}, shareEnds⟩\n\n"
+    s!"noncomputable def shareTabs : B2C.ShareL.Tabs :=\n  ⟨shareVl, shareSl, shareOt, shareSt, shareAn, {st.size}, {an.size}, {locs.size}, {E}, shareEnds⟩\n\n"
   -- the walk's state before position `p` with arm end `x`: the values and anchors homed before
   let homeQ := homes.map (·.q)
   let stAt (p x : ℕ) : ℕ × ℕ × ℕ × ℕ :=
