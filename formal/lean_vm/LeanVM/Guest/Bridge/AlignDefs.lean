@@ -433,9 +433,9 @@ noncomputable def alignAt (X : AlignCtx) (body : List Stmt) (code : List OffsetI
 
 /-! ## Windows
 
-A long function's pass (the pairing's, `CoreMode/PairSlice.lean`) is checked in windows of offsets. A state is
-named by its cursors (`KSt`: the offset, the hints consumed, the cursor falling in, the arrivals pending), each
-zipper rebuilt from the body (`zipOf`). -/
+A long function's pass (the pairing's, `CoreMode/PairSlice.lean`) is checked in windows of offsets, each over the
+hints its offsets consume. A state is named by its cursors (`KSt`: the offset, the cursor falling in, the arrivals
+pending), each zipper rebuilt from the body (`zipOf`), its hints given apart. -/
 
 /-- The enclosing levels of a cursor with their statements after them. -/
 def zUp (body : List Stmt) : List (ℕ × ℕ) → List (ℕ × ℕ × List Stmt)
@@ -445,19 +445,17 @@ def zUp (body : List Stmt) : List (ℕ × ℕ) → List (ℕ × ℕ × List Stmt
 /-- **The zipper of a cursor.** -/
 def zipOf (body : List Stmt) (up : List (ℕ × ℕ)) (k : ℕ) : Zip := ⟨zUp body up, k, (blockAt body up).drop k⟩
 
-/-- **A pass state by its cursors**: the offset, the hints consumed, the cursor falling in, the
-arrivals pending. -/
+/-- **A pass state by its cursors**: the offset, the cursor falling in, the arrivals pending. -/
 structure KSt where
   i : ℕ
-  nd : ℕ
   cur : Option Cur
   pend : List (ℕ × Cur)
   tabs : List (ℕ × Cur × ℕ)
   deriving DecidableEq
 
-/-- The state a `KSt` names. -/
+/-- The state a `KSt` names, its hints `hs`. -/
 def stOfK (body : List Stmt) (hs : List (ℕ × List Prover.Exec.Hint)) (K : KSt) : St :=
-  ⟨K.i, hs.drop K.nd, K.cur.map (fun c ↦ zipOf body c.1 c.2), K.pend.map (fun p ↦ (p.1, zipOf body p.2.1 p.2.2)),
+  ⟨K.i, hs, K.cur.map (fun c ↦ zipOf body c.1 c.2), K.pend.map (fun p ↦ (p.1, zipOf body p.2.1 p.2.2)),
     K.tabs.map fun t ↦ (t.1, zipOf body t.2.1.1 t.2.1.2, t.2.2)⟩
 
 /-- The length of `l` plus `n`, by a tail call the kernel runs in a loop. -/
@@ -465,9 +463,9 @@ def lenTR {α : Type} : List α → ℕ → ℕ
   | [], n => n
   | _ :: l, n => natSeq (Nat.succ n) fun n ↦ lenTR l n
 
-/-- The name of a state, its hints from `hs`. -/
-def keyOfSt (hs : List (ℕ × List Prover.Exec.Hint)) (st : St) : KSt :=
-  ⟨st.i, lenTR hs 0 - lenTR st.hs 0, st.cur.map Zip.key, st.pend.map (fun p ↦ (p.1, p.2.key)),
+/-- The name of a state. -/
+def keyOfSt (st : St) : KSt :=
+  ⟨st.i, st.cur.map Zip.key, st.pend.map (fun p ↦ (p.1, p.2.key)),
     st.tabs.map fun t ↦ (t.1, t.2.1.key, t.2.2)⟩
 
 /-- The checks of `alignOk` but the pass's. -/

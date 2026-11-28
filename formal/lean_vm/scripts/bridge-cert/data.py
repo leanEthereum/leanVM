@@ -490,7 +490,8 @@ def bundles():
 
 @functools.cache
 def advice():
-    """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc."""
+    """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc and the parts
+    they are written in (the name and length of each, the name `None` for hints written whole)."""
     t = advice_text()
     ds = defs(t)
 
@@ -511,7 +512,11 @@ def advice():
         for p in hl(hs):
             pc, l = p[1]
             hints.append((pc, [isa_hint(h) for h in as_list(l, None)]))
-        out[entry] = dict(j=int(m.group(1)), entry=entry, length=length, hints=hints)
+        if isinstance(hs, tuple) and hs[0] == 'app' and hs[1] == ('id', 'List.flatten'):
+            parts = [(x[1], len(hl(x))) for x in as_list(hs[2][0], env)]
+        else:
+            parts = [(None, len(hints))]
+        out[entry] = dict(j=int(m.group(1)), entry=entry, length=length, hints=hints, parts=parts)
     return out
 
 

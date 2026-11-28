@@ -298,6 +298,7 @@ def _collect():
             fails[k] = str(e)
             continue
         out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'], jt0=jt0_of(F),
+                      parts=A['parts'],
                       bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]), locs=B['locs'], extra=dict(extra),
                       kind='c' if k in CR else ('lc' if k in LCR else 'm1'))
     return out, fails
@@ -324,7 +325,7 @@ def args(k, f, ctx='alignCtx'):
 
 
 def argsS(k, ctx):
-    return f'{ctx} hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.chunks Fn.«{k}».advice'
+    return f'{ctx} hcert pairO pairS Fn.«{k}».core.body Fn.«{k}».code.chunks pairHints'
 
 
 def packed_ctx(k):
@@ -367,11 +368,11 @@ def jt0_of(F):
 def kst(k, f, K):
     """`AL.kst`, a registered table jump's slot from the function's first (`Fn.«k».jt0`): the states stay put when the
     jump table moves."""
-    i, nd, cur, pend, tabs = K
+    i, _, cur, pend, tabs = K
     c = 'none' if cur is None else f'some ({AL.cur_lit(cur)})'
     pe = ', '.join(f'({o}, ({AL.cur_lit(z)}))' for o, z in pend)
     ta = ', '.join(f'(Fn.«{k}».jt0 + {b - f["jt0"]}, ({AL.cur_lit(z)}), {m})' for b, z, m in tabs)
-    return f'⟨{i}, {nd}, {c}, [{pe}], [{ta}]⟩'
+    return f'⟨{i}, {c}, [{pe}], [{ta}]⟩'
 
 
 def cut_of(clens, i):
@@ -382,6 +383,28 @@ def cut_of(clens, i):
         i -= clens[p]; p += 1
     assert p < len(clens) or i == 0
     return f'({p}, {i})'
+
+
+def hint_cut(parts, nd):
+    """The advice's hints after its first `nd` as a cut `(p, r)` of the parts it is written in (`Bridge.PCut`): part
+    `p`, hint `r` in it, at a part's start where one starts there; past the last hint `(len, 0)`."""
+    for p, (_, n) in enumerate(parts):
+        if nd < n:
+            return f'({p}, {nd})'
+        nd -= n
+    assert nd == 0
+    return f'({len(parts)}, 0)'
+
+
+def hints_defs(k, f):
+    """`pairHints`, the advice's parts the windows cut, with `pairHints_eq`, its equation."""
+    ps = f['parts']
+    whole = len(ps) == 1 and ps[0][0] is None
+    lit = f'[Fn.«{k}».advice.2.2]' if whole else '[' + ', '.join(f'Data.{n}' for n, _ in ps) + ']'
+    return (f"/-- `{k}`: the parts its advice is written in, its windows' hints cut from them. -/\n"
+            f'def pairHints : List (List (ℕ × List Prover.Exec.Hint)) :=\n  {lit}\n\n',
+            f'theorem pairHints_eq : pairHints.flatten = Fn.«{k}».advice.2.2 :=\n  '
+            + ('List.flatten_singleton' if whole else 'by rfl') + '\n')
 
 
 LIT_TRIES = [('loc', 'ℕ'), ('stat', 'B2C.PC'), ('sites', 'B2C.Site'), ('arms', '(ℕ × ℕ)'), ('ents', 'String')]
@@ -424,14 +447,23 @@ def render_win(pack, f):
     wctx = 'alignCtxP' if packed else 'alignCtx'
     defs = ''.join(f"/-- `{k}`: the pairing's state at offset {K[0]}. -/\ndef pairK{n} : Bridge.KSt :=\n  {kst(k, f, K)}\n\n"
                    for n, K in enumerate(ks))
+    # the windows' hints cut from the advice's parts (`CoreMode/PairSlice.lean`): none walks the hints before it
+    hcut = [hint_cut(f['parts'], K[1]) for K in ks]
+    hdef, heq = hints_defs(k, f)
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
-        HEADER(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
+        HEADER(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle, its advice's parts and the pass's states at its "
+                                         "windows' ends.")
         + imports(['LeanVM.Guest.CoreMode.PairSlice', f'LeanVM.Guest.CoreMode.GlueA.«{pack}»', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 
 {offs_defs(k, f)}
-{defs}end
+{hdef}{defs}end
+
+public section
+
+{heq}
+end
 '''))
     lit = has_lit(f)
     if lit:
@@ -455,8 +487,8 @@ def render_win(pack, f):
             + imports([f'{base}.Lit' if lit else f'{base}.Ctx']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
 
 /-- `{k}`: the pairing from offset {ks[n][0]} to {ks[n + 1][0]}. -/
-theorem pairWin{n} : CoreMode.winOkHS {argsS(k, wctx)} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])} pairK{n}
-    pairK{n + 1} = true := by
+theorem pairWin{n} : CoreMode.winOkHS {argsS(k, wctx)} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])}
+    {hcut[n]} {hcut[n + 1]} pairK{n} pairK{n + 1} = true := by
 {rw}  decide +kernel
 
 end
@@ -471,12 +503,14 @@ end
         + ns(k, f'''public section
 
 /-- `{k}`: the pairing's last state is at the end. -/
-theorem pairEndOk : CoreMode.chainEndS Fn.«{k}».code.chunks ({len(clens)}, 0) pairK{len(ks) - 1} = true := by
+theorem pairEndOk : CoreMode.chainEndS Fn.«{k}».code.chunks pairHints ({len(clens)}, 0) {hcut[-1]} pairK{len(ks) - 1} =
+    true := by
   decide +kernel
 
 /-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads{" (its context " + wctx + ")" if packed else ""}. -/
 theorem pair_ok{"P" if packed else ""} : CoreMode.pairOk {args(k, f, wctx)} = true :=
-  CoreMode.pairOk_of_chainS alignPreOk (ks := [{', '.join(f'({cut_of(clens, ks[n][0])}, pairK{n})' for n in range(1, len(ks)))}])
+  CoreMode.pairOk_of_chainS alignPreOk pairHints_eq
+    (ks := [{', '.join(f'({cut_of(clens, ks[n][0])}, {hcut[n]}, pairK{n})' for n in range(1, len(ks)))}])
     {chain}
 {f'''
 /-- `{k}`: its `load`s pair with its `DEREF`s in order, the oracle naming its reads. -/
