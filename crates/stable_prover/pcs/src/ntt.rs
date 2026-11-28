@@ -171,18 +171,18 @@ impl AdditiveNttF64 {
             return;
         }
         let run = (CHUNK >> g).max(64);
-        let mut tasks = Vec::new();
-        for (b, block) in data.chunks_exact_mut(slab << g).enumerate() {
+        let n_runs = slab.div_ceil(run);
+        // Task by task, the same run of each slab.
+        let mut runs = Vec::with_capacity(data.len() / slab * n_runs);
+        for block in data.chunks_exact_mut(slab << g) {
             let mut slabs: Vec<_> = block.chunks_exact_mut(slab).map(|s| s.chunks_mut(run)).collect();
-            for _ in 0..slab.div_ceil(run) {
-                let runs: Vec<&mut [F64]> = slabs.iter_mut().map(|s| s.next().expect("equal slabs")).collect();
-                tasks.push((b, runs));
+            for _ in 0..n_runs {
+                for s in &mut slabs {
+                    runs.push(s.next().expect("equal slabs"));
+                }
             }
         }
-        parallel::chunks_mut(&mut tasks, 1, |_, task| {
-            let (b, runs) = &mut task[0];
-            self.layers(runs, start, *b);
-        });
+        parallel::chunks_mut(&mut runs, 1 << g, |task, runs| self.layers(runs, start, task / n_runs));
     }
 
     /// Layers `layer..layer + g` over block `index` of `layer`, on equal runs of words at one place in each of its `2^g`
