@@ -3,7 +3,7 @@
 //! [`verify`] wraps the `verifier` crate.
 
 use crate::constraints;
-use crate::leaf::{self, Block, ColumnClaim, Coord};
+use crate::leaf::{self, Block, Coord};
 use crate::pcs;
 use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STATE};
 use crate::witness;
@@ -191,8 +191,8 @@ pub(crate) fn prove_with<W: Word>(
 
     let (bus, table_claims) = {
         let l = &w.layout;
-        let cols = w.columns();
-        let bus = leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, program.stacked_bytecode(), &mut ps);
+        let cols = w.columns(program.stacked_bytecode());
+        let bus = leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &mut ps);
         let table_claims = {
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
@@ -206,7 +206,7 @@ pub(crate) fn prove_with<W: Word>(
     // The public input's binding (§sec:e2e-pi) sends nothing: its claims are lines in `r_pi` the verifier evaluates
     // itself, numerator one, so no grind.
     let r_pi = ps.sample();
-    let mut slots = finish_claims(&w.layout, &bus.claims, &table_claims, r_pi);
+    let mut slots = finish_claims(&w.layout, &bus, &table_claims, r_pi);
 
     // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
     // point claim.
@@ -230,13 +230,13 @@ pub(crate) fn prove_with<W: Word>(
 /// sent with the claims, or are the verifier's own.
 fn finish_claims(
     l: &Layout,
-    bus_claims: &[ColumnClaim],
+    bus: &leaf::BusProof,
     table_claims: &constraints::Claims,
     r_pi: F128,
 ) -> Vec<pcs::StackClaim> {
     let mut claims = Vec::new();
-    for c in bus_claims {
-        push_claim(&mut claims, l, c.col, &c.point);
+    for c in &bus.claims {
+        push_claim(&mut claims, l, c.col, &bus.point[..c.n_vars]);
     }
     for t in 0..tables::N_TABLES {
         for col in GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t] {

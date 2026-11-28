@@ -11,7 +11,6 @@
 
 use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
-use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, mul_by_g};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
@@ -98,12 +97,12 @@ pub fn layout(blocks: &[Block]) -> Layout {
     }
 }
 
-/// An evaluation claim on a committed column, settled by the PCS opening.
+/// An evaluation claim on a committed column at the GKR's point `ζ`'s first `n_vars` coordinates, whose value was
+/// sent, settled by the PCS opening.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ColumnClaim {
     pub col: usize,
-    pub point: Vec<F128>,
-    pub value: F128,
+    pub n_vars: usize,
 }
 
 /// What the bus hands on: the boundary blocks' column claims, the GKR's point `ζ` (the table sumcheck's eq point),
@@ -128,16 +127,13 @@ struct Tree<'a> {
 /// The stream: the [`verifier::bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
 /// ([`gkr::prove_products`]); the boundary blocks' fresh column values; the bytecode's share
 /// ([`prove_bytecode_share`]).
+/// `columns` are the committed columns, then the `2^BUS_BITS` columns [`Coord::Public`] names.
 pub(crate) fn prove_balance<'a>(
     blocks: [&'a [Block]; N_BUS_TREES],
-    cols: &[&[F64]],
-    stacked_bytecode: &[u64],
+    columns: &[&[F64]],
     ps: &mut ProverState,
 ) -> BusProof<'a> {
-    // The columns [`Coord::Public`] names.
-    let public: Vec<&[F64]> = cast_slice(stacked_bytecode)
-        .chunks_exact(stacked_bytecode.len() >> BUS_BITS)
-        .collect();
+    let (cols, public) = columns.split_at(columns.len() - (1 << BUS_BITS));
     let mut layouts = blocks.map(layout);
     let mu = layouts[0].mu;
     assert_eq!(
@@ -161,29 +157,37 @@ pub(crate) fn prove_balance<'a>(
     // tree's depth, at which `ζ` splits.
     let mut count_alpha = vec![F128::ZERO; 1 << BUS_BITS];
     count_alpha[0] = F128::ONE;
-    let mut fingerprints = [(alpha.clone(), beta), (alpha, beta), (count_alpha, F128::ZERO)].into_iter();
     layouts[2].mu = mu;
-    let mut layouts = layouts.into_iter();
-    let trees: [Tree; N_BUS_TREES] = std::array::from_fn(|s| {
-        let (alpha, beta) = fingerprints.next().unwrap();
+    let [push, pull, count] = layouts;
+    let trees = [
         Tree {
-            blocks: blocks[s],
-            layout: layouts.next().unwrap(),
+            blocks: blocks[0],
+            layout: push,
+            alpha: alpha.clone(),
+            beta,
+        },
+        Tree {
+            blocks: blocks[1],
+            layout: pull,
             alpha,
             beta,
-        }
-    });
+        },
+        Tree {
+            blocks: blocks[2],
+            layout: count,
+            alpha: count_alpha,
+            beta: F128::ZERO,
+        },
+    ];
 
-    // The committed columns, then the public ones.
-    let columns: Vec<&[F64]> = cols.iter().chain(&public).copied().collect();
-    let leaves = trees.each_ref().map(|tree| build_leaves(tree, &columns, cols.len()));
+    let leaves = trees.each_ref().map(|tree| build_leaves(tree, columns, cols.len()));
     let (zeta, _) = gkr::prove_products(leaves, ps);
 
     let mut claims = Vec::new();
     for tree in &trees {
         claim_boundary(tree, cols, &zeta, &mut claims, ps);
     }
-    prove_bytecode_share(&public, &zeta, &trees[0].alpha, ps);
+    prove_bytecode_share(public, &zeta, &trees[0].alpha, ps);
     BusProof {
         claims,
         point: zeta,
@@ -373,30 +377,22 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
 fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<ColumnClaim>, ps: &mut ProverState) {
     assert_eq!(zeta.len(), tree.layout.mu);
     for block in tree.blocks.iter().filter(|b| b.owner.is_none()) {
-        let zeta_lo = &zeta[..block.kappa];
-        // The block's columns not yet claimed at `ζ_lo`, in coordinate order, at `ζ_lo` in one pass.
-        let mut fresh: Vec<usize> = Vec::new();
+        // The block's columns not yet claimed at `ζ_lo`, in coordinate order, at `ζ_lo` in one pass. Push and pull
+        // share their point, so a column read by both, or by two blocks of one height, is sent and opened once.
+        let fresh = claims.len();
         for c in &block.coords {
-            if let Coord::Col(i) | Coord::GCol(i, _) = c
-                && !known_claim(claims, *i, zeta_lo)
-                && !fresh.contains(i)
+            if let Coord::Col(col) | Coord::GCol(col, _) = *c
+                && !claims.iter().any(|c| c.col == col && c.n_vars == block.kappa)
             {
-                fresh.push(*i);
+                claims.push(ColumnClaim {
+                    col,
+                    n_vars: block.kappa,
+                });
             }
         }
-        let columns: Vec<&[F64]> = fresh.iter().map(|&i| cols[i]).collect();
-        for (&col, value) in fresh.iter().zip(crate::eq::eq_sums(zeta_lo, &columns)) {
-            ps.add_scalar(value);
-            let point = zeta_lo.to_vec();
-            claims.push(ColumnClaim { col, point, value });
-        }
+        let columns: Vec<&[F64]> = claims[fresh..].iter().map(|c| cols[c.col]).collect();
+        ps.add_scalars(&crate::eq::eq_sums(&zeta[..block.kappa], &columns));
     }
-}
-
-/// Whether `(col, point)` is already claimed: push and pull share their point, so a column read by both, or by two
-/// blocks of one height, is sent and opened once.
-fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> bool {
-    claims.iter().any(|c| c.col == col && c.point == point)
 }
 
 /// The program's share of a bytecode leaf, `S = Σ_x α_x·P(ζ_lo, x)` over the slots `x` of the stacked bytecode `P`

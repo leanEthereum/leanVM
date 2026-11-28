@@ -94,11 +94,13 @@ pub(crate) struct Witness {
 impl Witness {
     /// One read-only view per column, in global column order: the window into the
     /// stack for a committed column or a KECCAK input lane (its slot of `q_keccak`),
-    /// the private buffer for an output lane.
-    pub(crate) fn columns(&self) -> Vec<&[F64]> {
+    /// the private buffer for an output lane. Then the stacked bytecode's columns, which
+    /// [`Coord::Public`] names.
+    pub(crate) fn columns<'a>(&'a self, stacked_bytecode: &'a [u64]) -> Vec<&'a [F64]> {
         let q_keccak = self.layout.placements[QKECCAK].offset;
         let steps = 1 << self.layout.taus[verifier::layout::OP_KECCAK];
-        let mut cols: Vec<&[F64]> = Vec::with_capacity(N_COLUMNS);
+        let public = primitives::cast_slice(stacked_bytecode);
+        let mut cols: Vec<&[F64]> = Vec::with_capacity(N_COLUMNS + (1 << verifier::layout::BUS_BITS));
         for (i, p) in self.layout.placements.iter().enumerate() {
             cols.push(match keccak_value(i) {
                 Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
@@ -107,6 +109,7 @@ impl Witness {
                 _ => &self.q[p.offset..][..1 << p.n_vars],
             });
         }
+        cols.extend(public.chunks_exact(public.len() >> verifier::layout::BUS_BITS));
         cols
     }
 }
