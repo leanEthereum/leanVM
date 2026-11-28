@@ -46,8 +46,10 @@ fn main() {
     let mut clang_cmd = Command::new(&clang);
     clang_cmd.arg(format!("--target={clang_target}"));
     if target_arch == "x86_64" {
-        // Emit non-relaxable R_X86_64_GOTPCREL so linkers (lld, ld.bfd, cgo, zig) never rewrite
-        // proved GOT loads/calls into `lea` or `addr32 call`.
+        // Emit R_X86_64_GOTPCREL instead of GOTPCRELX so lld and shared-library builds (.so)
+        // never rewrite proved GOT loads/calls into `lea` or `addr32 call`. Note: GNU ld.bfd
+        // still relaxes R_X86_64_GOTPCREL on local symbols in executables unless `-Wl,--no-relax`
+        // is passed at link time.
         clang_cmd.arg("-Wa,-mrelax-relocations=no");
     }
     run(

@@ -14,6 +14,9 @@ on:
       - .cargo/config.toml
       - scripts/tier-rustc
       - scripts/check-tiers
+      - formal/native/rustc/asm/**
+      - formal/native/rustc/SHA256SUMS
+      - formal/native/run/check-linked-elf.py
       - .github/workflows/bindings-ci.yml
   pull_request:
     paths:
@@ -25,6 +28,9 @@ on:
       - .cargo/config.toml
       - scripts/tier-rustc
       - scripts/check-tiers
+      - formal/native/rustc/asm/**
+      - formal/native/rustc/SHA256SUMS
+      - formal/native/run/check-linked-elf.py
       - .github/workflows/bindings-ci.yml
   # bindings-release-please.yml dispatches it on the release pull request, which GITHUB_TOKEN made.
   workflow_dispatch:
@@ -70,6 +76,12 @@ jobs:
 
       - name: Test Rust bindings
         run: cargo test --release -p lean-pq
+        working-directory: bindings
+
+      - name: Check verified leanSPHINCS ELF (native .so)
+        run: |
+          cargo build --release -p lean-pq-native
+          python3 ../formal/native/run/check-linked-elf.py --arch x86_64 target/release/liblean_pq_native.so
         working-directory: bindings
 
       - name: Lint Rust bindings
@@ -123,6 +135,13 @@ jobs:
       # uv builds the extension (in release, pyproject.toml's [tool.maturin]) into its virtualenv.
       - name: Run tests
         run: uv run --extra dev pytest tests/ -v
+        working-directory: bindings/python
+
+      - name: Check verified leanSPHINCS ELF (Python .so)
+        if: runner.os == 'Linux'
+        run: |
+          so=$(uv run --extra dev python -c "import py_lean_pq; print(py_lean_pq.__file__)")
+          python3 ../../formal/native/run/check-linked-elf.py --arch x86_64 "$so"
         working-directory: bindings/python
 
       - name: Check type stubs match runtime
@@ -280,6 +299,10 @@ jobs:
           npm ci
           npm run build
           npm test
+        working-directory: bindings/node
+
+      - name: Check verified leanSPHINCS ELF (Node .node)
+        run: python3 ../../formal/native/run/check-linked-elf.py --arch x86_64 lean_pq_node.linux-x64-gnu.node
         working-directory: bindings/node
 
       # napi generates index.js, index.d.ts and the per-platform npm/ packages; they must be committed.
@@ -472,7 +495,7 @@ jobs:
             runner: ubuntu-latest
             bundle_dir: aarch64-linux-gnu
             go_dir: linux_arm64
-            go_test_command: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" go test -c -o /tmp/leanpq-arm64.test .
+            go_test_command: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC="zig cc -target aarch64-linux-gnu" go test -c -ldflags='-linkmode=external -extldflags=-Wl,--no-relax' -o /tmp/leanpq-arm64.test .
           - name: macOS universal
             runner: macos-15
             bundle_dir: universal-macos
@@ -513,4 +536,16 @@ jobs:
 
       - name: Test Go bindings
         run: ${{ matrix.platform.go_test_command }}
+        working-directory: bindings/go
+
+      - name: Check verified leanSPHINCS ELF (Linux amd64)
+        if: matrix.platform.go_dir == 'linux_amd64'
+        run: |
+          go test -c -ldflags='-linkmode=external -extldflags=-Wl,--no-relax' -o /tmp/leanpq-amd64.test .
+          python3 ../../formal/native/run/check-linked-elf.py --arch x86_64 /tmp/leanpq-amd64.test
+        working-directory: bindings/go
+
+      - name: Check verified leanSPHINCS ELF (Linux arm64)
+        if: matrix.platform.go_dir == 'linux_arm64'
+        run: python3 ../../formal/native/run/check-linked-elf.py --arch aarch64 /tmp/leanpq-arm64.test
         working-directory: bindings/go
