@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.Cpl
-public import LeanVM.Guest.B2C.Share
+public import LeanVM.Guest.B2C.ShareBase
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.B2C.ChainCheck
 

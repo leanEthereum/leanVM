@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Local.Fold
-public import LeanVM.Guest.B2C.ShareCheck
+public import LeanVM.Guest.B2C.ShareBase
 public import LeanVM.Guest.B2C.CplCheck
 
 /-!
@@ -109,11 +109,11 @@ def aP (a : ℕ) : ℕ := fld a 0 18
 def aE (a : ℕ) : ℕ := fld a 18 18
 def aCell (a : ℕ) : ℕ := fld a 36 16
 def aJ (a : ℕ) : ℕ := fld a 52 8
-def aOp (a : ℕ) : ℕ := fld a 60 8
-def aConst (a : ℕ) : ℕ := fld a 68 1
-def aIns (a : ℕ) : ℕ := fld a 72 224
-def aK0 (a : ℕ) : ℕ := fld a 296 64
-def aK1 (a : ℕ) : ℕ := fld a 360 64
+def aOp (a : ℕ) : ℕ := fld a 60 16
+def aConst (a : ℕ) : ℕ := fld a 76 1
+def aIns (a : ℕ) : ℕ := fld a 80 224
+def aK0 (a : ℕ) : ℕ := fld a 304 64
+def aK1 (a : ℕ) : ℕ := fld a 368 64
 
 def tO (x : ℕ) : ℕ := fld x 0 16
 def tK0 (x : ℕ) : ℕ := fld x 16 64
@@ -204,7 +204,7 @@ structure FnK where
   /-- The temporaries by cell, and the frame runs. -/
   tt : Trie ℕ
   runs : List (ℕ × ℕ)
-  /-- A bound on every value's cell (`2 ^ mainCells` in `main`). -/
+  /-- A bound on every value's cell (`mainCells` in `main`). -/
   mb : ℕ
   /-- The number of values. -/
   nv : ℕ
@@ -410,26 +410,70 @@ noncomputable def apartOkL (C : Cert) (P : Plumb) (main : Bool) (mc : ℕ) : Boo
 noncomputable def fnK (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) :
     FnK :=
   ⟨T, fs, nextCells C.locs fs (tailArgs cf), fpgCells P, byCell P.tmps, P.runs,
-    bif main then 2 ^ mc else 65536, C.locs.length⟩
+    bif main then mc else 65536, C.locs.length⟩
 
 /-- The parameters' occurrences, at position `0`. -/
 noncomputable def paramsOk (K : FnK) (params : List V) : Option ℕ :=
   occsOk K (.ret params) 0 ⟨K.T.e, 0, 0⟩ params 0 0
 
+/-! ## Pieces of a walk
+
+A large function's walk is checked in pieces, each in its own kernel evaluation: statements
+`[a, b)` of the body (`segL`), and arms `[a, b)` of a `match` of the body (`segHead`, `segArms`),
+each from the position, state and arm end the previous one reaches. -/
+
+/-- The walk of statements `[a, b)` of block `ss` (context `cx`), from position `p`, state `st`
+and arm end `ea`, reaches position `p'`, state `st'` and arm end `eb`. -/
+noncomputable def segL (K : FnK) (ss : List Stmt) (cx : Ctx) (a b p : ℕ) (st : ℕ × ℕ) (ea p' : ℕ)
+    (st' : ℕ × ℕ) (eb : ℕ) : Bool :=
+  match Local.foldL (step K) ((ss.drop a).take (b - a)) cx p st (K.T.ends.drop ea) with
+  | some r => Nat.beq r.1 p' && Nat.beq r.2.1.1 st'.1 && Nat.beq r.2.1.2 st'.2 && r.2.2 == K.T.ends.drop eb
+  | none => false
+
+/-- Statement `m` of block `ss` is a `match`, and its own step at position `p` takes `st` to
+`st'`. -/
+noncomputable def segHead (K : FnK) (ss : List Stmt) (cx : Ctx) (m p : ℕ) (st st' : ℕ × ℕ) : Bool :=
+  match (ss.drop m).head? with
+  | some (.match_ x arms) => match step K st p (.match_ x arms) cx with
+    | some r => Nat.beq r.1 st'.1 && Nat.beq r.2 st'.2
+    | none => false
+  | _ => false
+
+/-- Statement `m` of block `ss` is a `match` at position `t`, and the walk of its arms `[a, b)`,
+from position `pa`, state `st` and arm end `ea`, reaches position `pb`, state `st'` and arm end
+`eb`. -/
+noncomputable def segArms (K : FnK) (ss : List Stmt) (m t a b pa : ℕ) (st : ℕ × ℕ) (ea pb : ℕ)
+    (st' : ℕ × ℕ) (eb : ℕ) : Bool :=
+  match (ss.drop m).head? with
+  | some (.match_ _ arms) =>
+    match Local.foldA (step K) ((arms.drop a).take (b - a)) t pa st (K.T.ends.drop ea) with
+    | some r => Nat.beq r.1 pb && Nat.beq r.2.1.1 st'.1 && Nat.beq r.2.1.2 st'.2 && r.2.2 == K.T.ends.drop eb
+    | none => false
+  | _ => false
+
+/-- Statement `m` of block `ss` is a `match` of `n` arms. -/
+noncomputable def segArity (ss : List Stmt) (m n : ℕ) : Bool :=
+  match (ss.drop m).head? with
+  | some (.match_ _ arms) => Nat.beq arms.length n
+  | _ => false
+
+/-- The once-per-function parts of the check. -/
+noncomputable def staticL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) : Bool :=
+  listsOk P fs && apartOkL C P main mc && freeOk T (siteCells P) && freeOk T (P.arms.map fun a ↦ a.2.1) &&
+  statOk T P.stat && tmpsOk T P.tmps && locsOk T C.locs &&
+  allR (fun v ↦ Nat.blt (fld (tget wV 8 5 T.vl v.idx) 0 16) fs) cf.params
+
+/-- The walk of the parameters and the body. -/
+noncomputable def walkL (K : FnK) (cf : Core.Fn) : Bool :=
+  match paramsOk K cf.params with
+  | some n => segL K cf.body ⟨K.T.e, 0, 0⟩ 0 cf.body.length 1 (n, 0) 0 K.T.e (K.nv, K.T.nat) K.T.ends.length
+  | none => false
+
 /-- **The sharing check of a function**, of core IR `cf`, certificate `C`, completeness data
 `P`, frame size `fs`, with its sharing certificate `T`. -/
 noncomputable def shareCheckL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ)
     (T : Tabs) : Bool :=
-  let K := fnK cf C P fs main mc T
-  listsOk P fs && apartOkL C P main mc && freeOk T (siteCells P) && freeOk T (P.arms.map fun a ↦ a.2.1) &&
-  statOk T P.stat && tmpsOk T P.tmps && locsOk T C.locs &&
-  allR (fun v ↦ Nat.blt (fld (tget wV 8 5 T.vl v.idx) 0 16) fs) cf.params &&
-  (match paramsOk K cf.params with
-    | some n => match Local.foldL (step K) cf.body ⟨T.e, 0, 0⟩ 1 (n, 0) T.ends with
-      | some r => Nat.beq r.1 T.e && Nat.beq r.2.1.1 C.locs.length && Nat.beq r.2.1.2 T.nat &&
-          r.2.2.isEmpty
-      | none => false
-    | none => false)
+  staticL cf C P fs main mc T && walkL (fnK cf C P fs main mc T) cf
 
 end
 end LeanVM.Guest.B2C.ShareL

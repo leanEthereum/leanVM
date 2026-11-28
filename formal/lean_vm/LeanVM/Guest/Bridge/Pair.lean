@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Bridge.StepRule
-public import LeanVM.Guest.B2C.ShareSound
+public import LeanVM.Guest.B2C.ShareBase
 
 /-!
 # The pairing at a pc

@@ -44,8 +44,7 @@ structure Site where
 /-- What a function's frame holds beyond its core values: the fixed cells `stat`, the call sites,
 the table jumps `(selector value, target cell, table base)`, the range checks' temporaries and
 the frame runs' values with their cells `(value, cell)`, the most instructions of each opcode
-(in `Opcode`'s order) a path through the function's code runs (`pmax`), the cells holding
-several values (`sh`), and the chained `match`es `(p, x, ts, y, b)`: top-level statement `p` of the
+(in `Opcode`'s order) a path through the function's code runs (`pmax`), and the chained `match`es `(p, x, ts, y, b)`: top-level statement `p` of the
 body is a `match` on `V.n x` whose arm `k` ends in the table jump through cell `ts[k]`, from the
 table at base `b`, into the arms of the next `match`, on `V.n y` (`chains`); and the bit set of the
 values the body's top-level atoms name (`nv`, `B2C.nvOf` of the body, checked once in `cplWin`). -/
@@ -56,24 +55,11 @@ structure Plumb where
   tmps : List (ℕ × ℕ) := []
   runs : List (ℕ × ℕ) := []
   pmax : List ℕ := []
-  sh : List ℕ := []
   chains : List (ℕ × ℕ × List ℕ × ℕ × ℕ) := []
   nv : ℕ := 0
   /-- The cells past the frame holding the next frame's address `fp·g^fs`: its self cells, where a loop
   helper computes it. -/
   nxt : List ℕ := []
-  deriving Repr
-
-/-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window
-whose cells it reads, the occupied cells (a bit set), and the known values, the shared cells'
-constants `(cell, limbs)` and keys `(cell, op, input cells)` handed on. -/
-structure Snap where
-  start : ℕ
-  win : ℕ
-  occ : ℕ
-  named : List ℕ
-  cst : List (ℕ × ℕ × ℕ)
-  keys : List (ℕ × ℕ × List ℕ)
   deriving Repr
 
 /-- The arms' counts of the `match` on `x`, if counted separately. -/

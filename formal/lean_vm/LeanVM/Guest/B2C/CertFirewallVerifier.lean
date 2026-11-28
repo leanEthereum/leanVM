@@ -1,5 +1,5 @@
 import LeanVM.Guest.B2C.Cpl
-import LeanVM.Guest.B2C.ShareStatic
+import LeanVM.Guest.B2C.ShareL
 import LeanVM.Guest.CheckWinC
 import LeanVM.Guest.Memory.Family
 

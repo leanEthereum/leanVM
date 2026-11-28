@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.B2C.ShareLHome
-public import LeanVM.Guest.B2C.ShareSound
+public import LeanVM.Guest.B2C.ShareBase
+public import LeanVM.Guest.CheckSound
 
 /-!
 # Atoms by operand, and a cell's list
@@ -25,6 +26,18 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Check LeanVM.Guest.Exec
 
 @[expose] public section
+
+/-! ## Constants' words -/
+
+/-- The word of a constant's limbs. -/
+def tw (x : ℕ × ℕ) : E := OffsetInstruction.immediateWord x.1 x.2
+
+theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1) = x :=
+  (eq_imm_of_limbs rfl rfl).symm
+
+theorem tw_one : tw (1, 0) = 1 := by
+  rw [tw, imm_of_ofBits K.ofBits_one, ofK_one]
+
 
 section Atoms
 

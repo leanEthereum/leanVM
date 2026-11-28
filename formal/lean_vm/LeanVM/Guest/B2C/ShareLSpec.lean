@@ -179,16 +179,19 @@ structure CheckL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) 
     ∀ q s c', AtL (c0 T) 1 cf.body q s c' → step (fnK cf C P fs main mc T) (f q) q s c' = some (f (q + 1))
 
 theorem checkL_spec (h : shareCheckL cf C P fs main mc T = true) : CheckL cf C P fs main mc T := by
-  unfold shareCheckL at h
+  unfold shareCheckL staticL at h
   simp only [Bool.and_eq_true, allR_eq, List.all_eq_true, Nat.blt_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hl, ha⟩, hs⟩, har⟩, hst⟩, ht⟩, hlo⟩, hp⟩, h⟩ := h
+  unfold walkL at h
   split at h
   · rename_i n0 hn0
+    unfold segL at h
+    rw [List.drop_zero, Nat.sub_zero, List.take_length] at h
     split at h
     · rename_i r hr
-      simp only [Bool.and_eq_true, nbeq_iff', List.isEmpty_iff] at h
+      simp only [Bool.and_eq_true, nbeq_iff', beq_iff_eq, List.drop_length] at h
       obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
-      obtain ⟨r1, r2, r3⟩ := r
+      obtain ⟨r1, ⟨r21, r22⟩, r3⟩ := r
       simp only at h1 h2 h3 h4
       subst h1 h4
       obtain ⟨hsz, f, hf1, hfe, hsteps⟩ := fold_body (c := c0 T) (p := 1) hr

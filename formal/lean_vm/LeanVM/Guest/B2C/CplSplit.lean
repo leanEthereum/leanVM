@@ -10,7 +10,8 @@ module
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplSem
-public import LeanVM.Guest.B2C.ShareSplit
+public import LeanVM.Guest.B2C.ShareBase
+public import LeanVM.Guest.CheckSplit
 
 /-!
 # Completeness windows split by arms

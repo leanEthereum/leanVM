@@ -33,7 +33,7 @@ open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 /-! ## A window's cells
 
-A window's cells packed in one number, base `2^16` (as `B2C.Share`'s `Loc`): those of the values
+A window's cells packed in one number, base `2^16`: those of the values
 `lo, …, lo + len - 1`, and those of the other values its statements name. -/
 
 /-- The cells of a list packed, cell `m` in the `m`-th base-`2^16` digit. -/

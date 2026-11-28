@@ -1,12 +1,12 @@
 import LeanVM.Guest.B2C.Cpl
-import LeanVM.Guest.B2C.ShareStatic
+import LeanVM.Guest.B2C.ShareL
 import LeanVM.Guest.CheckWinC
 import LeanVM.Guest.Memory.Family
 
 /-! **The kernel-checked certificates of the guest program read its code and the checks alone.**
 The generated certificates (`B2C/Cplw`, `B2C/Shared`, `Checked`, `Memory/GuestCnt`) are most of
 `lean_vm`'s kernel evaluation, and a module is rebuilt whenever what a module it
-imports exports changes. Each imports its family's base (`B2C.Cpl`, `B2C.ShareStatic`,
+imports exports changes. Each imports its family's base (`B2C.Cpl`, `B2C.ShareL`,
 `CheckWinC`, `Memory.Family`), and those import the guest program's code, its compiled form
 and the functions the checks evaluate (of the statement: the ISA, the field, the verifier's
 definitions and the bytecode), not the guest's statement, the program logic, B1's proofs, the
