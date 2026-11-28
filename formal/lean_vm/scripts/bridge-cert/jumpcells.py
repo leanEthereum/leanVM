@@ -76,9 +76,8 @@ def gen():
             if j not in fe:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fq = f'fsEq{j}'
-            body.append(f'theorem jc{j} : Bridge.jcData {j} = true := by have hx : Bridge.extraOf {j} = {ctxs[k][0]} := '
-                        f'congrArg Prod.fst ProgAl.tab{j}; rw [Bridge.jcData, Checked.code{j}, Checked.core{j}, '
-                        f'Checked.cert{j}, {pe}, {fq}, hx]; exact Fn.«{k}».jcOk\n')
+            body.append(f'theorem jc{j} : Bridge.jcData {j} = true := Bridge.jcData_of Checked.code{j} Checked.core{j} '
+                        f'Checked.cert{j} {pe} {fq} ProgAl.tab{j} Fn.«{k}».jcOk\n')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD(mod=f'LeanVM.Guest.Bridge.JumpCells.{lmod}',
                         what=f"The functions of `Checked.{lmod}` pass the jump cells' check by index.")
