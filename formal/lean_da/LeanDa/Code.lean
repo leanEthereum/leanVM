@@ -30,20 +30,20 @@ namespace LeanDa
 def firstHalf (w : Row) : Payload := fun a ↦ w (Fin.castLE (by norm_num) a)
 
 theorem posRow_pos {r : ℕ} (i : Fin r) (j : Fin 128) : positionRow (cellPosition i j) = i :=
-  Fin.ext (by simp only [positionRow, cellPosition]; omega)
+  Fin.ext (by simp only [positionRow, cellPosition]; (dsimp only [cellSymbols, cellsPerRow] at *; omega))
 
 theorem posCell_pos {r : ℕ} (i : Fin r) (j : Fin 128) : positionCell (cellPosition i j) = j :=
-  Fin.ext (by simp only [positionCell, cellPosition]; omega)
+  Fin.ext (by simp only [positionCell, cellPosition]; (dsimp only [cellSymbols, cellsPerRow] at *; omega))
 
 theorem pos_posRow_posCell {r : ℕ} (p : Fin (r * 128)) : cellPosition (positionRow p) (positionCell p) = p :=
-  Fin.ext (by simp only [positionRow, positionCell, cellPosition]; omega)
+  Fin.ext (by simp only [positionRow, positionCell, cellPosition]; (dsimp only [cellSymbols, cellsPerRow] at *; omega))
 
 theorem rowOf_encodeMatrix {r : ℕ} (msg : Fin r → Payload) (i : Fin r) :
     matrixRow (encodeMatrix msg) i = encodeRow (msg i) := by
   funext b
   simp only [matrixRow, encodeMatrix, rowCell, posRow_pos, posCell_pos]
   congr 1
-  exact Fin.ext (by simp only; omega)
+  exact Fin.ext (by simp only; (dsimp only [cellSymbols, cellsPerRow] at *; omega))
 
 theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i, matrixRow c i ∈ rsCode) :
     encodeMatrix (fun i ↦ firstHalf (matrixRow c i)) = c := by
@@ -52,8 +52,8 @@ theorem encodeMatrix_firstHalf {r : ℕ} (c : Fin (r * 128) → Cell) (h : ∀ i
   rw [show firstHalf (matrixRow c (positionRow p)) =
       fun a ↦ matrixRow c (positionRow p) (Fin.castLE (by norm_num) a) from rfl, encodeRow_firstHalf (h _)]
   simp only [matrixRow]
-  have h1 : (⟨(128 * (positionCell p : ℕ) + s) / 128, by omega⟩ : Fin 128) = positionCell p :=
-    Fin.ext (by simp only; omega)
+  have h1 : (⟨(128 * (positionCell p : ℕ) + s) / 128, by (dsimp only [cellSymbols, cellsPerRow] at *; omega)⟩ : Fin 128) = positionCell p :=
+    Fin.ext (by simp only; (dsimp only [cellSymbols, cellsPerRow] at *; omega))
   have h2 : (⟨(128 * (positionCell p : ℕ) + s) % 128, by omega⟩ : Fin 128) = s :=
     Fin.ext (by simp only; omega)
   rw [h1, h2, pos_posRow_posCell]

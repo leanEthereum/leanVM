@@ -60,7 +60,7 @@ theorem length_eBytes (x : E) : (LeanVM.Parameters.E.toBytes x).length = 16 := b
 
 theorem length_cellBytes (x : Cell) : (cellBytes x).length = 2048 := by
   rw [cellBytes, List.length_flatMap]
-  simp only [length_eBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul]
+  simp only [length_eBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul, cellSymbols]
 
 theorem length_pairBytes (a b : Common.DigestBytes) : (pairBytes a b).length = 64 := by
   simp [pairBytes]
@@ -143,7 +143,7 @@ theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
-  simp only [cellPosition, positionRow, positionCell]
+  simp only [cellPosition, positionRow, positionCell, cellsPerRow]
   omega
 
 /-- **An honest opening verifies.** -/

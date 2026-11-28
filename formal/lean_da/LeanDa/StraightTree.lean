@@ -335,7 +335,7 @@ theorem paddedCell_pos (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 1
   apply Fin.ext
-  simp only [cellPosition, positionRow, positionCell]
+  simp only [cellPosition, positionRow, positionCell, cellsPerRow]
   omega
 
 /-- **One root, one matrix**, over a hash injective on a set holding both commitments' inputs. -/

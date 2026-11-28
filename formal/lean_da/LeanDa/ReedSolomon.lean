@@ -188,6 +188,7 @@ theorem dotForm_evalDomain (P Q : E[X]) :
     dotForm (evalDomain P) (evalDomain Q) = ∑ x ∈ domain, (P * Q).eval x := by
   rw [dotForm_apply, sum_domain]
   simp [evalDomain]
+  rfl
 
 /-- Two codewords are orthogonal. -/
 theorem rsCode_le_orthogonal : rsCode ≤ dotForm.orthogonal rsCode := by

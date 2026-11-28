@@ -118,16 +118,16 @@ little-endian bytes (`digestBytes`, `fiat_shamir_prover::merkle::Hash`).
 /-! ### Shapes (`lib.rs`) -/
 
 /-- Payload symbols per row, as a logarithm (`LOG_BLOB_SYMBOLS`). -/
-def logK : ℕ := 13
+abbrev logK : ℕ := 13
 
 /-- Codeword symbols per row, as a logarithm: rate one half (`LOG_CODEWORD_SYMBOLS`). -/
-def logM : ℕ := 14
+abbrev logM : ℕ := 14
 
 /-- Symbols per cell (`CELL_SYMBOLS`). -/
-def cellSymbols : ℕ := 128
+abbrev cellSymbols : ℕ := 128
 
 /-- Cells per codeword (`CELLS_PER_ROW`). -/
-def cellsPerRow : ℕ := 128
+abbrev cellsPerRow : ℕ := 128
 
 /-- The log of the most rows the crate commits to (`DA_MAX_ROWS.ilog2()`). -/
 def logMaxRows : ℕ := 5
@@ -135,51 +135,59 @@ def logMaxRows : ℕ := 5
 /-- The most rows the crate commits to (`DA_MAX_ROWS`), a power of two. -/
 def maxRows : ℕ := 2 ^ logMaxRows
 
+/-- `omega` on the shapes' constants, unfolded. -/
+local macro "cell_omega" : tactic => `(tactic| (dsimp only [cellSymbols, cellsPerRow, logM] at *; omega))
+
 /-- A row's payload: symbols of `E` (`Symbol`, a 128-bit word whose low and high halves are the
 limbs `c0`, `c1` of `c0 + c1·y`). -/
-abbrev Payload := Fin (2 ^ 13) → E
+abbrev Payload := Fin (2 ^ logK) → E
 
 /-- A codeword, in domain order. -/
-abbrev Row := Fin (2 ^ 14) → E
+abbrev Row := Fin (2 ^ logM) → E
 
 /-- A sampling cell. -/
-abbrev Cell := Fin 128 → E
+abbrev Cell := Fin cellSymbols → E
 
 /-! ### The code (`encode.rs`) -/
 
 /-- The polynomial of `E[X]` of degree below `2^13` taking the payload's values on the points
 `0 … 2^13 - 1` (`inverse_transform`, on each limb). -/
 noncomputable def interpolate (p : Payload) : E[X] :=
-  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 13) ↦ ι (point a)) p
+  Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ logK) ↦ ι (point a)) p
 
 /-- **The systematic encoding of a payload** (`encode_rows`): its polynomial's values on all
 `2^14` points (`encode_interleaved_in_place`, on each limb). -/
 noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (ι (point b))
 
 /-- Cell `j` of a codeword: its symbols `128 j … 128 j + 127`. -/
-def rowCell (row : Row) (j : Fin 128) : Cell := fun s ↦ row ⟨128 * j + s, by omega⟩
+def rowCell (row : Row) (j : Fin cellsPerRow) : Cell :=
+  fun s ↦ row ⟨cellSymbols * j + s, by cell_omega⟩
 
 /-- The position of cell `j` of row `i`. -/
-def cellPosition {r : ℕ} (i : Fin r) (j : Fin 128) : Fin (r * 128) := ⟨128 * i + j, by omega⟩
+def cellPosition {r : ℕ} (i : Fin r) (j : Fin cellsPerRow) : Fin (r * cellsPerRow) :=
+  ⟨cellsPerRow * i + j, by cell_omega⟩
 
 /-- The row of a position. -/
-def positionRow {r : ℕ} (p : Fin (r * 128)) : Fin r := ⟨p / 128, by omega⟩
+def positionRow {r : ℕ} (p : Fin (r * cellsPerRow)) : Fin r :=
+  ⟨p / cellsPerRow, by cell_omega⟩
 
 /-- The cell of a position within its row. -/
-def positionCell {r : ℕ} (p : Fin (r * 128)) : Fin 128 := ⟨p % 128, by omega⟩
+def positionCell {r : ℕ} (p : Fin (r * cellsPerRow)) : Fin cellsPerRow :=
+  ⟨p % cellsPerRow, by cell_omega⟩
 
 /-- The cells of a matrix of encoded payloads. -/
-noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r * 128) → Cell :=
+noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r * cellsPerRow) → Cell :=
   fun p ↦ rowCell (encodeRow (message (positionRow p))) (positionCell p)
 
 /-- Row `i` of a matrix given by its cells. -/
-def matrixRow {r : ℕ} (cells : Fin (r * 128) → Cell) (i : Fin r) : Row :=
-  fun b ↦ cells (cellPosition i ⟨b / 128, by omega⟩) ⟨b % 128, by omega⟩
+def matrixRow {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i : Fin r) : Row :=
+  fun b ↦ cells (cellPosition i ⟨b / cellSymbols, by cell_omega⟩)
+    ⟨b % cellSymbols, by cell_omega⟩
 
 /-- The cells of the matrix whose rows are `rows`, codewords as lists of symbols: cell `j` of row
 `i` at position `128 i + j`. -/
-def cellsOfRows (rows : List (List E)) : Fin (rows.length * 128) → Cell :=
-  fun p s ↦ (rows.getD (p / 128) []).getD (128 * (p % 128) + s) 0
+def cellsOfRows (rows : List (List E)) : Fin (rows.length * cellsPerRow) → Cell :=
+  fun p s ↦ (rows.getD (p / cellsPerRow) []).getD (cellSymbols * (p % cellsPerRow) + s) 0
 
 /-! ### The commitment (`commit.rs`)
 
@@ -196,8 +204,8 @@ the digest of those bytes. -/
 def countDigest (r : ℕ) : Digest := Vector.ofFn fun i : Fin 4 ↦ UInt64.ofNat (r / 2 ^ (64 * (i : ℕ)))
 
 /-- Cell `j` of row `i` of the matrix padded to `maxRows` rows: zero below the `r` rows. -/
-def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
-  if h : i < r ∧ j < 128 then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
+def paddedCell {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i j : ℕ) : Cell :=
+  if h : i < r ∧ j < cellsPerRow then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
 
 /-- The other node of the pair of node `index`. -/
 def sibling (index : ℕ) : ℕ := if index % 2 = 0 then index + 1 else index - 1
@@ -239,23 +247,23 @@ def merklePathWith : ℕ → (ℕ → m Digest) → ℕ → m (List Digest)
 
 /-- The leaves of padded row `i`'s tree: its `128` cell digests, `e_{i,j} = H(W_{i,j})`
 (`blob_merkle_nodes`). -/
-def cellLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : m Digest :=
+def cellLeavesWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i j : ℕ) : m Digest :=
   keccak256With π (cellBytes (paddedCell cells i j))
 
 /-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_merkle_nodes`; a
 padding row's is `root_of_padding_blob`). -/
-def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m Digest :=
+def blobRootWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (i : ℕ) : m Digest :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
 /-- **The commitment to a matrix** (`BlobMatrix::commitment`): the Merkle root of the padded rows'
 blob roots, hashed with the row count (`mix_in_count`). -/
-def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m Digest := do
+def commitCellsWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) : m Digest := do
   let tree ← merkleRootWith π logMaxRows (blobRootWith π cells)
   keccak256With π (digestBytes tree ++ digestBytes (countDigest r))
 
 /-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
-def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
+def openCellWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (p : Fin (r * cellsPerRow)) : m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)
   let high ← merklePathWith π logMaxRows (blobRootWith π cells) (positionRow p)
   pure ⟨low ++ high⟩
@@ -265,7 +273,7 @@ the row count's word, climbs (`climb`, the verifier's Merkle climb) from the cel
 `128 i + j` (the position: `j` in its blob's tree, then `i` in the tree over the blob roots), to the
 commitment. For `r ≤ maxRows` rows the last step is at index `0`, the crate's `mix_in_count`. The
 crate also refuses `r > maxRows` rows. -/
-def verifyCellWith (r : ℕ) (commitment : Digest) (position : Fin (r * 128)) (cell : Cell)
+def verifyCellWith (r : ℕ) (commitment : Digest) (position : Fin (r * cellsPerRow)) (cell : Cell)
     (opening : CellOpening) : m Bool := do
   let d ← keccak256With π (cellBytes cell)
   let root ← climb π d position (opening.path ++ [countDigest r])
@@ -321,13 +329,13 @@ def membershipChallengeWith (root : Digest) : m (Option E) := do
 end Monadic
 
 /-- **The commitment to a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
-def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell) :
+def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) :
     Digest :=
   Id.run (commitCellsWith (fun x ↦ pure (π x)) cells)
 
 /-- The honest opening of a position over a permutation `π` (`openCellWith` over `Id`). -/
-def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell)
-    (p : Fin (r * 128)) : CellOpening :=
+def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell)
+    (p : Fin (r * cellsPerRow)) : CellOpening :=
   Id.run (openCellWith (fun x ↦ pure (π x)) cells p)
 
 /-! ### Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
@@ -339,20 +347,20 @@ noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
 
 /-- **The dual codeword of the challenge `z`** (the guest program's
 `da_vector`): `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain. -/
-noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ 14)) : E :=
+noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ logM)) : E :=
   ∏ j : Fin 13, (1 + z ^ 2 ^ (j : ℕ) * ι ((normalizedSubspacePolynomial j).eval (point b)))
 
 /-- The inner product of the dual codeword with a row: `Σ_x L(x) row(x)` (the guest program's `da_verify`). -/
-noncomputable def innerProduct (L : Fin (2 ^ 14) → E) (row : Row) : E := ∑ b, L b * row b
+noncomputable def innerProduct (L : Fin (2 ^ logM) → E) (row : Row) : E := ∑ b, L b * row b
 
 /-- **The membership check**: every row is orthogonal to the dual codeword of `z`. -/
-noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * 128) → Cell) : Bool :=
+noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
 /-- **The membership check of a root's challenge**: the check on the challenge, or, for a root
 with no valid nonce (where the deployed verifier never returns), the check on every challenge,
 which only codewords pass. -/
-noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 128) → Cell) : Bool :=
+noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
   match z with
   | some z => membershipCheck z cells
   | none => @decide (∀ z : E, membershipCheck z cells = true) (Classical.propDecidable _)
@@ -360,7 +368,7 @@ noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * 
 /-! ## The relation: a matrix commits to a root and passes the root's membership test -/
 
 /-- **A matrix of codewords**: the cells of `r` encoded payloads. -/
-def IsCodewordMatrix {r : ℕ} (cells : Fin (r * 128) → Cell) : Prop :=
+def IsCodewordMatrix {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) : Prop :=
   ∃ message : Fin r → Payload, cells = encodeMatrix message
 
 /-- **LeanDA's relation**, over a permutation `π` in any monad: the cells commit to the root and
@@ -368,7 +376,7 @@ pass the membership test on the root's challenge, drawn by the deployed duplex
 (`membershipChallengeWith`), the hash Keccak-256 over `π`. In the games `π` is the model's
 (`queryPermutation`). -/
 noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState) {r : ℕ}
-    (root : Digest) (cells : Fin (r * 128) → Cell) : m Bool := do
+    (root : Digest) (cells : Fin (r * cellsPerRow) → Cell) : m Bool := do
   let z ← membershipChallengeWith π root
   let d ← commitCellsWith π cells
   pure (decide (d = root) && membershipCheckOpt z cells)
@@ -385,7 +393,7 @@ here; leanVM's, whose relation uses the deployed Keccak-f[1600], does not. -/
 /-- A position-binding adversary: a commitment, a position, and two cells with their openings. -/
 abbrev PositionBindingAdversary (r : ℕ) :=
   OracleComp RandomPermutationOracles
-    (Digest × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
+    (Digest × Fin (r * cellsPerRow) × Cell × CellOpening × Cell × CellOpening)
 
 /-- **The position-binding game**: the adversary, then the two openings' verifications; it wins
 when both verify, at two different cells. -/
@@ -398,13 +406,13 @@ def positionBindingGame (r : ℕ) (adversary : PositionBindingAdversary r) :
 
 /-- A membership adversary: a root and a matrix. -/
 abbrev MembershipAdversary (r : ℕ) :=
-  OracleComp RandomPermutationOracles (Digest × (Fin (r * 128) → Cell))
+  OracleComp RandomPermutationOracles (Digest × (Fin (r * cellsPerRow) → Cell))
 
 /-- **The membership game**: the adversary, then the relation's check of its root and matrix
 (`relationWith` over `π`: the commitment and the membership test on the root's challenge); the
 verdict and the matrix. -/
 noncomputable def membershipGame (r : ℕ) (adversary : MembershipAdversary r) :
-    OracleComp RandomPermutationOracles (Bool × (Fin (r * 128) → Cell)) := do
+    OracleComp RandomPermutationOracles (Bool × (Fin (r * cellsPerRow) → Cell)) := do
   let (root, cells) ← adversary
   let accepted ← relationWith queryPermutation root cells
   pure (accepted, cells)
@@ -419,7 +427,7 @@ for each `π`, it holds for every outcome of the binding statements' random perm
 `LeanDa.leanDa_complete`. -/
 abbrev LeanDaComplete : Prop :=
   ∀ (r : ℕ) (π : KeccakState → KeccakState), r ≤ maxRows →
-    (∀ (cells : Fin (r * 128) → Cell) (position : Fin (r * 128)),
+    (∀ (cells : Fin (r * cellsPerRow) → Cell) (position : Fin (r * cellsPerRow)),
       Id.run (verifyCellWith (fun x ↦ pure (π x)) r (commitCells π cells) position (cells position)
         (openCell π cells position)) = true) ∧
     ∀ message : Fin r → Payload,
