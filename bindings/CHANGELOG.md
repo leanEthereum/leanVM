@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.2](https://github.com/leanEthereum/leanVM/compare/bindings-v0.19.1...bindings-v0.19.2) (2026-11-28)
+
+
+### Bug Fixes
+
+* **zkdsl_compiler:** place a hoisted HeapBuf on every path and in allocation order ([29483d6](https://github.com/leanEthereum/leanVM/commit/29483d69b28762464f783277d210db7fc5e03a1c))
+
 ## [0.19.1](https://github.com/leanEthereum/leanVM/compare/bindings-v0.19.0...bindings-v0.19.1) (2026-11-27)
 
 
