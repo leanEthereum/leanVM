@@ -196,8 +196,8 @@ impl BusProof<'_> {
                 for (term, w) in f.terms {
                     let w = crate::mul(eq_sel, w);
                     match term {
-                        Term::Col(i) => form.coeffs[i - base] += w,
-                        Term::Prod(i, j) => form.prods.push((i - base, j - base, w)),
+                        Term::Col(i) => form.add_linear(i - base, w),
+                        Term::Prod(i, j) => form.add_product(i - base, j - base, w),
                         Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
                     }
                 }

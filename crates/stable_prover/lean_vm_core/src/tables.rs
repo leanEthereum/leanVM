@@ -346,7 +346,7 @@ impl Table {
         assert_eq!(pows.len(), self.n_constraints(), "one power per identity");
         match self {
             Table::Jump => jump_constraint(pows),
-            _ => Form::new(self.n_committed_columns()),
+            _ => Form::default(),
         }
     }
 
@@ -637,10 +637,11 @@ mod jump {
 /// `K` cannot balance the bus; the interpreter rejects one outright.
 fn jump_constraint(pows: &[F128]) -> Form {
     use jump::*;
-    let mut form = Form::new(N);
-    form.coeffs[B] = pows[0];
-    form.coeffs[V_COND] = pows[1];
-    form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
+    let mut form = Form::default();
+    form.add_linear(V_COND, pows[1]);
+    form.add_linear(B, pows[0]);
+    form.add_product(V_COND, W, pows[0]);
+    form.add_product(V_COND, B, pows[1]);
     form
 }
 

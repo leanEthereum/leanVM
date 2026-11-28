@@ -14,48 +14,69 @@
 //! challenge: `eq` factors, so `σ_j = (1 + ζ_m)·p_j(0) + ζ_m·p_j(1)` at `m = τ_j - 1`.
 //!
 //! A table joins in its first active round: its summand's few linear parts are written out from its `K` columns as `E`
-//! columns (`Grouped`), which every round then reads and folds, rather than its columns folded one by one.
+//! columns ([`Form`]'s groups), which every round then reads and folds, rather than its columns folded one by one.
 
 use crate::{load_e, load_k, mul};
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
 use primitives::transcript::ProverState;
 
-/// A degree-two form over one table's columns: `constant + Σ_c coeffs[c]·col_c + Σ q·col_a·col_b` over `prods`.
-#[derive(Clone, Debug)]
+/// A linear form over a table's columns, as `(column, coefficient)` terms.
+type Lin = Vec<(usize, F128)>;
+
+/// A degree-two form over one table's columns, in its local indices:
+/// `P(v) = constant + lin(v) + Σ_g v[left_g]·right_g(v)`.
+///
+/// The `right_g` and `lin` are linear, so a joined table folds them as single `E` columns instead of folding every
+/// column it reads: its state is `[lin, left_0, right_0, left_1, right_1, …]`.
+#[derive(Clone, Debug, Default)]
 pub struct Form {
-    pub coeffs: Vec<F128>,
-    /// `(a, b, q)`, in the table's local column indices.
-    pub(crate) prods: Vec<(usize, usize, F128)>,
     pub constant: F128,
+    lin: Lin,
+    /// The products grouped by their lesser column `left_g`, each pair once: a table's products share few columns
+    /// (a flag, `fp`), so a group costs one product beside its linear `right_g`.
+    groups: Vec<(usize, Lin)>,
 }
 
 impl Form {
-    /// The zero form over `n_cols` columns.
-    pub(crate) fn new(n_cols: usize) -> Self {
-        Self {
-            coeffs: vec![F128::ZERO; n_cols],
-            prods: Vec::new(),
-            constant: F128::ZERO,
+    /// Add `w·col_c`.
+    pub(crate) fn add_linear(&mut self, c: usize, w: F128) {
+        add_term(&mut self.lin, c, w);
+    }
+
+    /// Add `q·col_a·col_b`.
+    pub(crate) fn add_product(&mut self, a: usize, b: usize, q: F128) {
+        let (a, b) = (a.min(b), a.max(b));
+        let g = self.groups.iter().position(|g| g.0 == a).unwrap_or_else(|| {
+            self.groups.push((a, Vec::new()));
+            self.groups.len() - 1
+        });
+        add_term(&mut self.groups[g].1, b, q);
+    }
+
+    /// Columns of the joined state.
+    fn width(&self) -> usize {
+        1 + 2 * self.groups.len()
+    }
+
+    /// The form at one row, `v` the columns' values there; only its degree-two terms when `quadratic`.
+    #[cfg(test)]
+    pub(crate) fn eval(&self, v: &[F128], quadratic: bool) -> F128 {
+        let dot = |terms: &Lin| terms.iter().fold(F128::ZERO, |acc, &(c, w)| acc + w * v[c]);
+        let products = (self.groups.iter()).fold(F128::ZERO, |acc, (a, right)| acc + v[*a] * dot(right));
+        if quadratic {
+            products
+        } else {
+            products + self.constant + dot(&self.lin)
         }
     }
+}
 
-    /// `constant + Σ coeffs[c]·evals[c]`.
-    #[cfg(test)]
-    fn linear(&self, evals: &[F128]) -> F128 {
-        self.coeffs
-            .iter()
-            .zip(evals)
-            .fold(self.constant, |acc, (&w, &v)| acc + w * v)
-    }
-
-    /// The form at one row, `evals` the columns' values there; only its degree-two terms when `quadratic`.
-    #[cfg(test)]
-    pub(crate) fn eval(&self, evals: &[F128], quadratic: bool) -> F128 {
-        let linear = if quadratic { F128::ZERO } else { self.linear(evals) };
-        self.prods
-            .iter()
-            .fold(linear, |acc, &(a, b, q)| acc + evals[a] * evals[b] * q)
+/// Add `w` to the coefficient of column `c`.
+fn add_term(terms: &mut Lin, c: usize, w: F128) {
+    match terms.iter_mut().find(|t| t.0 == c) {
+        Some(t) => t.1 += w,
+        None => terms.push((c, w)),
     }
 }
 
@@ -97,7 +118,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
         .map(|air| Table {
             tau: air.tau,
             weight: F128::ONE,
-            form: Grouped::new(&air.form),
+            form: &air.form,
             cols: air.cols,
             state: None,
         })
@@ -161,7 +182,7 @@ struct Table<'a> {
     tau: usize,
     /// Its factor in `F`: the challenges it waited, then `eq(ζ_m, χ_m)` of each round since it joined.
     weight: F128,
-    form: Grouped,
+    form: &'a Form,
     cols: &'a [&'a [F64]],
     /// Its state, once the table has joined, folded by the rounds since.
     state: Option<State>,
@@ -173,7 +194,7 @@ impl Table<'_> {
     /// `ζ_m = 0`. `eqr` sums to one, so the form's constant is added once. The table joins in its first round, its
     /// state written from the `K` columns, and that round, from both endpoints, adds the table's `weight·σ` to `u`.
     fn message(&mut self, eqr: &[F128], m: usize, zeta: F128, u: &mut F128) -> [F128; 2] {
-        let (first, form, rows) = (self.state.is_none(), &self.form, 2 << m);
+        let (first, form, rows) = (self.state.is_none(), self.form, 2 << m);
         let state = &*self.state.get_or_insert_with(|| {
             let state = expand(form, self.cols, rows);
             if rows <= 8 {
@@ -204,56 +225,7 @@ impl Table<'_> {
     }
 }
 
-/// A linear form over a table's columns, as `(column, coefficient)` terms.
-type Lin = Vec<(usize, F128)>;
-
-/// A [`Form`] as the rounds read it: `P(v) = constant + lin(v) + Σ_g v[left_g]·right_g(v)`.
-///
-/// The `right_g` and `lin` are linear, so a joined table folds them as single `E` columns instead of folding every
-/// column it reads: its [`State`] is `[lin, left_0, right_0, left_1, right_1, …]`.
-struct Grouped {
-    constant: F128,
-    lin: Lin,
-    /// The products grouped by their lesser column `left_g`, each pair once: a table's products share few columns
-    /// (a flag, `fp`), so a group costs one product beside its linear `right_g`.
-    groups: Vec<(usize, Lin)>,
-}
-
-impl Grouped {
-    fn new(form: &Form) -> Self {
-        let mut lin = Lin::new();
-        for (c, &w) in form.coeffs.iter().enumerate() {
-            if !w.is_zero() {
-                lin.push((c, w));
-            }
-        }
-        let mut groups: Vec<(usize, Lin)> = Vec::new();
-        for &(a, b, q) in &form.prods {
-            let (a, b) = (a.min(b), a.max(b));
-            let g = groups.iter().position(|g| g.0 == a).unwrap_or_else(|| {
-                groups.push((a, Vec::new()));
-                groups.len() - 1
-            });
-            let right = &mut groups[g].1;
-            match right.iter_mut().find(|t| t.0 == b) {
-                Some(t) => t.1 += q,
-                None => right.push((b, q)),
-            }
-        }
-        Self {
-            constant: form.constant,
-            lin,
-            groups,
-        }
-    }
-
-    /// Columns of the joined state.
-    fn width(&self) -> usize {
-        1 + 2 * self.groups.len()
-    }
-}
-
-/// A joined table's state: per vector of eight rows, its [`Grouped::width`] columns side by side,
+/// A joined table's state: per vector of eight rows, its [`Form::width`] columns side by side,
 /// `state[b·width + c]`. From eight rows down a vector holds one row, in lane 0 ([`unpack`]), so that a round's two
 /// halves are always whole vectors.
 type State = Vec<F128x8>;
@@ -287,7 +259,7 @@ fn sum_vectors<const N: usize>(vectors: usize, f: impl Fn(usize, &mut [Acc8; N])
 
 /// [`Table::message`] from the state, less the constant: `[Σ_i eqr[i]·P(lo_i), Σ_i eqr[i]·P(hi_i),
 /// Σ_i eqr[i]·Q(lo_i + hi_i)]`, each endpoint's only if `ends` asks for it.
-fn message_joined(form: &Grouped, state: &State, eqr: &[F128], half: usize, ends: [bool; 2]) -> [F128; 3] {
+fn message_joined(form: &Form, state: &State, eqr: &[F128], half: usize, ends: [bool; 2]) -> [F128; 3] {
     let (width, per) = (form.width(), if half < 8 { 1 } else { 8 });
     let (lows, highs) = state.split_at(half / per * width);
     sum_vectors(half / per, |b, acc| {
@@ -335,7 +307,7 @@ fn shifted(v: F128x8, lane: usize) -> F128x8 {
 
 /// The state of the first `rows` rows of a table, from its `K` columns: per vector of rows, `lin`, then each group's
 /// `left_g` lifted to `E` and `right_g`.
-fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
+fn expand(form: &Form, cols: &[&[F64]], rows: usize) -> State {
     let width = form.width();
     parallel::map_collect(rows.div_ceil(8) * width, |v| {
         let (b, c) = (v / width, v % width);
@@ -374,16 +346,22 @@ mod tests {
     /// Products sharing column 0, one of them named twice and either way round, a square, linear
     /// terms and a constant.
     fn synth(pows: &[F128]) -> Form {
-        let mut form = Form::new(COLS);
-        form.constant = F128::ONE;
-        (form.coeffs[2], form.coeffs[1], form.coeffs[4]) = (pows[0], pows[1], pows[2]);
-        form.prods = vec![
+        let mut form = Form {
+            constant: F128::ONE,
+            ..Form::default()
+        };
+        for (c, w) in [(2, pows[0]), (1, pows[1]), (4, pows[2])] {
+            form.add_linear(c, w);
+        }
+        for (a, b, q) in [
             (0, 1, pows[0]),
             (3, 0, pows[1]),
             (0, 4, pows[1]),
             (5, 5, pows[2]),
             (1, 0, pows[2]),
-        ];
+        ] {
+            form.add_product(a, b, q);
+        }
         form
     }
 
@@ -412,6 +390,7 @@ mod tests {
     fn round_messages_match_naive_evaluation() {
         let mut rng = Rng::new(7);
         let pows = rng.ext_vec(3);
+        let form = synth(&pows);
         for m in [1usize, 3, 4, 11] {
             let kcols = random_columns(&mut rng, 2 << m);
             let views: Vec<&[F64]> = kcols.iter().map(|c| &c[..]).collect();
@@ -422,7 +401,7 @@ mod tests {
             let mut table = Table {
                 tau: m + 1,
                 weight: F128::ONE,
-                form: Grouped::new(&synth(&pows)),
+                form: &form,
                 cols: &views,
                 state: None,
             };
