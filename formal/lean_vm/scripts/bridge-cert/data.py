@@ -33,6 +33,19 @@ def quiet(files):
     return {p: one(t) for p, t in files.items()}
 
 
+def sequential(files):
+    """`files` with their proofs elaborated one after another (`Elab.async` off after each module's imports): a
+    generated module is many proofs, and as parallel tasks they contend for the environment's shared reference counts,
+    the same work costing up to five times its sequential CPU time."""
+    def one(text):
+        ms = list(IMPORT.finditer(text))
+        if not ms:
+            return text
+        end = text.index('\n', ms[-1].start()) + 1
+        return text[:end] + '\nset_option Elab.async false\n' + text[end:]
+    return {p: one(t) for p, t in files.items()}
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
