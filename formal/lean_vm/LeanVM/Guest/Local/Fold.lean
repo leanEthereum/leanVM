@@ -44,10 +44,8 @@ theorem bindO_eq_some {α β : Type} {o : Option α} {k : α → Option β} {b :
   | some a => exact ⟨a, rfl, h⟩
 
 /-- `k n`, `n` evaluated first (the kernel would otherwise carry `n` as a growing term). -/
-def seqN {β : Type} (n : ℕ) (k : ℕ → β) : β :=
-  match n with
-  | 0 => k 0
-  | m + 1 => k (m + 1)
+noncomputable def seqN {β : Type} (n : ℕ) (k : ℕ → β) : β :=
+  Nat.rec (motive := fun _ ↦ β) (k 0) (fun m _ ↦ k (Nat.succ m)) n
 
 @[simp] theorem seqN_eq {β : Type} (n : ℕ) (k : ℕ → β) : seqN n k = k n := by
   cases n <;> rfl

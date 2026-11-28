@@ -224,11 +224,12 @@ noncomputable def cellOf (v : ℕ) : ℕ := fld (vlane K v) 0 16
 /-- Value `w`, an input of a home at operand `i` of position `q`, holds its cell's word by then:
 in a cell of its own, or justified before (an earlier home, or a root earlier at `q`). -/
 noncomputable def known (q i w : ℕ) : Bool :=
-  natSeq (vlane K w) fun x ↦
-    bif Nat.beq (vSh x) 0 then Nat.ble 2 (fld x 0 16)
-    else natSeq (tget wS 6 5 K.T.sl (vSh x - 1)) fun s ↦
-      Nat.ble 2 (sCell s) && (Nat.blt (sHp s) q || (Nat.beq (sHp s) q &&
-        (Nat.beq (sKind s) kRoot || Nat.blt (sHj s) i)))
+  let x := vlane K w
+  bif Nat.beq (vSh x) 0 then Nat.ble 2 (fld x 0 16)
+  else
+    let s := tget wS 6 5 K.T.sl (vSh x - 1)
+    Nat.ble 2 (sCell s) && (Nat.blt (sHp s) q || (Nat.beq (sHp s) q &&
+      (Nat.beq (sKind s) kRoot || Nat.blt (sHj s) i)))
 
 /-- A key's input cells, as the anchors pack them. -/
 noncomputable def keyPack (op : ℕ) (ins : List V) : ℕ :=
@@ -237,29 +238,29 @@ noncomputable def keyPack (op : ℕ) (ins : List V) : ℕ :=
 /-- The justification of a shared home (lane `s`) at operand `i` of statement `st` at `q`, in
 cell `c` whose owner lane is `o`. -/
 noncomputable def justOk (st : Stmt) (q i c s o : ℕ) : Bool :=
-  natSeq (sKind s) fun k ↦
+  let k := sKind s
   bif Nat.beq k kRoot then !Nat.beq (Nat.mod o 4) 3
   else match st with
   | .atom a =>
     bif Nat.beq k kEq then
       (match eqAt a i with
-        | some u => natSeq (vlane K u.idx) fun x ↦
+        | some u => let x := vlane K u.idx;
             !Nat.beq (vSh x) 0 && Nat.beq (fld x 0 16) c && known K q i u.idx
         | none => false)
     else bif Nat.beq k kConstK then
       (match constAt a i with
-        | some y => natSeq (tget wT 6 5 K.T.st (sAux s)) fun t ↦
+        | some y => let t := tget wT 6 5 K.T.st (sAux s);
             Nat.blt (sAux s) K.T.nst && Nat.beq (tO t) c && Nat.beq (tK0 t) y.1 && Nat.beq (tK1 t) y.2
         | none => false)
     else bif Nat.beq k kConstA then
       (match constAt a i with
-        | some y => natSeq (tget wA 4 5 K.T.an (sAux s)) fun an ↦
+        | some y => let an := tget wA 4 5 K.T.an (sAux s);
             Nat.blt (sAux s) K.T.nat && Nat.beq (aConst an) 1 && Nat.beq (aCell an) c &&
               Nat.beq (aK0 an) y.1 && Nat.beq (aK1 an) y.2 && Nat.blt (aP an) q && Nat.blt q (aE an)
         | none => false)
     else bif Nat.beq k kKey then
       (match keyAt a i with
-        | some (op, ins) => natSeq (tget wA 4 5 K.T.an (sAux s)) fun an ↦
+        | some (op, ins) => let an := tget wA 4 5 K.T.an (sAux s);
             Nat.blt (sAux s) K.T.nat && Nat.beq (aConst an) 0 && Nat.beq (aCell an) c &&
               Nat.beq (aOp an) op && Nat.beq (aIns an) (keyPack K op ins) &&
               Nat.blt (aP an) q && Nat.blt q (aE an) && allR (fun w ↦ known K q i w.idx) ins
@@ -270,12 +271,14 @@ noncomputable def justOk (st : Stmt) (q i c s o : ℕ) : Bool :=
 /-- A shared home, of shared index `si` (+ 1) in cell `c` (owner lane `o`): its lane's home, its
 place in its cell's list, its justification. -/
 noncomputable def sharedOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v c si o : ℕ) : Bool :=
-  natSeq (tget wS 6 5 K.T.sl (si - 1)) fun s ↦
+  let s := tget wS 6 5 K.T.sl (si - 1)
   Nat.beq (sCell s) c && Nat.beq (sHp s) q && Nat.beq (sHj s) i && Nat.ble 2 (Nat.mod o 4) &&
   (bif Nat.beq (sPrev s) 0 then Nat.beq (Nat.shiftRight o 2) (v + 1) && Nat.beq (sHead s) q
-   else natSeq (sPrev s - 1) fun w ↦ Nat.blt w K.nv && natSeq (vlane K w) fun xw ↦ !Nat.beq (vSh xw) 0 &&
-     natSeq (tget wS 6 5 K.T.sl (vSh xw - 1)) fun p ↦
-     Nat.beq (sCell p) c && Nat.beq (sNext p) (v + 1) && Nat.beq (sHead p) (sHead s) &&
+   else
+     let w := sPrev s - 1
+     let xw := vlane K w
+     let p := tget wS 6 5 K.T.sl (vSh xw - 1)
+     Nat.blt w K.nv && !Nat.beq (vSh xw) 0 && Nat.beq (sCell p) c && Nat.beq (sNext p) (v + 1) && Nat.beq (sHead p) (sHead s) &&
      (Nat.blt (sHp p) q || (Nat.beq (sHp p) q && Nat.blt (sHj p) i)) &&
      (bif Nat.beq (sKind s) kRoot then Nat.ble (cx.t + 1) (sHead s) && Nat.blt (sHp p) cx.a else true)) &&
   justOk K st q i c s o
@@ -284,10 +287,11 @@ noncomputable def sharedOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v c si o : ℕ) :
 cell is in the frame or a tail call's next frame, below the bound, no fixed frame pointer's; a
 cell of its own is owned by it, a shared one is justified. -/
 noncomputable def homeOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v x : ℕ) : Bool :=
-  natSeq (fld x 0 16) fun c ↦
+  let c := fld x 0 16
   (Nat.blt c K.fs || anyR (Nat.beq c) K.nx) && !bitN K.fc c && Nat.blt c K.mb &&
   (bif Nat.blt c 2 then Nat.beq (vSh x) 0
-   else natSeq (tget wO 8 5 K.T.ot c) fun o ↦
+   else
+     let o := tget wO 8 5 K.T.ot c
      bif Nat.beq (vSh x) 0 then Nat.beq o (4 * v + 1)
      else Nat.beq (vHp x) q && Nat.beq (vHj x) i && Nat.beq (vSe x) cx.e &&
        sharedOk K st q i cx v c (vSh x) o)
@@ -310,7 +314,7 @@ def vnOk (v : V) : Bool := List.rec (motive := fun _ ↦ Bool) true (fun _ _ _ �
 `n`: a home (`v = n`), or a value numbered before, which, shared, has its home before and its
 home's block holding `q`. Returns the next number. -/
 noncomputable def occOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v : V) (n : ℕ) : Option ℕ :=
-  bif vnOk v then natSeq (vlane K v.idx) (occN K st q i cx v.idx n) else none
+  bif vnOk v then occN K st q i cx v.idx n (vlane K v.idx) else none
 
 /-- The occurrences of a statement's values, from operand `i`. -/
 noncomputable def occsOk (st : Stmt) (q : ℕ) (cx : Ctx) (vs : List V) : ℕ → ℕ → Option ℕ :=
@@ -342,7 +346,7 @@ them). -/
 noncomputable def anchorsOk (st : Stmt) (q : ℕ) (cx : Ctx) : ℕ → ℕ → Option ℕ :=
   fun f ↦ Nat.rec (motive := fun _ ↦ ℕ → Option ℕ) (fun k ↦ some k)
     (fun _ r k ↦ bif Nat.blt k K.T.nat then
-        natSeq (tget wA 4 5 K.T.an k) fun an ↦
+        let an := tget wA 4 5 K.T.an k;
           bif Nat.beq (aP an) q then (bif anchorOk K st cx an then r (k + 1) else none) else some k
       else some k) f
 

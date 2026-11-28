@@ -45,7 +45,6 @@ theorem occOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v : V} {n n' : ℕ}
   unfold occOk at h
   cases hv : vnOk v <;> rw [hv] at h <;> simp only [Bool.cond_false, Bool.cond_true, reduceCtorEq] at h
   refine ⟨rfl, ?_⟩
-  rw [natSeq_eq] at h
   unfold occN at h
   cases h1 : Nat.beq v.idx n <;> rw [h1] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
   · right
@@ -108,12 +107,12 @@ theorem anchorsOk_spec {st : Stmt} {q : ℕ} {cx : Ctx} : ∀ (f k k' : ℕ),
       m < K.T.nat ∧ aP (tget wA 4 5 K.T.an m) = q ∧ anchorOk K st cx (tget wA 4 5 K.T.an m) = true
   | 0, k, k', h => by cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
   | f + 1, k, k', h => by
-      change (bif Nat.blt k K.T.nat then natSeq (tget wA 4 5 K.T.an k) fun an ↦
-          bif Nat.beq (aP an) q then (bif anchorOk K st cx an then anchorsOk K st q cx f (k + 1) else none)
-          else some k else some k) = some k' at h
+      change (bif Nat.blt k K.T.nat then
+          (bif Nat.beq (aP (tget wA 4 5 K.T.an k)) q then
+            (bif anchorOk K st cx (tget wA 4 5 K.T.an k) then anchorsOk K st q cx f (k + 1) else none)
+          else some k) else some k) = some k' at h
       cases h1 : Nat.blt k K.T.nat <;> rw [h1] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
       · cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
-      rw [natSeq_eq] at h
       cases h2 : Nat.beq (aP (tget wA 4 5 K.T.an k)) q <;> rw [h2] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
       · cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
       cases h3 : anchorOk K st cx (tget wA 4 5 K.T.an k) <;> rw [h3] at h <;>
