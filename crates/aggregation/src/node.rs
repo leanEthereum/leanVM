@@ -9,7 +9,7 @@ use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
-use super::hints::{Hints, SubHints, lean_sphincs_hints, lean_xmss_hints};
+use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateProof, is_sorted};
 use super::statement::{Claim, claim_cells, claim_lists, list_split, statement_digest};
 use super::{AggregateClaims, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE, OutputClaims};
@@ -106,14 +106,21 @@ pub fn aggregate<P: Prover>(
     // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
     // builds the guest's witness from, and fails only on a proof it cannot walk.
     let _span = tracing::info_span!("Replay children").entered();
-    let carried_points: Vec<Vec<F128>> = children.iter().map(|(_, proof)| proof.bytecode_point.clone()).collect();
-    let carried_sums = bytecode_sums::<P>(&carried_points);
-    let mut carried = Vec::with_capacity(children.len());
+    // The batch's claims and their sums, each child's fresh one, filled in with its witness, then its carried one.
+    let mut claims = Vec::with_capacity(2 * children.len());
+    let mut sums = Vec::with_capacity(2 * children.len());
     let mut public_inputs = Vec::with_capacity(children.len());
-    for (i, (point, sums)) in carried_points.into_iter().zip(&carried_sums).enumerate() {
-        let defer = DeferredBytecodeClaim::from_sums(point, sums);
-        public_inputs.push(statement_digest(&child_lists[i], children[i].0.da_commitment, &defer));
-        carried.push(defer);
+    for (i, (child, proof)) in children.iter().enumerate() {
+        let carried_sums = bytecode_sums::<P>(&proof.bytecode_point);
+        let defer = DeferredBytecodeClaim::from_sums(proof.bytecode_point.clone(), &carried_sums);
+        public_inputs.push(statement_digest(&child_lists[i], child.da_commitment, &defer));
+        claims.push(DeferredBytecodeClaim {
+            bytecode_point: Vec::new(),
+            bytecode_value: F128::ZERO,
+        });
+        claims.push(defer);
+        sums.push(Vec::new());
+        sums.push(carried_sums);
     }
     // One child per worker, nothing inside dispatching: its replay's fresh bytecode point and its witness.
     let kbc = unified_guest().prog.len().trailing_zeros() as usize;
@@ -126,7 +133,11 @@ pub fn aggregate<P: Prover>(
         let fresh: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
         Ok((fresh, gen_verify(kbc, proof, &summary)?))
     });
-    let verified: Vec<(Vec<F128>, SubHints)> = verified.into_iter().collect::<Result<_, _>>()?;
+    for child in &verified {
+        if let Err(error) = child {
+            return Err(*error);
+        }
+    }
     drop(_span);
 
     let _span = tracing::info_span!("Build witness").entered();
@@ -178,8 +189,8 @@ pub fn aggregate<P: Prover>(
     }
 
     // Each child's slots, its carried claim, its DA digest and its verification's witness.
-    let mut fresh_points = Vec::with_capacity(children.len());
-    for (i, (fresh, verified)) in verified.into_iter().enumerate() {
+    for (i, child) in verified.into_iter().enumerate() {
+        let (fresh, verified) = child?;
         let lists = &child_lists[i];
         hints.push("child_meta", vec![count(lists[0].len()), count(lists[1].len())]);
         for region in &cover {
@@ -201,11 +212,12 @@ pub fn aggregate<P: Prover>(
                 }
             }
         }
-        hints.push("child_defer", carried[i].cells());
+        hints.push("child_defer", claims[2 * i + 1].cells());
         let child_da = verifier::da::digest(children[i].0.da_commitment);
         hints.push("child_da", hash_to_scalars(&child_da).to_vec());
         hints.extend(verified);
-        fresh_points.push(fresh);
+        sums[2 * i] = bytecode_sums::<P>(&fresh);
+        claims[2 * i] = DeferredBytecodeClaim::from_sums(fresh, &sums[2 * i]);
     }
     drop(_span);
 
@@ -215,15 +227,6 @@ pub fn aggregate<P: Prover>(
         leaf
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
-        // Each child's fresh claim, then its carried one: the batch's order.
-        let fresh_sums = bytecode_sums::<P>(&fresh_points);
-        let mut claims = Vec::with_capacity(2 * children.len());
-        let mut sums = Vec::with_capacity(2 * children.len());
-        let fresh = fresh_points.into_iter().zip(fresh_sums);
-        for ((point, fresh_sums), (carried, carried_sums)) in fresh.zip(carried.into_iter().zip(carried_sums)) {
-            claims.extend([DeferredBytecodeClaim::from_sums(point, &fresh_sums), carried]);
-            sums.extend([fresh_sums, carried_sums]);
-        }
         let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums);
         hints.extend(batch_hints);
         reduced

@@ -48,7 +48,10 @@ impl Proof {
         let words = input.words(length.checked_mul(2)?)?;
         let stream = words.as_chunks().0.iter().map(|[c0, c1]| E::new(c0.0, c1.0)).collect();
         let phases = input.u32().filter(|&phases| phases as usize <= MAX_PHASES)?;
-        let merkle_openings = (0..phases).map(|_| read_phase(&mut input)).collect::<Option<_>>()?;
+        let mut merkle_openings = Vec::new();
+        for _ in 0..phases {
+            merkle_openings.push(read_phase(&mut input)?);
+        }
         input.0.is_empty().then_some(Self {
             stream,
             merkle_openings,
@@ -103,7 +106,10 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
 /// verifier checks every path; what is refused is anything but the one encoding of a phase within the bounds.
 fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
     let count = input.u32().filter(|&count| count as usize <= MAX_QUERIES)?;
-    let queries: Vec<u64> = (0..count).map(|_| input.u32().map(u64::from)).collect::<Option<_>>()?;
+    let mut queries = Vec::with_capacity(count as usize);
+    for _ in 0..count {
+        queries.push(u64::from(input.u32()?));
+    }
     let (height, leaf_words, row_words) = (input.u32()? as usize, input.u32()? as usize, input.u32()? as usize);
     let mut positions: Vec<u64> = Vec::new();
     for &query in &queries {

@@ -29,6 +29,7 @@ pub struct Program {
 ///
 /// If the bytecode is not a power of two long, or longer than `2^MAX_LOG_BYTECODE`.
 impl From<CompiledProgram> for Program {
+    #[inline(never)]
     fn from(compiled: CompiledProgram) -> Self {
         let n = compiled.prog.len();
         assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
@@ -113,6 +114,7 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
 
 /// `g^e`, the word of `K`, from two tables of `2^16` powers built once, `e = hi 2^16 + lo`: one load, or two and a
 /// product.
+#[inline(never)]
 pub fn g_pow(e: u32) -> u64 {
     static TABLES: OnceLock<[Vec<K>; 2]> = OnceLock::new();
     let [low, high] = TABLES.get_or_init(|| {

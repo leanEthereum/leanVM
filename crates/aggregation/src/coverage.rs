@@ -49,6 +49,7 @@ pub(super) fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
 impl Region {
     /// The region of scheme `scheme` (0 or 1): declares the union of the raw claims and the children's, or exactly
     /// `declare`, which they must cover.
+    #[inline(never)]
     fn plan(
         scheme: usize,
         raw: &[Claim],

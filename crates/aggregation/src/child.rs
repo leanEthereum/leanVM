@@ -109,8 +109,9 @@ pub(super) fn gen_verify(
     }
     let block_offsets = sides.map(|side| side.offsets);
     let mu = layout.shape.mu;
-    let mut stream: Vec<F128> = proof.stream.iter().copied().map(from_scalar).collect();
-    stream.resize(STREAM_CAP, F128::ZERO);
+    let stream = (0..STREAM_CAP)
+        .map(|i| proof.stream.get(i).map_or(F128::ZERO, |&x| from_scalar(x)))
+        .collect();
 
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
@@ -125,7 +126,7 @@ pub(super) fn gen_verify(
         ("block_group_order", block_group_order(kbc, &block_offsets)),
     ];
     let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
-    hints.extend(merkle_hints(config.queries, &depth, proof));
+    merkle_hints(&mut hints, config.queries, &depth, proof);
     Ok(hints)
 }
 
@@ -158,8 +159,7 @@ fn block_group_order(kbc: usize, offsets: &[Vec<usize>]) -> Vec<F128> {
 /// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries
 /// reach, and which of its nodes they reach. The upper tree is shared by a level's queries; a subtree no query reaches
 /// stays zero, unread.
-fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> SubHints {
-    let mut hints = Vec::new();
+fn merkle_hints(hints: &mut SubHints, queries: &[usize], depth: &[usize], proof: &verifier::Proof) {
     let levels = queries.iter().zip(depth);
     for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle_openings).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
@@ -167,16 +167,13 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
         let mut nodes = vec![[0u8; 32]; 2 << cap_depth];
         let mut active = vec![F128::ZERO; 1 << cap_depth];
         for opening in phase {
-            let leaf: Vec<u64> = opening.leaf.iter().map(|word| word.0).collect();
             // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
-            let row = if level == 0 {
-                leaf.iter().map(|&x| F128::new(x, 0)).collect()
-            } else {
-                leaf.as_chunks().0.iter().map(|&[c0, c1]| F128::new(c0, c1)).collect()
-            };
+            let (leaf, width) = (&opening.leaf, if level == 0 { 1 } else { 2 });
+            let cell = |i: usize| F128::new(leaf[width * i].0, if width == 2 { leaf[2 * i + 1].0 } else { 0 });
+            let row = (0..leaf.len() / width).map(cell).collect();
             hints.push(("merkle_leaf_rows", row));
             let mut path_siblings = Vec::with_capacity(2 * path_depth);
-            let mut node = hash_words(leaf);
+            let mut node = hash_words(opening.leaf.iter().map(|word| word.0));
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
                 let (left, right) = if index & 1 == 0 {
@@ -204,7 +201,6 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
         hints.push(("merkle_caps", caps));
         hints.push(("merkle_cap_active", active));
     }
-    hints
 }
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and

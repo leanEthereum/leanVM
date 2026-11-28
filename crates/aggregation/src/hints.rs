@@ -102,6 +102,11 @@ impl Hints {
     }
 }
 
+/// A one-cell entry of stream `name`: a 16-byte native value ([`pack_16_bytes`]).
+fn packed(name: &'static str, bytes: &[u8]) -> (&'static str, Vec<F128>) {
+    (name, vec![pack_16_bytes(bytes)])
+}
+
 /// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
 /// time, then the rest, each group's index little endian in base `CHAIN_LEN`, in the
 /// exponent.
@@ -144,12 +149,12 @@ pub(super) fn lean_xmss_hints(
         codeword(&message_digest(pp, 1, e(1), top.randomizer(), &root)).ok_or(AggregateError::InvalidSignature)?;
     for (layer_sig, codeword) in [(bottom, bottom_codeword), (top, top_codeword)] {
         for sibling in layer_sig.path() {
-            hints.push(("lx_path", vec![pack_16_bytes(sibling)]));
+            hints.push(packed("lx_path", sibling));
         }
-        hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
+        hints.push(packed("randomizer", layer_sig.randomizer()));
         hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP)));
         for value in layer_sig.chain_values() {
-            hints.push(("chain_starts", vec![pack_16_bytes(value)]));
+            hints.push(packed("chain_starts", value));
         }
     }
     Ok(hints)
@@ -171,10 +176,7 @@ pub(super) fn lean_sphincs_hints(
     message: &lean_sphincs::Message,
 ) -> Result<SubHints, AggregateError> {
     let pk_seed = lean_sphincs::internals::pk_seed(pk);
-    let mut hints: SubHints = vec![(
-        "sp_rand",
-        vec![pack_16_bytes(lean_sphincs::internals::sig_randomizer(sig))],
-    )];
+    let mut hints: SubHints = vec![packed("sp_rand", lean_sphincs::internals::sig_randomizer(sig))];
     let digest = lean_sphincs::internals::h_msg(
         lean_sphincs::internals::sig_randomizer(sig),
         pk_seed,
@@ -187,7 +189,7 @@ pub(super) fn lean_sphincs_hints(
         exponent_bytes(&digest[lean_sphincs::internals::DIGEST_BYTES..SP_LANE_END]),
     ));
     for tree in lean_sphincs::internals::sig_fors(sig) {
-        hints.push(("sp_fors_secrets", vec![pack_16_bytes(tree.secret())]));
+        hints.push(packed("sp_fors_secrets", tree.secret()));
     }
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
@@ -206,7 +208,7 @@ pub(super) fn lean_sphincs_hints(
             hints.push(("digits", vec![digits]));
         }
         for value in layer_sig.wots() {
-            hints.push(("chain_starts", vec![pack_16_bytes(value)]));
+            hints.push(packed("chain_starts", value));
         }
         signed = lean_sphincs::internals::tree_fold(
             pk_seed,

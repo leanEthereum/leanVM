@@ -775,12 +775,13 @@ fn aggregate_three_levels() {
 fn bytecode_values_are_the_bytecode_evaluation() {
     let mut rng = StdRng::seed_from_u64(11);
     let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
-    let points = [
+    let points: [Vec<F128>; 2] = [
         limbs.map(|(c0, c1)| F128::new(c0, c1)).collect(),
         DeferredBytecodeClaim::leaf().bytecode_point,
     ];
     StableProver::init();
-    for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
+    for point in &points {
+        let sums = &bytecode_sums::<StableProver>(point);
         let scalars: Vec<_> = point.iter().map(to_scalar).collect();
         let value = from_scalar(unified_guest().bytecode().evaluate(&scalars).unwrap());
         assert_eq!(bytecode_value(sums, point), value);

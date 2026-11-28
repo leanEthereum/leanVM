@@ -96,29 +96,23 @@ fn bytecode_rows() -> Range<usize> {
 const BLOCK_VARS: usize = 10;
 const BLOCK: usize = 1 << BLOCK_VARS;
 
-/// Per claim point, the stacked bytecode with the point's weight on all but the low `BLOCK_VARS` variables summed
-/// out: `G(low) = Σ_r eq(point[BLOCK_VARS..], r) · row_r[low]`, over rows `r` of `BLOCK` entries. The weight
+/// The stacked bytecode with the weight of a claim at `point` on all but the low `BLOCK_VARS` variables summed out:
+/// `G(low) = Σ_r eq(point[BLOCK_VARS..], r) · row_r[low]`, over rows `r` of `BLOCK` entries. The weight
 /// `eq(point, ·)` is a product of a factor on the low variables and one on the rest, so the batch's low rounds run
-/// on these, and a point's value is read off its own ([`bytecode_value`]).
-pub(super) fn bytecode_sums<P: Prover>(points: &[Vec<F128>]) -> Vec<Vec<F128>> {
-    let _span = tracing::info_span!("Bytecode sums").entered();
-    let (table, live) = (unified_guest().stacked_bytecode(), bytecode_rows());
-    let mut out = Vec::with_capacity(points.len());
-    for point in points {
-        // A leaf's claim weighs the first row alone.
-        let sums = if point.iter().all(|&x| x == F128::ZERO) {
-            table[..BLOCK].iter().map(|&w| F128::new(w, 0)).collect()
-        } else {
-            let eq: Vec<_> = eq_table(&point[BLOCK_VARS..])[live.clone()]
-                .iter()
-                .map(to_scalar)
-                .collect();
-            let sums = P::combine_rows(&table[live.start * BLOCK..live.end * BLOCK], &eq);
-            sums.into_iter().map(from_scalar).collect()
-        };
-        out.push(sums);
+/// on these, and the point's value is read off them ([`bytecode_value`]).
+pub(super) fn bytecode_sums<P: Prover>(point: &[F128]) -> Vec<F128> {
+    let table = unified_guest().stacked_bytecode();
+    // A leaf's claim weighs the first row alone.
+    if point.iter().all(|&x| x == F128::ZERO) {
+        return table[..BLOCK].iter().map(|&w| F128::new(w, 0)).collect();
     }
-    out
+    let live = bytecode_rows();
+    let eq: Vec<_> = eq_table(&point[BLOCK_VARS..])[live.clone()]
+        .iter()
+        .map(to_scalar)
+        .collect();
+    let sums = P::combine_rows(&table[live.start * BLOCK..live.end * BLOCK], &eq);
+    sums.into_iter().map(from_scalar).collect()
 }
 
 /// The stacked bytecode at `point`, from its [`bytecode_sums`].
@@ -201,21 +195,26 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     // The count and each child's words are padded with zeros to whole rates, so the
     // guest's loop over the children finds every child starting the same way.
     let mut transcript = FiatShamirState::from_label(RECURSION_AGG_LABEL);
-    let absorb = |transcript: &mut FiatShamirState<F128>, words: &[F128]| {
-        for &word in words {
-            transcript.observe(word);
-        }
-        for _ in words.len()..words.len().next_multiple_of(RATE_SCALARS) {
+    let pad = |transcript: &mut FiatShamirState<F128>, words: usize| {
+        for _ in words..words.next_multiple_of(RATE_SCALARS) {
             transcript.observe(F128::ZERO);
         }
     };
-    absorb(&mut transcript, &[count(public_inputs.len())]);
+    transcript.observe(count(public_inputs.len()));
+    pad(&mut transcript, 1);
     for (public_input, pair) in public_inputs.iter().zip(claims.chunks(2)) {
-        let mut words = public_input.to_vec();
-        for claim in pair {
-            words.extend(claim.cells());
+        for &word in public_input {
+            transcript.observe(word);
         }
-        absorb(&mut transcript, &words);
+        let mut words = public_input.len();
+        for claim in pair {
+            for &word in &claim.bytecode_point {
+                transcript.observe(word);
+            }
+            transcript.observe(claim.bytecode_value);
+            words += claim.bytecode_point.len() + 1;
+        }
+        pad(&mut transcript, words);
     }
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();

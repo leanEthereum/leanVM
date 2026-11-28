@@ -255,12 +255,19 @@ impl Reader<'_> {
 
     fn words<const N: usize>(&mut self) -> Option<[u32; N]> {
         let mut words = [0; N];
-        for word in &mut words {
+        self.fill(&mut words)?;
+        Some(words)
+    }
+
+    /// The next `out.len()` words into `out`, one loop for every record size.
+    #[inline(never)]
+    fn fill(&mut self, out: &mut [u32]) -> Option<()> {
+        for word in out {
             let (head, rest) = self.0.split_first_chunk()?;
             self.0 = rest;
             *word = u32::from_le_bytes(*head);
         }
-        Some(words)
+        Some(())
     }
 
     fn string(&mut self, n: u32) -> Option<String> {
