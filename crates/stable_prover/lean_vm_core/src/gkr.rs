@@ -15,7 +15,7 @@
 
 use std::ops::Range;
 
-use primitives::field::{Acc8, F128, F128x8, dot};
+use primitives::field::{Acc8, F128, F128x8, dot, mul};
 use primitives::multilinear::{SplitEq, eq_table};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
@@ -68,7 +68,7 @@ pub(crate) fn prove_products(
     // An odd-depth tree's root-most layer is binary: one row, the top level's two nodes, and no sumcheck rounds.
     let roots: [F128; N_BUS_TREES] = levels.each_mut().map(|levels| {
         let (top, _) = levels.pop().unwrap();
-        let root = top.iter().copied().product();
+        let root = top.iter().fold(F128::ONE, |acc, &v| mul(acc, v));
         if mu % 2 == 1 {
             levels.push((top, Ones::new()));
         }
@@ -134,7 +134,6 @@ fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
 }
 
 /// The products of rows `8k..8k + 8` of `values`.
-#[inline(never)]
 fn eight_products(values: &[F128], ones: &[Range<usize>], k: usize) -> [F128; 8] {
     if 32 * k >= values.len() || known(ones, 8 * k, 8) {
         return [F128::ONE; 8];
@@ -199,7 +198,7 @@ impl Layer {
             }
             let mut coeffs: [F128; 4] = std::array::from_fn(|c| {
                 // `Σ_t λ^t message_t`, by Horner.
-                messages.iter().rev().fold(F128::ZERO, |acc, m| m[c] + lambda * acc)
+                messages.iter().rev().fold(F128::ZERO, |acc, m| m[c] + mul(lambda, acc))
             });
             // `c1 = (q(0) + q(1)) + c2 + c3 + c4`: the claim fixes `c0`, so only `c1..c4` travel.
             coeffs[0] = coeffs.iter().copied().sum();
