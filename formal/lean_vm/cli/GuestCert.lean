@@ -1482,9 +1482,6 @@ def selsHeld (_name : String) : List ℕ := []
 
 /-! ## Windows -/
 
-/-- The key of written cell `k` of a `KECCAK` (`B2C.keccakOp`). -/
-def keccakOp (k : ℕ) (inOdd outOdd : Bool) : ℕ := 4 + 4 * k + 2 * inOdd.toNat + outOdd.toNat
-
 /-- The cells an atom is filed under (`Check.keys`). -/
 def keysG : Exec.Atom → List ℕ
   | .instr _ (.xor _ _ c) => [c]

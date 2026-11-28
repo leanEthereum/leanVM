@@ -284,7 +284,7 @@ theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ
       rw [List.getLast?_eq_getElem?, hlen, ← hi, Nat.add_sub_cancel]; exact hkfp
     have hkt := frame_tail hI ht hj hl hlast
     obtain ⟨hk2, rfl⟩ := List.getElem?_eq_some_iff.mp hca
-    obtain ⟨Ψ, hΨ, -⟩ := shareOk_path hS hchk hw he
+    obtain ⟨Ψ, hΨ, -⟩ := shareOk_path hS hw he
     have hvw : σ v = σ c.args[k] := by
       rw [hΨ v hv (by omega), hΨ _ (List.mem_append_left _ (List.mem_append_right _ hwu)) (by omega), hcv, hcw]
     have e : I.fp + (fsN (n + 1) + (2 + k)) = kfp + (2 + k) := by rw [hkt]; omega

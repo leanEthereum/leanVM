@@ -18,7 +18,7 @@ sum, a product, a load, a `KECCAK` output cell, each a function of its inputs, `
 and their input cells (`keyCells`, `packCells`); the certificate's lists (`listsOk`: the fixed
 cells, temporaries and frame runs in the frame, one value per cell; `listed`, `listedT`); the
 cells kept apart (`apart`, `bitsNodup`, `siteCells`); paths that do not return
-(`walk_noRet`) and the atoms of a body (`lAtoms`, `walk_atoms`, `tmpsList_atoms`).
+(`walk_noRet`) and the atoms of a body (`lAtoms`, `walk_atoms`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -46,37 +46,9 @@ def packCells : List ℕ → ℕ
 
 /-! ## Atoms -/
 
-/-- The constant an atom gives value `v`. -/
-noncomputable def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ) :=
-  match a with
-  | .const d x => bif Nat.beq d.idx v then some (limbNat x 0, limbNat x 1) else none
-  | .assertNe _ _ p => bif Nat.beq p.idx v then some (1, 0) else none
-  | _ => none
-
 /-- The key of written cell `k` of a `KECCAK` in the layouts `inOdd`, `outOdd`: `4` to `55` for
 `k < 13`. -/
 def keccakOp (k : ℕ) (inOdd outOdd : Bool) : ℕ := 4 + 4 * k + 2 * inOdd.toNat + outOdd.toNat
-
-/-- The keys an atom gives value `v` as an output: `0` a sum, `1` a product, `keccakOp k …` the
-`k`-th written cell of a `KECCAK` (over its read cells), `off + 56` a load at offset `off`. -/
-def keysOf (a : Core.Atom) (v : ℕ) : List (ℕ × List ℕ) :=
-  match a with
-  | .add d x y => (bif Nat.beq d.idx v then [(0, [x.idx, y.idx])] else []) ++
-      (bif Nat.beq x.idx v then [(0, [d.idx, y.idx])] else []) ++
-      (bif Nat.beq y.idx v then [(0, [d.idx, x.idx])] else [])
-  | .mul d x y => bif Nat.beq d.idx v then [(1, [x.idx, y.idx])] else []
-  | .keccak ins outs inOdd outOdd =>
-    outs.zipIdx.filterMap fun q ↦
-      bif Nat.beq q.1.idx v then some (keccakOp q.2 inOdd outOdd, ins.map V.idx) else none
-  | .load d p off => bif Nat.beq d.idx v then [(off + 56, [p.idx])] else []
-  | _ => []
-
-/-- The values an atom says `v` equals. -/
-def eqsOf (a : Core.Atom) (v : ℕ) : List ℕ :=
-  match a with
-  | .copy d x => (bif Nat.beq d.idx v then [x.idx] else []) ++ (bif Nat.beq x.idx v then [d.idx] else [])
-  | .assertEq d x => (bif Nat.beq d.idx v then [x.idx] else []) ++ (bif Nat.beq x.idx v then [d.idx] else [])
-  | _ => []
 
 /-- A key's input cells, a sum's and a product's two in order. -/
 def keyCells (op : ℕ) (cs : List ℕ) : List ℕ :=
@@ -308,10 +280,6 @@ theorem mem_keyCells {c op : ℕ} {cs : List ℕ} : c ∈ keyCells op cs ↔ c �
   | 1, _ :: _ :: _ :: _ => simp [keyCells]
   | n + 2, cs => simp [keyCells]
 
-theorem keyCells_of_ge {op : ℕ} (h : 2 ≤ op) (cs : List ℕ) : keyCells op cs = cs := by
-  obtain ⟨n, rfl⟩ : ∃ n, op = n + 2 := ⟨op - 2, by omega⟩
-  simp [keyCells]
-
 /-! ## Paths -/
 
 section Paths
@@ -456,39 +424,6 @@ theorem walkArms_atoms (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {a : Co
       · exact Or.inr (walkArms_atoms x as (j + 1) h)
 end
 
-mutual
-/-- **Every temporary is a range check's.** -/
-theorem tmps_atoms : ∀ (s : Stmt) {t : V}, t ∈ Stmt.tmps s → ∃ a ∈ sAtoms s, t ∈ atomTmps a
-  | .atom a, t, h => ⟨a, by simp [sAtoms], h⟩
-  | .ite c z n, t, h => by
-      simp only [Stmt.tmps, List.mem_append] at h
-      rcases h with h | h
-      · obtain ⟨a, ha, ht⟩ := tmpsList_atoms z h; exact ⟨a, by simp [sAtoms, ha], ht⟩
-      · obtain ⟨a, ha, ht⟩ := tmpsList_atoms n h; exact ⟨a, by simp [sAtoms, ha], ht⟩
-  | .match_ x arms, t, h => by
-      obtain ⟨a, ha, ht⟩ := tmpsArms_atoms arms h; exact ⟨a, by simpa [sAtoms] using ha, ht⟩
-  | .call .., _, h => by simp [Stmt.tmps] at h
-  | .callIf .., _, h => by simp [Stmt.tmps] at h
-  | .dispatch .., _, h => by simp [Stmt.tmps] at h
-  | .ret _, _, h => by simp [Stmt.tmps] at h
-
-theorem tmpsList_atoms : ∀ (ss : List Stmt) {t : V}, t ∈ Stmt.tmpsList ss → ∃ a ∈ lAtoms ss, t ∈ atomTmps a
-  | [], _, h => by simp [Stmt.tmpsList] at h
-  | s :: ss, t, h => by
-      simp only [Stmt.tmpsList, List.mem_append] at h
-      rcases h with h | h
-      · obtain ⟨a, ha, ht⟩ := tmps_atoms s h; exact ⟨a, by simp [lAtoms, ha], ht⟩
-      · obtain ⟨a, ha, ht⟩ := tmpsList_atoms ss h; exact ⟨a, by simp [lAtoms, ha], ht⟩
-
-theorem tmpsArms_atoms : ∀ (arms : List (List Stmt)) {t : V}, t ∈ Stmt.tmpsArms arms →
-    ∃ a ∈ aAtoms arms, t ∈ atomTmps a
-  | [], _, h => by simp [Stmt.tmpsArms] at h
-  | b :: as, t, h => by
-      simp only [Stmt.tmpsArms, List.mem_append] at h
-      rcases h with h | h
-      · obtain ⟨a, ha, ht⟩ := tmpsList_atoms b h; exact ⟨a, by simp [aAtoms, ha], ht⟩
-      · obtain ⟨a, ha, ht⟩ := tmpsArms_atoms as h; exact ⟨a, by simp [aAtoms, ha], ht⟩
-end
 end Atoms2
 
 section Chain

@@ -67,7 +67,7 @@ theorem sharedOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v c si o : ℕ} (h : s
     sHj (tget wS 6 5 K.T.sl (si - 1)) = i ∧ 2 ≤ o % 4 ∧
     (sPrev (tget wS 6 5 K.T.sl (si - 1)) = 0 → o >>> 2 = v + 1 ∧ sHead (tget wS 6 5 K.T.sl (si - 1)) = q) ∧
     (sPrev (tget wS 6 5 K.T.sl (si - 1)) ≠ 0 →
-      sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1 < K.nv ∧
+      sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1 < K.T.nv ∧
       vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) ≠ 0 ∧
       sCell (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) = c ∧
       sNext (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) = v + 1 ∧

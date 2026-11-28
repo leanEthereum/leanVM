@@ -33,7 +33,7 @@ open LeanVM.Guest.Exec LeanVM.Guest.Check
 /-- **The sharing check's facts of function `f`'s index.** -/
 theorem fnStatic_of {f : String} {j : ℕ} (hj : idxOf f = some j) : FnStatic j := by
   obtain ⟨i, rfl, -, -, -, -, -, -, h1, h2⟩ := fn_of_idx hj
-  exact fnStatic (shareOk_of_checked (Shared.all _ h1 h2)) (End.winOk_of h1 h2)
+  exact fnStatic (shareOk_of_checked (Shared.all _ h1 h2))
 
 theorem idx_of_find {f : String} {fn : Fn} (h : coreProgram.find? f = some fn) :
     ∃ j, idxOf f = some j ∧ coreOf j = fn ∧ fs f = fsN j ∧ ∀ v, cert f v = cellJ j v := by

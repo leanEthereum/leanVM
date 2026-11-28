@@ -84,8 +84,7 @@ variable {j : ℕ}
 
 /-- **The sharing check's conclusion on a path** of function `j` that returns: one word per cell
 for every value the path names, a fixed cell's constant. -/
-theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (_ : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true)
+theorem shareOk_path (hS : ShareOk j)
     {rd : Reader} {σ : Val} {es : List Ev} {vs : List V} (hw : walk σ (coreOf j).body = .ret es vs)
     (he : ∀ e ∈ es, e.Holds rd σ) : ∃ Ψ : ℕ → E, (∀ v ∈ (coreOf j).params ++ es.flatMap Ev.uses ++ vs,
       2 ≤ cellJ j v → σ v = Ψ (cellJ j v)) ∧
@@ -94,14 +93,12 @@ theorem shareOk_path {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
 
 theorem apart_j (hS : ShareOk j) : Apart j := hS.apart
 
-theorem fnStatic {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (_ : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) : FnStatic j :=
+theorem fnStatic (hS : ShareOk j) : FnStatic j :=
   hS.static
 
 /-- **A value's cell**: in the frame, or a tail call's argument at the next frame's parameter
 cell. -/
-theorem valOk_global {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (_ : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
+theorem valOk_global (hS : ShareOk j) {v : V}
     (hv : v ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++ Stmt.tmpsList (coreOf j).body) :
     v = V.n v.idx ∧
       (cellJ j v < fsN j ∨ cellJ j v ∈ nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))) ∧
@@ -110,8 +107,7 @@ theorem valOk_global {G : Glob} {f : CompiledFunction} {main : Bool} (hS : Share
   hS.vals v hv
 
 /-- **A parameter's cell is in the frame.** -/
-theorem valOk_param {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (_ : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
+theorem valOk_param (hS : ShareOk j) {v : V}
     (hv : v ∈ (coreOf j).params) : cellJ j v < fsN j :=
   hS.param v hv
 

@@ -208,8 +208,6 @@ structure FnK where
   runs : List (ℕ × ℕ)
   /-- A bound on every value's cell (`mainCells` in `main`). -/
   mb : ℕ
-  /-- The number of values. -/
-  nv : ℕ
 
 section Walk
 
@@ -278,7 +276,7 @@ noncomputable def sharedOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v c si o : ℕ) :
      let w := sPrev s - 1
      let xw := vlane K w
      let p := tget wS 6 5 K.T.sl (vSh xw - 1)
-     Nat.blt w K.nv && !Nat.beq (vSh xw) 0 && Nat.beq (sCell p) c && Nat.beq (sNext p) (v + 1) && Nat.beq (sHead p) (sHead s) &&
+     Nat.blt w K.T.nv && !Nat.beq (vSh xw) 0 && Nat.beq (sCell p) c && Nat.beq (sNext p) (v + 1) && Nat.beq (sHead p) (sHead s) &&
      (Nat.blt (sHp p) q || (Nat.beq (sHp p) q && Nat.blt (sHj p) i)) &&
      (bif Nat.beq (sKind s) kRoot then Nat.ble (cx.t + 1) (sHead s) && Nat.blt (sHp p) cx.a else true)) &&
   justOk K st q i c s o
@@ -416,7 +414,7 @@ noncomputable def apartOkL (C : Cert) (P : Plumb) (main : Bool) (mc : ℕ) : Boo
 noncomputable def fnK (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) :
     FnK :=
   ⟨T, fs, nextCells C.locs fs (tailArgs cf), fpgCells P, byCell P.tmps, P.runs,
-    bif main then mc else 65536, T.nv⟩
+    bif main then mc else 65536⟩
 
 /-- The parameters' occurrences, at position `0`. -/
 noncomputable def paramsOk (K : FnK) (params : List V) : Option ℕ :=
@@ -472,7 +470,7 @@ noncomputable def staticL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main
 /-- The walk of the parameters and the body. -/
 noncomputable def walkL (K : FnK) (cf : Core.Fn) : Bool :=
   match paramsOk K cf.params with
-  | some n => segL K cf.body ⟨K.T.e, 0, 0⟩ 0 cf.body.length 1 (n, 0) 0 K.T.e (K.nv, K.T.nat) K.T.ends.length
+  | some n => segL K cf.body ⟨K.T.e, 0, 0⟩ 0 cf.body.length 1 (n, 0) 0 K.T.e (K.T.nv, K.T.nat) K.T.ends.length
   | none => false
 
 /-- **The sharing check of a function**, of core IR `cf`, certificate `C`, completeness data

@@ -118,14 +118,14 @@ theorem seg_match {K : FnK} {ss : List Stmt} {cx : Ctx} {m n p p' : ℕ} {st st1
   · exact absurd hh (by simp)
 
 theorem walkL_of {K : FnK} {cf : Core.Fn} {n : ℕ} (hp : paramsOk K cf.params = some n)
-    (hw : segL K cf.body ⟨K.T.e, 0, 0⟩ 0 cf.body.length 1 (n, 0) 0 K.T.e (K.nv, K.T.nat) K.T.ends.length = true) :
+    (hw : segL K cf.body ⟨K.T.e, 0, 0⟩ 0 cf.body.length 1 (n, 0) 0 K.T.e (K.T.nv, K.T.nat) K.T.ends.length = true) :
     walkL K cf = true := by
   unfold walkL; rw [hp]; exact hw
 
 /-- The walk ends at statement `b`, position `e`, `n` values and `a` anchors on, the arms' ends
 `ea` on: the body's, the certificate's. -/
 noncomputable def endOk (K : FnK) (cf : Core.Fn) (b e n a ea : ℕ) : Bool :=
-  Nat.beq cf.body.length b && Nat.beq K.T.e e && Nat.beq K.nv n && Nat.beq K.T.nat a && Nat.beq K.T.ends.length ea
+  Nat.beq cf.body.length b && Nat.beq K.T.e e && Nat.beq K.T.nv n && Nat.beq K.T.nat a && Nat.beq K.T.ends.length ea
 
 /-- **The walk from its pieces**, joined up to literal ends that `endOk` matches with the body's. -/
 theorem walkL_of' {K : FnK} {cf : Core.Fn} {n b e n' a ea : ℕ} (hp : paramsOk K cf.params = some n)
