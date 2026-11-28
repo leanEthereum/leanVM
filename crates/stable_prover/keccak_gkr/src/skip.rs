@@ -36,64 +36,35 @@ const GROUP: usize = 1 << SKIP;
 /// digit at infinity.
 const TERNARY: usize = 3usize.pow(SKIP as u32);
 const MIXED: usize = TERNARY - GROUP;
-/// A run's extended packs: its packs, then the mixed points of each group.
-const SLOTS: usize = PACKS + 2 * MIXED;
+/// A run's packs at every point of each group, group `h`'s point `t` at `TERNARY h + t`.
+const SLOTS: usize = 2 * TERNARY;
 
-/// The point of `{0, 1, infinity}^SKIP` of a pack of a group.
+/// A pack's slot: its group's, at its point of `{0, 1, infinity}^SKIP`.
 const fn ternary(q: usize) -> usize {
-    (q & 1) + 3 * (q >> 1 & 1) + 9 * (q >> 2 & 1) + 27 * (q >> 3 & 1)
+    (q & 1) + 3 * (q >> 1 & 1) + 9 * (q >> 2 & 1) + 27 * (q >> 3 & 1) + TERNARY * (q >> SKIP & 1)
 }
 
-/// The mixed points in increasing order, each with the points at `0` and `1` along its lowest digit at infinity,
-/// whose values sum to its own.
-const MIXED_POINTS: [[usize; 3]; MIXED] = {
-    let mut out = [[0; 3]; MIXED];
-    let (mut i, mut t) = (0, 0);
-    while t < TERNARY {
-        let (mut k, mut step) = (0, 1);
-        while k < SKIP && t / step % 3 != 2 {
-            k += 1;
-            step *= 3;
+/// The slots of the mixed points of each group, each with the place value of its highest digit at infinity: the
+/// points at `0` and `1` there, `2 place` and `place` below it, have values summing to its own. In order of that digit,
+/// so a point's two come before it.
+const MIXED_POINTS: [(usize, usize); 2 * MIXED] = {
+    let mut out = [(0, 0); 2 * MIXED];
+    let (mut i, mut place) = (0, 1);
+    while place < TERNARY {
+        let mut p = 0;
+        while p < SLOTS {
+            // The highest digit at infinity, or the digit at `place`.
+            let mut high = TERNARY / 3;
+            while high > place && p % TERNARY / high % 3 != 2 {
+                high /= 3;
+            }
+            if high == place && p % TERNARY / place % 3 == 2 {
+                out[i] = (p, place);
+                i += 1;
+            }
+            p += 1;
         }
-        if k < SKIP {
-            out[i] = [t, t - 2 * step, t - step];
-            i += 1;
-        }
-        t += 1;
-    }
-    out
-};
-
-/// The slots each mixed point of each group sums, in slot order: those of the points at `0` and `1` along its lowest
-/// digit at infinity.
-const SOURCES: [[usize; 2]; 2 * MIXED] = {
-    // A point's slot in its group: a pack's index, or `GROUP` plus a mixed point's.
-    let mut slot = [0; TERNARY];
-    let mut q = 0;
-    while q < GROUP {
-        slot[ternary(q)] = q;
-        q += 1;
-    }
-    let mut i = 0;
-    while i < MIXED {
-        slot[MIXED_POINTS[i][0]] = GROUP + i;
-        i += 1;
-    }
-    let mut out = [[0; 2]; 2 * MIXED];
-    let mut p = 0;
-    while p < 2 * MIXED {
-        let (half, i) = (p / MIXED, p % MIXED);
-        let mut k = 0;
-        while k < 2 {
-            let s = slot[MIXED_POINTS[i][1 + k]];
-            out[p][k] = if s < GROUP {
-                GROUP * half + s
-            } else {
-                PACKS + MIXED * half + s - GROUP
-            };
-            k += 1;
-        }
-        p += 1;
+        place *= 3;
     }
     out
 };
@@ -117,20 +88,14 @@ pub(crate) fn sums(
     for (j, &w) in claim.weights.iter().enumerate() {
         [words[j], words[BITS + j]] = at.poly(w).to_limbs();
     }
-    let half = claim.point[SKIP];
     let mixed = parallel::fold_reduce(
         layer.n_tasks(),
-        || [F128Unreduced::ZERO; TERNARY],
+        || [F128Unreduced::ZERO; SLOTS],
         |sums, task| {
             let mut block = [[Wide8::ZERO; 2]; 2 * MIXED];
             block_sums(layer.task(task), &words, &mut block);
-            // The groups of a block alternate, the half being the first variable.
-            let high = mul(half, tasks[task]);
-            for (h, weight) in [tasks[task] + high, high].into_iter().enumerate() {
-                for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-                    let [p0, p1] = block[MIXED * h + i];
-                    sums[t] ^= at.eval([p0.sum(), p1.sum()]).mul_unreduced(weight);
-                }
+            for (&(p, _), &[p0, p1]) in MIXED_POINTS.iter().zip(&block) {
+                sums[p] ^= at.eval([p0.sum(), p1.sum()]).mul_unreduced(tasks[task]);
             }
         },
         |mut a, b| {
@@ -141,18 +106,16 @@ pub(crate) fn sums(
         },
     );
     let mut sums = mixed.map(F128Unreduced::reduce);
-    let mut at_s = [F128::ZERO; PACKS];
-    for (at_s, p) in at_s.iter_mut().zip(per_pack.as_chunks::<PACK_SUMS>().0) {
-        *at_s = poly_eval(p, powers[1]);
+    for (q, p) in per_pack.as_chunks::<PACK_SUMS>().0.iter().enumerate() {
+        sums[ternary(q)] = poly_eval(p, powers[1]);
     }
-    for q in 0..GROUP {
-        sums[ternary(q)] = at_s[q] + mul(half, at_s[q] + at_s[GROUP + q]);
-    }
-    sums
+    // The two groups of a block, the half being the variable after the skip's.
+    let (low, high) = sums.split_at(TERNARY);
+    std::array::from_fn(|t| low[t] + mul(claim.point[SKIP], low[t] + high[t]))
 }
 
-/// A block's sums at the mixed points of each group: slot `MIXED * half + i` holds `sum over positions j of
-/// weights[j] * S[j + 1] * S[j + 2]` at mixed point `i` of group `half`, as its two partial products with the words
+/// A block's sums at the mixed points of each group: `out[i]` holds `sum over positions j of
+/// weights[j] * S[j + 1] * S[j + 2]` at the slot of `MIXED_POINTS[i]`, as its two partial products with the words
 /// of the weights. Lane `i` of a slot holds the positions `z + i` of every run: a row of five runs, which `chi`
 /// mixes, has eight consecutive positions' weights per run.
 fn block_sums(block: &[u64], words: &[u64], out: &mut [[Wide8; 2]; 2 * MIXED]) {
@@ -162,10 +125,17 @@ fn block_sums(block: &[u64], words: &[u64], out: &mut [[Wide8; 2]; 2 * MIXED]) {
             let js = row_positions(r, z);
             for (extended, &j) in extended.iter_mut().zip(&js) {
                 embed_run(block, j, extended.first_chunk_mut().expect("the packs"));
-                extend(extended);
+                // The packs moved to their slots, the last first: each lands at or past its own.
+                for q in (0..PACKS).rev() {
+                    extended[ternary(q)] = extended[q];
+                }
             }
             let w: [[Run; 2]; 5] = js.map(|j| [j, BITS + j].map(|at| words[at..][..8].try_into().expect("a run")));
-            for (p, out) in (PACKS..).zip(out.iter_mut()) {
+            for (&(p, place), out) in MIXED_POINTS.iter().zip(out.iter_mut()) {
+                // Along a variable, the value at infinity is the sum of the two others.
+                for slots in &mut extended {
+                    slots[p] = xor(slots[p - 2 * place], slots[p - place]);
+                }
                 let mut sum = [Wide8::ZERO; 2];
                 for (w, &[a, b]) in w.iter().zip(&CHI_RUNS) {
                     let product = clmul8_low(extended[a][p], extended[b][p]);
@@ -176,14 +146,6 @@ fn block_sums(block: &[u64], words: &[u64], out: &mut [[Wide8; 2]; 2 * MIXED]) {
                 out[1] += sum[1];
             }
         }
-    }
-}
-
-/// A run's packs at the mixed points of each group, after its packs: along a variable, the value at infinity is the
-/// sum of the two others.
-fn extend(slots: &mut [Run; SLOTS]) {
-    for (p, &[zero, one]) in (PACKS..).zip(&SOURCES) {
-        slots[p] = xor(slots[zero], slots[one]);
     }
 }
 
