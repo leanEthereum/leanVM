@@ -77,36 +77,6 @@ impl FlushBuilder {
         self.pull.push(pull);
     }
 
-    /// `push`, and the pull that differs from it only in coordinate `at`, which it carries as `pulled`.
-    fn pair_but(&mut self, push: Vec<Coord>, at: usize, pulled: Coord) {
-        let mut pull = push.clone();
-        pull[at] = pulled;
-        self.pair(push, pull);
-    }
-
-    /// The shape every memory interaction shares: the word at `addr` carried as
-    /// two value coordinates, with the cell's access count advanced by ×g on the
-    /// push side. A value the row derives rather than commits (an `XOR`/`MUL`
-    /// result, a `DEREF` store) is passed here as its form: the cell then holds
-    /// whatever the form says, with no value column and no identity to tie one
-    /// (§sec:m3).
-    #[inline(never)]
-    pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 2]) {
-        self.memory_pushing(GCol(count, 1), addr, count, vals);
-    }
-
-    /// [`Self::memory_coords`] when the column `flag` is 1. The push's counter is `count·(1 + flag·(g + 1))`:
-    /// `g·count` at 1, and the pull's `count` at 0, so the pair cancels and touches no cell.
-    pub(crate) fn memory_coords_if(&mut self, flag: usize, addr: Coord, count: usize, vals: [Coord; 2]) {
-        let counter = Coord::Sum(vec![Col(count), Prod(flag, count, 1), Prod(flag, count, 0)]);
-        self.memory_pushing(counter, addr, count, vals);
-    }
-
-    #[inline(never)]
-    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, [lo, hi]: [Coord; 2]) {
-        self.pair_but(vec![Const(SEP_MEM), addr, counter, lo, hi], 2, Col(count));
-    }
-
     /// Declare `flushes`, in a table's local columns.
     fn declare(&mut self, flushes: &[Flush]) {
         for flush in flushes {
@@ -187,7 +157,10 @@ const fn code(count: usize, opcode: F64, operands: &[C]) -> Flush {
     flush(tuple.split_at(OPERAND_SLOT + operands.len()).0, [(2, C::Col(count)); 2])
 }
 
-/// [`FlushBuilder::memory_coords`].
+/// The shape every memory interaction shares: the word at `addr` carried as two value coordinates, with the cell's
+/// access count advanced by ×g on the push side. A value the row derives rather than commits (an `XOR`/`MUL` result, a
+/// `DEREF` store) is passed here as its form: the cell then holds whatever the form says, with no value column and no
+/// identity to tie one (§sec:m3).
 const fn mem(addr: C, count: usize, [lo, hi]: [C; 2]) -> Flush {
     flush(&[C::K(SEP_MEM), addr, C::G(count, 1), lo, hi], [(2, C::Col(count)); 2])
 }
@@ -433,7 +406,7 @@ impl Table {
     /// Declare the table's bus interactions.
     pub(crate) fn flushes(self, f: &mut FlushBuilder) {
         match self {
-            Table::Keccak => KeccakTable.flushes(f),
+            Table::Keccak => f.declare(&KECCAK_FLUSHES),
             _ => f.declare([XOR, MUL, SET, DEREF, JUMP][self as usize]),
         }
     }
@@ -824,33 +797,114 @@ const KECCAK_OPERANDS: [C; keccakt::OUT_ALL + 1 - keccakt::O_M0] = {
     ops
 };
 
-/// `KECCAK`'s state step and bytecode read.
-const KECCAK_HEAD: [Flush; 2] = [STEP, code(keccakt::RBC, OP_KECCAK, &KECCAK_OPERANDS)];
-
 /// The lanes each state cell holds, in the even layout and the odd one.
 const CELL_LANES: [[(Option<usize>, Option<usize>); crate::keccak::STATE_CELLS]; 2] = [
     verifier::layout::keccak_cell_lanes(false),
     verifier::layout::keccak_cell_lanes(true),
 ];
 
-/// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
-/// selects: `a + flag·(a + b)`, a missing lane being `missing`.
-#[inline(never)]
-fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usize, missing: Option<usize>) -> Coord {
-    let col = |lane: Option<usize>| lane.map(|l| values + l).or(missing);
-    let (a, b) = (col(even), col(odd));
-    if a == b {
-        return a.map_or(Const(F64::ZERO), Col);
+/// The terms of a cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects:
+/// `a + flag·(a + b)`, a missing lane being `missing`, and how many there are. When the layouts agree the limb is
+/// that column, or zero, alone: one term, `None` for the flag.
+const fn limb_terms(
+    even: Option<usize>,
+    odd: Option<usize>,
+    values: usize,
+    flag: usize,
+    missing: Option<usize>,
+) -> ([C; 3], usize, Option<usize>) {
+    let mut terms = [ZERO; 3];
+    match (lane_column(even, values, missing), lane_column(odd, values, missing)) {
+        (Some(a), Some(b)) if a == b => {
+            terms[0] = C::Col(a);
+            (terms, 1, None)
+        }
+        (None, None) => (terms, 1, None),
+        (a, b) => {
+            let mut n = 0;
+            if let Some(a) = a {
+                (terms[0], terms[1], n) = (C::Col(a), C::P(flag, a, 0), 2);
+            }
+            if let Some(b) = b {
+                terms[n] = C::P(flag, b, 0);
+                n += 1;
+            }
+            (terms, n, Some(flag))
+        }
     }
-    let mut sum = Vec::with_capacity(3);
-    if let Some(a) = a {
-        sum.extend([Col(a), Prod(flag, a, 0)]);
-    }
-    if let Some(b) = b {
-        sum.push(Prod(flag, b, 0));
-    }
-    Coord::Sum(sum)
 }
+
+/// The value column of `lane`, if any, else `missing`.
+const fn lane_column(lane: Option<usize>, values: usize, missing: Option<usize>) -> Option<usize> {
+    match lane {
+        Some(l) => Some(values + l),
+        None => missing,
+    }
+}
+
+/// Each `KECCAK` cell's sums, in flush order: its low limb's terms, its high limb's and its counter's
+/// ([`keccak_flushes`]), each with how many there are, `None` for a lone term.
+static KECCAK_SUMS: [([C; 3], usize, Option<usize>); 3 * crate::keccak::ROW_CELLS] = {
+    use crate::keccak::STATE_CELLS;
+    use keccakt::*;
+    let [even, odd] = CELL_LANES;
+    let mut sums = [([ZERO; 3], 0, None); 3 * crate::keccak::ROW_CELLS];
+    let mut c = 0;
+    while c < sums.len() / 3 {
+        let (s, values, flag, free) = if c < STATE_CELLS {
+            (c, V_IN, IN_ODD, Some(FREE))
+        } else {
+            (c - STATE_CELLS, V_OUT, OUT_ODD, None)
+        };
+        sums[3 * c] = limb_terms(even[s].0, odd[s].0, values, flag, free);
+        sums[3 * c + 1] = limb_terms(even[s].1, odd[s].1, values, flag, free);
+        // Output cell 0 is always written, cell 1 as `OUT_TWO` says, the rest as `OUT_ALL` says. The counter of a cell
+        // written when the column `flag` is 1 is `count·(1 + flag·(g + 1))`: `g·count` at 1, and the pull's `count` at
+        // 0, so the pair cancels and touches no cell.
+        let count = R0 + c;
+        sums[3 * c + 2] = match c {
+            _ if c <= STATE_CELLS => ([C::G(count, 1), ZERO, ZERO], 1, None),
+            _ => {
+                let flag = if c == STATE_CELLS + 1 { OUT_TWO } else { OUT_ALL };
+                (
+                    [C::Col(count), C::P(flag, count, 1), C::P(flag, count, 0)],
+                    3,
+                    Some(flag),
+                )
+            }
+        };
+        c += 1;
+    }
+    sums
+};
+
+/// `KECCAK`'s bus interactions: its state step and bytecode read, then its thirteen cells read and up to thirteen
+/// written. A consecutive cell is a free ×g on the product's g-power.
+const KECCAK_FLUSHES: [Flush; 2 + crate::keccak::ROW_CELLS] = {
+    use keccakt::*;
+    const fn sum(k: usize) -> C {
+        match KECCAK_SUMS[k] {
+            (terms, _, None) => terms[0],
+            (_, n, Some(_)) => C::S(KECCAK_SUMS[k].0.split_at(n).0),
+        }
+    }
+    let mut flushes = [STEP; 2 + crate::keccak::ROW_CELLS];
+    flushes[1] = code(RBC, OP_KECCAK, &KECCAK_OPERANDS);
+    let mut c = 0;
+    while c < crate::keccak::ROW_CELLS {
+        let (operand, step) = KECCAK_CELLS[c];
+        let tuple = [
+            C::K(SEP_MEM),
+            C::P(FP, O_M0 + operand, step),
+            sum(3 * c + 2),
+            sum(3 * c),
+            sum(3 * c + 1),
+        ];
+        flushes[2 + c] = flush(&tuple, [(2, C::Col(R0 + c)); 2]);
+        c += 1;
+    }
+    flushes
+};
 
 /// The `KECCAK` rows' output lanes, their input lanes permuted again, since a row writes only the output cells its
 /// bytecode requests.
@@ -869,29 +923,6 @@ impl KeccakTable {
             row[keccakt::V_OUT + lane] = F64(w);
         }
         row
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::keccak::STATE_CELLS;
-        use keccakt::*;
-        f.declare(&KECCAK_HEAD);
-        // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
-        // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
-        let [even, odd] = &CELL_LANES;
-        for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
-            let (s, values, flag, free) = if c < STATE_CELLS {
-                (c, V_IN, IN_ODD, Some(FREE))
-            } else {
-                (c - STATE_CELLS, V_OUT, OUT_ODD, None)
-            };
-            let lo = layout_limb(even[s].0, odd[s].0, values, flag, free);
-            let hi = layout_limb(even[s].1, odd[s].1, values, flag, free);
-            let (addr, vals) = (Prod(FP, O_M0 + operand, step), [lo, hi]);
-            match c.checked_sub(STATE_CELLS) {
-                None | Some(0) => f.memory_coords(addr, R0 + c, vals),
-                Some(1) => f.memory_coords_if(OUT_TWO, addr, R0 + c, vals),
-                Some(_) => f.memory_coords_if(OUT_ALL, addr, R0 + c, vals),
-            }
-        }
     }
 }
 
