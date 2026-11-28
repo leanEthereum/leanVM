@@ -58,14 +58,16 @@ theorem keccakRowAt_lin {prog : LeanIsaProgram} {κ : ℕ} (w : EnsembleWitness 
     (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lin[l] = row[15 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
-  fin_cases l <;> simp
+  exact (List.getElem_of_eq (show _ = List.ofFn fun i : Fin 25 ↦ row[15 + i.val]?.getD 0 from rfl) _).trans
+    (List.getElem_ofFn ..)
 
 /-- Output lane `l` of a raw `KECCAK` row is its cell `40 + l`. -/
 theorem keccakRowAt_lout {prog : LeanIsaProgram} {κ : ℕ} (w : EnsembleWitness (leanIsaEnsemble prog κ))
     (row : Array K)
     (l : Fin 25) : (keccakRowAt w row).lout[l] = row[40 + l.val]?.getD 0 := by
   simp [keccakRowAt, valueFromOffset, explicit_provable_type, circuit_norm]
-  fin_cases l <;> simp
+  exact (List.getElem_of_eq (show _ = List.ofFn fun i : Fin 25 ↦ row[40 + i.val]?.getD 0 from rfl) _).trans
+    (List.getElem_ofFn ..)
 
 variable (prog : LeanIsaProgram) (s : Sizes) (q : Column (leanIsaμ prog s))
 
