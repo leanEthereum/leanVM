@@ -38,17 +38,38 @@ theorem cellJ_of_lanes {j L : ℕ} (h : lanesEq Bridge.cellBits (certOf j).locs 
     B2C.cellJ j = laneCell L :=
   funext fun v ↦ lanesEq_getD h v.idx
 
-/-- **The pointers' cells, from the lanes.** -/
-theorem all_ptrCellB_of_P {j L : ℕ} {l : List Stmt} (h : lanesEq Bridge.cellBits (certOf j).locs L = true)
-    (hl : l.all (ptrCellAt (laneCell L) (FnV.of j)) = true) : l.all (ptrCellB j) = true := by
+/-- **The pointers' cells, from the lanes** `L`, which hold them, at the function's view `D`. -/
+theorem all_ptrCellB_of_P {j L : ℕ} {D : FnV} {l : List Stmt} (hD : FnV.of j = D)
+    (h : lanesEq Bridge.cellBits D.locs L = true) (hl : l.all (ptrCellAt (laneCell L) D) = true) :
+    l.all (ptrCellB j) = true := by
+  subst hD
   rw [ptrCellB, cellJ_of_lanes h]
   exact hl
 
 /-- **The returned values' cells, from the lanes.** -/
-theorem all_retCellB_of_P {j L : ℕ} {l : List Stmt} (h : lanesEq Bridge.cellBits (certOf j).locs L = true)
-    (hl : l.all (retCellAt (laneCell L) (FnV.of j)) = true) : l.all (retCellB j) = true := by
+theorem all_retCellB_of_P {j L : ℕ} {D : FnV} {l : List Stmt} (hD : FnV.of j = D)
+    (h : lanesEq Bridge.cellBits D.locs L = true) (hl : l.all (retCellAt (laneCell L) D) = true) :
+    l.all (retCellB j) = true := by
+  subst hD
   rw [retCellB, cellJ_of_lanes h]
   exact hl
+
+/-- **The selectors' check from the lanes**, remembering only the atoms using a selector of `S` (`keepIn`). -/
+theorem selGo_of_keepL {j L : ℕ} {D : FnV} {ps : List V} {B : List Stmt} (S : ℕ) (hD : FnV.of j = D)
+    (h : lanesEq Bridge.cellBits D.locs L = true)
+    (hl : selGoK (valCell (laneCell L) D) ps B (keepIn S) [] B = true) : selGo j ps B [] B = true := by
+  subst hD
+  show selGoK (valCell (B2C.cellJ j) (FnV.of j)) ps B List.cons [] B = true
+  rw [cellJ_of_lanes h]
+  exact selGo_of_up (keepIn_sub S) B [] [] (fun _ h ↦ h) hl
+
+/-- **The rest of a long body's frame check from the lanes.** -/
+theorem honRest_of_L {j L : ℕ} {D : FnV} {fn : Fn} (hD : FnV.of j = D)
+    (h : (lanesEq Bridge.cellBits D.locs L && honRestAt (laneCell L) D j fn) = true) : honRest j fn = true := by
+  subst hD
+  rw [Bool.and_eq_true] at h
+  rw [honRest, cellJ_of_lanes h.1]
+  exact h.2
 
 /-- **`honB` from the lanes**: its cells read from `L`, which hold them, at its view `D`. -/
 theorem honB_of_honL {j L : ℕ} {D : FnV} {fn : Fn} (hD : FnV.of j = D) (h : honL L D j fn = true) :

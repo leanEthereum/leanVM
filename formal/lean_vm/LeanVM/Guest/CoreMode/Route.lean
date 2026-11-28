@@ -147,7 +147,7 @@ noncomputable abbrev selGo (j : ℕ) (ps : List V) (B : List Stmt) : List Atom �
 def keepB (S : ℕ) (a : Atom) : Bool := (Memory.atomUses a).any fun v ↦ Nat.testBit S v.idx
 
 /-- `seen` with `a` when it uses a value of the bitset `S`, the selectors the generator names: a long body's
-selectors' check remembers only those top-level atoms (`selGo_of_keep`), not every one. -/
+selectors' check remembers only those top-level atoms (`selGo_of_keepL`), not every one. -/
 def keepIn (S : ℕ) (a : Atom) (seen : List Atom) : List Atom := bif keepB S a then a :: seen else seen
 
 /-- Function `j`'s frame (`D`) holds `fn`'s parameters at cells `2 + k` and its pointers and returned values at their
@@ -162,17 +162,19 @@ noncomputable def honAt (c : V → ℕ) (D : FnV) (j : ℕ) (fn : Fn) : Bool :=
 /-- `honAt` at the certificate's cells. -/
 noncomputable abbrev honB (j : ℕ) (fn : Fn) : Bool := honAt (B2C.cellJ j) (FnV.of j) j fn
 
-/-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
+/-- `honAt` but for its passes over the body (`bodyCore`, `ptrCellAt`, `retCellAt`, the selectors), which a long body
 checks apart. -/
-noncomputable def honRest (j : ℕ) (fn : Fn) : Bool :=
-  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && paramsN fn.params 0 &&
-    ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    Nat.blt 0 j
+def honRestAt (c : V → ℕ) (D : FnV) (j : ℕ) (fn : Fn) : Bool :=
+  D.locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && paramsN fn.params 0 &&
+    ((List.range fn.params.length).all fun k ↦ Nat.beq (c (V.n k)) (2 + k) && decide (2 + k < D.fs)) && Nat.blt 0 j
+
+/-- `honRestAt` at the certificate's cells. -/
+noncomputable abbrev honRest (j : ℕ) (fn : Fn) : Bool := honRestAt (B2C.cellJ j) (FnV.of j) j fn
 
 theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true)
     (h2 : (Bridge.stmtsOf fn.body).all (ptrCellB j) = true) (h3 : (Bridge.stmtsOf fn.body).all (retCellB j) = true)
     (h4 : (selGo j fn.params fn.body [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
-  simp only [honRest, Bool.and_eq_true] at h5
+  simp only [honRest, honRestAt, Bool.and_eq_true] at h5
   obtain ⟨⟨⟨r1, r2⟩, r3⟩, r4⟩ := h5
   simp only [honB, honAt, stmtsAll_eq, Bool.and_eq_true]
   exact ⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, h4⟩
@@ -233,11 +235,6 @@ theorem selGo_of_up {ok : V → Bool} {ps : List V} {B : List Stmt} {up : Atom �
     | dispatch x fs args rets =>
       simp only [selGoK, Bool.and_eq_true, Bool.or_eq_true] at h ⊢
       exact ⟨⟨h.1.1, h.1.2.imp id (any_mono hs)⟩, selGo_of_up hu ss _ _ hs h.2⟩
-
-/-- **The selectors' check of a body, remembering only the atoms using a selector of `S`.** -/
-theorem selGo_of_keep {j : ℕ} {ps : List V} {B : List Stmt} (S : ℕ) (h : selGoK (cellB j) ps B (keepIn S) [] B = true) :
-    selGo j ps B [] B = true :=
-  selGo_of_up (keepIn_sub S) B [] [] (fun _ h ↦ h) h
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=

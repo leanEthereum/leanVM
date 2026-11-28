@@ -1062,13 +1062,15 @@ def main(check=False):
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list
                 walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
-                # the cells read from a lane vector checked against the certificate's (`CoreMode.lanesEq`)
-                lanes = f'(L := {cell_lanes(k)}) (by decide +kernel)'
+                # the cells read from a lane vector checked against the certificate's (`CoreMode.lanesEq`), at the data the
+                # glue states (`CoreMode.FnV.of_tie`)
+                lanes = f'(L := {cell_lanes(k)}) (CoreMode.FnV.of_tie Fn.«{k}».tie Fn.«{k}».fsEq) (by decide +kernel)'
                 prf = {'ptr': f'CoreMode.all_ptrCellB_of_P {lanes} (by {walk})',
                        'ret': f'CoreMode.all_retCellB_of_P {lanes} (by {walk})',
                        # the atoms remembered cut to those using a selector (`CoreMode.keepIn`)
-                       'sel': f'by rw [CoreMode.selGo_of_keep (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
-                              f'{sel_bits(heap.CORE[k][1])} (by decide +kernel), Bool.true_or]'}
+                       'sel': f'by rw [CoreMode.selGo_of_keepL (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
+                              f'{sel_bits(heap.CORE[k][1])} {lanes} (by decide +kernel), Bool.true_or]',
+                       'rest': f'CoreMode.honRest_of_L {lanes.replace(" (by decide +kernel)", "")} (by decide +kernel)'}
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
                 rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.CellLanes'}
