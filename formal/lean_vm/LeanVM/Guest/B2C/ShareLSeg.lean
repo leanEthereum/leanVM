@@ -21,6 +21,7 @@ check.
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local LeanVM.Guest.Check LeanVM.Guest.Exec
+open LeanVM.Guest.Packed (fld fld_lt)
 
 @[expose] public section
 

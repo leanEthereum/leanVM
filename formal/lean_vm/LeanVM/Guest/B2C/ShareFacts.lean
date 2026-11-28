@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.ShareDefs
+public import LeanVM.Guest.Local.Pos
 
 /-!
 # The sharing check's facts
@@ -201,14 +202,6 @@ open LeanVM.Guest.Memory
 
 variable {σ : Val}
 
-theorem pick_noRet {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ) {es : List Ev}
-    {vs : List V}, pick σ x args rets j fs ≠ .ret es vs
-  | [], _, _, _, h => by simp [pick] at h
-  | f :: fs, j, _, _, h => by
-      unfold pick at h
-      split_ifs at h
-      exact pick_noRet fs (j + 1) h
-
 mutual
 theorem walk1_noRet : ∀ (s : Stmt), Stmt.noRet s = true → ∀ es vs, walk1 σ s ≠ .ret es vs
   | .atom _, _, _, _, h => by simp [walk1] at h
@@ -228,7 +221,7 @@ theorem walk1_noRet : ∀ (s : Stmt), Stmt.noRet s = true → ∀ es vs, walk1 �
   | .callIf .., _, _, _, h => by simp [walk1] at h
   | .dispatch x fs args rets, _, es, vs, h => by
       rw [walk1] at h
-      exact pick_noRet fs 0 h
+      exact Local.pick_ret fs 0 h
   | .ret _, hn, _, _, _ => by simp [Stmt.noRet] at hn
 
 theorem walk_noRet : ∀ (ss : List Stmt), Stmt.noRetList ss = true → ∀ es vs, walk σ ss ≠ .ret es vs
@@ -293,19 +286,13 @@ theorem pick_atoms {x : V} {args rets : List V} : ∀ (fs : List String) (j : �
       · simp [Out.evs] at h
       · exact pick_atoms fs (j + 1) h
 
-theorem evs_seq_sub {o1 o2 : Out} {e : Ev} (h : e ∈ (o1.seq o2).evs) : e ∈ o1.evs ∨ e ∈ o2.evs := by
-  cases o1 <;> cases o2 <;> simp_all [Out.seq, Out.pre, Out.evs]
-
-theorem evs_pre_sub {es : List Ev} {o : Out} {e : Ev} (h : e ∈ (o.pre es).evs) : e ∈ es ∨ e ∈ o.evs := by
-  cases o <;> simp_all [Out.pre, Out.evs]
-
 mutual
 /-- **Every atom a path runs is an atom of the body.** -/
 theorem walk1_atoms : ∀ (s : Stmt) {a : Core.Atom}, Ev.atom a ∈ (walk1 σ s).evs → a ∈ sAtoms s
   | .atom a', a, h => by simp [walk1, Out.evs] at h; simp [sAtoms, h]
   | .ite c z n, a, h => by
       simp only [walk1] at h
-      rcases evs_pre_sub h with h | h
+      rcases Local.evs_pre h with h | h
       · simp at h
       · simp only [sAtoms, List.mem_append]
         split_ifs at h
@@ -322,7 +309,7 @@ theorem walk_atoms : ∀ (ss : List Stmt) {a : Core.Atom}, Ev.atom a ∈ (walk �
   | s :: ss, a, h => by
       simp only [walk] at h
       simp only [lAtoms, List.mem_append]
-      rcases evs_seq_sub h with h | h
+      rcases (Local.evs_seq h).imp_right And.right with h | h
       · exact Or.inl (walk1_atoms s h)
       · exact Or.inr (walk_atoms ss h)
 
@@ -338,27 +325,6 @@ theorem walkArms_atoms (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {a : Co
 end
 
 end Atoms2
-
-section Chain
-
-open LeanVM.Guest.Memory
-
-variable {σ : Val}
-
-theorem out_seq_assoc_sh : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
-  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
-  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
-  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
-  | .ret es vs, k, l => by simp [Out.seq]
-  | .stuck, k, l => by simp [Out.seq]
-
-theorem walk_append_sh : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
-  | [], l' => by
-      rw [List.nil_append, walk]
-      cases walk σ l' <;> simp [Out.seq, Out.pre]
-  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append_sh l l', out_seq_assoc_sh]
-
-end Chain
 
 /-! ## Bit sets apart -/
 

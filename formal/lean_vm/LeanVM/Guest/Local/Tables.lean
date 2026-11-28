@@ -43,6 +43,8 @@ several.
 
 namespace LeanVM.Guest.Local
 
+open LeanVM.Guest.Packed (fld)
+
 @[expose] public section
 
 /-- An offset's lane. -/

@@ -22,6 +22,7 @@ certificate's lists its cells apart (`Apart`) and its temporaries and runs liste
 namespace LeanVM.Guest.B2C
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.Packed (fld fld_lt)
 open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 @[expose] public section

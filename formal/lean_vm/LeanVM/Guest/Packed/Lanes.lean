@@ -43,6 +43,9 @@ namespace LeanVM.Guest.Packed
 
 @[expose] public section
 
+/-- Bits `[o, o + w)` of `x`: a field of a record packed in one number. -/
+def fld (x o w : ℕ) : ℕ := Nat.mod (Nat.shiftRight x o) (Nat.pow 2 w)
+
 /-- Lane `i` of `v`, in lanes of `w` bits. -/
 def lane (v w i : ℕ) : ℕ := Nat.mod (Nat.shiftRight v (Nat.mul w i)) (Nat.pow 2 w)
 
@@ -96,6 +99,8 @@ variable {v a b c w n i lo hi : ℕ}
 
 public theorem lane_eq (v w i : ℕ) : lane v w i = v / 2 ^ (w * i) % 2 ^ w := by
   rw [← Nat.shiftRight_eq_div_pow]; rfl
+
+public theorem fld_lt (x o w : ℕ) : fld x o w < 2 ^ w := Nat.mod_lt _ (Nat.two_pow_pos w)
 
 public theorem lane_lt (v w i : ℕ) : lane v w i < 2 ^ w := by
   rw [lane_eq]; exact Nat.mod_lt _ (Nat.two_pow_pos w)

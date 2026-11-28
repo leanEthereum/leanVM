@@ -179,7 +179,7 @@ theorem tailArgs_last {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} (hw : wa
   have hloop : fn.loop = true := by unfold Fn.loop; rw [hrev]; exact hb.1
   have hbody : fn.body = rpre.reverse ⧺ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
-  rw [hbody, walk_append_sh] at hw
+  rw [hbody, walk_appendC] at hw
   refine ⟨hloop, ?_⟩
   have hw2 : walk σ [Stmt.callIf cc g args, Stmt.ret []] =
       .ret [.inK cc, if σ cc = 0 then .skip g args else .call g args []] [] := by

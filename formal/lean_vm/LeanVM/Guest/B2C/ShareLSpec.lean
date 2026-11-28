@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B2C.ShareL
+public import LeanVM.Guest.B2C.ShareFacts
 
 /-!
 # The local sharing check, unpacked
@@ -21,13 +22,11 @@ holds (`home_exists`); every anchor is checked at its position (`anchor_exists`)
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local LeanVM.Guest.Check LeanVM.Guest.Exec
+open LeanVM.Guest.Packed (fld fld_lt)
 
 @[expose] public section
 
 /-! ## Lists and options -/
-
-@[simp] theorem nbeq_iff' {a b : ℕ} : Nat.beq a b = true ↔ a = b :=
-  ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl a⟩
 
 section Lists
 
@@ -55,7 +54,7 @@ theorem occOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v : V} {n n' : ℕ}
       cases h4 : ((Nat.blt (vHp (vlane K v.idx)) q || (Nat.beq (vHp (vlane K v.idx)) q && Nat.blt (vHj (vlane K v.idx)) i)) &&
           Nat.blt q (vSe (vlane K v.idx))) <;> rw [h4] at h <;> simp only [Bool.cond_true, Bool.cond_false, reduceCtorEq] at h
       cases h
-      simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.blt_eq, nbeq_iff'] at h4
+      simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.blt_eq, nbeq_iff] at h4
       exact ⟨rfl, .inr h4⟩
     · cases h; exact ⟨rfl, .inl (Nat.eq_of_beq_eq_true h3)⟩
   · left
@@ -190,7 +189,7 @@ theorem checkL_spec (h : shareCheckL cf C P fs main mc T = true) : CheckL cf C P
     rw [List.drop_zero, Nat.sub_zero, List.take_length] at h
     split at h
     · rename_i r hr
-      simp only [Bool.and_eq_true, nbeq_iff', beq_iff_eq, List.drop_length] at h
+      simp only [Bool.and_eq_true, nbeq_iff, beq_iff_eq, List.drop_length] at h
       obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
       obtain ⟨r1, ⟨r21, r22⟩, r3⟩ := r
       simp only at h1 h2 h3 h4

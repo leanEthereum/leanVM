@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Local.Fold
 public import LeanVM.Guest.B2C.ShareDefs
 public import LeanVM.Guest.B2C.CplCheck
+public import LeanVM.Guest.Packed.Lanes
 
 /-!
 # The local sharing check
@@ -40,14 +41,12 @@ a state of two numbers: the next value number, the next anchor.
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local LeanVM.Guest.Check
+open LeanVM.Guest.Packed (fld fld_lt)
 open LeanVM.Guest.Exec
 
 @[expose] public section
 
 /-! ## Lanes -/
-
-/-- Bits `[o, o + w)` of `x`. -/
-def fld (x o w : ℕ) : ℕ := Nat.mod (Nat.shiftRight x o) (Nat.pow 2 w)
 
 /-- Block `i` of a list of blocks (`0` past its end). -/
 noncomputable def nthR (bs : List ℕ) (i : ℕ) : ℕ :=

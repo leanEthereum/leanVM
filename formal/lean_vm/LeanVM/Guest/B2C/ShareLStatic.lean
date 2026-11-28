@@ -23,6 +23,7 @@ table target's cell; in `main` every value's cell is below the jump table.
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local
+open LeanVM.Guest.Packed (fld fld_lt)
 open LeanVM.Guest.Check LeanVM.Guest.Exec LeanVM.Guest.Memory
 
 @[expose] public section
@@ -114,7 +115,7 @@ theorem ot_ne_zero (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.l
 /-- A free cell holds no value. -/
 theorem free_not_mem (H : CheckL cf C P fs main mc T) {cs : List ℕ} (hf : freeOk T cs = true) {c : ℕ}
     (hc : c ∈ cs) : c ∉ C.locs := by
-  simp only [freeOk, allR_eq, List.all_eq_true, band, Nat.ble_eq, nbeq_iff'] at hf
+  simp only [freeOk, allR_eq, List.all_eq_true, band, Nat.ble_eq, nbeq_iff] at hf
   obtain ⟨h2, h0⟩ := hf c hc
   intro hm
   obtain ⟨u, hu, rfl⟩ := List.getElem_of_mem hm
@@ -156,7 +157,7 @@ theorem staticD_of_check (H : CheckL cf C P fs main mc T) : StaticD cf C P fs ma
           exact ((pairsOk_spec hl.1.1.1.1.2).1 _ ht).1
         have hot : tget wO 8 5 (fnK cf C P fs main mc T).T.ot (C.locs.getD v.idx 0) = 4 * t + 1 := by
           have := H.tmps
-          simp only [tmpsOk, allR_eq, List.all_eq_true, nbeq_iff'] at this
+          simp only [tmpsOk, allR_eq, List.all_eq_true, nbeq_iff] at this
           exact this _ ht
         by_cases hs : vSh (vlane Kf v.idx) = 0
         · have := h5 hpairs hs
@@ -222,7 +223,7 @@ theorem staticD_of_check (H : CheckL cf C P fs main mc T) : StaticD cf C P fs ma
       | nil => intro _ m hm; simp at hm
       | cons v vs ih =>
         intro h m hm
-        simp only [listedOk.runListedL, band, nbeq_iff'] at h
+        simp only [listedOk.runListedL, band, nbeq_iff] at h
         cases m with
         | zero => exact ⟨by simpa using h.1.1, by simpa using h.1.2⟩
         | succ m =>

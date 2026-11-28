@@ -70,9 +70,6 @@ open LeanVM.Guest.Packed
 
 /-! ## Records -/
 
-/-- Bits `[o, o + k)` of `x`. -/
-def fld (x o k : ℕ) : ℕ := Nat.mod (Nat.shiftRight x o) (Nat.pow 2 k)
-
 /-- A block's record. -/
 structure Block where
   /-- The parent (the body's is itself). -/

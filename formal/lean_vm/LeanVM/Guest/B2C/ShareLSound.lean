@@ -27,6 +27,7 @@ key justification ties it to values justified before it, whose homes run as they
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local
+open LeanVM.Guest.Packed (fld fld_lt)
 open LeanVM.Guest.Check LeanVM.Guest.Exec LeanVM.Guest.Memory
 
 @[expose] public section
@@ -35,36 +36,12 @@ open LeanVM.Guest.Check LeanVM.Guest.Exec LeanVM.Guest.Memory
 
 theorem vn_of_ok {v : V} (h : vnOk v = true) : v = V.n v.idx := by
   unfold vnOk at h
-  simp only [band, nbeq_iff'] at h
+  simp only [band, nbeq_iff] at h
   obtain ⟨h1, h2⟩ := h
   rcases v with ⟨path, tag, idx⟩
   cases path with
   | nil => simp only at h2; subst h2; rfl
   | cons _ _ => cases h1
-
-theorem fld_lt (x o w : ℕ) : fld x o w < 2 ^ w := by
-  unfold fld; exact Nat.mod_lt _ (Nat.two_pow_pos w)
-
-theorem nodup_of_bitsNodup : ∀ (l : List ℕ) (s : ℕ), bitsNodup l s = true → l.Nodup
-  | [], _, _ => List.nodup_nil
-  | c :: cs, s, h => by
-    simp only [bitsNodup, Bool.and_eq_true, Bool.not_eq_true', bitN_eq] at h
-    have h2 := bitsNodup_testBit cs _ h.2
-    refine List.nodup_cons.mpr ⟨fun hc ↦ ?_, nodup_of_bitsNodup cs _ h.2⟩
-    have := h2 c hc
-    rw [testBit_setBit] at this
-    simp at this
-where
-  bitsNodup_testBit : ∀ (l : List ℕ) (s : ℕ), bitsNodup l s = true → ∀ c ∈ l, s.testBit c = false
-    | [], _, _ => fun _ h ↦ absurd h List.not_mem_nil
-    | c :: cs, s, h => by
-      simp only [bitsNodup, Bool.and_eq_true, Bool.not_eq_true', bitN_eq] at h
-      intro c' hc'
-      rcases List.mem_cons.mp hc' with rfl | hc'
-      · exact h.1
-      · have := bitsNodup_testBit cs _ h.2 c' hc'
-        rw [testBit_setBit, Bool.or_eq_false_iff] at this
-        exact this.1
 
 theorem packCells_inj : ∀ (l l' : List ℕ), (∀ c ∈ l, 1 ≤ c ∧ c < 65536) → (∀ c ∈ l', 1 ≤ c ∧ c < 65536) →
     packCells l = packCells l' → l = l'
@@ -106,13 +83,13 @@ theorem mem_getElem? {l : List V} {v : V} (h : v ∈ l) : ∃ i : ℕ, l[i]? = s
 
 theorem eqAt_mem {a : Core.Atom} {i : ℕ} {u : V} (h : eqAt a i = some u) : u ∈ atomVals a := by
   rw [atomVals_eq]
-  cases a <;> simp only [eqAt, Bool.cond_eq_ite, nbeq_iff'] at h <;> (try split_ifs at h) <;>
+  cases a <;> simp only [eqAt, Bool.cond_eq_ite, nbeq_iff] at h <;> (try split_ifs at h) <;>
     (try simp only [Option.some.injEq] at h) <;> (try subst h) <;> simp_all [Core.Atom.vals]
 
 theorem keyAt_mem {a : Core.Atom} {i op : ℕ} {ins : List V} (h : keyAt a i = some (op, ins)) :
     ∀ x ∈ ins, x ∈ atomVals a := by
   rw [atomVals_eq]
-  cases a <;> simp only [keyAt, Bool.cond_eq_ite, nbeq_iff'] at h <;> (try split_ifs at h) <;>
+  cases a <;> simp only [keyAt, Bool.cond_eq_ite, nbeq_iff] at h <;> (try split_ifs at h) <;>
     (try obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj h)) <;> simp_all [Core.Atom.vals]
 
 /-! ## The certificate's once-per-function facts -/
@@ -124,7 +101,7 @@ theorem locsOk_spec {T : Tabs} : ∀ (locs : List ℕ) (v0 : ℕ),
   | [], _, _, k, hk => absurd hk (by simp)
   | c :: cs, v0, h, k, hk => by
       change (Nat.beq (fld (tget wV 8 5 T.vl v0) 0 16) c && Local.seqN (v0 + 1) _) = true at h
-      simp only [band, nbeq_iff', seqN_eq] at h
+      simp only [band, nbeq_iff, seqN_eq] at h
       cases k with
       | zero => simpa using h.1
       | succ k =>
@@ -153,13 +130,13 @@ theorem statOk_spec {T : Tabs} : ∀ (stat : List (ℕ × PC)) (n0 : ℕ), statG
     ∀ n, n0 ≤ n → n < T.nst → (tO (tget wT 6 5 T.st n), PC.k (tK0 (tget wT 6 5 T.st n)) (tK1 (tget wT 6 5 T.st n))) ∈ stat
   | [], n0, h => by
       change Nat.beq n0 T.nst = true at h
-      rw [nbeq_iff'] at h
+      rw [nbeq_iff] at h
       exact ⟨fun q hq ↦ absurd hq List.not_mem_nil, fun n h1 h2 ↦ by omega⟩
   | (o, pc) :: qs, n0, h => by
       cases pc with
       | k a b =>
         rw [statGo_k] at h
-        simp only [band, nbeq_iff'] at h
+        simp only [band, nbeq_iff] at h
         obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
         obtain ⟨ih1, ih2⟩ := statOk_spec qs (n0 + 1) h5
         refine ⟨fun q hq a' b' hab ↦ ?_, fun n hn1 hn2 ↦ ?_⟩
@@ -392,7 +369,7 @@ theorem apartL_nodup (H : CheckL cf C P fs main mc T) : (P.stat.map Prod.fst).No
   have h := H.apart
   unfold apartOkL at h
   simp only [natSeq_eq, band] at h
-  exact nodup_of_bitsNodup _ _ h.1.1.1.1.2
+  exact (bitsNodup_spec _ _ h.1.1.1.1.2).1
 
 theorem stat_ot (H : CheckL cf C P fs main mc T) {o a b : ℕ} (h : (o, PC.k a b) ∈ P.stat) :
     tget wO 8 5 T.ot o % 4 = 3 :=

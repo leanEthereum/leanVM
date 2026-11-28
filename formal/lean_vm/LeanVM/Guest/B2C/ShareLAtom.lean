@@ -23,6 +23,7 @@ list in `key` order; so a value's predecessor bounds every value of smaller key.
 namespace LeanVM.Guest.B2C.ShareL
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Local
+open LeanVM.Guest.Packed (fld fld_lt)
 open LeanVM.Guest.Check LeanVM.Guest.Exec
 
 @[expose] public section
@@ -48,7 +49,7 @@ theorem constAt_sound {a : Core.Atom} {i : ℕ} {y : ℕ × ℕ} {v : V} (h : co
   rw [atomVals_eq] at hv
   cases a with
   | const d x =>
-    simp only [constAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [constAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with hi
     obtain rfl := Option.some.inj h
     subst hi
@@ -56,7 +57,7 @@ theorem constAt_sound {a : Core.Atom} {i : ℕ} {y : ℕ × ℕ} {v : V} (h : co
     subst hv
     rw [tw_limbs]; exact ha
   | assertNe x inv p =>
-    simp only [constAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [constAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with hi
     obtain rfl := Option.some.inj h
     subst hi
@@ -72,7 +73,7 @@ theorem eqAt_sound {a : Core.Atom} {i : ℕ} {u v : V} (h : eqAt a i = some u)
   cases a with
   | copy d s =>
     have ha' : σ d = σ s := ha
-    simp only [eqAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [eqAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with h0 h1
     · subst h0; obtain rfl := Option.some.inj h
       simp only [Core.Atom.vals, List.getElem?_cons_zero, Option.some.injEq] at hv; subst hv; exact ha'
@@ -80,7 +81,7 @@ theorem eqAt_sound {a : Core.Atom} {i : ℕ} {u v : V} (h : eqAt a i = some u)
       simp [Core.Atom.vals] at hv; subst hv; exact ha'.symm
   | assertEq x y =>
     have ha' : σ x = σ y := eq_of_add_eq_zero ha
-    simp only [eqAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [eqAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with h0 h1
     · subst h0; obtain rfl := Option.some.inj h
       simp only [Core.Atom.vals, List.getElem?_cons_zero, Option.some.injEq] at hv; subst hv; exact ha'
@@ -94,7 +95,7 @@ theorem keyAt_sound {a : Core.Atom} {i op : ℕ} {ins : List V} {v : V} (h : key
   cases a with
   | add d x y =>
     have ha' : σ d = σ x + σ y := ha
-    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with h0 h1 h2 <;> obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
     · subst h0; simp only [Core.Atom.vals, List.getElem?_cons_zero, Option.some.injEq] at hv; subst hv
       simp only [keyHolds_add, List.map_cons, List.map_nil]; exact ha'
@@ -105,13 +106,13 @@ theorem keyAt_sound {a : Core.Atom} {i op : ℕ} {ins : List V} {v : V} (h : key
       simp only [keyHolds_add, List.map_cons, List.map_nil]
       rw [ha', add_comm (σ x) (σ y), add_assoc, CharTwo.add_self_eq_zero, add_zero]
   | mul d x y =>
-    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with h0
     obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
     subst h0; simp only [Core.Atom.vals, List.getElem?_cons_zero, Option.some.injEq] at hv; subst hv
     simp only [keyHolds_mul, List.map_cons, List.map_nil]; exact ha
   | load d p off =>
-    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff'] at h
+    simp only [keyAt, Bool.cond_eq_ite, nbeq_iff] at h
     split_ifs at h with h0
     obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
     subst h0; simp only [Core.Atom.vals, List.getElem?_cons_zero, Option.some.injEq] at hv; subst hv
