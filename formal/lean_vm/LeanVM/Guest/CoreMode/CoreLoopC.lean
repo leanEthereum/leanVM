@@ -57,9 +57,7 @@ def fitBL (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
     (h.retM.isEmpty && h.postQ.isEmpty) &&
-    G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
-      | some c => cellIn c h.pre
-      | none => false) || hpIn G na true h.preP h.pre m) &&
+    presIn G na h.pre (hpIn G na true h.preP h.pre) h.pre G.pre &&
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre
@@ -111,7 +109,7 @@ structure FitBL (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Prop where
 theorem FitBL.of_ok {G : Mode.Sig} {h : HSig} {na nr : ℕ} (hf : fitBL G h na nr = true) : FitBL G h na nr := by
   simp only [fitBL, Bool.and_eq_true] at hf
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, ⟨h7, h8⟩⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩ := hf
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, presIn_all _ _ (fun _ h ↦ h) h9, h10, h11, h12, h13⟩
 
 theorem fitBLpost_of {G : Mode.Sig} {h : HSig} {na nr : ℕ} (hf : fitBL G h na nr = true) :
     fitBLpost G h na nr = true := by

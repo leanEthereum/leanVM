@@ -920,6 +920,17 @@ theorem allAnyPos_all {α β : Type} {p : α → β → Bool} {gs : List α} {hs
       · exact h1
     · exact ih (i + 1) h2 x hx
 
+/-- **A callee's preconditions `ms` over the `na` arguments**: each product's cell (`monoC`) one of `cs` (a heap
+signature's preconditions), else `alt` of it; `cs` read first at the cursor `cur`, the cell after the last one
+found there, as a heap signature lists the cells in its mode signature's order (`fitB`, `fitBL`). -/
+def presIn (G : Mode.Sig) (na : ℕ) (cs : List CCell) (alt : Mode.Mono → Bool) : List CCell → List Mode.Mono → Bool
+  | _, [] => true
+  | cur, m :: ms => match monoC m, cur with
+    | some c, c' :: cur' => bif monoS G na true m && c'.beq c then presIn G na cs alt cur' ms else
+        ((monoS G na true m && cellIn c cs) || alt m) && presIn G na cs alt cur ms
+    | some c, [] => ((monoS G na true m && cellIn c cs) || alt m) && presIn G na cs alt [] ms
+    | none, _ => alt m && presIn G na cs alt cur ms
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
@@ -937,10 +948,9 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     h.postP.all (fun p ↦ hpAll G (na + nr) G.post p || hpRunIn G (na + nr) p) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
     (h.retM.all (retMIn G na nr) && h.postQ.all (rngQIn G (na + nr))) &&
-    G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
-      | some c => cellIn c h.pre
-      | none => false) || hpIn G na true h.preP h.pre m ||
-      (m.bs.all (baseC1 G na (hpBs G) ·.1) && h.preR.any (ptLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) m ·))) &&
+    presIn G na h.pre (fun m ↦ hpIn G na true h.preP h.pre m ||
+      (m.bs.all (baseC1 G na (hpBs G) ·.1) && h.preR.any (ptLIs (glOfs na (hpBs G)) (gpOfs na (hpBs G)) m ·)))
+      h.pre G.pre &&
     (hpBs G).all (fun p ↦ Nat.beq p.1 1 || cellIn ⟨[(p.1 - 2, 1)], p.2⟩ h.pre) &&
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
