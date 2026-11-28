@@ -46,9 +46,10 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         self.fs.sample()
     }
 
+    /// `n` challenges, in order.
     #[inline(never)]
     pub fn sample_vec(&mut self, n: usize) -> Vec<F> {
-        self.fs.sample_vec(n)
+        (0..n).map(|_| self.sample()).collect()
     }
 
     /// Hand the next opening phase's Merkle data to the verifier. Not absorbed:

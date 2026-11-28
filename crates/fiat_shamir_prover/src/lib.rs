@@ -146,11 +146,6 @@ impl<F: Scalar> FiatShamirState<F> {
         self.ground.take().unwrap_or_else(|| self.duplex())
     }
 
-    /// Squeeze `n` challenges, in order.
-    pub fn sample_vec(&mut self, n: usize) -> Vec<F> {
-        (0..n).map(|_| self.sample()).collect()
-    }
-
     /// Prover-side PoW grind: find the smallest `u64` nonce whose permutation, the one drawing the next challenge,
     /// leaves the low `bits` bits of its output's third lane zero; bind it, and keep that challenge for the next
     /// [`Self::sample`]. `bits = 0` is no grind at all. A CONTIGUOUS low-bit window, so a recursive verifier
