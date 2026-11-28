@@ -95,20 +95,15 @@ pub(crate) fn novel_basis_at(mu: usize, x: usize) -> Vec<F64> {
         .collect()
 }
 
-/// `(X h)[c]`, coefficient `i` of `h` being `h(i)`, zero past its end.
-#[inline]
-pub(crate) fn x_coef<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
+/// `(X h)[c]`, zero past the end of `h`. Out of line: every fold and projection of `X F` calls it.
+#[inline(never)]
+pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
+    let h = |i: usize| h.get(i).copied().unwrap_or_default();
     match c {
         0 => T::default(),
         _ if c & 1 == 1 => h(c - 1) + h(c),
         _ => (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(CONSTANTS.1[c.trailing_zeros() as usize]),
     }
-}
-
-/// `(X h)[c]`. Out of line: every fold and projection of `X F` calls it.
-#[inline(never)]
-pub(crate) fn x_at<T: Coef>(h: &[T], c: usize) -> T {
-    x_coef(|i| h.get(i).copied().unwrap_or_default(), c)
 }
 
 #[cfg(test)]
