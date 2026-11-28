@@ -91,6 +91,7 @@ impl FlushBuilder {
     }
 
     /// Fall-through state step: the next pc is `g·pc`, fp unchanged.
+    #[inline(never)]
     pub(crate) fn state_step(&mut self, pc: usize, fp: usize) {
         self.pair_but(vec![Const(SEP_STATE), GCol(pc, 1), Col(fp)], 1, Col(pc));
     }
@@ -118,6 +119,7 @@ impl FlushBuilder {
     /// result, a `DEREF` store) is passed here as its form: the cell then holds
     /// whatever the form says, with no value column and no identity to tie one
     /// (§sec:m3).
+    #[inline(never)]
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 2]) {
         self.memory_pushing(GCol(count, 1), addr, count, vals);
     }
@@ -297,6 +299,7 @@ impl Table {
 
     /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
     /// table's constraint. All zeros but for `KECCAK` ([`KeccakTable::padding`]).
+    #[inline(never)]
     pub(crate) fn padding(self) -> Vec<F64> {
         match self {
             Table::Keccak => KeccakTable.padding(),
@@ -842,6 +845,7 @@ pub(crate) mod keccakt {
 
 /// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
 /// selects: `a + flag·(a + b)`, a missing lane being `missing`.
+#[inline(never)]
 fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usize, missing: Option<usize>) -> Coord {
     let col = |lane: Option<usize>| lane.map(|l| values + l).or(missing);
     let (a, b) = (col(even), col(odd));

@@ -33,6 +33,7 @@ pub struct Sponge {
 
 impl Sponge {
     /// One permutation of the IV and the public input, from the zero state.
+    #[inline(never)]
     pub fn new(fiat_shamir_iv: Digest, public_input: Digest) -> Self {
         let mut state = [0u64; STATE_LANES];
         state[..4].copy_from_slice(&fiat_shamir_iv.words());
