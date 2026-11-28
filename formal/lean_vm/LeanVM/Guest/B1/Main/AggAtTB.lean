@@ -33,6 +33,7 @@ exact on the memory (its own inlined `grind_check` by `AggVals.gexact`, the call
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Protocol.Verifier (BytecodeClaim)
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da LeanVM.Node
@@ -99,7 +100,7 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
           name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : Batch.batchCore cs h = some out)
+    {out : BytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : Batch.batchCore cs h = some out)
     {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
@@ -329,7 +330,7 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
       show (σ (.n (val% «aggregate_claims» "bc_wsum"))).limb 0 * addressOfIndex 0 = _
       rw [hV.v188]; exact limb0_gen_pow_mul _ _
     · have hcl2 : (aggOut cs h).cells.length = 24 := by
-        simp [aggOut, DeferredBytecodeClaim.cells, aggRun, bsRun_len, hrl]
+        simp [aggOut, BytecodeClaim.cells, aggRun, bsRun_len, hrl]
       refine ⟨ds + k, ?_, Or.inr (Or.inl (regionL_of_mem hdst (by rw [hcl2]; exact hk)))⟩
       show (σ (.n (val% «aggregate_claims» "defer_stmt"))).limb 0 * addressOfIndex k = _
       rw [hV.e4]; exact limb0_gen_pow_mul _ _

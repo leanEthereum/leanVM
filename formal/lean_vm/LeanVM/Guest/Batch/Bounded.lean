@@ -57,7 +57,7 @@ def readChildren (bytecodeVariableCount : ℕ) : (childCount : ℕ) → Verifier
     return child :: children
 
 /-- **The batching of `childCount` children read off the stream.** -/
-noncomputable def batchingProgram (deferredClaimCheck : DeferredBytecodeClaim → Prop) (bytecode : List K)
+noncomputable def batchingProgram (deferredClaimCheck : BytecodeClaim → Prop) (bytecode : List K)
     (childCount : ℕ) : VerifierProgram Bool := do
   let children ← readChildren (Nat.log2 bytecode.length) childCount
   batchingAfterChildren deferredClaimCheck bytecode children
@@ -75,11 +75,11 @@ noncomputable def readChildCount (childCountBound : ℕ) : VerifierProgram ℕ :
 
 /-- **The batching as a verifier program**, of fewer than `childCountBound` children: the count,
 then the batching of that many, its deferred claim true of `bytecode`, shape and length included
-(`DeferredBytecodeClaim.HoldsWithShape`). -/
+(`BytecodeClaim.HoldsWithShape`). -/
 noncomputable def boundedBatchingProgram (childCountBound : ℕ) (bytecode : List K) :
     VerifierProgram Bool := do
   let childCount ← readChildCount childCountBound
-  batchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode childCount
+  batchingProgram (BytecodeClaim.HoldsWithShape bytecode) bytecode childCount
 
 /-- Some child's claim is false, at most `childCountBound - 1` children of the bytecode's shape. -/
 def SomeChildClaimFalseAt (bytecode : List K) (childCountBound : ℕ) (children : List ChildClaims) :

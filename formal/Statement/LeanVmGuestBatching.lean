@@ -23,12 +23,8 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-! ## The claims -/
 
-/-- The claim a statement defers on the stacked bytecode: its value at a point
-(`DeferredBytecodeClaim`, `crates/aggregation/src/deferred.rs`), the shape of a proof's claim. -/
-abbrev DeferredBytecodeClaim : Type := BytecodeClaim
-
 /-- A claim's cells: the point, then the value (`DeferredBytecodeClaim::cells`). -/
-def DeferredBytecodeClaim.cells (claim : DeferredBytecodeClaim) : List E :=
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.cells (claim : BytecodeClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
 
 /-- What a node knows of one child. -/
@@ -36,9 +32,9 @@ structure ChildClaims where
   /-- The child's public input. -/
   publicInput : Digest
   /-- The claim the child's proof makes. -/
-  freshClaim : DeferredBytecodeClaim
+  freshClaim : BytecodeClaim
   /-- The claim the child's statement defers. -/
-  carriedClaim : DeferredBytecodeClaim
+  carriedClaim : BytecodeClaim
 
 /-- A child's words: its public input's two cells, then its two claims (`AGG_CHILD_WORDS`). -/
 def ChildClaims.words (child : ChildClaims) : List E :=
@@ -137,7 +133,7 @@ with claims of `vars` coordinates and hints of `vars` rounds, else nothing. From
 hash, absorb the count and the padded children, check the proof of work, squeeze `λ`, run the
 sumcheck; the claim deferred at its challenges if the final check passes. -/
 def batchWith (vars : ℕ) (children : List ChildClaims) (h : BatchingHints) :
-    m (Option DeferredBytecodeClaim) :=
+    m (Option BytecodeClaim) :=
   if children.length ≤ maxRecursions ∧ h.sumcheckMessages.length = vars ∧
       ∀ c ∈ children, c.freshClaim.bytecodePoint.length = vars ∧
         c.carriedClaim.bytecodePoint.length = vars then do
@@ -146,7 +142,7 @@ def batchWith (vars : ℕ) (children : List ChildClaims) (h : BatchingHints) :
   else pure none
 where
   /-- The transcript. -/
-  go : StateT Sponge m (Option DeferredBytecodeClaim) := do
+  go : StateT Sponge m (Option BytecodeClaim) := do
     for x in padToRate [gpow children.length] do observe (m := m) π x
     for c in children do
       for x in padToRate c.words do observe (m := m) π x
@@ -162,7 +158,7 @@ end Transcript
 
 /-- **The deployed batching**: `batchWith` over Keccak-f[1600]. -/
 def batch (vars : ℕ) (children : List ChildClaims) (h : BatchingHints) :
-    Option DeferredBytecodeClaim :=
+    Option BytecodeClaim :=
   Id.run (batchWith keccakF1600 vars children h)
 
 end LeanVM.Guest.Batch

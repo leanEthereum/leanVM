@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Facts.Verifier
+public import LeanVM.Protocol.Verifier.ClaimHolds
 public import LeanVM.Protocol.Verifier.Claims
 import LeanVM.Protocol.Compile.Prog
 import LeanVM.Protocol.WithHash

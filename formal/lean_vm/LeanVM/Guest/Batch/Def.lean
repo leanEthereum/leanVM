@@ -24,7 +24,7 @@ def batchSeed : KeccakState := keccakF1600 (seedInput (keccak256 batchingLabel) 
 
 /-- `batch`'s transcript over Keccak-f[1600] from `batchSeed`, without its checks on the children
 and the hints (`batch_eq_some_iff`). -/
-def batchCore (cs : List ChildClaims) (h : BatchingHints) : Option DeferredBytecodeClaim :=
+def batchCore (cs : List ChildClaims) (h : BatchingHints) : Option BytecodeClaim :=
   Id.run ((batchWith.go (m := Id) keccakF1600 cs h).run' ⟨batchSeed, [], none⟩)
 
 /-- What `batch` checks of the children and the hints, for points of `vars` coordinates. -/
@@ -45,7 +45,7 @@ def sumcheckRoundCells (g : E × E) : List E := [g.1, g.2]
 
 /-- **`batch` defers a claim exactly where its checks pass and its transcript defers it.** -/
 theorem batch_eq_some_iff {vars : ℕ} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredBytecodeClaim} : batch vars cs h = some d ↔ BatchChecks vars cs h ∧ batchCore cs h = some d := by
+    {d : BytecodeClaim} : batch vars cs h = some d ↔ BatchChecks vars cs h ∧ batchCore cs h = some d := by
   unfold batch batchWith BatchChecks
   split_ifs with hc
   · exact ⟨fun e ↦ ⟨hc, e⟩, fun e ↦ e.2⟩
@@ -83,7 +83,7 @@ open Classical in
 sumcheck's `log₂ |bytecode|` rounds, the final value (`bc_star_hint`, read after the last
 challenge: no challenge follows), the final check, and `deferredClaimCheck` of the deferred
 claim. -/
-noncomputable def batchingAfterChildren (deferredClaimCheck : DeferredBytecodeClaim → Prop)
+noncomputable def batchingAfterChildren (deferredClaimCheck : BytecodeClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
   VerifierProgram.grindProofOfWork batchLambdaGrindBits
   let challenge ← VerifierProgram.sampleChallenge
@@ -107,7 +107,7 @@ def cellsBeforeChallenge (children : List ChildClaims) : List E :=
 /-- **The batching of a node's children** (`aggregate_claims`): what it absorbs before its first
 challenge (`cellsBeforeChallenge`, the count's cells and the children's), read as they are, then the
 batching after them, its deferred claim meeting `deferredClaimCheck`. -/
-noncomputable def nodeBatchingProgram (deferredClaimCheck : DeferredBytecodeClaim → Prop)
+noncomputable def nodeBatchingProgram (deferredClaimCheck : BytecodeClaim → Prop)
     (bytecode : List K) (children : List ChildClaims) : VerifierProgram Bool := do
   let cells ← VerifierProgram.readScalars (cellsBeforeChallenge children).length
   VerifierProgram.require (cells = cellsBeforeChallenge children)

@@ -35,7 +35,7 @@ sumcheck and the public input (`verify_tables`), the Keccak reduction (`verify_k
 ring switch (`ring_switch_target`, `c_table`), the batching challenge, the placement
 (`certify_placement`), the stacked opening (`open_stacked__L{j}`) and its terminal
 (`check_opening_terminal`); it stores the claim on the bytecode the run leaves at `defer_out`
-(`Node.DeferredBytecodeClaim.cells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
+(`Protocol.Verifier.BytecodeClaim.cells`: the bus point's `BYTECODE_LOG = 19` row coordinates, the four bus challenges,
 the value).
 
 * `bytecodeVars`: the deferred claim's point has `23` coordinates;

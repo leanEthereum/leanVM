@@ -176,7 +176,7 @@ pub fn file() -> File {
     writeln!(out, "/-- The statement's DA field without a root. -/\ndef daNone : Digest := {}\n", digest(&verifier::da::digest(None))).unwrap();
     writeln!(
         out,
-        "/-- A deferred claim of the guest's shape. -/\ndef defer : DeferredBytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
+        "/-- A deferred claim of the guest's shape. -/\ndef defer : BytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
         es(&defer.bytecode_point),
         e(defer.bytecode_value)
     )
@@ -218,7 +218,7 @@ pub fn file() -> File {
     .unwrap();
     writeln!(
         out,
-        "/-- The claim the batching defers. -/\ndef batched : DeferredBytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
+        "/-- The claim the batching defers. -/\ndef batched : BytecodeClaim :=\n  ⟨{},\n   {}⟩\n",
         es(&batched.bytecode_point),
         e(batched.bytecode_value)
     )

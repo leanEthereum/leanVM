@@ -74,7 +74,7 @@ def claimR : R ((BitVec 128 × BitVec 128) × BitVec 256) := do
   let m := (← bytesR).map (·.toNat)
   return ((bitsLE 128 (pk.take 16), bitsLE 128 (pk.drop 16)), bitsLE 256 m)
 
-def deferR : R DeferredBytecodeClaim := do
+def deferR : R BytecodeClaim := do
   expect "defer"
   return ⟨← many eR, ← eR⟩
 

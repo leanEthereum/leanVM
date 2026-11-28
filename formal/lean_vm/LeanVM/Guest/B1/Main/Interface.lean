@@ -97,7 +97,7 @@ noncomputable def readCells (rd : Reader) (p : E) (n : ℕ) : List E := (List.ra
 abbrev bytecodeVars : ℕ := guest_const% BYTECODE_VARS
 
 /-- A deferred claim of its `24` cells: the point, then the value. -/
-def deferOfCells (cs : List E) : DeferredBytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
+def deferOfCells (cs : List E) : BytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
 
 /-- A proof's claim on the bytecode of its `24` cells (`defer_out`). -/
 def fixedOfCells (cs : List E) : BytecodeClaim := ⟨cs.take bytecodeVars, cs.getD bytecodeVars 0⟩
@@ -111,7 +111,7 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
   cc.freshClaim.bytecodePoint.length = bytecodeVars ∧ cc.carriedClaim.bytecodePoint.length = bytecodeVars ∧
     LoadHolds rd cpi (2 * c) (digestHalves cc.publicInput).1 ∧
     LoadHolds rd cpi (2 * c + 1) (digestHalves cc.publicInput).2 ∧
-    ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredBytecodeClaim.cells cc.freshClaim) ∧
+    ReadsAt rd (cfresh * gen ^ (24 * c)) (BytecodeClaim.cells cc.freshClaim) ∧
     ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carriedClaim.cells
 
 /-! ## What `main` asks of its callees with a witness -/
@@ -123,7 +123,7 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
   ∃ pi0 pi1 s0 s1 gsq out, args = [pi0, pi1, s0, s1, gsq, out] ∧
     ∃ (seed pi : Digest) (fresh : BytecodeClaim), (s0, s1) = digestHalves seed ∧
       (pi0, pi1) = digestHalves pi ∧ fresh.bytecodePoint.length = bytecodeVars ∧
-      ReadsAt rd out (DeferredBytecodeClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
+      ReadsAt rd out (BytecodeClaim.cells fresh) ∧ verifyDeferred bytecode seed pi fresh π = true
 
 /-- **A run of `main_loop2` at `args`, its leanXMSS segment read as its meaning**: a valuation of
 its parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),

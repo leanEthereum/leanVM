@@ -56,7 +56,7 @@ theorem vs_kidsAt_getD (ks : List KidD) (outs : List (List E × Main.Layout)) (j
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
     {Lin : Main.Layout} {κ : ℕ} (hκ : 14 ≤ κ) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
-    (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) (hcm : VsCallsMatch S sqE outE Lin) :
+    (hout : (outE, BytecodeClaim.cells c.freshClaim) ∈ Lin) (hcm : VsCallsMatch S sqE outE Lin) :
     let K := fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes)) sqE
     let own := fun fp ↦ bufL (fp + fs "verify_sub") (vsSizes) S.ownW
     let args := vsArgs seed c sqE outE

@@ -112,7 +112,7 @@ end ChildSegs
 /-- **The honest valuation's data on an honest child.** -/
 theorem vs_sig {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, BytecodeClaim.cells c.freshClaim) ∈ Lin)
     {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes)) sqE outs)
     {rd : Reader} {κ : ℕ} (hκ : 14 ≤ κ) (hlow : LowDef κ rd)
     (hB : Main.MemL rd (bufL b (vsSizes) S.ownW)) (hL : Main.MemL rd Lin) :

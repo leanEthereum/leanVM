@@ -352,7 +352,7 @@ theorem verify_sub_sound_of (hos : Whir.open_stacked_sound_w_Spec Whir.open_stac
   have hrL := F.hrL
   have htake : (F.r.2.1.take 19).length = 19 := by rw [List.length_take]; omega
   have hcells : ReadsAt L.read (σ (.n (val% «verify_sub» "defer_out")))
-      (Node.DeferredBytecodeClaim.cells (⟨F.bus.bytecodePoint, σ (.n (val% «verify_sub» "bc_value"))⟩ : BytecodeClaim)) := by
+      (Protocol.Verifier.BytecodeClaim.cells (⟨F.bus.bytecodePoint, σ (.n (val% «verify_sub» "bc_value"))⟩ : BytecodeClaim)) := by
     show ReadsAt L.read (σ (.n (val% «verify_sub» "defer_out"))) (F.bus.bytecodePoint ++ [σ (.n (val% «verify_sub» "bc_value"))])
     rw [F.hbp]
     refine readsAt_append.2 ⟨readsAt_append.2 ⟨fun k hk ↦ ?_, fun k hk ↦ ?_⟩, fun k hk ↦ ?_⟩

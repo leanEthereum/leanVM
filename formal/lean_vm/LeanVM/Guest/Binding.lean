@@ -33,7 +33,7 @@ hashes on the way was given two different inputs with the same output: the pairs
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
-`DeferredBytecodeClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds`). Nothing
+`BytecodeClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds`). Nothing
 else is assumed of the statements.
 
 A consumer compares the public input's digest with that of its own statement under the deployed
@@ -44,6 +44,7 @@ seed, while the guest's execution decodes a seed and a statement of that digest
 namespace LeanVM.Guest.Binding
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node
+open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
@@ -124,11 +125,11 @@ theorem sphincsPreimage_inj {l l' : List LeanSphincsClaim}
       rfl) h
 
 /-- Two deferred claims with the same cells and points of the same length are equal. -/
-theorem cells_inj {c c' : DeferredBytecodeClaim}
+theorem cells_inj {c c' : BytecodeClaim}
     (hb : c.bytecodePoint.length = c'.bytecodePoint.length) (h : c.cells = c'.cells) : c = c' := by
   obtain ⟨b, v⟩ := c
   obtain ⟨b', v'⟩ := c'
-  simp only [DeferredBytecodeClaim.cells] at h hb
+  simp only [BytecodeClaim.cells] at h hb
   obtain ⟨h1, h2⟩ := List.append_inj h hb
   simp only [List.cons.injEq, and_true] at h2
   subst h1 h2

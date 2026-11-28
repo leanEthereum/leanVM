@@ -15,6 +15,7 @@ import LeanVM.Facts.BytecodeShape
 
 open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Check
 open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1
+open LeanVM.Protocol.Verifier
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -93,4 +94,4 @@ example (seed : Digest) (v : E) (hints : BatchingHints) :
   unfold NodeRelation SignatureClaimsHeld DaDigestHeld ChildrenProven DeferredClaimBatched
   refine ⟨⟨by simp, by simp, by simp [emptyStatement], by simp [emptyStatement]⟩,
     by simp [emptyStatement], by simp, ?_⟩
-  simp [emptyStatement, DeferredBytecodeClaim.HasZeroPoint, hlog]
+  simp [emptyStatement, BytecodeClaim.HasZeroPoint, hlog]

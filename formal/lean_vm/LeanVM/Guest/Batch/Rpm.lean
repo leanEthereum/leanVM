@@ -339,7 +339,7 @@ theorem runProof_eq_of_after {m : Type → Type} [Monad m] [LawfulMonad m]
   rw [hs, run_eq_of_after π xs hP hQ ⟨seed, [], none⟩ rest proof.openings [] rfl]
 
 /-- After reading the children's cells, a node's batching is `batchingAfterChildren`. -/
-theorem after_nodeBatching (check : DeferredBytecodeClaim → Prop) (bytecode : List K)
+theorem after_nodeBatching (check : BytecodeClaim → Prop) (bytecode : List K)
     (cs : List ChildClaims) :
     (nodeBatchingProgram check bytecode cs).after ((cellsBeforeChallenge cs).map Ev.read) =
       some (batchingAfterChildren check bytecode cs) := by
@@ -361,17 +361,17 @@ theorem runBatching_node_eq_bounded {m : Type → Type} [Monad m] [LawfulMonad m
     (π : KeccakState → m KeccakState) {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
     {cs : List ChildClaims} (hn : cs.length < M)
     (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (h : BatchingHints) :
-    runBatching π (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs)
+    runBatching π (nodeBatchingProgram (BytecodeClaim.HoldsWithShape bytecode) bytecode cs)
         ⟨batchingStream cs h, []⟩ =
       runBatching π (boundedBatchingProgram M bytecode) ⟨batchingStream cs h, []⟩ := by
   have hQ : (boundedBatchingProgram M bytecode).after ((cellsBeforeChallenge cs).map Ev.read) =
-      some (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) := by
+      some (batchingAfterChildren (BytecodeClaim.HoldsWithShape bytecode) bytecode cs) := by
     have e := after_batchAny hM hn hs []
     rw [List.append_nil] at e
     rw [e]
     simp [VerifierProgram.after]
   have key := runProof_eq_of_after π
-    (after_nodeBatching (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) hQ
+    (after_nodeBatching (BytecodeClaim.HoldsWithShape bytecode) bytecode cs) hQ
     ⟨batchingStream cs h, []⟩ (batchingStream_split cs h)
   simp only [runBatching, key]
 
@@ -424,7 +424,7 @@ theorem batch_node_sound {M : ℕ} {bytecode : List K}
     Pr{let outcome ← Common.runWithRandomPermutation (do
          let output ← A
          let accepted ← runBatching Common.queryPermutation
-           (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode output.1)
+           (nodeBatchingProgram (BytecodeClaim.HoldsWithShape bytecode) bytecode output.1)
            ⟨batchingStream output.1 output.2, []⟩
          return (output.1, accepted))}[
       outcome.2 = true ∧ SomeChildClaimFalseAt bytecode M outcome.1] ≤

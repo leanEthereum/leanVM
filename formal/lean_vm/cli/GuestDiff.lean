@@ -71,7 +71,7 @@ def digestEq (a b : Digest) : Bool := a.toList == b.toList
 def nodeRel (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let shaped := fun (d : DeferredBytecodeClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
+  let shaped := fun (d : BytecodeClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
   [("the statement's deferred claim is shaped", shaped s.deferredClaim)] ++
   w.children.zipIdx.flatMap (fun (ch, i) =>
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
@@ -95,7 +95,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
       (Batch.batch (Nat.log2 bytecode.length) (w.childClaims c.seed) w.batchingHints).map
-        DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
+        BytecodeClaim.cells == some s.deferredClaim.cells)]
 
 /-- `Limits`' parts, each by name. -/
 def limits (c : Case) : List (String × Bool) :=

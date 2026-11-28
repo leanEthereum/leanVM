@@ -137,7 +137,7 @@ theorem verify_sub_completeBTPE {bytecode : List K} (hbl : bytecode.length = 2 ^
     (hκ : 16 ≤ κ) (hK : VsKidsExact fs cert κ W Bvk) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, BytecodeClaim.cells c.freshClaim) ∈ Lin)
     (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
       ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out
       (fun rd t => vsPos bytecode seed c rd t ∧ t.Every (ExactAt coreProgram rd)) (osBosAt fs W.Bnd S.μs)) :
@@ -180,7 +180,7 @@ theorem verify_sub_completeBTSE {bytecode : List K} (hbl : bytecode.length = 2 ^
     (hvd : verifyDeferred bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, BytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧
         SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c)) ∧

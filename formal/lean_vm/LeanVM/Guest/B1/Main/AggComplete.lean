@@ -84,7 +84,7 @@ theorem guardOk_vals {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
   · exact absurd ha (by simp)
 
 /-- The claim an accepting batching writes, its proof of work and its final check. -/
-theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredBytecodeClaim}
+theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : BytecodeClaim}
     (hb : Batch.batchCore cs h = some out) :
     out = aggOut cs h ∧
       powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs h.lambdaGrindNonce) 2) = true ∧
@@ -299,7 +299,7 @@ hints of an accepting batching and the honest memory at its buffers `P`. -/
 theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    {h : BatchingHints} {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23)
+    {h : BatchingHints} {out : BytecodeClaim} (hrl : h.sumcheckMessages.length = 23)
     (hb : Batch.batchCore cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P)
     (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
       wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
@@ -493,7 +493,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
   have hch0 := hmem.chain 0 (Nat.zero_le _)
   rw [pow_zero, one_pow, mul_one] at hch0
   have hdst := hmem.dst
-  have hdl : (aggOut cs h).cells.length = 24 := by simp [aggOut, DeferredBytecodeClaim.cells, hptl]
+  have hdl : (aggOut cs h).cells.length = 24 := by simp [aggOut, BytecodeClaim.cells, hptl]
   have hstores : ∀ a ∈ aggStores, a.Holds rd σ := by
     intro a haS
     simp only [aggStores, List.mem_append, List.mem_map, List.mem_range, List.mem_flatMap,
@@ -535,7 +535,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, (L196 k hk).1]
       have : (aggOut cs h).cells.getD k 0 = (aggRun cs h).1.1.getD k 0 := by
-        rw [aggOut, DeferredBytecodeClaim.cells, List.getD_append _ _ _ _ (by rw [hptl]; exact hk)]
+        rw [aggOut, BytecodeClaim.cells, List.getD_append _ _ _ _ (by rw [hptl]; exact hk)]
       rw [this] at e
       exact e
     · show LoadHolds rd (σ (.n (val% «aggregate_claims» "defer_stmt"))) 23 (σ (.n (val% «aggregate_claims» "bytecode_star")))
@@ -543,7 +543,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
       rw [← List.getD_eq_getElem _ 0] at e
       rw [e4, v7]
       have : (aggOut cs h).cells.getD 23 0 = h.finalBytecodeValue := by
-        rw [aggOut, DeferredBytecodeClaim.cells, List.getD_append_right _ _ _ _ (by rw [hptl]), hptl]
+        rw [aggOut, BytecodeClaim.cells, List.getD_append_right _ _ _ _ (by rw [hptl]), hptl]
         rfl
       rw [this] at e
       exact e

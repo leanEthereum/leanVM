@@ -74,8 +74,9 @@ structure NodeClaims where
 structure NodeStatement where
   /-- Its signature and DA claims. -/
   claims : NodeClaims
-  /-- The claim on the bytecode it defers to its parent. -/
-  deferredClaim : DeferredBytecodeClaim
+  /-- The claim on the bytecode it defers to its parent: its value at a point
+  (`DeferredBytecodeClaim`, `crates/aggregation/src/deferred.rs`). -/
+  deferredClaim : BytecodeClaim
 
 /-! ## The statement's digest
 
@@ -186,16 +187,17 @@ def NodeWitness.childClaims (witness : NodeWitness) (seed : Digest) : List Child
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
-def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HasZeroPoint (bytecode : List K) (claim : BytecodeClaim) :
+    Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: the bytecode has `2 ^ len` words,
 `len` the point's length (so the point has `log₂` of its length coordinates), and the value
 is the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
-`crates/aggregation/src/deferred.rs`). Stronger than `BytecodeClaim.Holds` (the value only). The
-deployed outer verifier checks it of the root's deferred claim (`AggregateProof::verify`,
+`crates/aggregation/src/deferred.rs`). The deployed outer verifier checks it of the root's deferred claim (`AggregateProof::verify`,
 `crates/aggregation/src/proof.rs`). -/
-def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HoldsWithShape (bytecode : List K) (claim : BytecodeClaim) :
+    Prop :=
   2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
 
@@ -354,7 +356,7 @@ abbrev BatchingAdversary : Type :=
 /-- **The batching game**: the adversary's children and hints, then `batchWith` over `π` on them,
 for the guest program's bytecode; the children and the claim deferred. -/
 def batchingGame (adversary : BatchingAdversary) :
-    OracleComp Common.RandomPermutationOracles (List ChildClaims × Option DeferredBytecodeClaim) := do
+    OracleComp Common.RandomPermutationOracles (List ChildClaims × Option BytecodeClaim) := do
   let (children, hints) ← adversary
   let deferred ← batchWith Common.queryPermutation (Nat.log2 (bytecodeWords guestProgram).length)
     children hints

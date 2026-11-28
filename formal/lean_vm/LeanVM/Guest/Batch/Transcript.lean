@@ -165,7 +165,7 @@ theorem batchWith_go_eq (seed : KeccakState) {bytecode : List K} (cs : List Chil
     (h : BatchingHints) (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     (fun d ↦ decide (∃ c, d = some c ∧ c.HoldsWithShape bytecode)) <$>
         (batchWith.go F cs h).run' ⟨seed, [], none⟩ =
-      runProof F (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs)
+      runProof F (nodeBatchingProgram (BytecodeClaim.HoldsWithShape bytecode) bytecode cs)
         seed ⟨batchingStream cs h, []⟩ := by
   rw [batchStream_eq]
   unfold runProof nodeBatchingProgram
@@ -201,7 +201,7 @@ theorem batchWith_eq_runBatching {bytecode : List K} (cs : List ChildClaims) (h 
     (hc : BatchChecks (Nat.log2 bytecode.length) cs h) :
     (fun d ↦ decide (∃ c, d = some c ∧ c.HoldsWithShape bytecode)) <$>
         batchWith F (Nat.log2 bytecode.length) cs h =
-      runBatching F (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs)
+      runBatching F (nodeBatchingProgram (BytecodeClaim.HoldsWithShape bytecode) bytecode cs)
         ⟨batchingStream cs h, []⟩ := by
   classical
   unfold BatchChecks at hc
