@@ -164,8 +164,8 @@ impl Terms {
                 (RingFold::new(phi, &ring.point[..vars]), ring.x_offset, 1usize << vars)
             })
             .collect();
-        let mut w = parallel::filled(1 << self.lane_vars, F128::ZERO);
-        parallel::chunks_mut(&mut w, BLOCK, |h, out| {
+        crate::collect_chunks(1 << self.lane_vars, |h| {
+            let mut out = [F128::ZERO; BLOCK];
             for pattern in &self.patterns {
                 let g: F128 = pattern
                     .claims
@@ -186,8 +186,8 @@ impl Terms {
                     fold.add_chunk(lo - offset, &mut out[lo - h * BLOCK..hi - h * BLOCK]);
                 }
             }
-        });
-        w
+            out
+        })
     }
 }
 

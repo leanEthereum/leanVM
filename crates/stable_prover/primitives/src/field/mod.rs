@@ -85,6 +85,6 @@ pub fn mul(a: F128, b: F128) -> F128 {
 pub fn axpy(y: &mut [F128], a: F128, x: &[F128]) {
     assert_eq!(y.len(), x.len());
     for (y, &x) in y.iter_mut().zip(x) {
-        *y += a * x;
+        *y += mul(a, x);
     }
 }
