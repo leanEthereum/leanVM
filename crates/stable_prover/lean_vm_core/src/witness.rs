@@ -57,20 +57,16 @@ pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackS
         placed += 1 << k;
     }
     let (offsets, placed_log) = verifier::stack_offsets(&committed);
-    let mut placements = Vec::with_capacity(kappas.len());
-    let mut j = 0;
-    for k in kappas {
-        placements.push(match *k {
-            Some(n_vars) => {
-                j += 1;
-                Placement {
-                    n_vars,
-                    offset: offsets[j - 1] as usize,
-                }
-            }
+    let mut offsets = offsets.into_iter();
+    let placements = (kappas.iter())
+        .map(|k| match *k {
+            Some(n_vars) => Placement {
+                n_vars,
+                offset: offsets.next().unwrap() as usize,
+            },
             None => Placement::VIRTUAL,
-        });
-    }
+        })
+        .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny
     // witnesses zero-pad up. Both sides derive this identically from the kappas.
     let mu = placed_log.max(crate::pcs::MIN_STACKED_LOG);
