@@ -17,6 +17,9 @@ BR = os.path.join(data.ROOT, 'Bridge')
 OUT = os.path.join(BR, 'Chk')
 # each check's module of a hash pack `P<n>`, or of a link module `Link<n>`, by its name
 KINDS = ((jumpcells, 'JumpCells', 'P_'), (pair, 'PairChk', ''), (wit, 'WitChk', ''), (alloc, 'AllocChk', ''))
+# A link module is hundreds of small proofs: elaborated as parallel tasks, they contend for the environment's shared
+# objects (their reference counts) and cost several times their sequential CPU time.
+SEQUENTIAL = '\nset_option Elab.async false\n'
 
 
 def run(check):
@@ -40,6 +43,10 @@ def run(check):
                 continue
             groups.setdefault(os.path.join(OUT, name + '.lean'), (mod, what, []))[2].append(p)
     files = genfiles.merge(files, groups, genfiles.header('bridge-cert/checks.py'))
+    for p, (mod, _, _) in groups.items():
+        if '.Link' in mod:
+            _, h, imps, body = genfiles.split(files[p])
+            files[p] = h + '\n'.join(imps) + '\n' + SEQUENTIAL + body
     stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: {len(groups)} modules of checks merged')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
