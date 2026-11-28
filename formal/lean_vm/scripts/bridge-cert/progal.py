@@ -2,7 +2,8 @@
 
 Reads each function's alignment context off the contexts `align.py` writes (`Bridge/Align/*.lean`,
 `Bridge/AlignCtx/*/Ctx.lean`): its hint-only cells and its callees with their entries. Writes them as
-tables by compiled index (`Bridge.alignExtras`, `Bridge.alignCallees`, the callees by index), and per link
+tables by compiled index (`Bridge.alignExtras`, `Bridge.alignCallees`, the callees by index), each function's core IR
+and certificate by index (`Bridge/IdxData.lean`, which the frame sizes' check reads), and per link
 module of `Guest/Checked` (whose `code`, `core`, `cert` and `plumbEq` equations it reuses) each function's
 check over `Bridge.ctxOf` (`Bridge.fnAlOk_of`), and the assembly over every function (`ProgAl/All.lean`).
 Run after `align.py`; `--check` writes nothing and fails when a file is stale.
@@ -128,6 +129,30 @@ noncomputable def alignCallees : Trie (List Nat) :=
 /-- Each compiled function's advice, by index. -/
 def alignAdvice : Trie (Nat × Nat × List (Nat × List LeanVM.Prover.Exec.Hint)) :=
   ''' + trie({j: f'Data.adviceFn{j}' for j in range(n)}) + '''
+
+end
+
+end LeanVM.Guest.Bridge
+''')
+    keys = {j: k for j, (k, _, _) in lk.items()}
+    files[os.path.join(BR, 'IdxData.lean')] = (
+        HEAD(mod='LeanVM.Guest.Bridge.IdxData', what="Each compiled function's core IR and certificate, by index.")
+        + '''public import LeanVM.Guest.Data.Core
+public import LeanVM.Guest.Data.Cert
+
+namespace LeanVM.Guest.Bridge
+
+open LeanVM.Guest.Exec (Trie)
+
+@[expose] public section
+
+/-- Each compiled function's core IR, by index (`__jump_tables`, which has none, the default): `Bridge.idxCores_eq`. -/
+noncomputable def idxCores : Trie Core.Fn :=
+  ''' + trie({0: 'default', **{j: f'Fn.«{k}».core' for j, k in keys.items()}}) + '''
+
+/-- Each compiled function's certificate, by index: `Bridge.idxCerts_eq`. -/
+noncomputable def idxCerts : Trie Check.Cert :=
+  ''' + trie({0: 'Data.cert0', **{j: f'Fn.«{k}».cert' for j, k in keys.items()}}) + '''
 
 end
 

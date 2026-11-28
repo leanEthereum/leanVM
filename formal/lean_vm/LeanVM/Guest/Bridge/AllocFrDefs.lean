@@ -31,9 +31,10 @@ facts from are those on every path through it: each enclosing block's spine (`sp
   `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too (or a value
   loaded where `a1` is, through an equal product, `spEq`), or to the sum of two distinct constants.
 
-Callee names are compared by their codes (`calFind`, `nameEq`). The generated checks decide `frChkS`, which reads
-each frame hint's call site once (`frSites`) instead of at every call statement, and conclude through
-`frChk_of_fast`.
+Callee names are compared by their codes (`calFind`, `nameEq`). `frChkT`, over a table of the callees' facts, reads each
+frame hint's call site once (`frSites`) instead of at every call statement; over `calTbl` it is `frChk`
+(`frChk_of_tbl`), and the generated checks decide it over the rows computed once for the whole program
+(`Bridge/CalRows.lean`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -57,6 +58,10 @@ def stRets : Stmt → List V
 (`B2C.tailN`). -/
 noncomputable def calTbl (cs : List ℕ) : List (String × ℕ × Bool × Option (Option ℕ) × ℕ) :=
   cs.map fun c ↦ ((coreOf c).name, B2C.fsN c, (coreOf c).loop, Res.endOfFn (coreOf c), B2C.tailN c)
+
+/-- Compiled function `c`'s facts as a listed callee: `calTbl`'s entry. -/
+noncomputable def calRow (c : ℕ) : String × ℕ × Bool × Option (Option ℕ) × ℕ :=
+  ((coreOf c).name, B2C.fsN c, (coreOf c).loop, Res.endOfFn (coreOf c), B2C.tailN c)
 
 /-- The facts of the callee named `f`, names compared by their codes (`nameEq`). -/
 def calFind (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)) (f : String) :
@@ -204,11 +209,11 @@ noncomputable def frSites (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Pr
     List (B2C.Site × Prover.Exec.Hint) :=
   (frames X d).filterMap fun q ↦ (allocPtr q.2).bind fun p ↦ (getF X.sites p).map fun s ↦ (s, q.2)
 
-/-- `frChk` with the frame hints' call sites and the callees' facts read once. -/
-noncomputable def frChkS (X : AlignCtx) (n : ℕ) (cs : List ℕ) (ps : List V) (body : List Stmt)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
+/-- `frChk` with the frame hints' call sites read once, over the callees' facts `tbl`. -/
+noncomputable def frChkT (X : AlignCtx) (n : ℕ) (cs : List ℕ) (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ))
+    (ps : List V) (body : List Stmt) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
   (frames X d).isEmpty || (cs.all (fun c ↦ Nat.ble 1 c && Nat.blt c nFns) &&
-    Exec.listSeq (frSites X d) fun fr ↦ Exec.listSeq (calTbl cs) fun tbl ↦
+    Exec.listSeq (frSites X d) fun fr ↦ Exec.listSeq tbl fun tbl ↦
     callsSpL (fun sp nm st ↦ fr.all fun q ↦
       !(q.1.args == (stArgs st).map (·.idx) && q.1.rets == (stRets st).map (·.idx)) || frFits X n ps sp nm tbl q.2 st)
       body (spine body) (spineNamed body))
@@ -217,12 +222,12 @@ end
 
 public section
 
-/-- **`frChk` from its fast form.** -/
-theorem frChk_of_fast {X : AlignCtx} {n : ℕ} {cs : List ℕ} {ps : List V} {body : List Stmt}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : frChkS X n cs ps body d = true) :
+/-- **`frChk` from its fast form** over the listed callees' table. -/
+theorem frChk_of_tbl {X : AlignCtx} {n : ℕ} {cs : List ℕ} {ps : List V} {body : List Stmt}
+    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : frChkT X n cs (calTbl cs) ps body d = true) :
     frChk X n cs ps body d = true := by
   rw [← h]
-  simp only [frChk, frChkS, Exec.listSeq_eq, frSites, List.all_filterMap]
+  simp only [frChk, frChkT, Exec.listSeq_eq, frSites, List.all_filterMap]
   congr; funext sp nm st; congr; funext q
   rcases allocPtr q.2 with _ | p
   · rfl
