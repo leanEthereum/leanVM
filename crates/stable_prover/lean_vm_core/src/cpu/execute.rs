@@ -456,33 +456,45 @@ impl<'a, W> Advice<'a, W> {
     fn pop(&mut self, name: &str, len: u32) -> Res<&'a [W]> {
         let witness = self.witness;
         // Byte by byte: `==` would call `bcmp` through a register, an indirect call.
-        let problem = match witness.iter().position(|(n, _)| n.bytes().eq(name.bytes())) {
-            None => WitnessFault::Missing { name: name.into() },
-            Some(i) => match witness[i].1.get(self.next[i]) {
-                Some(entry) if entry.len() == len as usize => {
-                    self.next[i] += 1;
-                    return Ok(entry);
-                }
+        let stream = witness.iter().position(|(n, _)| n.bytes().eq(name.bytes()));
+        if let Some(i) = stream
+            && let Some(entry) = witness[i].1.get(self.next[i])
+            && entry.len() == len as usize
+        {
+            self.next[i] += 1;
+            return Ok(entry);
+        }
+        Err(self.misfit(name, stream, len))
+    }
+
+    /// Why [`Self::pop`] found no entry of stream `name`, at `stream` in the witness if it is there.
+    fn misfit(&self, name: &str, stream: Option<usize>, len: u32) -> Box<Fault> {
+        let name = String::from(name);
+        let problem = match stream {
+            None => WitnessFault::Missing { name },
+            Some(i) => match self.witness[i].1.get(self.next[i]) {
                 Some(entry) => WitnessFault::EntryLength {
-                    name: name.into(),
+                    name,
                     entry: self.next[i],
                     holds: entry.len(),
                     wants: len,
                 },
                 None => WitnessFault::Exhausted {
-                    name: name.into(),
+                    name,
                     needs: self.next[i] + 1,
-                    has: witness[i].1.len(),
+                    has: self.witness[i].1.len(),
                 },
             },
         };
-        Err(fault(Fault::Witness(problem)))
+        fault(Fault::Witness(problem))
     }
 }
 
-/// Reserve `size` fresh cells, the last below `MAX_CELLS`, for the region whose pointer is `cell`: write the region's
-/// base `g^{next_free}` there, once, a second value being a conflict.
-fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Res<()> {
+/// Reserve `size` fresh cells, the last below `MAX_CELLS`, for the region whose pointer is the cell `fp + ptr`: write
+/// the region's base `g^{next_free}` there, once, a second value being a conflict.
+#[inline(never)]
+fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, fp: u32, ptr: u32, size: u32) -> Res<()> {
+    let cell = cell_at(fp, ptr)?;
     let base = *next_free;
     *next_free = run_at(base, size, 0)?;
     g.grow_to(*next_free as usize);
@@ -817,10 +829,10 @@ fn apply_hint<'a, W: Word>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, adv
             m.put(cell_at(fp, ptr)?, F128::from(address))?;
         }
         // A fresh region: write its base `g^{next_free}` into the pointer cell (once) and reserve `size` cells.
-        RHint::Alloc { ptr, size } => alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, size)?,
+        RHint::Alloc { ptr, size } => alloc(m, g, &mut advice.next_free, fp, ptr, size)?,
         RHint::AllocDyn { ptr, size } => {
             let cells = dyn_size(m, g, size)?;
-            alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
+            alloc(m, g, &mut advice.next_free, fp, ptr, cells)?;
         }
         // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
         RHint::AllocArm { ptr, sel, ref sizes } => {
@@ -828,7 +840,7 @@ fn apply_hint<'a, W: Word>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, adv
             let x = k_word_at(m, fp, sel, WHAT)?;
             let k = g.log(x).ok_or_else(|| not_a_g_power(WHAT, x))?;
             let cells = *sizes.get(k as usize).ok_or_else(|| not_a_g_power(WHAT, x))?;
-            alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
+            alloc(m, g, &mut advice.next_free, fp, ptr, cells)?;
         }
         RHint::AllocFrames {
             ptr,
@@ -844,7 +856,7 @@ fn apply_hint<'a, W: Word>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, adv
                 .ok_or_else(|| not_a_g_power("loop bound", span))?;
             let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
             let cells = cells.ok_or_else(|| fault(Fault::OutOfMemory))?;
-            alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
+            alloc(m, g, &mut advice.next_free, fp, ptr, cells)?;
         }
         // A debugging print, which the experimental prover writes out; here only its cell's range is checked.
         RHint::Print { cell, .. } => {
