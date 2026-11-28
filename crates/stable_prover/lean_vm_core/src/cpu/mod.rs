@@ -18,8 +18,8 @@ mod execute;
 mod hints;
 pub mod layout;
 mod trace;
+pub(crate) use execute::execute_scalars;
 pub use execute::{ExecError, Execution, Fault, Memory, WitnessFault, execute};
-pub(crate) use execute::{Word, execute_with};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
@@ -141,20 +141,20 @@ pub fn prove(
     public_input: [F128; 2],
     log_inv_rate: usize,
 ) -> Result<(Proof, Stats), ProveError> {
-    prove_with(program, witness, public_input, log_inv_rate)
+    prove_scalars(program, &scalars(witness), public_input, log_inv_rate)
 }
 
-/// [`prove`], the witness in any [`Word`].
-pub(crate) fn prove_with<W: Word>(
+/// [`prove`], the witness in the `verifier` crate's type.
+pub(crate) fn prove_scalars(
     program: &Program,
-    witness: &[(String, Vec<Vec<W>>)],
+    witness: &[(String, Vec<Vec<verifier::E>>)],
     public_input: [F128; 2],
     log_inv_rate: usize,
 ) -> Result<(Proof, Stats), ProveError> {
     if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let exec = execute_with(program, witness, public_input).map_err(ProveError::Execution)?;
+    let exec = execute_scalars(program, witness, public_input).map_err(ProveError::Execution)?;
     // A value read before anything wrote it is the prover's to choose: the proof would be of a weaker statement than
     // the program's.
     if !exec.unconstrained_reads.is_empty() {
@@ -268,6 +268,14 @@ pub fn to_scalar(value: &F128) -> verifier::E {
 
 pub fn from_scalar(value: verifier::E) -> F128 {
     F128::new(value.c0, value.c1)
+}
+
+/// A witness in the `verifier` crate's type.
+fn scalars(witness: &[(String, Vec<Vec<F128>>)]) -> Vec<(String, Vec<Vec<verifier::E>>)> {
+    let entry = |entry: &Vec<F128>| entry.iter().map(to_scalar).collect();
+    (witness.iter())
+        .map(|(name, entries)| (name.clone(), entries.iter().map(entry).collect()))
+        .collect()
 }
 
 /// The statement as the 32 bytes the `verifier` crate takes: the two limbs of each half.
