@@ -103,9 +103,10 @@ pub fn aggregate<P: Prover>(
     // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
     // builds the guest's witness from, and fails only on a proof it cannot walk.
     let span = span!("Build witness");
-    // The batch's claims and their sums, each child's fresh one, filled in with its witness, then its carried one.
+    // The batch's claims and their sums end to end, each child's fresh one, filled in with its witness, then its
+    // carried one.
     let mut claims = Vec::with_capacity(2 * children.len());
-    let mut sums = Vec::with_capacity(2 * children.len());
+    let mut sums = Vec::new();
     let mut public_inputs = Vec::with_capacity(children.len());
     for (i, (child, proof)) in children.iter().enumerate() {
         let carried_sums = bytecode_sums::<P>(&proof.bytecode_point);
@@ -113,8 +114,8 @@ pub fn aggregate<P: Prover>(
         public_inputs.push(statement_digest(&child_lists[i], child.da_commitment, &defer));
         claims.push(DeferredBytecodeClaim::default());
         claims.push(defer);
-        sums.push(Vec::new());
-        sums.push(carried_sums);
+        sums.resize(sums.len() + carried_sums.len(), F128::ZERO);
+        sums.extend(carried_sums);
     }
     // One per worker, nothing inside dispatching: each child's replay's fresh bytecode point and its witness, then
     // each raw signature's witness, leanXMSS first. The first failure, in that order, is the error.
@@ -214,8 +215,9 @@ pub fn aggregate<P: Prover>(
         let child_da = verifier::da::digest(children[i].0.da_commitment);
         hints.push("child_da", hash_to_scalars(&child_da).to_vec());
         hints.extend(verified);
-        sums[2 * i] = bytecode_sums::<P>(&fresh);
-        claims[2 * i] = DeferredBytecodeClaim::from_sums(fresh, &sums[2 * i]);
+        let fresh_sums = bytecode_sums::<P>(&fresh);
+        sums[2 * i * fresh_sums.len()..][..fresh_sums.len()].copy_from_slice(&fresh_sums);
+        claims[2 * i] = DeferredBytecodeClaim::from_sums(fresh, &fresh_sums);
     }
     drop(span);
 

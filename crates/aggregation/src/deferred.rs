@@ -157,13 +157,13 @@ pub(super) const BATCH_LAM_GRIND_BITS: u32 = grinding_bits(2 * super::MAX_RECURS
 /// sumcheck over the stacked bytecode.
 ///
 /// Each child brings its public input and two claims, the fresh one its verification raised and the one it deferred:
-/// `claims` holds them child by child in that order, and `sums` their [`bytecode_sums`]. A child's fresh claim is
-/// batched with its carried one at every child count, one included. Returns the guest hints and the single claim they
-/// reduce to.
+/// `claims` holds them child by child in that order, and `sums` their [`bytecode_sums`] end to end. A child's fresh
+/// claim is batched with its carried one at every child count, one included. Returns the guest hints and the single
+/// claim they reduce to.
 pub(super) fn aggregate_deferred_claims<P: Prover>(
     public_inputs: &[[F128; 2]],
     claims: &[DeferredBytecodeClaim],
-    sums: Vec<Vec<F128>>,
+    mut sums: Vec<F128>,
 ) -> (Hints, DeferredBytecodeClaim) {
     let kbcv = bytecode_vars();
 
@@ -201,7 +201,6 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     let mut challenges = Vec::new();
     // The low rounds run on the claims' sums end to end against their `eq` on the low rows, each scaled by its power:
     // a claim's run folds within itself, to its value and its weight.
-    let mut sums = sums.concat();
     let mut low_weights = vec![F128::ZERO; sums.len()];
     for (i, (c, power)) in claims.iter().zip(powers(lam, claims.len())).enumerate() {
         let eq = eq_table(&c.bytecode_point[..BLOCK_VARS]);
