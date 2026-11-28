@@ -1074,6 +1074,13 @@ def main(check=False):
                 rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.CellLanes'}
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
+            # its links checked by its name's code (`CoreMode.glByCode`), not by comparing its name with each family's
+            gl = [f'CoreMode.glOk_of_code CoreMode.FnReg.glCodes_ok (Cf := Fn.«{k}».cfun) (by decide +kernel)']
+            rsplit.add('LeanVM.Guest.CoreMode.Gen.FnCodes')
+            gl = ', '.join(gl)
+            hb = (f'(by rw [{gl}]; decide +kernel)' if hb == '(by decide +kernel)' else
+                  hb.replace('(by rw [', f'(by rw [{gl}, ', 1))
+            assert gl in hb, hb
             # each its own declaration, its own heartbeats
             hx = f'Fn.«{k}».alignCtxEq' if k in LONG and align_ctx(k)[1] == 'alignCtxP' else 'rfl'
             decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«{k}».tie '

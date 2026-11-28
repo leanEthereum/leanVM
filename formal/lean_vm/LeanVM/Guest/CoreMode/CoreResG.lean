@@ -82,6 +82,12 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
     hci] at h2
   exact Option.some.inj h2
 
+/-- **`glOk` of a function no ghost family names** (`cmK`, `stK`, `mlK` none): no linked cell, or `anyLink`'s, with
+no ghost; or its own parameter words as its ghost slots (`gwSlots`); or a loop callee of `anyLink` (`alGl`). -/
+noncomputable def glTail (Cf : CFun) : Bool :=
+  ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
+    && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf) || alGl Cf
+
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
 its caller's entries table, `Fam/LinkDefs.lean`): the caller's cell `2` its entries parameter, cell `5` its bound
 parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
@@ -91,9 +97,50 @@ none, the ghost slots own parameter words (`gwSlots`). -/
 noncomputable def glOk (Cf : CFun) : Bool :=
   bif (cmK Cf.fn).isSome then cmGl Cf && Cf.H.sig.gw.isEmpty else
   bif (stK Cf.fn).isSome then stGl Cf && Cf.H.sig.gw.isEmpty else
-  bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else
-    ((Cf.gl.isEmpty || Res.anyLink.fams.any fun F ↦ Cf.fn.name == F.1 && decide (Cf.gl = [(2, F.2.1, 0), (5, F.2.2, 1)]))
-      && Nat.beq Cf.H.sig.ghosts 0 && Cf.H.sig.gw.isEmpty) || (Cf.gl.isEmpty && gwSlots Cf) || alGl Cf
+  bif (mlK Cf.fn).isSome then mlGl Cf && Cf.H.sig.gw.isEmpty else glTail Cf
+
+/-! ## A function no ghost family names, by its name's code -/
+
+/-- **The codes `cs` hold the names of every function of a ghost family** (`cmLoops`, `stLoops`, `mlLoops`, by `encS`). -/
+def glCodesOk (cs : List ℕ) : Bool :=
+  (FnReg.cmLoops.all fun p ↦ cs.contains (encS p.1)) && (stLoops.all fun p ↦ cs.contains (encS p.1)) &&
+    FnReg.mlLoops.all fun p ↦ cs.contains (encS p.1)
+
+/-- **`glOk` by its name's code**: a function whose name's code is not among `cs` is of no ghost family, so `glTail`
+alone, its name converted once rather than compared with each family's names. -/
+noncomputable def glByCode (cs : List ℕ) (Cf : CFun) : Bool :=
+  bif cs.contains (encS Cf.fn.name) then glOk Cf else glTail Cf
+
+end
+
+public section
+
+theorem lookup_none_of_code {β : Type} {cs : List ℕ} {s : String} (h : cs.contains (encS s) = false) :
+    ∀ {L : List (String × β)}, (L.all fun p ↦ cs.contains (encS p.1)) = true → L.lookup s = none
+  | [], _ => rfl
+  | (k, b) :: L, hcs => by
+    rw [List.all_cons, Bool.and_eq_true] at hcs
+    have hne : s ≠ k := by
+      rintro rfl
+      rw [h] at hcs
+      exact Bool.false_ne_true hcs.1
+    simp only [List.lookup, beq_eq_false_iff_ne.mpr hne]
+    exact lookup_none_of_code h hcs.2
+
+theorem glOk_of_code {cs : List ℕ} (hcs : glCodesOk cs = true) {Cf : CFun} (h : glByCode cs Cf = true) :
+    glOk Cf = true := by
+  unfold glByCode at h
+  cases hc : cs.contains (encS Cf.fn.name)
+  · rw [hc] at h
+    simp only [glCodesOk, Bool.and_eq_true] at hcs
+    have hcm : cmK Cf.fn = none := lookup_none_of_code hc hcs.1.1
+    have hst : stK Cf.fn = none := lookup_none_of_code hc hcs.1.2
+    have hml : mlK Cf.fn = none := lookup_none_of_code hc hcs.2
+    unfold glOk
+    rw [hcm, hst, hml]
+    exact h
+  · rw [hc] at h
+    exact h
 
 end
 
