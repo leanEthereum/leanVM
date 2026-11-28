@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Local.Fold
-public import LeanVM.Guest.B2C.ShareBase
+public import LeanVM.Guest.B2C.ShareDefs
 public import LeanVM.Guest.B2C.CplCheck
 
 /-!

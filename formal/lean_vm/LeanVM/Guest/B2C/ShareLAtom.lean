@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.ShareLHome
-public import LeanVM.Guest.B2C.ShareBase
+public import LeanVM.Guest.B2C.ShareFacts
 public import LeanVM.Guest.CheckSound
 
 /-!
