@@ -360,7 +360,7 @@ pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
 /// Sixteen rows of 64 bytes transposed: byte `b` of output `n` is byte `n` of `rows[b]`. Within each 128-bit lane,
 /// four rounds of unpacks pair registers 8, 4, 2 and 1 apart; fed the rows in bit-reversed order, they leave
 /// register `i` holding column `i`.
-#[inline]
+#[inline(never)]
 pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
     let r = rows.map(regs);
     let mut out = [[[0u128; W]; 16]; Q];

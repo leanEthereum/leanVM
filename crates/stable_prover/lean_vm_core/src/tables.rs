@@ -382,11 +382,11 @@ impl Table {
     }
 
     /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
-    /// table's constraint. All zeros but for `KECCAK` ([`KeccakTable::padding`]).
+    /// table's constraint. All zeros but for `KECCAK` ([`keccak_padding`]).
     #[inline(never)]
     pub(crate) fn padding(self) -> Vec<F64> {
         match self {
-            Table::Keccak => KeccakTable.padding(),
+            Table::Keccak => keccak_padding(),
             _ => vec![F64::ZERO; self.n_committed_columns()],
         }
     }
@@ -402,7 +402,7 @@ impl Table {
     pub(crate) fn constraint(self, pows: &[F128]) -> Form {
         assert_eq!(pows.len(), self.n_constraints(), "one power per identity");
         match self {
-            Table::Jump => JumpTable.constraint(pows),
+            Table::Jump => jump_constraint(pows),
             _ => Form::new(self.n_committed_columns()),
         }
     }
@@ -656,8 +656,6 @@ const DEREF: &[Flush] = {
 
 // ---- JUMP --------------------------------------------------------------------
 
-struct JumpTable;
-
 mod jump {
     pub const PC: usize = 0;
     pub const FP: usize = 1;
@@ -684,25 +682,23 @@ mod jump {
     pub const N: usize = 14;
 }
 
-impl JumpTable {
-    /// `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump), weighted `pows[0]` and `pows[1]`.
-    ///
-    /// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
-    /// gives `b = 1` (and the first `w = cond⁻¹`); when `cond = 0` the first gives
-    /// `b = 0`. The two selections need no identity: the state push carries each as its
-    /// own degree-2 coordinate (§sec:m3).
-    ///
-    /// The condition is `K`-valued, so both identities are single-lane. Its memory
-    /// flush carries literal zeros above the low limb, so a word outside
-    /// `K` cannot balance the bus; the interpreter rejects one outright.
-    fn constraint(&self, pows: &[F128]) -> Form {
-        use jump::*;
-        let mut form = Form::new(N);
-        form.coeffs[B] = pows[0];
-        form.coeffs[V_COND] = pows[1];
-        form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
-        form
-    }
+/// `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump), weighted `pows[0]` and `pows[1]`.
+///
+/// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
+/// gives `b = 1` (and the first `w = cond⁻¹`); when `cond = 0` the first gives
+/// `b = 0`. The two selections need no identity: the state push carries each as its
+/// own degree-2 coordinate (§sec:m3).
+///
+/// The condition is `K`-valued, so both identities are single-lane. Its memory
+/// flush carries literal zeros above the low limb, so a word outside
+/// `K` cannot balance the bus; the interpreter rejects one outright.
+fn jump_constraint(pows: &[F128]) -> Form {
+    use jump::*;
+    let mut form = Form::new(N);
+    form.coeffs[B] = pows[0];
+    form.coeffs[V_COND] = pows[1];
+    form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
+    form
 }
 
 /// The successor state is derived: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`, each degree 2 in K columns, so neither
@@ -740,37 +736,6 @@ const JUMP: &[Flush] = {
 /// `cpu` treats them as virtual ([`crate::cpu::keccak_value`]): the input lanes are `q_keccak`'s
 /// slots, which hold those words, so their claims route there and the fill leaves them alone,
 /// and the output lanes' claims are the Keccak reduction's claim on the output.
-struct KeccakTable;
-
-/// Keccak-f\[1600\] of the zero state, the output lanes of a padding row.
-const KECCAK_F_OF_ZERO: [u64; primitives::hash::STATE_LANES] = [
-    0xF1258F7940E1DDE7,
-    0x84D5CCF933C0478A,
-    0xD598261EA65AA9EE,
-    0xBD1547306F80494D,
-    0x8B284E056253D057,
-    0xFF97A42D7F8E6FD4,
-    0x90FEE5A0A44647C4,
-    0x8C5BDA0CD6192E76,
-    0xAD30A6F71B19059C,
-    0x30935AB7D08FFC64,
-    0xEB5AA93F2317D635,
-    0xA9A6E6260D712103,
-    0x81A57C16DBCF555F,
-    0x43B831CD0347C826,
-    0x01F22F1A11A5569F,
-    0x05E5635A21D9AE61,
-    0x64BEFEF28CC970F2,
-    0x613670957BC46611,
-    0xB87C5A554FD00ECB,
-    0x8C3EE88A1CCF32C8,
-    0x940C7922AE3A2614,
-    0x1841F924A2C509E4,
-    0x16F53526E70465C2,
-    0x75F644E97F30A13B,
-    0xEAF1FF7B5CECA249,
-];
-
 pub(crate) mod keccakt {
     use crate::keccak::ROW_CELLS;
     use primitives::hash::STATE_LANES;
@@ -800,12 +765,6 @@ const KECCAK_OPERANDS: [C; keccakt::OUT_ALL + 1 - keccakt::O_M0] = {
     }
     ops
 };
-
-/// The lanes each state cell holds, in the even layout and the odd one.
-const CELL_LANES: [[(Option<usize>, Option<usize>); crate::keccak::STATE_CELLS]; 2] = [
-    verifier::layout::keccak_cell_lanes(false),
-    verifier::layout::keccak_cell_lanes(true),
-];
 
 /// The terms of a cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects:
 /// `a + flag·(a + b)`, a missing lane being `missing`, and how many there are. When the layouts agree the limb is
@@ -851,7 +810,7 @@ const fn lane_column(lane: Option<usize>, values: usize, missing: Option<usize>)
 static KECCAK_SUMS: [([C; 3], usize, Option<usize>); 3 * crate::keccak::ROW_CELLS] = {
     use crate::keccak::STATE_CELLS;
     use keccakt::*;
-    let [even, odd] = CELL_LANES;
+    let [even, odd] = crate::keccak::CELL_LANES;
     let mut sums = [([ZERO; 3], 0, None); 3 * crate::keccak::ROW_CELLS];
     let mut c = 0;
     while c < sums.len() / 3 {
@@ -918,16 +877,16 @@ pub(crate) fn keccak_outputs(inputs: &[[u64; STATE_LANES]]) -> Vec<[u64; STATE_L
     outputs
 }
 
-impl KeccakTable {
-    /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
-    /// steps, permutes zeros, in the even layout.
-    fn padding(&self) -> Vec<F64> {
-        let mut row = vec![F64::ZERO; keccakt::N];
-        for (lane, w) in KECCAK_F_OF_ZERO.into_iter().enumerate() {
-            row[keccakt::V_OUT + lane] = F64(w);
-        }
-        row
+/// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding steps, permutes zeros, in the
+/// even layout.
+fn keccak_padding() -> Vec<F64> {
+    let mut state = [0; STATE_LANES];
+    primitives::hash::keccak_f(&mut state);
+    let mut row = vec![F64::ZERO; keccakt::N];
+    for (lane, w) in state.into_iter().enumerate() {
+        row[keccakt::V_OUT + lane] = F64(w);
     }
+    row
 }
 
 /// The fewest committed columns of a table's row, `SET`'s: a run of `n` steps commits at least `n` times it, which
@@ -967,13 +926,6 @@ mod tests {
         assert_eq!(F128::from_limbs(got), x * y);
     }
 
-    #[test]
-    fn keccak_f_of_zero_is_the_permutation() {
-        let mut state = [0; primitives::hash::STATE_LANES];
-        primitives::hash::keccak_f(&mut state);
-        assert_eq!(state, KECCAK_F_OF_ZERO);
-    }
-
     /// `JUMP`'s two identities vanish on an honest row, taken or not.
     #[test]
     fn jump_identities_vanish_on_an_honest_row() {
@@ -987,11 +939,7 @@ mod tests {
             row[jump::W] = w;
             row[jump::B] = if cond.is_zero() { F64::ZERO } else { F64::ONE };
             let row: Vec<F128> = row.into_iter().map(F128::from).collect();
-            assert_eq!(
-                JumpTable.constraint(&pows).eval(&row, false),
-                F128::ZERO,
-                "cond = {cond:?}"
-            );
+            assert_eq!(jump_constraint(&pows).eval(&row, false), F128::ZERO, "cond = {cond:?}");
         }
     }
 }

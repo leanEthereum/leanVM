@@ -8,12 +8,12 @@
 //! 4. a sumcheck over the bit position, on tables of 2048;
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
-use primitives::field::{F128, powers};
-use primitives::multilinear::fold;
+use primitives::field::{F128, mul, powers};
+use primitives::multilinear::{eq_table, fold, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS_LOG, along, eq_table, mul, poly_eval};
+use crate::kernels::{PACKS_LOG, along};
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::skip::SKIP;
 use crate::table::{Summand, Tables};

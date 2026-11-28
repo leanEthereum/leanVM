@@ -53,14 +53,15 @@ pub fn g_powers(n: usize) -> Vec<F64> {
     parallel::map_collect(n, |i| F64(isa::g_pow(i as u32)))
 }
 
-/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply: domain separators, opcodes, and the g-power
-/// encoding of index `i` (§sec:vm).
-#[inline]
+/// `g^i = x^i` in the monomial basis of `K`, for `i < 2^32`: the g-power encoding of index `i` (§sec:vm), by
+/// [`isa::g_pow`].
+#[inline(never)]
 pub fn g_pow(i: usize) -> F64 {
-    F64::G.pow(i as u128)
+    F64(isa::g_pow(i as u32))
 }
 
-/// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty.
+/// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty. Out of line: one copy for every caller.
+#[inline(never)]
 pub fn dot(a: &[F128], b: &[F128]) -> F128 {
     if a.is_empty() || b.is_empty() {
         return F128::ZERO;
@@ -71,6 +72,12 @@ pub fn dot(a: &[F128], b: &[F128]) -> F128 {
         acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
     });
     a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+}
+
+/// `a * b`, out of line: for the scalar arithmetic between passes, which needs no copy of its own.
+#[inline(never)]
+pub fn mul(a: F128, b: F128) -> F128 {
+    a * b
 }
 
 /// `y[i] += a * x[i]`. Out of line: one copy for every caller.

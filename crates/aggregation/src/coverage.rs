@@ -40,8 +40,8 @@ pub(super) struct Region {
 }
 
 /// The order that sorts `claims`, stably, keeping the first of each repeat.
-pub(super) fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
-    let mut order = isa::sort::order_by_key(claims.len(), |i| claims[i]);
+fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
+    let mut order = super::sort::order_by_key(claims.len(), |i| claims[i]);
     order.dedup_by_key(|i| claims[*i]);
     order
 }

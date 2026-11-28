@@ -10,13 +10,12 @@
 use pcs::sumcheck::product_sumcheck;
 use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
-use primitives::field::{F64, F128};
+use primitives::field::{F64, F128, dot, mul};
 use primitives::hash::STATE_LANES;
-use primitives::multilinear::mle_eval;
+use primitives::multilinear::{eq_table, mle_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
-use crate::kernels::{dot, eq_table, mul};
 use crate::protocol::Claim;
 use crate::witness::{Shape, transpose64};
 

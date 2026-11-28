@@ -11,7 +11,7 @@
 
 use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8, mul_by_g};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, mul_by_g};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES};
@@ -273,7 +273,7 @@ impl Formula {
                 return;
             }
         };
-        let v = w.mul_base(crate::tables::g_pow(k as usize));
+        let v = w.mul_base(g_pow(k as usize));
         match (terms.last_mut(), &term) {
             (Some((Term::Prod(a, b), u)), Term::Prod(i, j)) if (*a, *b) == (*i, *j) => *u += v,
             _ => terms.push((term, v)),
@@ -293,7 +293,7 @@ impl Formula {
                 Term::Col(i) => (w, load(cols[i])),
                 Term::Prod(i, j) => (w, load(cols[i]) * load(cols[j])),
                 // `g^z` rides the weight.
-                Term::Index => (w.mul_base(index_power(z)), F64x8::from_array(&G_POWERS)),
+                Term::Index => (w.mul_base(g_pow(z)), F64x8::from_array(&G_POWERS)),
             };
             acc + F128x8::splat(w).mul_base_unreduced(k)
         });
@@ -307,16 +307,6 @@ impl Formula {
 /// Eight identities.
 const ONES: [F128; 8] = [F128::ONE; 8];
 
-/// `g^z`: a lookup below `2^16`, then a product by `g^{2^16}` per further `2^16`, as a row index stays small.
-fn index_power(z: usize) -> F64 {
-    const G_2_16: F64 = crate::tables::g_pow(1 << 16);
-    let mut power = F64(isa::g_pow((z & 0xFFFF) as u32));
-    for _ in 0..z >> 16 {
-        power *= G_2_16;
-    }
-    power
-}
-
 /// `g^0` to `g^7`, which step a row's index to the next seven's.
 const G_POWERS: [F64; 8] = {
     let mut powers = [F64::ONE; 8];
@@ -328,8 +318,8 @@ const G_POWERS: [F64; 8] = {
     powers
 };
 
-/// A tree's leaves, every block's rows at its offset, up to the last block, padded with the identity to a multiple of
-/// [`gkr::BLOCK`]: the identity past them is left out. Each leaf is written once, eight at a time. With them, the runs of padding rows, whose leaves are the identity.
+/// A tree's leaves, every block's rows at its offset up to the last block, padded with the identity to a multiple of
+/// [`gkr::BLOCK`], each written once, eight at a time; and the runs of padding rows, whose leaves are the identity.
 /// `cols` are the committed columns, then the public ones from `public`.
 fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones) {
     // [`verifier::stack_offsets`] places each size from the largest down, its blocks in index order.
@@ -342,7 +332,8 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
             }
         }
     }
-    let ones = (formulas.iter())
+    let ones = formulas
+        .iter()
         .filter(|f| f.rows < f.size)
         .map(|f| f.offset + f.rows..f.offset + f.size)
         .collect();
@@ -412,7 +403,6 @@ fn prove_bytecode_share(public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &m
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::field::g_pow;
     use primitives::test_rng::Rng;
 
     /// A coordinate's value at row `z`, from its definition.

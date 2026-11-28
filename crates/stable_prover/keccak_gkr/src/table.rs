@@ -5,15 +5,17 @@
 //! ([`PackFold`]). The table holds a row of positions per group, block and segment, and each round folds it in
 //! half while summing the next round's values over the rows it writes ([`Summand::pair`]).
 
-use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
+use primitives::field::{Acc8, F128, F128Unreduced, F128x8, mul};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PACK};
 
-use crate::kernels::{FieldMap, along, eq_table, field_map, map_sums, mul, transpose_bytes};
+use crate::kernels::{FieldMap, along, field_map, map_sums};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 use crate::skip::SKIP;
 use crate::witness::{BLOCK_WORDS, Shape};
+use primitives::field::lanes::transpose_bytes;
+use primitives::multilinear::eq_table;
 
 /// The table and the half it folds into, allocated once for every layer: row `half + 2 (g + n_blocks segment)` is
 /// group `half` of block `g` of segment `segment`.

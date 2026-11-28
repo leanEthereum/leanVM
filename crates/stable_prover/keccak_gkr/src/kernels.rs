@@ -2,7 +2,7 @@
 //! positions along `z` is the unit, lane `i` of a [`Run`] holding position `z + i`.
 
 use primitives::field::F128;
-use primitives::field::lanes::{ByteMap, Linear16, map_bytes, map_fields, transpose_words};
+use primitives::field::lanes::{ByteMap, Linear16, map_bytes, map_fields, transpose_bytes, transpose_words};
 use verifier::keccak::RMFE_EMBED;
 
 use crate::witness::BLOCK_WORDS;
@@ -27,9 +27,7 @@ pub const ONES: Run = {
     [ones; 8]
 };
 
-pub fn xor(a: Run, b: Run) -> Run {
-    primitives::field::lanes::xor8(a, b)
-}
+pub use primitives::field::lanes::xor8 as xor;
 
 /// The embeddings of the 32 packs of the eight positions from `j`: pack `q` of position `j + i` is lane `i` of
 /// `out[q]`. Out of line: one copy for every pass.
@@ -40,36 +38,6 @@ pub fn embed_run(block: &[u64], j: usize, out: &mut [Run; PACKS]) {
     for (out, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(&words) {
         *out = map_fields(&EMBEDDING, *word);
     }
-}
-
-/// `primitives::multilinear::eq_table` out of line: one copy for every table.
-#[inline(never)]
-pub fn eq_table(r: &[F128]) -> Vec<F128> {
-    primitives::multilinear::eq_table(r)
-}
-
-/// `a * b` out of line: one copy for every product off the passes over the witness.
-#[inline(never)]
-pub fn mul(a: F128, b: F128) -> F128 {
-    a * b
-}
-
-/// `primitives::multilinear::poly_eval` out of line: one copy for every caller.
-#[inline(never)]
-pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
-    primitives::multilinear::poly_eval(coeffs, point)
-}
-
-/// `primitives::field::dot` out of line: one copy for every caller.
-#[inline(never)]
-pub fn dot(a: &[F128], b: &[F128]) -> F128 {
-    primitives::field::dot(a, b)
-}
-
-/// `primitives::field::lanes::transpose_bytes` out of line: one copy for every pass.
-#[inline(never)]
-pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
-    primitives::field::lanes::transpose_bytes(rows)
 }
 
 /// `verifier::keccak::along` out of line: one copy for every caller.

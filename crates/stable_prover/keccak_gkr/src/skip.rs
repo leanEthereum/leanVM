@@ -18,12 +18,13 @@
 
 use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
-use primitives::field::{F128, F128Unreduced, clmul8_low};
+use primitives::field::{F128, F128Unreduced, clmul8_low, mul};
 use primitives::hash::positions::row_positions;
+use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS, Run, embed_run, eq_table, mul, poly_eval, xor};
+use crate::kernels::{PACKS, Run, embed_run, xor};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 

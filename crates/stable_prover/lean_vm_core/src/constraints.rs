@@ -18,7 +18,7 @@
 
 use crate::{load_e, load_k, mul};
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
-use primitives::multilinear::{eq_table, shrink_eq_high};
+use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
 use primitives::transcript::ProverState;
 
 /// A degree-two form over one table's columns: `constant + Σ_c coeffs[c]·col_c + Σ q·col_a·col_b` over `prods`.
@@ -116,7 +116,8 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Claims {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    let mut tables: Vec<Table> = (airs.iter())
+    let mut tables: Vec<Table> = airs
+        .iter()
         .map(|air| Table {
             tau: air.tau,
             weight: F128::ONE,
@@ -132,9 +133,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
     // then sit `k·target` off, and only `claim + u` reaches a sent coefficient (the linear one is not sent), so the
     // offset cancels. A joining table's `σ` leaves `u`.
     let (mut claim, mut u) = (F128::ZERO, F128::ZERO);
-    let mut m = n;
-    while m > 0 {
-        m -= 1;
+    for m in (0..n).rev() {
         // The joined tables' `p(Y)`: an endpoint and its quadratic coefficient.
         let mut p = [F128::ZERO; 2];
         for t in tables.iter_mut().filter(|t| t.tau > m) {
@@ -149,7 +148,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
         let h = round_polynomial(p, zeta[m], claim, u);
         ps.add_round_poly(&h, false);
         let r = ps.sample();
-        claim = h.iter().rev().fold(F128::ZERO, |acc, &c| mul(acc, r) + c);
+        claim = poly_eval(&h, r);
         u = mul(u, r);
         chi[m] = r;
         for t in &mut tables {
@@ -228,6 +227,7 @@ impl Table<'_> {
     fn bind(&mut self, r: F128, m: usize) {
         let state = self.state.as_mut().expect("a table joins before it binds");
         fold_state(state, r);
+        // Eight rows left.
         if m == 3 {
             *state = unpack(state, self.form.width(), 8);
         }

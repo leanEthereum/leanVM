@@ -526,7 +526,7 @@ fn k_word_at(m: &Mem, fp: u32, offset: u32, what: &'static str) -> Res<F64> {
 
 /// `g^k` as a word.
 fn g_word(k: usize) -> F128 {
-    F128::from(super::g_power(k))
+    F128::from(primitives::field::g_pow(k))
 }
 
 /// Where a computed-advice bit buffer of `len` cells starts: a frame run needs no lookup at all, which is the point of
@@ -698,7 +698,7 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             // one in range (an allocation notes it), else the product's.
             let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
                 Some(c) if c < u64::from(MAX_CELLS) => c as u32,
-                _ => (g.log(p_addr * super::g_power(o2 as usize)))
+                _ => (g.log(p_addr * primitives::field::g_pow(o2 as usize)))
                     .ok_or_else(|| fault(Fault::WildPointer { value: p }))?,
             };
             let a3 = cell_at(fp, o3)?;

@@ -12,11 +12,12 @@
 //! weights sends to that sum ([`map_sums`]). A block's sums meet its `eq` weight, and the packs' weights come last.
 
 use primitives::field::lanes::transpose_bits;
-use primitives::field::{Acc8, F128, F128x8, clmul8_low};
+use primitives::field::{Acc8, F128, F128x8, clmul8_low, mul};
 use primitives::hash::positions::row_positions;
+use primitives::multilinear::eq_table;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 
-use crate::kernels::{FieldMap, ONES, PACKS, PACKS_LOG, Run, embed_run, eq_table, field_map, map_sums, mul, xor};
+use crate::kernels::{FieldMap, ONES, PACKS, PACKS_LOG, Run, embed_run, field_map, map_sums, xor};
 use crate::layer::Layer;
 use crate::protocol::Claim;
 

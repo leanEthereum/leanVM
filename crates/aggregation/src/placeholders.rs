@@ -435,12 +435,14 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
 fn claim_placeholders(ph: &mut Placeholders, pool: &[ClaimSite], kbc: usize) {
     // Each column's index among the committed ones.
     let mut committed = 0..;
-    let compact: Vec<Option<usize>> = (col_kappa_sources(kbc).iter())
+    let compact: Vec<Option<usize>> = col_kappa_sources(kbc)
+        .iter()
         .map(|source| source.map(|_| committed.next().unwrap()))
         .collect();
     let compact_col = |column: usize| compact[column].expect("a claim targets a committed column");
     let qkeccak = compact_col(QKECCAK);
-    let claims: Vec<ClaimDescriptor> = (pool.iter())
+    let claims: Vec<ClaimDescriptor> = pool
+        .iter()
         .map(|site| match *site {
             ClaimSite::Framework { column, source } => (POINT_BUF_ZETA, compact_col(column), 0, source),
             // A table column's claim is at its table's chi[..tau].

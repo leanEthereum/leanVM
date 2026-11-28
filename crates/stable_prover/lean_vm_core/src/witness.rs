@@ -90,7 +90,8 @@ pub(crate) fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec
     let mut placed = 0usize;
     for _ in placements.iter().filter(|p| !p.is_virtual()) {
         // Each column has at least one word, so the column at each next offset is a new one.
-        let i = (placements.iter())
+        let i = placements
+            .iter()
             .position(|p| !p.is_virtual() && p.offset == placed)
             .expect("the stacked columns must tile from 0 with no gap");
         let (window, tail) = rest.split_at_mut(1 << placements[i].n_vars);

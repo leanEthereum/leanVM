@@ -232,7 +232,7 @@ pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
 }
 
 /// Sixteen rows of 64 bytes transposed: byte `b` of output `n` is byte `n` of `rows[b]`.
-#[inline]
+#[inline(never)]
 pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
     let bytes = rows.map(|r| {
         let mut b = [0u8; 64];

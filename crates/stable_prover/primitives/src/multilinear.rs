@@ -42,7 +42,8 @@ const EQ_LOW_VARS: usize = 10;
 ///     eq[h * 2^L + l] = high[h] * low[l],    low = eq(r[..L]),  high = eq(r[L..])
 /// ```
 ///
-/// A caller inside a dispatch must use [`eq_table_serial`].
+/// A caller inside a dispatch must use [`eq_table_serial`]. Out of line: one copy for every caller.
+#[inline(never)]
 pub fn eq_table(r: &[F128]) -> Vec<F128> {
     if r.len() < EQ_PAR_VARS {
         return eq_table_serial(r);
@@ -78,8 +79,8 @@ pub fn shrink_eq_high(table: &mut Vec<F128>) {
     table.truncate(half);
 }
 
-/// A polynomial at `point`, by Horner over its coefficients, constant first.
-#[inline]
+/// A polynomial at `point`, by Horner over its coefficients, constant first. Out of line: one copy for every caller.
+#[inline(never)]
 pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
     coeffs.iter().rev().fold(F128::ZERO, |acc, &c| acc * point + c)
 }

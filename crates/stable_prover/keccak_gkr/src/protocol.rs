@@ -6,8 +6,9 @@
 //!                 eq(point, (y, m)) * weights[j] * mu[i] * bit(y, j, i)
 //! ```
 
-use crate::kernels::{along, eq_table, mul};
-use primitives::field::F128;
+use crate::kernels::along;
+use primitives::field::{F128, mul};
+use primitives::multilinear::eq_table;
 use verifier::keccak::{BITS, EMBED_BITS, PACK, RMFE_EMBED, linear_transpose};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

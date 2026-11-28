@@ -204,7 +204,7 @@ fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block
     let one = Const(F64::ONE);
     // The run starts at `(pc, fp) = (0, 0)` and halts at the bytecode's last slot `g^{B-1}` with `fp = 0`.
     let (state, memory_count, bytecode_count) = if pull {
-        let final_pc = super::g_power((1 << log_bytecode) - 1);
+        let final_pc = primitives::field::g_pow((1 << log_bytecode) - 1);
         (
             Const(final_pc),
             Col(MEMORY_FINAL_COUNTERS),
@@ -231,7 +231,8 @@ fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block
 #[inline(never)]
 fn table_blocks(out: &mut Vec<Block>, t: usize, kappa: usize, rows: usize, padding: &[F64], flushes: Vec<Vec<Coord>>) {
     for coords in flushes {
-        let padding = (coords.iter())
+        let padding = coords
+            .iter()
             .map(|c| crate::leaf::coord_at(c, padding, GLOBAL_COLUMN_BASES[t]))
             .collect();
         out.push(Block {
@@ -288,40 +289,39 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         let op = tables::KeccakOp::of(&program.prog[pc as usize]);
         crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(fp, c) as usize))
     });
-    {
-        let outputs = tables::keccak_outputs(&inputs);
-        for (t, table) in tables::tables().iter().enumerate() {
-            let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
-            let ctx = FillCtx::new(tr, &exec.mem, &gpow, program, 1 << l.taus[t], table.padding());
-            table.fill(&ctx, &mut windows[base..base + n], &outputs);
-        }
-        // The shared columns, from one pass over the image: each cell's two limbs and final count `g^{A[i]}`, then each
-        // pc's final count.
-        const _: () = assert!(NUM_GLOBAL_COLUMNS == 5, "a new shared column needs a fill here");
-        const CHUNK: usize = 1 << 12;
-        let [lo, hi, count] = windows
-            .get_disjoint_mut([MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS])
-            .unwrap();
-        assert!(
-            [&lo, &hi, &count].iter().all(|w| w.len() == cells),
-            "a memory column spans the image"
-        );
-        parallel::map_reduce_chunks_mut(
-            [&mut **lo, &mut **hi, &mut **count],
-            [CHUNK; 3],
-            || (),
-            |_, task, [lo, hi, count]| {
-                for (j, ((lo, hi), count)) in lo.iter_mut().zip(hi.iter_mut()).zip(count.iter_mut()).enumerate() {
-                    let cell = exec.mem.cell(task * CHUNK + j);
-                    (*lo, *hi, *count) = (F64(cell.word.c0), F64(cell.word.c1), gpow[cell.count as usize]);
-                }
-            },
-            |_, _| (),
-        );
-        parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
-            gpow[tr.bytecode_count[i] as usize]
-        });
-    };
+    let outputs = tables::keccak_outputs(&inputs);
+    for (t, table) in tables::tables().iter().enumerate() {
+        let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
+        let ctx = FillCtx::new(tr, &exec.mem, &gpow, program, 1 << l.taus[t], table.padding());
+        table.fill(&ctx, &mut windows[base..base + n], &outputs);
+    }
+    drop(outputs);
+    // The shared columns, from one pass over the image: each cell's two limbs and final count `g^{A[i]}`, then each
+    // pc's final count.
+    const _: () = assert!(NUM_GLOBAL_COLUMNS == 5, "a new shared column needs a fill here");
+    const CHUNK: usize = 1 << 12;
+    let [lo, hi, count] = windows
+        .get_disjoint_mut([MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS])
+        .unwrap();
+    assert!(
+        [&lo, &hi, &count].iter().all(|w| w.len() == cells),
+        "a memory column spans the image"
+    );
+    parallel::map_reduce_chunks_mut(
+        [&mut **lo, &mut **hi, &mut **count],
+        [CHUNK; 3],
+        || (),
+        |_, task, [lo, hi, count]| {
+            for (j, ((lo, hi), count)) in lo.iter_mut().zip(hi.iter_mut()).zip(count.iter_mut()).enumerate() {
+                let cell = exec.mem.cell(task * CHUNK + j);
+                (*lo, *hi, *count) = (F64(cell.word.c0), F64(cell.word.c1), gpow[cell.count as usize]);
+            }
+        },
+        |_, _| (),
+    );
+    parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
+        gpow[tr.bytecode_count[i] as usize]
+    });
     // The committed Keccak states, step `j` the `j`-th KECCAK row.
     let keccak_reduction = crate::keccak::place(&inputs, windows[QKECCAK]);
     drop(inputs);

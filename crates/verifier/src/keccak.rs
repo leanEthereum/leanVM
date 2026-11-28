@@ -233,9 +233,6 @@ pub(crate) struct KeccakOpenings {
     pub inputs: (Vec<E>, Vec<E>),
 }
 
-/// The reduction: a random claim on every segment's output at `instance`, `depth` layers down to the committed inputs.
-/// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
-/// are committed.
 /// [`verify_keccak`]'s transcript alone, for a replay, on the KECCAK table's `log_steps` rows.
 pub(crate) fn replay_keccak(
     transcript: &mut Transcript,
@@ -272,6 +269,9 @@ pub(crate) fn replay_keccak(
     Ok(())
 }
 
+/// The reduction: a random claim on every segment's output at `instance`, `depth` layers down to the committed inputs.
+/// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
+/// are committed.
 pub(crate) fn verify_keccak(
     transcript: &mut Transcript,
     shape: KeccakShape,

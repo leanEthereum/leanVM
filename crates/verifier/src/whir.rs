@@ -215,13 +215,6 @@ struct GluedClaim {
     weight_at: WeightAt,
 }
 
-/// Verify the base-field multilevel opening with a one-point terminal check.
-///
-/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of \[CWYZ26\],
-/// the claim carried by four scalars a round and the weight folded at `alpha`, so the alphas are the weight's
-/// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claim
-/// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
-/// the whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
 /// [`verify_whir`]'s transcript alone, for a replay: every level's rounds, openings and queries, no value computed.
 pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rate: usize) -> Result<(), VerifierError> {
     let config = derive_config(log_n, log_inv_rate)?;
@@ -257,6 +250,13 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
     Ok(())
 }
 
+/// Verify the base-field multilevel opening with a one-point terminal check.
+///
+/// A level's rounds fold its lanes by the affine combiner `G + (alpha + beta X) F` of \[CWYZ26\],
+/// the claim carried by four scalars a round and the weight folded at `alpha`, so the alphas are the weight's
+/// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claim
+/// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
+/// the whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
 pub fn verify_whir(
     transcript: &mut Transcript,
     log_n: usize,

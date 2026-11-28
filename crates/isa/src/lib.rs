@@ -9,7 +9,6 @@ mod export_hints;
 mod pretty;
 mod program;
 mod prover;
-pub mod sort;
 
 pub use pretty::{pretty_f64, pretty_integer};
 pub use program::{BYTECODE_SLOTS, Program, g_pow};

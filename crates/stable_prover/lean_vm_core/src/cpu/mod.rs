@@ -7,7 +7,7 @@ use crate::leaf::{self, Block, Coord};
 use crate::pcs;
 use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STATE};
 use crate::witness;
-use primitives::field::{F64, F128, g_pow};
+use primitives::field::{F64, F128};
 use primitives::transcript::ProverState;
 use verifier::layout::{
     BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, NUM_GLOBAL_COLUMNS,
@@ -91,7 +91,8 @@ fn airs<'a>(
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, base + verifier::N_BUS_TREES);
     let mut offset = 0;
-    let mut airs: Vec<constraints::Air> = (tables::tables().into_iter())
+    let mut airs: Vec<constraints::Air> = tables::tables()
+        .into_iter()
         .map(|table| {
             let (t, n) = (table as usize, table.n_constraints());
             offset += n;
@@ -193,11 +194,9 @@ pub(crate) fn prove_with<W: Word>(
         let l = &w.layout;
         let cols = w.columns(program.stacked_bytecode());
         let bus = leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &mut ps);
-        let table_claims = {
-            ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
-            let xi = ps.sample();
-            constraints::prove(&airs(&l.taus, &bus, &cols, xi), &bus.point, &mut ps)
-        };
+        ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
+        let xi = ps.sample();
+        let table_claims = constraints::prove(&airs(&l.taus, &bus, &cols, xi), &bus.point, &mut ps);
         (bus, table_claims)
     };
     // The output lanes' last readers were the bus and the table sumcheck.
@@ -212,10 +211,9 @@ pub(crate) fn prove_with<W: Word>(
     // point claim.
     let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
     let output = keccak_output_claim(&table_claims, &w.layout.taus);
-    let openings = {
-        w.keccak_reduction
-            .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
-    };
+    let openings = w
+        .keccak_reduction
+        .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output);
     let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
     pcs::open(&mut ps, committed, w.q, &slots, &ring);
@@ -263,12 +261,6 @@ fn pi_point(r: F128, l: &Layout) -> Vec<F128> {
     point
 }
 
-/// `g^k`, out of line for the cold paths that need one.
-#[inline(never)]
-pub(crate) fn g_power(k: usize) -> F64 {
-    g_pow(k)
-}
-
 /// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
 pub fn to_scalar(value: &F128) -> verifier::E {
     verifier::E::new(value.c0, value.c1)
@@ -314,6 +306,7 @@ fn push_claim(claims: &mut Vec<pcs::StackClaim>, l: &Layout, col: usize, point: 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::field::g_pow;
 
     /// `SET` of a prover word.
     fn set(o: u32, k: F128) -> Op {

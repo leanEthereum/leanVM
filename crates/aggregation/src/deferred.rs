@@ -6,7 +6,7 @@ use super::hints::Hints;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
-use primitives::field::F128;
+use primitives::field::{F128, powers};
 use verifier::layout::BUS_BITS;
 // `eq` tables on the calling thread: the batch runs under either prover, some of it in its pool's tasks.
 use primitives::multilinear::{eq_table_serial as eq_table, interp};
@@ -213,14 +213,12 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     let lam = transcript.sample();
     // The low rounds run on each claim's sums against its `eq` on the low rows, scaled by its power.
     let mut low_weights = Vec::with_capacity(claims.len());
-    let mut power = F128::ONE;
-    for c in claims {
+    for (c, power) in claims.iter().zip(powers(lam, claims.len())) {
         let mut weights = eq_table(&c.bytecode_point[..BLOCK_VARS]);
         for weight in &mut weights {
             *weight *= power;
         }
         low_weights.push(weights);
-        power *= lam;
     }
     let mut messages = Vec::new();
     messages.extend(nonce.map(|nonce| F128::new(nonce, 0)));

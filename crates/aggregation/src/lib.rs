@@ -72,6 +72,7 @@ mod placeholders;
 mod proof;
 #[cfg(any(test, feature = "signers-cache"))]
 pub mod signers_cache;
+mod sort;
 mod statement;
 #[cfg(all(test, feature = "compile-guest"))]
 mod tests;

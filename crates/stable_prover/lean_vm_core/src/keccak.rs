@@ -47,7 +47,7 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; S
 #[inline(never)]
 fn lanes_of_cells(odd: bool, cells: &[F128; STATE_CELLS]) -> [u64; STATE_LANES] {
     let mut s = [0; STATE_LANES];
-    for (&(lo, hi), w) in layout(odd).iter().zip(cells) {
+    for (&(lo, hi), w) in CELL_LANES[usize::from(odd)].iter().zip(cells) {
         if let Some(l) = lo {
             s[l] = w.c0;
         }
@@ -60,19 +60,16 @@ fn lanes_of_cells(odd: bool, cells: &[F128; STATE_CELLS]) -> [u64; STATE_LANES] 
 
 /// The thirteen state cells holding 25 lanes in a layout, a free limb zero.
 pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
-    let lanes = layout(odd);
+    let lanes = &CELL_LANES[usize::from(odd)];
     std::array::from_fn(|c| {
         let (lo, hi) = lanes[c];
         F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]))
     })
 }
 
-/// The lanes each state cell holds in a layout ([`keccak_cell_lanes`]).
-fn layout(odd: bool) -> &'static [(Option<usize>, Option<usize>); STATE_CELLS] {
-    const LAYOUTS: [[(Option<usize>, Option<usize>); STATE_CELLS]; 2] =
-        [keccak_cell_lanes(false), keccak_cell_lanes(true)];
-    &LAYOUTS[usize::from(odd)]
-}
+/// The lanes each state cell holds ([`keccak_cell_lanes`]), in the even layout and the odd one.
+pub(crate) const CELL_LANES: [[(Option<usize>, Option<usize>); STATE_CELLS]; 2] =
+    [keccak_cell_lanes(false), keccak_cell_lanes(true)];
 
 /// What a `KECCAK` instruction writes, given the cells it reads.
 #[cfg(test)]
