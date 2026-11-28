@@ -79,6 +79,14 @@ rev = "528b3b1fda285487e55704409bd1b058dc18fcad"
 name = "LeanVM"
 globs = ["LeanVM.*"]
 
+# `nat_hex%` (`LeanVM/Guest/Packed/NatLit.lean`), compiled to a native library that every module
+# importing it loads, so that the interpreter does not read the certificates' literals. After
+# `LeanVM`, whose glob also matches it: Lake resolves a module to the last library that has it.
+[[lean_lib]]
+name = "NatLit"
+roots = ["LeanVM.Guest.Packed.NatLit"]
+precompileModules = true
+
 [[lean_lib]]
 # Tests deliberately load full module bodies for kernel evaluation and axiom inspection.
 name = "LeanVMTests"
