@@ -10,8 +10,6 @@
 //! reading zero past the end of `h`, so `X h` has one coefficient more than `h`. Each entry pulls from two, so any
 //! range of it is computed from `h` alone, and an entry at or above `2^mu` only feeds entries at or above `2^mu`.
 
-use std::sync::OnceLock;
-
 use primitives::field::{F64, F128};
 
 /// A coefficient: `K` or `E`, scaled by the `K` constants `A_t`.
@@ -31,29 +29,63 @@ impl Coef for F128 {
     }
 }
 
-/// `W_i(beta_i)` and its inverse for every `i < 64`, then `A_t` for every `t < 64`.
-fn constants() -> &'static ([[F64; 2]; 64], [F64; 64]) {
-    static C: OnceLock<([[F64; 2]; 64], [F64; 64])> = OnceLock::new();
-    C.get_or_init(|| {
-        let roots: [[F64; 2]; 64] = verifier::subspace_roots(63)
-            .into_iter()
-            .map(|k| [F64(k.0), F64(k.0).inv()])
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("64 roots");
-        let mut a = [F64::ONE; 64];
-        for t in 1..64 {
-            a[t] = a[t - 1] * roots[t][0] * roots[t - 1][1].square();
+/// `W_i(beta_i)` and its inverse for every `i < 64`, then `A_t` for every `t < 64`, computed at compile time.
+static CONSTANTS: ([[F64; 2]; 64], [F64; 64]) = {
+    // `a * b` in `K`, shift and add: `x^64 = 0x1B`.
+    const fn mul(a: u64, b: u64) -> u64 {
+        let (mut acc, mut shifted, mut i) = (0, a, 0);
+        while i < 64 {
+            if b >> i & 1 == 1 {
+                acc ^= shifted;
+            }
+            shifted = (shifted << 1) ^ (0x1B * (shifted >> 63));
+            i += 1;
         }
-        (roots, a)
-    })
-}
+        acc
+    }
+    // `a^(2^64 - 2)`.
+    const fn inv(a: u64) -> u64 {
+        let (mut acc, mut power, mut i) = (1, a, 1);
+        while i < 64 {
+            power = mul(power, power);
+            acc = mul(acc, power);
+            i += 1;
+        }
+        acc
+    }
+    // The subspace polynomials' normalizers, as `verifier::subspace_roots` computes them: `layer[i]` is `W_s(x^i)`.
+    let (mut roots, mut layer) = ([[F64(1); 2]; 64], [0u64; 64]);
+    let mut i = 1;
+    while i < 64 {
+        layer[i] = 1 << i;
+        i += 1;
+    }
+    let mut s = 1;
+    while s < 64 {
+        let root = roots[s - 1][0].0;
+        let mut i = s;
+        while i < 64 {
+            layer[i] = mul(layer[i], layer[i]) ^ mul(root, layer[i]);
+            i += 1;
+        }
+        roots[s] = [F64(layer[s]), F64(inv(layer[s]))];
+        s += 1;
+    }
+    let mut a = [F64(1); 64];
+    let mut t = 1;
+    while t < 64 {
+        let inverse = roots[t - 1][1].0;
+        a[t] = F64(mul(mul(a[t - 1].0, roots[t][0].0), mul(inverse, inverse)));
+        t += 1;
+    }
+    (roots, a)
+};
 
 /// `What_i(x)` for `i <= mu` at the domain point `x`, the integer's `K` element: `What_i = W_i / W_i(beta_i)`, by
 /// `W_(i+1) = W_i^2 + W_i(beta_i) W_i`.
 pub(crate) fn novel_basis_at(mu: usize, x: usize) -> Vec<F64> {
     let mut w = F64(x as u64);
-    constants().0[..=mu]
+    CONSTANTS.0[..=mu]
         .iter()
         .map(|&[root, inverse]| {
             let what = w * inverse;
@@ -69,7 +101,7 @@ pub(crate) fn x_coef<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
     match c {
         0 => T::default(),
         _ if c & 1 == 1 => h(c - 1) + h(c),
-        _ => (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(constants().1[c.trailing_zeros() as usize]),
+        _ => (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(CONSTANTS.1[c.trailing_zeros() as usize]),
     }
 }
 
