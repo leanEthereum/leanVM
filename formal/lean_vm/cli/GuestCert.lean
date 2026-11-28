@@ -4663,8 +4663,9 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks stopAt ent
         entW)
     pure (r, parts)
-  for (cf, i) in P.zipIdx do
-    let ((c, sizes, fsz, _, segs, starts, _, pt, _, _, acs, sh, sp, _, ent), parts) ← job cf i
+  let tasks := P.zipIdx.map fun (cf, i) => (cf, i, Task.spawn fun _ => job cf i)
+  for (cf, i, t) in tasks do
+    let ((c, sizes, fsz, _, segs, starts, _, pt, _, _, acs, sh, sp, _, ent), parts) ← t.get
     certs := certs.push c
     layouts := layouts.push (LayoutGen.layoutText (← LayoutGen.layoutOf fns[i + 1]! cf segs))
     if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
