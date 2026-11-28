@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.Budget.Fits
 public import LeanVM.Prover.EndChild
 public import LeanVM.Protocol.Verifier.Defers
@@ -49,8 +50,8 @@ theorem acceptableChildren_of_honest {statement : NodeStatement} {witness : Node
     ∀ child ∈ witness.children,
       AcceptableChild (bytecodeWords guestProgram) (deployedSeed guestProgram) child :=
   fun child hc ↦
-    let ⟨hShape, hVerifies⟩ := childrenProven_of_nodeRelation hRelation child hc
-    Budget.guest_child_complete child (hHonest child hc) hShape hVerifies
+    Budget.guest_child_complete child (hHonest child hc) (hRelation.child_shapes child hc).2
+      (childrenProven_of_nodeRelation hRelation child hc)
 
 /-- **A child the deployed verifier accepts has a true fresh claim**, on a node `NodeRelation`
 admits under the deployed seed. -/
@@ -64,7 +65,7 @@ theorem freshClaim_holds_of_leanVmVerifier {statement : NodeStatement} {witness 
     child.freshClaim.Holds (bytecodeWords guestProgram) := by
   obtain ⟨c, hHolds, -, hUnique⟩ := verifyDeferred_of_leanVmVerifier hAccept
   rw [End.publicDigest_publicInputOf] at hUnique
-  rw [hUnique _ (childrenProven_of_nodeRelation hRelation child hc).2]
+  rw [hUnique _ (childrenProven_of_nodeRelation hRelation child hc)]
   exact hHolds
 
 end LeanVM.Guest.Completeness

@@ -484,12 +484,11 @@ def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
         ("child_mono", [count 1]) :: (slotGaps 0 offsets).map fun d ↦ ("child_claim_gap", [count d])
       else ("child_mono", [count 0]) :: offsets.map fun o ↦ ("child_claim_index", [count o])
 
-/-- The batching's hints: the proof of work's nonce, if it grinds, and the sumcheck's rounds
-(`bc_sumcheck_msgs`, as `aggregate_deferred_claims` writes them: `Batch.lambdaGrindNonceCells`,
-`Batch.sumcheckRoundCells`), and the bytecode's value at its end (`bc_star_hint`). -/
+/-- The batching's hints: the proof of work's nonce (`batchLambdaGrindBits` is nonzero) and each
+round's `(g(1), g(∞))`, a round grinding `0` bits (`bc_sumcheck_msgs`), and the bytecode's value at
+the end (`bc_star_hint`). -/
 def batchPushes (h : BatchingHints) : List (String × Entry) :=
-  [("bc_sumcheck_msgs", Guest.Batch.lambdaGrindNonceCells h ++
-      h.sumcheckMessages.flatMap Guest.Batch.sumcheckRoundCells),
+  [("bc_sumcheck_msgs", h.lambdaGrindNonce :: h.sumcheckMessages.flatMap fun g ↦ [g.1, g.2]),
     ("bc_star_hint", [h.finalBytecodeValue])]
 
 /-- The DA digest the node publishes, as the slot of `da_digests` it picks (`da_pick`): its own

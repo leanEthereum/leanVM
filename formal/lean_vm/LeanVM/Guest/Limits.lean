@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.Hints
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import Statement.LeanVmGuest
@@ -55,12 +56,43 @@ open Limits
 
 /-! ## The deployed limits and the coverage table -/
 
+/-- **The deployed limits with what `NodeRelation` adds**: at most `maxRecursions` children
+(`batch`'s check) and a blob matrix of at most `LeanDa.maxRows` rows (`MatrixWitness.Opens`). -/
+structure DeployedLimitsB (statement : NodeStatement) (witness : NodeWitness) : Prop
+    extends DeployedLimits statement witness where
+  /-- At most `maxRecursions` children. -/
+  atMostSixteenChildren : witness.children.length ≤ Batch.maxRecursions
+  /-- At most `LeanDa.maxRows` rows in the blob matrix checked directly. -/
+  atMostMaxRows : ∀ p ∈ witness.daMatrix, p.2.rows.length ≤ LeanDa.maxRows
+
+/-- The deployed limits of a node `NodeRelation` admits. -/
+theorem DeployedLimits.toB {bytecode : List K} {seed : Digest} {statement : NodeStatement}
+    {witness : NodeWitness} (hl : DeployedLimits statement witness)
+    (hN : NodeRelation bytecode seed statement witness) : DeployedLimitsB statement witness where
+  toDeployedLimits := hl
+  atMostSixteenChildren := by
+    have hb := hN.2.2.2
+    unfold DeferredClaimBatched at hb
+    split at hb
+    · simp [*]
+    · simpa [NodeWitness.childClaims] using (Batch.batch_eq_some_iff.mp hb).1.1
+  atMostMaxRows := by
+    rintro ⟨c, mx⟩ hp
+    have hd := hN.2.1
+    simp only [DaDigestHeld, Option.mem_def.mp hp] at hd
+    exact hd.2.2.1
+
+/-- The child count's cap, at `maxRecursions = 16`. -/
+theorem DeployedLimitsB.children_le_sixteen {statement : NodeStatement} {witness : NodeWitness}
+    (hl : DeployedLimitsB statement witness) : witness.children.length ≤ 16 :=
+  hl.atMostSixteenChildren
+
 /-- **The deployed limits, the signature claims held, the coverage table below `2^23`**: the
 multiplicities of the declared claims (`SignatureClaimsHeld`, of `NodeRelation`) and the bound on
 `coverageSlots` the guest's proofs use (every count of `meta` and of a child's lists is at most it),
 below the guest's memory of at least `2^23` words. -/
 structure GuestLimits (statement : NodeStatement) (witness : NodeWitness) : Prop
-    extends DeployedLimits statement witness where
+    extends DeployedLimitsB statement witness where
   /-- The signature claims held, with their multiplicities. -/
   signatureClaimsHeld : SignatureClaimsHeld statement witness
   /-- The coverage table below `2^23`. -/

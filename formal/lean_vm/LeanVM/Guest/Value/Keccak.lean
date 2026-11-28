@@ -79,8 +79,8 @@ generic in their cells. Namespace `LeanVM.Guest.Value.Keccak` (`KeccakEval` for 
 
 **Constants by kernel evaluation** (`KeccakConst`, `KeccakEval`)
 * `keccakF_zero : keccakF1600 zeroState = keccakFZero` (the `KECCAK` table's padding row).
-* `batchSeed_eq : Node.batchSeed = batchSeedValue`;
-  `aggSeed_cells : litField (aggSeed.getD c 0) = cellsOfState Node.batchSeed false ⟨8 + c, _⟩`.
+* `batchSeed_eq : Batch.batchSeed = batchSeedValue`;
+  `aggSeed_cells : litField (aggSeed.getD c 0) = cellsOfState Batch.batchSeed false ⟨8 + c, _⟩`.
 * `paddingCell_eq : LeanDa.paddingCellWithHash Da.keccak256Bytes = LeanVM.Protocol.Digest.toBytes daPadCellDigest`,
   `paddingBlobRoot_eq` (the zero codeword's blob root, seven levels of `daPadLevel`),
   `daPadBlob_cells` (`DA_PAD_BLOB_0/1 = digestHalves daPadBlobDigest`).

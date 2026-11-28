@@ -12,7 +12,7 @@ public import LeanVM.Guest.Batch.Run
 /-!
 # The batching sumcheck, round by round
 
-`Node.batchRounds` runs a sumcheck's rounds on the duplex sponge (`rsRun`, `rsSt`): round `j`
+`batchRounds` runs a sumcheck's rounds on the duplex sponge (`rsRun`, `rsSt`): round `j`
 absorbs `g(1)` and `g(∞)`, squeezes the challenge `r_j`, and folds the claim to `g(r_j)`, the
 round polynomial (`roundPoly`) with `g(0) = claim + g(1)`, so `g(0) + g(1)` is the claim.
 

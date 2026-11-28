@@ -229,7 +229,7 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
       ∃ out : DeferredBytecodeClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
+          Batch.batchCore cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
 
 /-! ## The iterations -/
 

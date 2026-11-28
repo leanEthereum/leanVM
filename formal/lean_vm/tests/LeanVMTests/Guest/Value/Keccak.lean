@@ -140,10 +140,10 @@ def pending : List (E × ℕ) :=
 
 /-! ## The baked constants -/
 
-#guard toNats LeanVM.Node.batchSeed = toNats batchSeedValue
+#guard toNats LeanVM.Guest.Batch.batchSeed = toNats batchSeedValue
 #guard (List.range 5).all fun c ↦
   LeanVM.Guest.litField (aggSeed.getD c 0) =
-    cellsOfState LeanVM.Node.batchSeed false (Fin.ofNat 13 (8 + c))
+    cellsOfState LeanVM.Guest.Batch.batchSeed false (Fin.ofNat 13 (8 + c))
 
 /-! ## Templates -/
 

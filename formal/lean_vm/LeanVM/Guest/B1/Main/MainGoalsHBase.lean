@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Protocol.Verifier.DeferredShape
 public import LeanVM.Guest.AcceptableChild
@@ -59,8 +60,8 @@ theorem kid_shapes {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars
         c.statement.deferredClaim.bytecodePoint.length = bytecodeVars := by
   have hlog : Nat.log2 bytecode.length = bytecodeVars := by rw [hbl, Nat.log2_two_pow]
   intro c hc
-  obtain ⟨hsh, hv⟩ := hrel.2.2.1 c hc
-  exact ⟨by rw [verifyDeferred_shaped hv, hlog], by rw [← hlog]; exact hsh⟩
+  obtain ⟨hf, hsh⟩ := hrel.child_shapes c hc
+  exact ⟨hf.trans hlog, hsh.trans hlog⟩
 
 end
 end LeanVM.Guest.B1.Main

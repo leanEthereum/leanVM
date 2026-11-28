@@ -13,6 +13,7 @@ module
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Guest.Batch.Bounded
 public import Common.DigestBytes
 
 @[expose] public section
@@ -88,11 +89,7 @@ Keccak-f[1600] `π`, accepts it while its stream begins with fewer than `M` chil
 bytecode's shapes one of whose claims is false is at most
 `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, for the program's query bound
 `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private coins are free
-(`BatchingSound`'s bound, which says where the factor comes from).
-
-This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does not compose with
-the guest program's in-circuit statements, whose `KECCAK` instruction computes the deployed
-Keccak-f[1600], so soundness across recursion levels does not follow from it. -/
+(`BatchingStreamSound` with the two calls). -/
 def BatchingSoundWithHash : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 → ∀ (A : OracleComp Common.RandomPermutationOracles (Unit × Proof)) (QA : ℕ),
@@ -100,7 +97,7 @@ def BatchingSoundWithHash : Prop :=
     batchingQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let z ← runAdversaryThen A fun z ↦
          runBatchingWithHash callKeccak256 callKeccakF1600 (boundedBatchingProgram M bytecode) z.2}[
-      z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
+      z.1.2 = true ∧ StreamChildClaimFalse bytecode M z.1.1.2] ≤
       (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
           (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256

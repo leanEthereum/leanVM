@@ -8,6 +8,7 @@
 
 module
 
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.B1.Main.MainGoals
 public import LeanVM.Guest.B1.Main.Basic
 public import LeanVM.Guest.AcceptableChild
@@ -70,7 +71,7 @@ theorem length_hCover : (hCover s w).length = (hData seed s w).T := by
 theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation bytecode seed s w)
     (hf : FreshShaped w) : (hOwn seed s w).map List.length = mSizes (hData seed s w) := by
   have hsd := hr.hasBytecodeShape
-  obtain ⟨-, -, hch, -⟩ := hr
+  have hsh := hr.child_shapes
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
   · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2) 4
@@ -88,7 +89,7 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation b
   · rw [length_flatMap_const _ _ 24 fun c hc => by simp [DeferredBytecodeClaim.cells, hf c hc]]
     simp [hData]
   · rw [length_flatMap_const _ _ 24 fun c hc => by
-      simp [DeferredBytecodeClaim.cells, Eq.trans (hch c hc).1 hlog]]
+      simp [DeferredBytecodeClaim.cells, Eq.trans (hsh c hc).2 hlog]]
     simp [hData]
   · simp [hData]
   · simp [DeferredBytecodeClaim.cells, Eq.trans hsd hlog]

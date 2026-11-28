@@ -71,7 +71,7 @@ theorem aggregate_claims_complete_pops {rd : Reader} {m : ℕ} {cpi cfresh ccarr
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     {h : BatchingHints} {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23)
-    (hb : batch cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P)
+    (hb : Batch.batchCore cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P)
     (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
       wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
     (ht : WinTabs rd tabs) :

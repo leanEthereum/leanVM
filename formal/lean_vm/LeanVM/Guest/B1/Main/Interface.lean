@@ -27,7 +27,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop2»
 **`aggregate_claims`**: from the batching seed (`AGG_SEED_*`), the duplex sponge
 absorbs the children's count and every child's words, checks the proof of work on the hinted
 nonce, squeezes the challenge `λ`, and one sumcheck (`batch_sumcheck`) reduces the children's
-claims on the bytecode to the claim written at `defer_stmt`: `Node.batch` of the children whose
+claims on the bytecode to the claim written at `defer_stmt`: `batch` of the children whose
 words the memory holds (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs` (the
 nonce first) and `bc_star_hint` (`Aggregate.lean`'s `MeaningAggregateClaimsW`), given the grind's window tables at
 its last argument (`WinTabs`).

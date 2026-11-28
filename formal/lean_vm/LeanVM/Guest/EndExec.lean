@@ -333,7 +333,7 @@ theorem execute_guest_complete (G : ExecGaps Ks Km E0 X Pro) :
 
 /-- **A node within the deployed limits is within the budget**, its children acceptable. -/
 theorem budget_of_limits {seed : Digest} {s : NodeStatement} {w : NodeWitness}
-    (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) (hok : ChildrenOk bytecode seed w) :
+    (hlim : DeployedLimitsB s w) (held : SignatureClaimsHeld s w) (hok : ChildrenOk bytecode seed w) :
     (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 :=
   (Budget.deployedBudget_size_mono (work s w) fun (p : ℕ × ℕ) hp ↦ by
     obtain ⟨ch, hch, rfl⟩ :=

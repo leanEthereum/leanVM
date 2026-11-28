@@ -19,9 +19,9 @@ children's.
 
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
 relation: what a decoding of an execution explains (`ExplainsPublicInput`), the binding of the
-statement's digest (`StatementDigestBinds`), and the guest decoder a program computes, with
-**`GuestKnowledgeSoundness`**. The batching program (`Batch.nodeBatchingProgram`), reference
-material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
+statement's digest (`StatementDigestBinds`), the batching's soundness (`BatchingSound`), and the
+guest decoder a program computes, with **`GuestKnowledgeSoundness`**. The batching (`batch`) is
+`LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM's `crates/aggregation/src/` (the statement, its digest, the batching) and
 `guests/lean_ethereum.py` (the guest program), cited by their items' names. The signature schemes
@@ -177,10 +177,11 @@ structure NodeWitness where
   /-- The prover's part of the batching of the children's deferred claims. -/
   batchingHints : BatchingHints
 
-/-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `crates/aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
-def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
-  claim.bytecodePoint.length = Nat.log2 bytecode.length
+/-- What the node batches of each child under `seed`: its public input, its proof's claim and its
+statement's deferred claim. -/
+def NodeWitness.childClaims (witness : NodeWitness) (seed : Digest) : List ChildClaims :=
+  witness.children.map fun child ↦
+    ⟨statementDigest seed child.statement, child.freshClaim, child.statement.deferredClaim⟩
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
@@ -189,7 +190,7 @@ def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredByte
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: the bytecode has `2 ^ len` words,
-`len` the point's length (so the claim has the bytecode's shape, `HasBytecodeShape`), and the value
+`len` the point's length (so the point has `log₂` of its length coordinates), and the value
 is the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
 `crates/aggregation/src/deferred.rs`). Stronger than `BytecodeClaim.Holds` (the value only). The
 deployed outer verifier checks it of the root's deferred claim (`AggregateProof::verify`,
@@ -255,30 +256,22 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root : Digest) (z : E)
     LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (LeanDa.dualCodewordAt z) (fun b ↦ row.getD b 0) = 0
 
-/-- **Every child is proven**: its deferred claim has the bytecode's shape, and the deferring
-verifier (`verifyDeferred`, the guest program's `verify_sub`) accepts its proof for its statement's
-digest under the same seed. The deferring verifier reads only the bytecode's length: it takes the
-bytecode's value at the child's point from the witness (`freshClaim`), which the batching folds into
-the node's deferred claim and nothing here checks. -/
+/-- **Every child is proven**: the deferring verifier (`verifyDeferred`, the guest program's
+`verify_sub`) accepts its proof for its statement's digest under the same seed. It reads the
+bytecode only through its length, taking the bytecode's value at the child's point from the witness
+(`freshClaim`), which the batching folds into the node's deferred claim. -/
 def ChildrenProven (bytecode : List K) (seed : Digest) (witness : NodeWitness) : Prop :=
-  ∀ child ∈ witness.children, child.statement.deferredClaim.HasBytecodeShape bytecode ∧
+  ∀ child ∈ witness.children,
     verifyDeferred bytecode seed (statementDigest seed child.statement) child.freshClaim
       child.proof = true
 
-/-- **The deferred claim batches the children's**: without children, the bytecode at the zero
-point; with children, the batching program (`Batch.nodeBatchingProgram`), over Keccak-f[1600],
-accepts the stream of the children's claims (each child's public input, fresh claim and deferred
-claim) and the hints, with the statement's deferred claim as its outcome. Either way the deferred
-claim has the bytecode's shape: the zero point's, or the sumcheck's `log₂ |bytecode|` challenges. -/
+/-- **The deferred claim batches the children's**: the zero point without children, else `batch`'s
+output on the children's claims, with points of `log₂ |bytecode|` coordinates. -/
 def DeferredClaimBatched (bytecode : List K) (seed : Digest) (statement : NodeStatement)
     (witness : NodeWitness) : Prop :=
   if witness.children = [] then statement.deferredClaim.HasZeroPoint bytecode
-  else
-    let children : List ChildClaims := witness.children.map fun child ↦
-      ⟨statementDigest seed child.statement, child.freshClaim, child.statement.deferredClaim⟩
-    Guest.Batch.runBatching (m := Id) keccakF1600
-      (Guest.Batch.nodeBatchingProgram (· = statement.deferredClaim) bytecode children)
-      ⟨Guest.Batch.batchingStream children witness.batchingHints, []⟩ = true
+  else Guest.Batch.batch (Nat.log2 bytecode.length) (witness.childClaims seed)
+    witness.batchingHints = some statement.deferredClaim
 
 end
 
@@ -347,6 +340,45 @@ def guestProgram : LeanVM.Semantics.LeanIsaProgram :=
   ⟨19, by decide, fun i ↦ (guestCode.getD i.val .padding).toLeanIsaInstruction⟩
 
 end LeanVM.Guest
+
+/-! ## The batching on its own -/
+
+namespace LeanVM.Guest.Batch
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Node
+open scoped ENNReal
+
+/-- The children's claims hold. -/
+def ChildClaimsHold (bytecode : List K) (children : List ChildClaims) : Prop :=
+  ∀ child ∈ children, child.freshClaim.HoldsWithShape bytecode ∧ child.carriedClaim.HoldsWithShape bytecode
+
+/-- A batching adversary: children and hints. -/
+abbrev BatchingAdversary : Type :=
+  OracleComp Common.RandomPermutationOracles (List ChildClaims × BatchingHints)
+
+/-- **The batching game**: the adversary's children and hints, then `batchWith` over `π` on them,
+for the guest program's bytecode; the children and the claim deferred. -/
+def batchingGame (adversary : BatchingAdversary) :
+    OracleComp Common.RandomPermutationOracles (List ChildClaims × Option DeferredBytecodeClaim) := do
+  let (children, hints) ← adversary
+  let deferred ← batchWith Common.queryPermutation (Nat.log2 (bytecodeWords guestProgram).length)
+    children hints
+  pure (children, deferred)
+
+/-- **The batching in the random-permutation model**: for an adversary of at most `Q` queries to `π`
+and `π⁻¹` (its coins free), the batching defers a claim that holds of the guest program's bytecode
+while a child's claim is false with probability at most
+`(Q + 2^9) · 2^-125 + 5 (Q + 2^9)² · 2^-256` (`statement.tex` accounts for `2^9`). -/
+def BatchingSound : Prop :=
+  let bytecode := bytecodeWords guestProgram
+  ∀ (adversary : BatchingAdversary) (Q : ℕ),
+    Common.QueryCostAtMost adversary Common.permutationCallCost Q →
+    Pr{let (children, deferred) ← Common.runWithRandomPermutation (batchingGame adversary)}[
+      (∃ claim ∈ deferred, claim.HoldsWithShape bytecode) ∧ ¬ ChildClaimsHold bytecode children] ≤
+      (Q + 2 ^ 9 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+        5 * (Q + 2 ^ 9 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
+
+end LeanVM.Guest.Batch
 
 /-! ## The guest decoder a program computes
 

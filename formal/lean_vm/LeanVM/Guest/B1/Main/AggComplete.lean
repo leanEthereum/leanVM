@@ -85,7 +85,7 @@ theorem guardOk_vals {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
 
 /-- The claim an accepting batching writes, its proof of work and its final check. -/
 theorem batch_out {cs : List ChildClaims} {h : BatchingHints} {out : DeferredBytecodeClaim}
-    (hb : batch cs h = some out) :
+    (hb : Batch.batchCore cs h = some out) :
     out = aggOut cs h ∧
       powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs h.lambdaGrindNonce) 2) = true ∧
       (aggRun cs h).1.2 = h.finalBytecodeValue *
@@ -300,7 +300,7 @@ theorem agg_core {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     {h : BatchingHints} {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23)
-    (hb : batch cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P)
+    (hb : Batch.batchCore cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P)
     (hrc : ∀ v ≤ 11, ∀ e < 2 ^ v, ∃ y t1 t2 : E, LoadHolds rd (gen ^ e) 0 t1 ∧
       wBound v = gen ^ e * y ∧ LoadHolds rd y 0 t2)
     (ht : WinTabs rd tabs) :

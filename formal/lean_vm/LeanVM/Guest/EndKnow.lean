@@ -14,6 +14,7 @@ public import LeanVM.Guest.Located.Interface
 public import LeanVM.Guest.B1.Main.SoundV
 public import LeanVM.Guest.Binding
 public import LeanVM.Protocol.LeanVMSound
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The guest's witness, named

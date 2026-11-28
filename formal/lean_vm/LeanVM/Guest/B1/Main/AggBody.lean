@@ -33,7 +33,7 @@ at `bc_sumcheck_msgs·g`, the last record's claim and the point, `bc_point1` (`1
 of the point, from `.n 178`), the guarded loop `aggregate_claims_loop2` (weights
 `w = .n 249`), the check that its final claim is `bc_star_hint (.n 7)` times the weight, and the
 claim written at `defer_stmt`. `seed_cells`: the five constants are the capacity cells of
-`Node.batchSeed` (G3's `aggSeed_cells`).
+`batchSeed` (G3's `aggSeed_cells`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -138,7 +138,7 @@ theorem agg_ok : aggOk = true := by decide +kernel
 
 /-- **The seed's constants are the batching seed's capacity cells.** -/
 theorem seed_cells : ∀ i < 5,
-    word (seedLo.getD i (0, 0)).1 (seedLo.getD i (0, 0)).2 = (capOf batchSeed).getD i 0 := by
+    word (seedLo.getD i (0, 0)).1 (seedLo.getD i (0, 0)).2 = (capOf Batch.batchSeed).getD i 0 := by
   intro i hi
   have e := fun c : Fin 5 => aggSeed_cells c
   rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 by omega) with rfl | rfl | rfl | rfl | rfl

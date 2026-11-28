@@ -39,11 +39,6 @@ open LeanVM.Node
 
 @[expose] public section
 
-/-- What a node batches of its children under `seed`: each child's public input, its proof's
-claims and its statement's deferred claim. -/
-def childClaimsOf (seed : Digest) (w : NodeWitness) : List ChildClaims :=
-  w.children.map fun c ↦ ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩
-
 /-- **A node's children verify**, under the deployed seed with the node's deferred claim true:
 every child's proof is accepted by the deployed verifier and its deferred claim holds, or a
 challenge of the node's batching is bad. -/
@@ -53,21 +48,16 @@ theorem children_sound {bytecode : List K} {s : NodeStatement} {w : NodeWitness}
         Verifier.verify bytecode (statementDigest (fiatShamirIv bytecode) c.statement) c.proof =
           true ∧
           c.statement.deferredClaim.HoldsWithShape bytecode) ∨
-      BatchBad bytecode (childClaimsOf (fiatShamirIv bytecode) w) w.batchingHints := by
+      BatchBad bytecode (w.childClaims (fiatShamirIv bytecode)) w.batchingHints := by
   obtain ⟨-, hch, -, -, hbat⟩ := nodeRel_iff.mp hN
   by_cases hw : w.children = []
   · exact Or.inl fun c hc ↦ absurd hc (by simp [hw])
   simp only [hw, ↓reduceIte] at hbat
-  rcases batch_sound hbat hs
-      (fun c hc ↦ by
-        obtain ⟨c', hc', rfl⟩ := List.mem_map.mp hc
-        exact verifyDeferred_shaped (hch c' hc').2)
-      (fun c hc ↦ by
-        obtain ⟨c', hc', rfl⟩ := List.mem_map.mp hc
-        exact (hch c' hc').1) with hok | hbad
+  rcases batch_sound hbat.2 hs (fun c hc ↦ (hbat.1.2.2 c hc).1) (fun c hc ↦ (hbat.1.2.2 c hc).2)
+    with hok | hbad
   · refine Or.inl fun c hc ↦ ?_
     obtain ⟨hfr, hcar⟩ := hok _ (List.mem_map.mpr ⟨c, hc, rfl⟩)
-    exact ⟨verify_of_verifyDeferred hfr (hch c hc).2, hcar⟩
+    exact ⟨verify_of_verifyDeferred hfr (hch c hc), hcar⟩
   · exact Or.inr hbad
 
 end

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Batch.RomSpec
 public import LeanVM.Protocol.EndToEnd.Sound.Statements
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The batching in the random-oracle model
@@ -28,11 +29,11 @@ history; nothing is doomed before. `batch_rom`: an adversary of `QA` queries to 
 together outputs a proof; the probability that the batching program, Keccak-256 and
 Keccak-f[1600] random oracles, accepts while the proof's stream begins with the count and the
 cells of fewer than `M` children of the bytecode's shapes one of whose claims is false
-(`SomeChildClaimFalse`) is at most `(QA + QV) · (batchε M + 5 (QA + QV) / 2^256)`, `QV` the
+(`StreamChildClaimFalse`) is at most `(QA + QV) · (batchε M + 5 (QA + QV) / 2^256)`, `QV` the
 program's query bound (`batchingQueryBound`), `batchε M = max(2M - 3, 8) · 2^-130`.
 `batch_rom_bits`: for `QA + QV ≤ 2^64` that is at most `(QA + QV) · max(2M - 3, 8) · 2^-129`.
 
-With `runProof_batchAny`, the program is `Node.batch` with its final check that the deferred
+With `runProof_batchAny`, the program is `batch` with its final check that the deferred
 claim holds; so the bound is that of the batching itself, Keccak-256 and Keccak-f[1600] modelled
 as random oracles.
 -/
@@ -486,7 +487,7 @@ theorem doomed_of_falseChildren (hb : bytecode.length = 2 ^ Nat.log2 bytecode.le
     (hM : M ≤ 2 ^ 64 - 1) {z : Unit × Proof} {c : KeccakCalls.QueryCache}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (batchSeeds.seed z.1)
       (nodeAt (boundedBatchingProgram M bytecode) (batchSeeds.root z.1)) z.2 = some true)
-    (hf : SomeChildClaimFalse bytecode M z.2) : Doomed (batchCert hb hM) batchSeeds z c := by
+    (hf : StreamChildClaimFalse bytecode M z.2) : Doomed (batchCert hb hM) batchSeeds z c := by
   obtain ⟨cs, hlt, hs, hpre, hn⟩ := hf
   let p : BatchPre M bytecode := ⟨cs, hlt, hs, someGap_of_false hb hs hn⟩
   refine ⟨p.hist, ?_, Nat.zero_le _, ?_, ?_⟩
@@ -507,13 +508,13 @@ program's query bound. -/
 theorem batch_rom (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
     (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
-      z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
+      z.1.2 = true ∧ StreamChildClaimFalse bytecode M z.1.1.2] ≤
       ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
         (batchε M + failBound batchSeeds (QA + batchingQueryBound bytecode M)) :=
   romSound_of_imp (boundedBatchingProgram M bytecode) (batchCert hb hM) batchSeeds
     (fun _ ↦ rootOk_batch M bytecode) (batchε M) (batchCert_bound hb hM) A QA hA
     (batchingQueryBound bytecode M) (isTotalQueryBound_batchFam M bytecode)
-    (fun z _ ↦ SomeChildClaimFalse bytecode M z.2)
+    (fun z _ ↦ StreamChildClaimFalse bytecode M z.2)
     fun _ _ hv hf ↦ doomed_of_falseChildren hb hM hv hf
 
 /-! ## The bound in bits -/
@@ -529,7 +530,7 @@ theorem batch_rom_explicit (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
-      z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
+      z.1.2 = true ∧ StreamChildClaimFalse bytecode M z.1.1.2] ≤
       ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
         ((max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130 +
           ((5 * (QA + batchingQueryBound bytecode M) : ℕ) : ℝ≥0∞) / 2 ^ 256) := by
@@ -561,7 +562,7 @@ theorem batch_rom_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp KeccakCalls (Unit × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) (hQ : QA + batchingQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← romExperiment A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
-      z.1.2 = true ∧ SomeChildClaimFalse bytecode M z.1.1.2] ≤
+      z.1.2 = true ∧ StreamChildClaimFalse bytecode M z.1.1.2] ≤
       ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
         ((max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 129) := by
   refine (batch_rom_explicit hb hM A QA hA).trans ?_

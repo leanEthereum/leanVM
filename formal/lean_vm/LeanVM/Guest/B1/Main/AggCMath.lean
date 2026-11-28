@@ -30,7 +30,7 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 variable {rd : Reader}
 
 theorem absSt_zero (m : ℕ) (cs : List ChildClaims) :
-    absSt m cs 0 = ⟨capOf batchSeed, [gen ^ m, 0, 0, 0].map (·, dsObserve)⟩ := by
+    absSt m cs 0 = ⟨capOf Batch.batchSeed, [gen ^ m, 0, 0, 0].map (·, dsObserve)⟩ := by
   rw [absSt, List.take_zero, List.flatMap_nil, List.append_nil, absorb_head]
 
 theorem absSt_succ {cpi cfresh ccarried : E} {m c : ℕ} {cs : List ChildClaims}

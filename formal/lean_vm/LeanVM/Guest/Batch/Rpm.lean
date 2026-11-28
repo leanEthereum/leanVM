@@ -18,6 +18,9 @@ public import LeanVM.Guest.WithHash
 public import LeanVM.Guest.AcceptableChild
 public import Common.ByteArray
 import LeanVM.Protocol.ErrorBounds
+import LeanVM.Guest.Start
+import VCVio.OracleComp.EvalDist.Sum
+public import LeanVM.Facts.BytecodeShape
 
 @[expose] public section
 
@@ -28,15 +31,15 @@ import LeanVM.Protocol.ErrorBounds
 Here both are built from one random permutation `π`, which the adversary queries forward and
 inverse (`Rpm.runAdversaryThen`; `Rpm.detRun` for a deterministic adversary): `batch_rpm` bounds the probability that the batching program
 (`boundedBatchingProgram M bytecode`, from its seeding `batchSeedOf`) accepts a proof that begins with fewer than
-`M` children of the bytecode's shapes one of whose claims is false (`SomeChildClaimFalse`) by
+`M` children of the bytecode's shapes one of whose claims is false (`StreamChildClaimFalse`) by
 `batch_rom`'s bound at the adversary's `QA` queries, plus `rpmError (QA + QV · 2^32)`, `QV` the
 program's query bound, each query at most `2^32` permutation calls. `batch_rpm_bits`: for
 `QA + QV ≤ 2^64`, at most `(QA + QV) · max(2M - 3, 8) · 2^-128`. `batch_bound_le`: for `QA ≤ 2^128`
 and `QV ≤ 2^96`, at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, the
 per-query `max(2M - 3, 8) · 2^-130` being `batchε M`: a round's `2/|E|`, or `λ`'s `(2M - 3)/|E|`
-through its proof of work of `2` bits (`RomSpec.lean`); `batch_sound_holds` is it as
-the end statement `BatchingSound` of `Statement/LeanVmGuestCompleteness.lean` states it: the verifier written out
-(`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
+through its proof of work of `2` bits (`RomSpec.lean`); `batch_stream_sound_holds` is it as
+`BatchingStreamSound`. `batch_sound_holds`, the end statement `BatchingSound`, follows: given
+children are batched as the stream's (`runBatching_node_eq_bounded`).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
 `Rpm.rpmRun_le_det`, `Coins.lean`): the program follows the duplex discipline (its
@@ -138,13 +141,13 @@ program's query bound. -/
 theorem batch_rpm (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
     (A : OracleComp (Common.permutationOracleSpec KeccakState) (Unit × Proof)) (QA : ℕ) (hA : A.IsTotalQueryBound QA) :
     Pr{let z ← detRun A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
-      z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
+      z.2 = true ∧ StreamChildClaimFalse bytecode M z.1.2] ≤
       ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
           (batchε M + failBound batchSeeds (QA + batchingQueryBound bytecode M)) +
         rpmError (QA + batchingQueryBound bytecode M * 2 ^ 32) := by
   obtain ⟨A', hA', hle⟩ := detRun_le_rom A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
     (duplexVm_batch M bytecode) hA (isWeightBound_batch M bytecode)
-    (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
+    (fun z ↦ z.2 = true ∧ StreamChildClaimFalse bytecode M z.1.2)
   refine hle.trans (add_le_add (le_of_eq_of_le ?_ (batch_rom hb hM A' QA hA')) le_rfl)
   rw [romStep_eq, prEvent_map]
 
@@ -186,7 +189,7 @@ theorem batch_rpm_bits (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length)
     (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp (Common.permutationOracleSpec KeccakState) (Unit × Proof)) (QA : ℕ)
     (hA : A.IsTotalQueryBound QA) (hQ : QA + batchingQueryBound bytecode M ≤ 2 ^ 64) :
     Pr{let z ← detRun A (verifierFam batchSeeds (boundedBatchingProgram M bytecode))}[
-      z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2] ≤
+      z.2 = true ∧ StreamChildClaimFalse bytecode M z.1.2] ≤
       ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) *
         ((max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 128) := by
   refine (batch_rpm hb hM A QA hA).trans ?_
@@ -270,7 +273,7 @@ theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
   simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatchingWithHash,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the adversary's coins do not
+/-- **`BatchingStreamSound`** with the two calls: the adversary's coins do not
 help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`; past `2^128` adversary queries the
 bound exceeds one (`one_le_batchingBound`). -/
 theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
@@ -279,14 +282,177 @@ theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
   · rw [← verifierFam_eq_batchRun]
     obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB
       (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
-      (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
+      (fun z ↦ z.2 = true ∧ StreamChildClaimFalse bytecode M z.1.2)
     exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV))
   · exact (prEvent_le_one _).trans (one_le_batchingBound hQA)
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the game over `π` is the experiment with
-the two calls (`batchingSound_of_withHash`). -/
-theorem batch_sound_holds : BatchingSound :=
-  batchingSound_of_withHash batchingSoundWithHash_holds
+/-- **`BatchingStreamSound`**: the game over `π` is the experiment with the two calls. -/
+theorem batch_stream_sound_holds : BatchingStreamSound :=
+  batchingStreamSound_of_withHash batchingSoundWithHash_holds
+
+/-! ## Given children -/
+
+/-- An absorption keeps the sponge's ground challenge. -/
+theorem absorb_eq_map_ground {m : Type → Type} [Monad m] [LawfulMonad m]
+    (π : KeccakState → m KeccakState) (sp : Sponge) (x : E) (tag : ℕ) :
+    LeanVM.Protocol.Compile.absorb π sp x tag =
+      (fun sp' : Sponge ↦ { sp' with ground := sp.ground }) <$>
+        LeanVM.Protocol.Compile.absorb π sp x tag := by
+  obtain ⟨st, pe, g⟩ := sp
+  unfold LeanVM.Protocol.Compile.absorb LeanVM.Protocol.Compile.duplex
+  split <;> simp
+
+/-- Two programs equal after reading `xs` run alike on a stream starting with `xs`. -/
+theorem run_eq_of_after {m : Type → Type} [Monad m] [LawfulMonad m]
+    (π : KeccakState → m KeccakState) {α : Type} (xs : List E) :
+    ∀ {P Q p : VerifierProgram α}, P.after (xs.map Ev.read) = some p →
+      Q.after (xs.map Ev.read) = some p →
+      ∀ (sp : Sponge) (rest : List E) (os : List (List Opening)) (roots : List (Digest × ℕ × ℕ)),
+        sp.ground = none →
+        LeanVM.Protocol.Compile.run π P ⟨sp, xs ++ rest, os, roots⟩ =
+          LeanVM.Protocol.Compile.run π Q ⟨sp, xs ++ rest, os, roots⟩ := by
+  induction xs with
+  | nil =>
+    intro P Q p hP hQ sp rest os roots _
+    simp only [List.map_nil, VerifierProgram.after, Option.some.injEq] at hP hQ
+    rw [hP, hQ]
+  | cons x xs ih =>
+    intro P Q p hP hQ sp rest os roots hg
+    obtain ⟨k, rfl⟩ : ∃ k, P = .read k := by
+      cases P <;> simp only [List.map_cons, VerifierProgram.after, reduceCtorEq] at hP
+      exact ⟨_, rfl⟩
+    obtain ⟨k', rfl⟩ : ∃ k, Q = .read k := by
+      cases Q <;> simp only [List.map_cons, VerifierProgram.after, reduceCtorEq] at hQ
+      exact ⟨_, rfl⟩
+    simp only [List.map_cons, VerifierProgram.after] at hP hQ
+    simp only [List.cons_append, LeanVM.Protocol.Compile.run, hg]
+    rw [absorb_eq_map_ground π sp x, hg, bind_map_left, bind_map_left]
+    exact bind_congr fun sp' ↦ ih hP hQ _ rest os roots rfl
+
+/-- `run_eq_of_after` for a proof. -/
+theorem runProof_eq_of_after {m : Type → Type} [Monad m] [LawfulMonad m]
+    (π : KeccakState → m KeccakState) {P Q p : VerifierProgram Bool} {xs rest : List E}
+    (hP : P.after (xs.map Ev.read) = some p) (hQ : Q.after (xs.map Ev.read) = some p)
+    (proof : Proof) (hs : proof.stream = xs ++ rest) (seed : KeccakState) :
+    runProof π P seed proof = runProof π Q seed proof := by
+  unfold runProof
+  rw [hs, run_eq_of_after π xs hP hQ ⟨seed, [], none⟩ rest proof.openings [] rfl]
+
+/-- After reading the children's cells, a node's batching is `batchingAfterChildren`. -/
+theorem after_nodeBatching (check : DeferredBytecodeClaim → Prop) (bytecode : List K)
+    (cs : List ChildClaims) :
+    (nodeBatchingProgram check bytecode cs).after ((cellsBeforeChallenge cs).map Ev.read) =
+      some (batchingAfterChildren check bytecode cs) := by
+  unfold nodeBatchingProgram
+  simp only [VerifierProgram.bind_eq]
+  rw [← List.append_nil ((cellsBeforeChallenge cs).map Ev.read),
+    VerifierProgram.after_bind_append _ (after_readN _)]
+  simp [VerifierProgram.require, VerifierProgram.after]
+
+theorem batchingStream_split (cs : List ChildClaims) (h : BatchingHints) :
+    batchingStream cs h = cellsBeforeChallenge cs ++
+      (lambdaGrindNonceCells h ++ h.sumcheckMessages.flatMap sumcheckRoundCells ++
+        [h.finalBytecodeValue]) := by
+  simp only [batchingStream, List.append_assoc]
+
+/-- **Given children are batched as the stream's**, for fewer than `M` of the bytecode's shapes,
+over any permutation. -/
+theorem runBatching_node_eq_bounded {m : Type → Type} [Monad m] [LawfulMonad m]
+    (π : KeccakState → m KeccakState) {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
+    {cs : List ChildClaims} (hn : cs.length < M)
+    (hs : ∀ c ∈ cs, ChildHasBytecodeShape bytecode c) (h : BatchingHints) :
+    runBatching π (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs)
+        ⟨batchingStream cs h, []⟩ =
+      runBatching π (boundedBatchingProgram M bytecode) ⟨batchingStream cs h, []⟩ := by
+  have hQ : (boundedBatchingProgram M bytecode).after ((cellsBeforeChallenge cs).map Ev.read) =
+      some (batchingAfterChildren (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) := by
+    have e := after_batchAny hM hn hs []
+    rw [List.append_nil] at e
+    rw [e]
+    simp [VerifierProgram.after]
+  have key := runProof_eq_of_after π
+    (after_nodeBatching (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode cs) hQ
+    ⟨batchingStream cs h, []⟩ (batchingStream_split cs h)
+  simp only [runBatching, key]
+
+/-! ## The end statement -/
+
+theorem prEvent_bind_le_of_pointwise {α β γ : Type} (mx : ProbComp α) (f : α → ProbComp β)
+    (g : α → ProbComp γ) (P : β → Prop) (Q : γ → Prop)
+    (h : ∀ x, Pr{let y ← f x}[P y] ≤ Pr{let y ← g x}[Q y]) :
+    Pr{let y ← mx >>= f}[P y] ≤ Pr{let y ← mx >>= g}[Q y] := by
+  simp only [OracleComp.prEvent_bind_eq_tsum]
+  refine tsum_le_tsum fun x ↦ ?_
+  gcongr
+  exact h x
+
+theorem rpmGame_bind {α β : Type} (A : OracleComp Common.RandomPermutationOracles α)
+    (k : α → OracleComp Common.RandomPermutationOracles β) :
+    Common.runWithRandomPermutation (A >>= k) =
+      (simulateQ Common.lazyRandomPermutationOracles A).run [] >>= fun p ↦
+        (simulateQ Common.lazyRandomPermutationOracles (k p.1)).run' p.2 := by
+  simp only [Common.runWithRandomPermutation, simulateQ_bind, StateT.run'_eq, StateT.run_bind,
+    map_bind]
+
+theorem run'_bind_pure {β γ : Type} (R : OracleComp Common.RandomPermutationOracles β)
+    (s : Common.PermutationEdges KeccakState) (f : β → γ) :
+    (simulateQ Common.lazyRandomPermutationOracles (R >>= fun b ↦ pure (f b))).run' s =
+      f <$> (simulateQ Common.lazyRandomPermutationOracles R).run' s := by
+  simp [bind_pure_comp, StateT.run'_eq, Functor.map_map]
+
+/-- Equal runs with implied events, or an event that never occurs. -/
+theorem prEvent_run'_bind_pure_le {β γ δ : Type}
+    (R R' : OracleComp Common.RandomPermutationOracles β) (s : Common.PermutationEdges KeccakState)
+    (f : β → γ) (g : β → δ) (P : γ → Prop) (Q : δ → Prop)
+    (h : (R = R' ∧ ∀ b, P (f b) → Q (g b)) ∨ ∀ b, ¬ P (f b)) :
+    Pr{let y ← (simulateQ Common.lazyRandomPermutationOracles (R >>= fun b ↦ pure (f b))).run' s}[
+        P y] ≤
+      Pr{let y ← (simulateQ Common.lazyRandomPermutationOracles
+          (R' >>= fun b ↦ pure (g b))).run' s}[Q y] := by
+  rw [run'_bind_pure, run'_bind_pure, prEvent_map, prEvent_map]
+  rcases h with ⟨rfl, h⟩ | h
+  · exact prEvent_mono _ _ _ h
+  · rw [prEvent_eq_zero_of_forall_not _ _ h]
+    exact zero_le
+
+/-- **`BatchingSound` for any bytecode and bound `M`**, from `BatchingStreamSound`. -/
+theorem batch_node_sound {M : ℕ} {bytecode : List K}
+    (hb : bytecode.length = 2 ^ Nat.log2 bytecode.length) (hM : M ≤ 2 ^ 64 - 1)
+    (A : OracleComp Common.RandomPermutationOracles (List ChildClaims × BatchingHints)) {QA : ℕ}
+    (hA : Common.QueryCostAtMost A Common.permutationCallCost QA)
+    (hQV : batchingQueryBound bytecode M ≤ 2 ^ 96) :
+    Pr{let outcome ← Common.runWithRandomPermutation (do
+         let output ← A
+         let accepted ← runBatching Common.queryPermutation
+           (nodeBatchingProgram (DeferredBytecodeClaim.HoldsWithShape bytecode) bytecode output.1)
+           ⟨batchingStream output.1 output.2, []⟩
+         return (output.1, accepted))}[
+      outcome.2 = true ∧ SomeChildClaimFalseAt bytecode M outcome.1] ≤
+      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
+          (2 : ℝ≥0∞)⁻¹ ^ 130 +
+        5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  have hA' : Common.QueryCostAtMost
+      ((fun o : List ChildClaims × BatchingHints ↦ ((), (⟨batchingStream o.1 o.2, []⟩ : Proof))) <$>
+        A) Common.permutationCallCost QA := by
+    unfold Common.QueryCostAtMost at hA ⊢
+    rw [isQueryBound_map_iff]
+    exact hA
+  refine le_trans ?_ (batch_stream_sound_holds M bytecode hb hM _ QA hA' hQV)
+  rw [bind_map_left, rpmGame_bind, rpmGame_bind]
+  refine prEvent_bind_le_of_pointwise _ _ _ _ _ fun ⟨⟨cs, h⟩, s⟩ ↦
+    prEvent_run'_bind_pure_le _ _ _ _ _ _ _ ?_
+  dsimp only
+  by_cases hg : cs.length < M ∧ ∀ c ∈ cs, ChildHasBytecodeShape bytecode c
+  · exact Or.inl ⟨runBatching_node_eq_bounded _ hM hg.1 hg.2 h, fun _ hE ↦
+      ⟨hE.1, cs, hE.2.1, hE.2.2.1, ⟨_, (batchingStream_split cs h).symm⟩, hE.2.2.2⟩⟩
+  · exact Or.inr fun _ hE ↦ hg ⟨hE.2.1, hE.2.2.1⟩
+
+/-- Past `2^128` queries `BatchingSound`'s bound exceeds one. -/
+theorem one_le_batchingSoundBound {Q : ℕ} (hQ : 2 ^ 128 < Q) :
+    1 ≤ (Q + 2 ^ 9 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+      5 * (Q + 2 ^ 9 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
+  le_add_right (Common.one_le_mul_inv_two_pow (le_add_right (by
+    exact_mod_cast (by norm_num : 2 ^ 125 ≤ 2 ^ 128).trans hQ.le)))
 
 end LeanVM.Guest.Batch
 

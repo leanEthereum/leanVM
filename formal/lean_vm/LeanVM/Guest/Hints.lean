@@ -462,8 +462,7 @@ def childSlotPushes (offsets : List ℕ) : List (String × Entry) :=
       else ("child_mono", [count 0]) :: offsets.map fun o ↦ ("child_claim_index", [count o])
 
 /-- The batching's hints: the proof of work's nonce, the sumcheck's rounds and the bytecode's value at
-its end. The statement's `Prover.batchPushes` at the deployed constants: the proof of work is of
-nonzero bits and a round's of zero (`Batch.lambdaGrindNonceCells_eq`, `Batch.sumcheckRoundCells_eq`). -/
+its end, as the statement's `Prover.batchPushes`. -/
 def batchPushes (h : BatchingHints) : List (String × Entry) :=
   [("bc_sumcheck_msgs", h.lambdaGrindNonce :: h.sumcheckMessages.flatMap fun r ↦ [r.1, r.2]),
     ("bc_star_hint", [h.finalBytecodeValue])]

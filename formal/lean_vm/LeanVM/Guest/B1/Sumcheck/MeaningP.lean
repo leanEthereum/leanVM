@@ -21,7 +21,7 @@ return words, the Fiat-Shamir sponge as the guest carries it (`Fs`, `B1/Common/S
 | function | meaning |
 | --- | --- |
 | `sumcheck_round4` (inlined) | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample), the sponge in a round record |
-| `batch_sumcheck__L23` | `Node.batchRounds`, 23 rounds |
+| `batch_sumcheck__L23` | `batchRounds`, 23 rounds |
 
 Each round's `fs_grind_squeeze` grinds `ROUND3_GRIND_BITS`, `ROUND5_GRIND_BITS`,
 `ROUND2_GRIND_BITS` bits, all zero as deployed (`grindingBits` of a degree at most `8`): its
@@ -109,7 +109,7 @@ def GkrRoundsOut (n : ℕ) (rd : Reader) (rec pt cur : E) : Prop :=
 
 /-! ## `batch_sumcheck` (TRIAGE #32) -/
 
-/-- `Node.batchRounds` on the carried sponge: per round `g(1)`, `g(∞)` absorbed, the challenge
+/-- `batchRounds` on the carried sponge: per round `g(1)`, `g(∞)` absorbed, the challenge
 squeezed, the degree-2 round folded. The challenges, the final claim, the final sponge. -/
 def bsRun : List (E × E) → E → Fs → (List E × E) × Fs
   | [], claim, s => (([], claim), s)
@@ -121,7 +121,7 @@ def bsRun : List (E × E) → E → Fs → (List E × E) × Fs
 
 /-- **`batch_sumcheck(fs0..fs4, msgs, running, point, tabs, n)`**: from the carried capacity
 (nothing waiting), the `n` rounds' words at `msgs` (`g(1)`, `g(∞)` per round) are
-`Node.batchRounds running rounds` (`bsRun`), its challenges stored at `point`; the function
+`batchRounds running rounds` (`bsRun`), its challenges stored at `point`; the function
 returns the final sponge's capacity and the final claim. -/
 def MeaningBatchSumcheck (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, msgs, running, point, _], rets =>

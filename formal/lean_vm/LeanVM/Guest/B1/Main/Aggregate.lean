@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Aggregate
 
-  `aggregate_claims`' soundness: its core IR writes the batching (`Node.batch`) of the children
+  `aggregate_claims`' soundness: its core IR writes the batching (`Batch.batch`) of the children
   whose words the memory holds.
 -/
 
@@ -25,7 +25,7 @@ children whose words the memory holds (`MeaningAggregateClaimsW`), from `batch_s
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
 the hint. For `m` children whose words the memory holds (`ChildWordsAt`), `batch_fs` reads
-`Node.batch` on the carried sponge:
+`Batch.batch` on the carried sponge:
 
 * the absorbing rows (`aggregate_claims_loop0`, `l25_step`) carry the sponge after the count and the
   first `c` children's words (`absorb_rows`);
@@ -96,7 +96,7 @@ theorem childCells_eq (cc : ChildClaims) (h1 : cc.freshClaim.bytecodePoint.lengt
     Batch.childCells cc = cc.words ++ [0, 0] := by
   have hl : cc.words.length = 50 := by
     simp [ChildClaims.words, DeferredBytecodeClaim.cells, h1, h2]
-  rw [Batch.childCells, padToRate, hl]
+  rw [Batch.childCells, Batch.padToRate, hl]
   rfl
 
 /-- **A child's words, as the absorbing loop reads them.** -/
@@ -260,7 +260,7 @@ theorem weight_rows {absorb cpi cfresh lfT ccarried lcT wT chainT pt1 lam : E} {
 theorem headCells_eq (m : ℕ) : Batch.childCountCells m = [gen ^ m, 0, 0, 0] := rfl
 
 theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.childCountCells m) dsObserve =
-    ⟨capOf batchSeed, [gen ^ m, 0, 0, 0].map (·, dsObserve)⟩ := by
+    ⟨capOf Batch.batchSeed, [gen ^ m, 0, 0, 0].map (·, dsObserve)⟩ := by
   rw [headCells_eq, absorbAll_short aggS0 _ dsObserve (by simp [aggS0])]
   rfl
 
@@ -313,7 +313,7 @@ def MeaningAggregateClaimsW (rd : Reader) (h : BatchingHints) : List E → List 
         out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
         ∀ cs : List ChildClaims, cs.length = m →
           (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs h = some out
+          Batch.batchCore cs h = some out
   | _, _ => False
 
 /-- The cells of a nonce's permutation: the nonce's two cells, six zeros, the capacity of the
@@ -397,7 +397,7 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
   -- the batching
   intro cs hcl hcw
   -- row 0
-  have hcap0 : rowCap rd (σ (.n (val% «aggregate_claims» "absorb"))) = capOf batchSeed := by
+  have hcap0 : rowCap rd (σ (.n (val% «aggregate_claims» "absorb"))) = capOf Batch.batchSeed := by
     refine list_eq_of_getD (n := 5) (by simp [rowCap]) (by simp [capOf]) fun i hi => ?_
     obtain ⟨hcst, hld⟩ := hseed i hi
     rw [← seed_cells i hi, ← const_sound hcst hat, ← memAt_of_load (load_sound hld hat)]

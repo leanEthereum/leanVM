@@ -59,8 +59,8 @@ open LeanVM.Guest.Batch
 #guard_msgs in
 #print axioms LeanVM.Rpm.detRun_le_rom
 
-/-- The seeding, deployed, is `Node.batchSeed`; no hash answer is carried by a later step. -/
-example : Id.run (batchSeedOf.run keccak256 keccakF1600) = LeanVM.Node.batchSeed ∧
+/-- The seeding, deployed, is `batchSeed`; no hash answer is carried by a later step. -/
+example : Id.run (batchSeedOf.run keccak256 keccakF1600) = LeanVM.Guest.Batch.batchSeed ∧
     batchSeeds.offs = [] :=
   ⟨batchSeedOf_run, rfl⟩
 
