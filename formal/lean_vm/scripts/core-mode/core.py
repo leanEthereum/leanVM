@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
 import genfiles  # noqa: E402
+import packed  # noqa: E402
 import route, heap  # noqa: E402
 import callc  # noqa: E402
 
@@ -350,19 +351,22 @@ def hints_text(hs):
     return rl if len(rl) < len(flat) else flat
 
 
+# `Bridge.cellBits`: a cell's lane in a function's cells' lane vector (`CoreMode.laneCell`)
+CELL_BITS = 20
+
+
 def cell_lanes(k):
     """`k`'s values' cells (`B2C.cellJ`, its certificate's `locs`) as a lane vector literal, lanes of `Bridge.cellBits`."""
     import infer
     locs = infer.D['comp'][k]['locs']
-    assert all(0 <= c < 2 ** 20 for c in locs), k
-    return 'nat_hex%% "%x"' % sum(c << (20 * i) for i, c in enumerate(locs))
+    return packed.nat_hex(packed.pack(locs, CELL_BITS))
 
 
 def sel_bits(body):
     """The selectors of a body's `match`es and `dispatch`es, at any depth, as a bitset literal over value numbers."""
     import heapc
     xs = {t[1] for t in heapc.stmts(body) if t[0] in ('match', 'dispatch')}
-    return 'nat_hex%% "%x"' % sum(1 << x for x in xs)
+    return packed.bits(xs)
 
 
 def res_cuts(k, items):
