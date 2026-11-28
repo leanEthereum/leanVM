@@ -319,7 +319,10 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
         }
         // The blocks of fewer than eight rows, which come last: a leaf at a time.
         std::array::from_fn(|i| match 8 * k + i {
-            z if z < len => at(z).leaves(cols, z - at(z).offset)[0],
+            z if z < len => {
+                let f = at(z);
+                f.leaves(cols, z - f.offset)[0]
+            }
             _ => F128::ONE,
         })
     })
@@ -403,7 +406,7 @@ fn public_columns<'a>(block: &Block, public: &[&'a [F64]]) -> impl Iterator<Item
 /// checks against the last round.
 fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
     let block = (push.iter())
-        .find(|block| public_columns(block, public).next().is_some())
+        .find(|block| block.coords.iter().any(|c| matches!(c, Coord::Public(_))))
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
     let columns: Vec<&[F64]> = public_columns(block, public).collect();

@@ -103,10 +103,14 @@ pub(crate) fn prove_products(
 /// The rows of a level `by` times coarser all of whose rows are in `ones`.
 #[inline(never)]
 fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
-    ones.iter()
-        .map(|r| r.start.div_ceil(by)..r.end / by)
-        .filter(|r| !r.is_empty())
-        .collect()
+    let mut coarse = Vec::with_capacity(ones.len());
+    for r in ones {
+        let r = r.start.div_ceil(by)..r.end / by;
+        if !r.is_empty() {
+            coarse.push(r);
+        }
+    }
+    coarse
 }
 
 /// Whether the `n` rows from `first` all lie in `ones`.
@@ -126,14 +130,7 @@ fn pad(values: &mut Vec<F128>) {
 
 /// The level two above `values`, padded: each row's product, those in `ones` the identity.
 fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
-    let eight = |k: usize| {
-        if 32 * k >= values.len() || known(ones, 8 * k, 8) {
-            return [F128::ONE; 8];
-        }
-        let v: &[F128; 32] = values[32 * k..][..32].try_into().unwrap();
-        let child = |c: usize| lanes(|p| v[4 * p + c]);
-        ((child(0) * child(1)) * (child(2) * child(3))).to_array()
-    };
+    let eight = |k: usize| eight_products(values, ones, k);
     let n = (values.len() / 4).next_multiple_of(BLOCK) / 8;
     if n < crate::SERIAL_BELOW {
         (0..n).map(eight).collect::<Vec<_>>()
@@ -141,6 +138,17 @@ fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
         parallel::map_collect(n, eight)
     }
     .into_flattened()
+}
+
+/// The products of rows `8k..8k + 8` of `values`.
+#[inline(never)]
+fn eight_products(values: &[F128], ones: &[Range<usize>], k: usize) -> [F128; 8] {
+    if 32 * k >= values.len() || known(ones, 8 * k, 8) {
+        return [F128::ONE; 8];
+    }
+    let v: &[F128; 32] = values[32 * k..][..32].try_into().unwrap();
+    let child = |c: usize| lanes(|p| v[4 * p + c]);
+    ((child(0) * child(1)) * (child(2) * child(3))).to_array()
 }
 
 /// Eight lanes, lane `p` being `value(p)`.
