@@ -38,14 +38,5 @@ pub(crate) fn chunk(n: usize) -> usize {
     if n < SERIAL_BELOW { n.max(1) } else { 1 << 7 }
 }
 
-/// `n` copies of `value`, written by the pool only when the buffer is large.
-pub(crate) fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
-    if n < 8 * SERIAL_BELOW {
-        vec![value; n]
-    } else {
-        parallel::filled(n, value)
-    }
-}
-
 pub(crate) use primitives::field::mul;
 pub(crate) use primitives::multilinear::{load_e, load_k};

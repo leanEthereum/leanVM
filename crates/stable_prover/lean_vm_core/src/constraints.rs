@@ -361,24 +361,16 @@ fn shifted(v: F128x8, lane: usize) -> F128x8 {
 /// `left_g` lifted to `E` and `right_g`.
 fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
     let width = form.width();
-    let vectors = rows.div_ceil(8);
-    let mut state = crate::filled(vectors * width, F128x8::ZERO);
-    let chunk = crate::chunk(vectors);
-    parallel::chunks_mut(&mut state, chunk * width, |task, out| {
-        for (b, out) in (task * chunk..).zip(out.chunks_exact_mut(width)) {
-            let (i, n) = (8 * b, (rows - 8 * b).min(8));
-            let load = |c: usize| load_k(cols[c], i, n);
-            // The linear parts, `lin` then each `right_g`, go to the even columns.
-            for k in 0..=form.groups.len() {
-                let terms = if k == 0 { &form.lin } else { &form.groups[k - 1].1 };
-                out[2 * k] = dot(terms, load).reduce();
-            }
-            for (g, (left, _)) in form.groups.iter().enumerate() {
-                out[1 + 2 * g] = F128x8::from_array(&load(*left).to_array().map(F128::from));
-            }
+    parallel::map_collect(rows.div_ceil(8) * width, |v| {
+        let (b, c) = (v / width, v % width);
+        let load = |col: usize| load_k(cols[col], 8 * b, rows - 8 * b);
+        match c {
+            // The linear parts, `lin` then each `right_g`, in the even columns.
+            0 => dot(&form.lin, load).reduce(),
+            _ if c % 2 == 0 => dot(&form.groups[c / 2 - 1].1, load).reduce(),
+            _ => F128x8::from_array(&load(form.groups[c / 2].0).to_array().map(F128::from)),
         }
-    });
-    state
+    })
 }
 
 /// The state folded by `r`: row `i` becomes `lo + r·(lo + hi)` of rows `i` and `i + half` in every column, the upper

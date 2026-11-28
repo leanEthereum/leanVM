@@ -324,19 +324,17 @@ const G_POWERS: [F64; 8] = {
 fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones) {
     // [`verifier::stack_offsets`] places each size from the largest down, its blocks in index order.
     let largest = tree.blocks.iter().map(|b| b.kappa).max().unwrap_or(0);
-    let mut formulas = Vec::with_capacity(tree.blocks.len());
+    let (mut formulas, mut ones) = (Vec::with_capacity(tree.blocks.len()), Ones::new());
     for kappa in (0..=largest).rev() {
         for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
             if block.kappa == kappa {
+                if block.rows < 1 << kappa {
+                    ones.push(offset + block.rows..offset + (1 << kappa));
+                }
                 formulas.push(Formula::new(block, offset, &tree.alpha, tree.beta, public));
             }
         }
     }
-    let ones = formulas
-        .iter()
-        .filter(|f| f.rows < f.size)
-        .map(|f| f.offset + f.rows..f.offset + f.size)
-        .collect();
     if formulas.is_empty() {
         return (vec![F128::ONE], ones);
     }
@@ -370,7 +368,7 @@ fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<
     for block in tree.blocks.iter().filter(|b| b.owner.is_none()) {
         // The block's columns not yet claimed at `ζ_lo`, in coordinate order, at `ζ_lo` in one pass. Push and pull
         // share their point, so a column read by both, or by two blocks of one height, is sent and opened once.
-        let fresh = claims.len();
+        let mut columns = Vec::new();
         for c in &block.coords {
             if let Coord::Col(col) | Coord::GCol(col, _) = *c
                 && !claims.iter().any(|c| c.col == col && c.n_vars == block.kappa)
@@ -379,9 +377,9 @@ fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<
                     col,
                     n_vars: block.kappa,
                 });
+                columns.push(cols[col]);
             }
         }
-        let columns: Vec<&[F64]> = claims[fresh..].iter().map(|c| cols[c.col]).collect();
         ps.add_scalars(&primitives::multilinear::eq_sums(&zeta[..block.kappa], &columns));
     }
 }
