@@ -613,7 +613,7 @@ def run(check):
         files.update(render_sliced(p, f, n) if n else render_win(p, f))
     existing = set(glob.glob(os.path.join(OUT, '*.lean'))) | set(glob.glob(os.path.join(OUTW, '*', '*.lean'))) | \
         set(glob.glob(os.path.join(OLDW, '*', '*.lean')))
-    stale = genfiles.sync(data.quiet(files), existing, check)
+    stale = genfiles.sync(data.sequential(data.quiet(files)), existing, check)
     print(f'bridge-cert: {sum(len(v) for v in packs.values()) + len(wins)} of {len(texts)} functions align, '
           f'{len(wins)} in windows ({sum(1 for w in wins if w[2])} over slices), {len(files)} modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)

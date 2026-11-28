@@ -88,18 +88,24 @@ theorem r_g_bound : selBound (bookOf selTabs) selFuel 21 = some 4 := by decide +
 
 open LeanVM.Guest.Check in
 set_option maxRecDepth 100000 in
+/-- `verify_keccak`'s three selector bounds in one kernel evaluation, which files its book once. -/
+private theorem rem_g_bounds :
+    selBound (bookOf verifyKeccak) selFuel 52 = some 8 ∧
+      selBound (bookOf verifyKeccak) selFuel 45 = some 2 ∧
+      selBound (bookOf verifyKeccak) selFuel 44 = none := by
+  decide +kernel
+
+open LeanVM.Guest.Check in
 /-- `rem_g = (1 + b₀(1 + g))(1 + b₁(1 + g²))(1 + b₂(1 + g⁴))` in `fp[52]`, the remainder of a
 layer's rounds that `verify_keccak` passes to `keccak_layer`: `g^e` with `e < 8`. -/
-theorem rem_g_bound : selBound (bookOf verifyKeccak) selFuel 52 = some 8 := by decide +kernel
+theorem rem_g_bound : selBound (bookOf verifyKeccak) selFuel 52 = some 8 := rem_g_bounds.1
 
 open LeanVM.Guest.Check in
-set_option maxRecDepth 100000 in
 /-- Its first factor `1 + b₀(1 + g)` in `fp[45]`: `g^e` with `e < 2`. -/
-theorem rem_g_factor_bound : selBound (bookOf verifyKeccak) selFuel 45 = some 2 := by decide +kernel
+theorem rem_g_factor_bound : selBound (bookOf verifyKeccak) selFuel 45 = some 2 := rem_g_bounds.2.1
 
 open LeanVM.Guest.Check in
-set_option maxRecDepth 100000 in
 /-- A selector bound is only claimed of such a selector: `fp[44] = b₀·(1 + g)` is none. -/
-theorem rem_g_scaled_none : selBound (bookOf verifyKeccak) selFuel 44 = none := by decide +kernel
+theorem rem_g_scaled_none : selBound (bookOf verifyKeccak) selFuel 44 = none := rem_g_bounds.2.2
 
 end LeanVMTests.Guest.Exec

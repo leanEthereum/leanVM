@@ -374,15 +374,8 @@ def cmd_static(g, wcert=None, fams=None):
     cmd_words_by_name(g, wcert)
 
 
-def encS(s):
-    """`encS`: the name's UTF-8 bytes as digits in base `2^9`, each shifted by one."""
-    k = 0
-    for b in reversed(s.encode('utf-8')): k = b + 1 + 512 * k
-    return k
-
-
 def cmd_words_by_name(g, wcert):
-    items = sorted((encS(f['name']), i) for i, f in g.fns.items())
+    items = sorted((family.enc_name(f['name']), i) for i, f in g.fns.items())
     assert len(set(k for k, _ in items)) == len(items)
     tab = (family.tree_defs('wNameT', 'ℕ', items, str, 'Every function\'s core index, by its name\'s `encS`.') + '\n'
            + ''.join(h(g) for h in vscount.fnrules.hooks('count_words_by_name')))

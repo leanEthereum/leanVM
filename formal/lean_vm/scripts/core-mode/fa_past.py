@@ -11,6 +11,7 @@ sys.path.insert(0, HERE)
 import frame as FR  # noqa: E402
 import frame_run as FRR  # noqa: E402
 import frame_data as FD  # noqa: E402
+from pmap import pmap  # noqa: E402
 
 PAST = 160
 
@@ -48,17 +49,18 @@ def main():
             rets.append(set(A.w))
         return exit0(self, i, A, kind, succ, od, of)
     FR.Walk.exit = exit
-    out = {}
-    for k, fas in req.items():
+
+    def one(item):
+        k, fas = item
         rets.clear()
         try:
             walk(k)
         except (FR.Fail, PR.Fail, PR.AL.Fail):
-            out[k] = []
-            continue
+            return []
         W = set.intersection(*rets) if rets else set()
-        out[k] = [[kp, i] for kp, base, ln in fas if ln for i in range(ln, ln + PAST) if base + i in W]
-    json.dump(out, sys.stdout)
+        return [[kp, i] for kp, base, ln in fas if ln for i in range(ln, ln + PAST) if base + i in W]
+    # each function's walk on its own, in worker processes (`pmap.py`)
+    json.dump(dict(zip(req, pmap(one, req.items()))), sys.stdout)
 
 
 if __name__ == '__main__':

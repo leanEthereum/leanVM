@@ -373,9 +373,9 @@ theorem vtF_sound {rd : Reader} {σ : Core.Val} {s : List ℤ} {as : List Atom} 
       all_goals simp at hs
 
 /-- **A cell's form**: its bases' product is `g` to the form less the offset. -/
-theorem vtM_sound {σ : Core.Val} {s : List ℤ} {as : List Atom}
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F) :
-    ∀ (bs : List (ℕ × ℕ)) (o : ℤ) (F : VtL), vtM as bs o = some F →
+theorem vtM_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL}
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F) :
+    ∀ (bs : List (ℕ × ℕ)) (o : ℤ) (F : VtL), vtM fs bs o = some F →
       0 ≤ vtEv F s - o ∧ CoreMode.prodW (CoreMode.vw σ) bs = gen ^ (vtEv F s - o).toNat
   | [], o, F, h => by
     simp only [vtM, Option.some.injEq] at h; subst h
@@ -399,9 +399,9 @@ theorem vtM_sound {σ : Core.Val} {s : List ℤ} {as : List Atom}
     · cases h
 
 /-- **An index's exponent** (`vtI`): its word `g` to its form, below `2^62`. -/
-theorem vtI_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F) {i : CoreMode.CIdx} {F : VtL}
-    (h : vtI as i = some F) (hs : CoreMode.vtSmall F = true) :
+theorem vtI_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F) {i : CoreMode.CIdx} {F : VtL}
+    (h : vtI fs i = some F) (hs : CoreMode.vtSmall F = true) :
     0 ≤ vtEv F s ∧ CoreMode.rep ((CoreMode.idxC i).valW (CoreMode.vw σ)) = some (vtEv F s).toNat := by
   obtain ⟨h0, h1⟩ := vtM_sound hF _ _ _ h
   have hmax := (minv_le hb F).2
@@ -415,10 +415,10 @@ theorem vtI_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s 
   exact CoreMode.rep_of (by unfold CoreMode.capE at hs ⊢; omega)
 
 /-- **The arms' equations keep a form's value** where the arms hold. -/
-theorem vtArms_ev {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F) :
+theorem vtArms_ev {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F) :
     ∀ (arms : List (ℕ × ℕ)), (∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) →
-      ∀ f, vtEv (vtArms as arms f) s = vtEv f s
+      ∀ f, vtEv (vtArms fs arms f) s = vtEv f s
   | [], _, f => rfl
   | (x, j) :: arms, h, f => by
     simp only [vtArms]
@@ -445,31 +445,31 @@ theorem vtArms_ev {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s 
       · rfl
     · rfl
 
-theorem vtNN_le {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
+theorem vtNN_le {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F)
     (hbase : ∀ x F, vtBaseN x = some F → VtV σ s (V.n x) F) {arms : List (ℕ × ℕ)}
-    (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {f : VtL} (h : CoreMode.vtNN as arms f = true) :
+    (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {f : VtL} (h : CoreMode.vtNN fs arms f = true) :
     0 ≤ vtEv f s := by
   simp only [CoreMode.vtNN, Bool.or_eq_true, decide_eq_true_eq, List.any_eq_true] at h
   have e := vtArms_ev hb hF arms ha f
   rcases h with h | ⟨x, -, hx⟩
-  · have := (minv_le hb (vtArms as arms f)).1
+  · have := (minv_le hb (vtArms fs arms f)).1
     omega
   · split at hx
     · rename_i F hF'
       simp only [decide_eq_true_eq] at hx
-      have h1 := (minv_le hb ((vtArms as arms f).add F (-1))).1
+      have h1 := (minv_le hb ((vtArms fs arms f).add F (-1))).1
       rw [vtEv_add] at h1
       have h2 := (hbase _ _ hF').1
       omega
     · cases hx
 
-theorem vtLt_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
+theorem vtLt_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F)
     (hbase : ∀ x F, vtBaseN x = some F → VtV σ s (V.n x) F) {arms : List (ℕ × ℕ)}
     (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {a b : CoreMode.CIdx}
-    (h : CoreMode.vtLt as arms a b = true) :
-    ∃ A B : VtL, vtI as a = some A ∧ vtI as b = some B ∧ 0 ≤ vtEv A s ∧ vtEv A s < vtEv B s ∧
+    (h : CoreMode.vtLt fs arms a b = true) :
+    ∃ A B : VtL, vtI fs a = some A ∧ vtI fs b = some B ∧ 0 ≤ vtEv A s ∧ vtEv A s < vtEv B s ∧
       CoreMode.rep ((CoreMode.idxC a).valW (CoreMode.vw σ)) = some (vtEv A s).toNat ∧
       CoreMode.rep ((CoreMode.idxC b).valW (CoreMode.vw σ)) = some (vtEv B s).toNat := by
   simp only [CoreMode.vtLt] at h
@@ -493,14 +493,15 @@ theorem prodW_append (w : ℕ → E) : ∀ (l l' : List (ℕ × ℕ)),
   | (b, e) :: l, l' => by simp only [List.cons_append, CoreMode.prodW, prodW_append w l l']; ring
 
 /-- **`vtSubP1`**: `[B]·[J]·g^o` is one of `cs` where the arms hold. -/
-theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
+theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F)
     (hbase : ∀ x F, vtBaseN x = some F → VtV σ s (V.n x) F) {arms : List (ℕ × ℕ)}
     (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {co B J : ℕ} {cs : List CoreMode.CCell}
-    (h : CoreMode.vtSubP1 as arms co B J cs = true) :
+    (h : CoreMode.vtSubP1 fs arms co B J cs = true) :
     ∃ c' ∈ cs, (⟨[(B, 1), (J, 1)], co⟩ : CoreMode.CCell).addrW (CoreMode.vw σ) = c'.addrW (CoreMode.vw σ) := by
-  simp only [CoreMode.vtSubP1, Bool.and_eq_true, List.all_eq_true, List.mem_range, List.contains_iff_mem] at h
+  simp only [CoreMode.vtSubP1, Bool.and_eq_true] at h
   obtain ⟨hall, hl⟩ := h
+  replace hall := CoreMode.vtRun_mem hall
   obtain ⟨A, Bn, -, hBn, a0, hab, a1, -⟩ := vtLt_sound hb hF hbase ha hl
   have eB : Bn = ((cs.length : ℤ), []) := by
     simp only [CoreMode.vtI, CoreMode.vtM, CoreMode.idxC, Option.some.injEq] at hBn; exact hBn.symm
@@ -519,11 +520,11 @@ theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBo
   omega
 
 /-- **The exponent family holds** where its arms hold (`vtExpR`). -/
-theorem vtExpR_sound {σ : Core.Val} {s : List ℤ} {as : List Atom} (hb : VtBox s vtUB)
-    (hF : ∀ v F, vtF as CoreMode.vtFuel v = some F → VtV σ s v F)
+theorem vtExpR_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (hb : VtBox s vtUB)
+    (hF : ∀ x F, fs x = some F → VtV σ s (V.n x) F)
     (hbase : ∀ x F, vtBaseN x = some F → VtV σ s (V.n x) F) :
     ∀ (r : CoreMode.CRes) (arms : List (ℕ × ℕ)), (∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) →
-      vtExpR as arms r = true → r.Holds σ
+      vtExpR fs arms r = true → r.Holds σ
   | .lt a b, arms, ha, h => by
     simp only [vtExpR] at h
     obtain ⟨A, B, -, -, a0, hab, a1, b1⟩ := vtLt_sound hb hF hbase ha h
@@ -655,7 +656,8 @@ theorem vtExp_inst (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
       Mode.limb_mul_ofK, hag (V.n (val% «verify_tables» "dims_g")) (by unfold CoreMode.GB; norm_num), hrd, Option.getD_some]
   have hb := vtS_box hE
   have hbase := fun x F (hx : vtBaseN x = some F) ↦ vtBaseN_sound hE hag hg hx
-  exact vtExpR_sound hb (vtF_sound hall' hbase hb CoreMode.vtFuel) hbase x [] (by simp) h
+  exact vtExpR_sound hb (fun _ _ hx ↦ vtF_sound hall' hbase hb _ _ _ (CoreMode.vtF_of_formAt CoreMode.vtForms_ok hx))
+    hbase x [] (by simp) h
 
 end
 

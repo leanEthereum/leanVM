@@ -364,20 +364,14 @@ theorem lenTR_eq {α : Type} : ∀ (l : List α) (n : ℕ), lenTR l n = l.length
 
 theorem zipOf_key {body : List Stmt} {z : Zip} (h : ZOk body z) : zipOf body z.key.1 z.key.2 = z := h.symm
 
-/-- **A state is its name rebuilt.** -/
+/-- **A state is its name rebuilt**, with its hints. -/
 theorem stOfK_keyOfSt {body : List Stmt} {hs : List (ℕ × List Prover.Exec.Hint)} {st : St}
-    (h : StOk body hs st) : stOfK body hs (keyOfSt hs st) = st := by
+    (h : StOk body hs st) : stOfK body st.hs (keyOfSt st) = st := by
   obtain ⟨i, shs, cur, pend, tabs⟩ := st
-  obtain ⟨⟨n, hn⟩, hcur, hpend, htabs⟩ := h
-  simp only at hn hcur hpend htabs
-  simp only [stOfK, keyOfSt, St.mk.injEq, true_and, lenTR_eq, Nat.add_zero]
-  refine ⟨?_, ?_, ?_, ?_⟩
-  · subst hn
-    rw [List.length_drop]
-    by_cases hle : n ≤ hs.length
-    · rw [show hs.length - (hs.length - n) = n by omega]
-    · rw [show hs.length - n = 0 by omega, Nat.sub_zero, List.drop_length,
-        List.drop_eq_nil_of_le (by omega)]
+  obtain ⟨-, hcur, hpend, htabs⟩ := h
+  simp only at hcur hpend htabs
+  simp only [stOfK, keyOfSt, St.mk.injEq, true_and]
+  refine ⟨?_, ?_, ?_⟩
   · cases cur with
     | none => rfl
     | some z => simp only [Option.map_some, Option.some.injEq]; exact zipOf_key (hcur z rfl)

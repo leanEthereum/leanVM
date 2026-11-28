@@ -57,9 +57,7 @@ def fitBL (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
     (h.retM.isEmpty && h.postQ.isEmpty) &&
-    G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
-      | some c => cellIn c h.pre
-      | none => false) || hpIn G na true h.preP h.pre m) &&
+    presIn G na h.pre (hpIn G na true h.preP h.pre) h.pre G.pre &&
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre
@@ -111,7 +109,7 @@ structure FitBL (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Prop where
 theorem FitBL.of_ok {G : Mode.Sig} {h : HSig} {na nr : ℕ} (hf : fitBL G h na nr = true) : FitBL G h na nr := by
   simp only [fitBL, Bool.and_eq_true] at hf
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, ⟨h7, h8⟩⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩ := hf
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, presIn_all _ _ (fun _ h ↦ h) h9, h10, h11, h12, h13⟩
 
 theorem fitBLpost_of {G : Mode.Sig} {h : HSig} {na nr : ℕ} (hf : fitBL G h na nr = true) :
     fitBLpost G h na nr = true := by
@@ -291,23 +289,13 @@ def rdFree : Stmt → Bool
   | .atom (.rangeCheck ..) | .atom (.touch ..) | .atom (.frameAddr ..) => false
   | _ => true
 
-/-- A loop helper's heap check (`heapOkC`'s loop branch) states no guarantee at a word (`postQ`). -/
+/-- A loop helper's heap check (`HeapCSpec.loop`) states no guarantee at a word (`postQ`). -/
 theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOkC pows sigOf f H = true) {G : Mode.Sig} {np : ℕ}
+    (hok : HeapCSpec pows sigOf f H) {G : Mode.Sig} {np : ℕ}
     (ht : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ H.sig.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
       idxT G np hi = some ei) : H.sig.postQ = [] := by
   obtain ⟨-, ei, -, ht, -⟩ := ht
-  rcases heapOkC_cases hok with ⟨-, hok⟩ | ⟨hok, -⟩
-  swap
-  · rw [(splitOk_spec hok).2.2.2.1] at ht; cases ht
-  unfold heapOkC1 at hok
-  simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at hok
-  obtain ⟨-, hc⟩ := hok
-  split at hc
-  · rw [ht] at hc
-    simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
-    exact hc.1.2
-  · cases hc
+  exact (hok.loop ei ht).2.2.2
 
 /-- A call whose callee guarantees no pointer cell, each of its pointer runs' runs among its runs. -/
 noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
@@ -389,7 +377,7 @@ def tailG (Cf : CFun) : Bool :=
 certificate `K`, as `CoreOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
-  heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
+  heap : HeapCSpec Cf.pows Cf.sigOf Cf.fn Cf.H
   body : loopBB Cf.fn = true
   /-- The frame walk's tables the `match`es' arms. -/
   tgt : tgtOk Cf K.code = true
@@ -551,7 +539,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
   have hs := sigLP_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
-  obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
+  obtain ⟨hr, hp, -⟩ := hok.heap.sound_all hok.pows hself hw hh hM (termAt_entryFP hs hP hT)
     hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 
@@ -781,7 +769,7 @@ theorem parAt_app {G : Mode.Sig} {np : ℕ} {s : St} {ws gs : List E} (h : ParAt
 
 theorem loopC_params {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) :
     Cf.fn.params = (List.range Cf.fn.params.length).map V.n :=
-  heapOkC_params hok.heap
+  hok.heap.params
 
 /-- **The caller's linked cells at the next iteration**: its header names the same caller's frame, each linked slot
 the same word. -/
@@ -955,7 +943,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBB_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtB_of hpre0
   obtain ⟨henv, harm, hacc⟩ := hok.frame
-  have hpar := heapOkC_params hok.heap
+  have hpar := hok.heap.params
   set np := Cf.fn.params.length with hnp
   have hws0 : ∀ {fp : ℕ} {σ : Val}, HonF img Cf fp σ →
       ∀ b < np, Rd img fp (2 + b) = some (slotW (Cf.fn.params.map σ) b) := by
@@ -1298,7 +1286,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   have hent' : ∀ x ∈ K.F.sig.entry, x + 1 < 2 ^ Exec.envDepth := hok.fsig ▸ hsh.ent
   have hso : ∀ o, K.F.sig.self = some o → o + 1 < 2 ^ Exec.envDepth ∧ o < 2 ^ 28 := fun o ho ↦
     hsh.self o (hok.fsig ▸ ho)
-  have hpar := heapOkC_params hok.heap
+  have hpar := hok.heap.params
   set np := Cf.fn.params.length with hnp
   have hws0 : ∀ {fp : ℕ} {σ : Val}, HonF img Cf fp σ →
       ∀ b < np, Rd img fp (2 + b) = some (slotW (Cf.fn.params.map σ) b) := by

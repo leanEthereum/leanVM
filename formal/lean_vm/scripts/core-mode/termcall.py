@@ -1,8 +1,9 @@
-"""Writes `Guest/CoreMode/Gen/TermCallers{k}.lean` and `TermCallers.lean`: the callers' check of
-`check_opening_terminal` and the `column_selector` specializations over the whole program by ranges
-(`Res.termCallers`, `Res.callersG`), the ranges `resgen.RANGES`; and `GlCallers{k}.lean`, `GlCallers.lean`, of
-`verify_bus_gkr`'s layers (`Res.glCallers`, `Res.callersM`); and `ExpCarry{k}.lean`, `ExpCarry.lean`, the call sites
-carrying the listed parameters' exponent bounds (`CoreMode.FnReg.expCarry`, `CoreMode.carryExpB`).
+"""Writes `Guest/CoreMode/Gen/TermCallers.lean`: the callers' check of `check_opening_terminal` and the
+`column_selector` specializations over the whole program (`Res.termCallers`, `Res.callersG`); `GlCallers.lean`, of
+`verify_bus_gkr`'s layers (`Res.glCallers`, `Res.callersM`); and `ExpCarry.lean`, the call sites carrying the listed
+parameters' exponent bounds (`CoreMode.FnReg.expCarry`, `CoreMode.carryExpB`; its list `carry_list`, which `down.py`
+writes as a table with its hints). Each from the ranges `down.py` checks (`Gen/DownOk.lean`, every family carried down
+in one walk).
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/termcall.py [--check]"""
 import sys, os, glob
@@ -19,36 +20,18 @@ OUT = resgen.OUT
 header = genfiles.header('core-mode/termcall.py')
 
 
-# `expCarry`'s ranges: the kernel's memory grows over a range, most for the long functions
-# (`verify_tables` at 11, `open_stacked`'s specializations at 370 to 380), which take a range each
-EXP_RANGES = ([(0, 11), (11, 1), (12, 5), (17, 3), (20, 80), (100, 270)] + [(a, 1) for a in range(370, 381)] +
-              [(381, 19), (400, 400), (800, 400), (1200, None)])
-# the checks: file stem, the theorems' name, the check of one function, its imports, its ranges
-_TERM = 'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'
-FAMS = [('TermCallers', 'termCallers', 'callersG termCallers', _TERM, resgen.RANGES),
-        ('GlCallers', 'glCallers', 'callersM glCallers', _TERM, resgen.RANGES),
-        ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry',
-         'LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.ExpCDefs\n'
-         'public import LeanVM.Guest.CoreMode.Gen.FnData', EXP_RANGES)]
+# the aggregates: file stem, the theorems' name, the check of one function
+FAMS = [('TermCallers', 'termCallers', 'callersG termCallers'), ('GlCallers', 'glCallers', 'callersM glCallers'),
+        ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry')]
 
 
 def render():
     files = {}
-    n = resgen.coreCount()
-    for stem, lst, chk, imps, rs in FAMS:
-        ranges = [(a, (n - a) if m is None else m) for a, m in rs]
-        mods = []
-        for k, (a, m) in enumerate(ranges):
-            mod = 'LeanVM.Guest.CoreMode.Gen.%s%d' % (stem, k)
-            t = [header(mod, 'The callers\' check of `%s`, functions %d to %d.' % (lst, a, a + m - 1))]
-            t.append('public import %s\n\n'
-                     'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                     'public section\n\ntheorem %s_%d : RangeOk (fun _ fn => %s fn) %d %d := by\n'
-                     '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (imps, lst, a, chk, a, m))
-            files[mod] = ''.join(t); mods.append(mod)
+    ranges = resgen.down_ranges()
+    for stem, lst, chk in FAMS:
         mod = 'LeanVM.Guest.CoreMode.Gen.%s' % stem
         t = [header(mod, 'The callers\' check of `%s`, every function.' % lst)]
-        t.append(''.join('public import %s\n' % m for m in mods))
+        t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
         t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\n'
                  'open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory\n\npublic section\n\n')
         app = '%s_0' % lst
@@ -77,9 +60,7 @@ def main(argv):
     miss = callcres.carry_misses(carry_list())
     assert not miss, 'termcall: call sites not carrying their callees\' exponent bounds (`carryExpB`): %s' % miss[:8]
     files = render()
-    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'TermCallers*.lean')) +
-                        glob.glob(os.path.join(OUT, 'GlCallers*.lean')) + glob.glob(os.path.join(OUT, 'ExpCarry*.lean')),
-                        '--check' in argv)
+    bad = genfiles.sync(files, (), '--check' in argv)
     genfiles.fail_if_stale(bad, '--check' in argv)
     print('TermCallers, GlCallers, ExpCarry: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 

@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Main.MainHonestBudgetB
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+import LeanVM.Guest.Count.Fast
 
 /-!
 # The budget's static hypotheses
@@ -23,7 +24,7 @@ import LeanVM.Guest.Data.Consts
 Words at `B2C.fs` by name (`Count.Words`): `wSB f`, `f`'s constant, and `wSK f`, a loop helper's
 words per iteration with its run's phantom frame, which every call site of `main`'s side charges
 once (`iterK_totalLeOn`), each function found by `wIdx` (a loop helper by `idx%`) and checked by
-`decide +kernel`.
+`decide +kernel`, sums of words through the search tree's lookups (`Count.Fast`).
 -/
 
 namespace LeanVM.Guest.Count
@@ -67,9 +68,12 @@ theorem vec_le : B2C.fs "da_vector" + 28 + (B2C.fs "da_factors__L13_L7_L0" + 128
           B2C.fs (B1.Da.offLoopName b)).sum + 0)))) ≤
     wSB "da_vector" := by
   unfold B1.Main.iterK
+  rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
-theorem exp_le : B2C.fs "da_expand__L6_L7" ≤ wSB "da_expand__L6_L7" := by decide +kernel
+theorem exp_le : B2C.fs "da_expand__L6_L7" ≤ wSB "da_expand__L6_L7" := by
+  rw [← fsFast_eq, ← wSBFast_eq]
+  decide +kernel
 
 /-- A certificate of `128` iterations from the first, constant per iteration. -/
 def cert128B : Cert → Bool
@@ -104,9 +108,11 @@ theorem blob_le : B2C.fs name% «da_verify_loop0» + (B2C.fs "da_verify_blob" + 
     (B1.Da.cellB B2C.fs wSK + wSB "da_levels__L128_L7")) ≤
       B1.Main.iterK B2C.fs wSK name% «da_verify_loop0» := by
   unfold B1.Da.cellB B1.Main.iterK
+  rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]
   decide +kernel
 
 theorem ws_le : B2C.fs "da_weights" + 128 + 128 * B2C.fs "da_expand__L6_L7" ≤ wSB "da_weights" := by
+  rw [← fsFast_eq, ← wSBFast_eq]
   decide +kernel
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/

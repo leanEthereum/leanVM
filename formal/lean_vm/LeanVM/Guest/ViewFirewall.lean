@@ -1,12 +1,12 @@
 import LeanVM.Guest.CheckView
 import LeanVM.Guest.B2C.CplCheck
-import LeanVM.Guest.B2C.ShareCheck
+import LeanVM.Guest.B2C.ShareL
 import LeanVM.Guest.B2C.ChainCheck
 
 /-! **A function's checks over its view import no other function's data.** The checks of a
 function's windows (`Pack/*/Checked*`, `Pack/*/Cplw*`) import its own code, core IR and
 certificate, its callees' signatures, the jump table and the powers of `g` (`Data.Pows`), and the
-checks' definitions (`CheckView`, `B2C.CplCheck`, `ShareCheck`, `ChainCheck`), so that an edit of another function rebuilds none
+checks' definitions (`CheckView`, `B2C.CplCheck`, `ShareL`, `ChainCheck`), so that an edit of another function rebuilds none
 of them. This module fails to build if what an importer of those definitions sees (by Lake's rule:
 the module and its public imports, transitively) reaches the guest's data. -/
 
@@ -17,7 +17,7 @@ open Lean Elab Command in
     `LeanVM.Guest.CoreData, `LeanVM.Guest.FunctionTable, `LeanVM.Guest.Bytecode]
   let data : Std.HashMap Name ModuleData :=
     (env.header.moduleNames.zip env.header.moduleData).foldl (fun m (n, d) ↦ m.insert n d) {}
-  for root in [`LeanVM.Guest.CheckView, `LeanVM.Guest.B2C.CplCheck, `LeanVM.Guest.B2C.ShareCheck,
+  for root in [`LeanVM.Guest.CheckView, `LeanVM.Guest.B2C.CplCheck, `LeanVM.Guest.B2C.ShareL,
       `LeanVM.Guest.B2C.ChainCheck] do
     let mut seen : NameSet := {}
     let mut todo := #[root]

@@ -91,7 +91,10 @@ def lin(c, **kw):
 
 
 def add(f, g, k=1):
-    return (f[0] + k * g[0], tuple(x + k * y for x, y in zip(f[1], g[1])))
+    """`VtL.add`: the coefficients as long as the longer's (a constant's none)."""
+    n = max(len(f[1]), len(g[1]))
+    a, b = f[1] + (0,) * (n - len(f[1])), g[1] + (0,) * (n - len(g[1]))
+    return (f[0] + k * g[0], tuple(x + k * y for x, y in zip(a, b)))
 
 
 def minv(f):
@@ -153,7 +156,7 @@ def form0(atoms, fuel, x):
         r = None
         if a[0] == 'const' and a[1] == x:
             k = pow1(a[2])
-            r = None if k is None else (k, (0,) * NS)
+            r = None if k is None else (k, ())
         elif a[0] == 'copy' and a[1] == x:
             r = form(atoms, fuel - 1, a[2])
         elif a[0] == 'mul' and a[1] == x:
@@ -172,7 +175,7 @@ def form0(atoms, fuel, x):
 
 def mono(atoms, c):
     """`CoreMode.vtM`: a cell's form, `None` if a base has none."""
-    f = (c[1], (0,) * NS)
+    f = (c[1], ())
     for b, e in c[0]:
         g = form(atoms, FUEL, b)
         if g is None:
@@ -183,7 +186,7 @@ def mono(atoms, c):
 
 def idx(atoms, i):
     if i[0] == 'num':
-        return (i[1], (0,) * NS)
+        return (i[1], ())
     if i[0] == 'val':
         return mono(atoms, (((i[1], 1),), 0))
     return mono(atoms, i[1])
@@ -196,15 +199,15 @@ def apply_arms(atoms, arms, f):
         F = form(atoms, FUEL, x)
         if F is None or not (j < CAPE and maxv(F) < CAPE):
             continue
-        i = next((k for k in range(NS) if F[1][k] != 0), None)
+        i = next((k for k in range(len(F[1])) if F[1][k] != 0), None)
         if i is None or F[1][i] not in (1, -1):
             continue
-        k = f[1][i] * F[1][i]
-        f = add(f, add(F, (j, (0,) * NS), -1), -k)
+        k = (f[1][i] if i < len(f[1]) else 0) * F[1][i]
+        f = add(f, add(F, (j, ()), -1), -k)
     return f
 
 
-NNB = lean_def('verify_tables', 'Fam', 'vtNNB')
+NNB = lean_def('verify_tables', 'ExpDefs', 'vtNNB')
 
 
 def nonneg(atoms, arms, f):
@@ -216,7 +219,7 @@ def nonneg(atoms, arms, f):
 def lt(atoms, arms, a, b):
     """`CoreMode.vtLt`."""
     A, B = idx(atoms, a), idx(atoms, b)
-    return small(A) and small(B) and nonneg(atoms, arms, add(add(B, A, -1), (-1, (0,) * NS)))
+    return small(A) and small(B) and nonneg(atoms, arms, add(add(B, A, -1), (-1, ())))
 
 
 def small(f):
@@ -228,13 +231,14 @@ def holds(atoms, arms, r):
     if r[0] == 'lt':
         return lt(atoms, arms, r[1], r[2])
     if r[0] == 'subP':
-        # `[B]·[J]·g^o` one of `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|` (`vtSubP`), either base the index
-        c, cs = r[1], {(tuple(tuple(b) for b in x[0]), x[1]) for x in r[2]}
+        # `[B]·[J]·g^o` one of `cs`, the run `[B]·g^(o + t)`, `t < |cs|`, in order, by `e(J) < |cs|` (`vtSubP`), either
+        # base the index
+        c, cs = r[1], [(tuple(tuple(b) for b in x[0]), x[1]) for x in r[2]]
         bs = tuple(tuple(b) for b in c[0])
         if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
             return False
-        n = len(r[2])
-        return any(all((((B, 1),), c[1] + t) in cs for t in range(n)) and lt(atoms, arms, ('val', J), ('num', n))
+        n = len(cs)
+        return any(cs == [(((B, 1),), c[1] + t) for t in range(n)] and lt(atoms, arms, ('val', J), ('num', n))
                    for B, J in ((bs[0][0], bs[1][0]), (bs[1][0], bs[0][0])))
     if r[0] == 'subR':
         q, R = r[1], r[2]
@@ -253,7 +257,25 @@ def holds(atoms, arms, r):
 
 _AT = {}
 # the top-level atoms of `verify_tables` the family reads (`CoreMode.vtAtoms`, `EndExec.vtAtoms_top`)
-ATOMS = lean_def('verify_tables', 'Fam', 'vtAtoms')
+ATOMS = lean_def('verify_tables', 'ExpDefs', 'vtAtoms')
+
+
+def own_gen():
+    """`CoreMode.vtForms`: the form of each value of its slacks' words, their ghosts and its atoms that has one, by
+    value, which the kernel checks once against `vtF` (`vtForms_ok`)."""
+    xs = {VT_MU, VT_ZC} | {VT_KB + j for j in range(7)} | {I.GB + j for j in range(7)} | \
+        {v for a in ATOMS for v in a[1:] if isinstance(v, int)}
+    rows = ['(%d, (%d, [%s]))' % (x, f[0], ', '.join(map(str, f[1])))
+            for x in sorted(xs) for f in [form(ATOMS, FUEL, x)] if f is not None]
+    return {'verify_tables': (
+        "`verify_tables`' words' forms (`CoreMode.vtForms`).",
+        'public import LeanVM.Guest.CoreMode.Fn.verify_tables.ExpDefs\n\nnamespace LeanVM.Guest.CoreMode\n\n'
+        '@[expose] public section\n\n'
+        "/-- **`verify_tables`' words' forms**, by value (`vtFormAt`): each value of its slacks' words, their ghosts and\n"
+        'its atoms (`vtAtoms`) that has one, its form by `vtF`. -/\n'
+        'def vtForms : List (ℕ × VtL) :=\n  [%s]\n\nend\n\npublic section\n\n'
+        'theorem vtForms_ok : vtFormsOk vtForms = true := by decide +kernel\n\nend\n\n'
+        'end LeanVM.Guest.CoreMode\n' % ',\n    '.join(rows))}
 
 
 def vt_exp(k, r):

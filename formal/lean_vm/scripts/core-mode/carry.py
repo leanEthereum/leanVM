@@ -1,13 +1,13 @@
-"""Writes `Guest/CoreMode/Gen/CarryNzList.lean`, `CarryCallers{k}.lean` and `CarryOk.lean`: the carried facts' check
+"""Writes `Guest/CoreMode/Gen/CarryOk.lean`: the carried facts' check
 (`Res.carryG`: every call site passes the listed callees' carried facts, every heap witness pointer its spine does not
 pin is in `K` by the carried values) and the nonzero facts' check (`Res.carryNzG`: every call site passes its callees'
 nonzero parameters, every dynamic allocation's size is nonzero in `K`, every listed callee word is) over the whole
-program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
+program, from the ranges `down.py` checks (`Gen/Down{k}.lean`, with the other families carried down). The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`), its callee words (`Res.nzUp`) and the values each body pins itself (`Res.ownNz`)
-are derived here, by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to
-`CarryNzList.lean`. `--check` writes nothing and fails when a file differs.
+are derived here (`lists`), by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written
+by `down.py` with their tables and hints. `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/carry.py [--check]"""
-import sys, os, glob, re
+import sys, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -20,13 +20,8 @@ import coredata  # noqa: E402
 from compiled import BD  # noqa: E402
 
 OUT = resgen.OUT
-# by ranges of functions, each a kernel check; `main` (function 0) alone
-RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 270), (370, 3), (373, 3), (376, 3), (379, 2), (381, 19), (400, 200), (600, 200), (800, 200), (1000, 200), (1200, None)]
 # `Res.nzDepth`, `Res.kDepth`
 NZ_DEPTH, K_DEPTH = 12, 8
-# a function alone in its range with more than `NZ_MIN` top-level statements has its nonzero facts' pass over its body
-# checked in `NZ_N` slices of them (`Res.allBSlice`): the kernel's memory grows over one evaluation
-NZ_MIN, NZ_N = 4000, 8
 
 
 # ---- the core IR, as `Res.carryNzG` reads it -------------------------------------------------------------------------
@@ -61,11 +56,11 @@ def functions():
     """Each core function by name: its parameter count, loop flag (`Fn.loop`) and body."""
     F = {}
     for text in BD.core_texts().values():
-        params, body, name = BD.core_fn(text)
-        body = view(body)
+        params, raw, name = BD.core_fn(text)
+        body = view(raw)
         assert params == list(range(len(params))), name
         loop = len(body) >= 2 and body[-1] == ('ret', []) and body[-2][0] == 'callIf' and body[-2][2] == name
-        F[name] = dict(np=len(params), loop=loop, body=body)
+        F[name] = dict(np=len(params), loop=loop, body=body, raw=raw)
     return F
 
 
@@ -369,58 +364,32 @@ def nz_lists(F):
 header = genfiles.header('core-mode/carry.py')
 
 
-def render():
-    files = {}
+def lean_carried(path):
+    """`Res.carried` (`Fam/CarryDefs.lean`): `(stable name, parameter, kind)`."""
+    t = open(path, encoding='utf-8').read()
+    t = t[t.index('def carried :'):]
+    t = t[:t.index('\n\n')]
+    return [(f, int(p), k) for f, p, k in re.findall(r'name% «([^»]+)», (\d+), \.(\w+)\)', t)]
+
+
+def lists():
+    """The core functions (`functions`), the nonzero facts' lists (`nz_lists`) and `Res.carried` by name."""
     F = functions()
     carried, up, own, bad = nz_lists(F)
     if bad:
         sys.exit('carry: the nonzero facts\' check fails:\n  ' + '\n  '.join(map(str, bad)))
     assert 'main' not in carried
-    mod = 'LeanVM.Guest.CoreMode.Gen.CarryNzList'
-    t = [header(mod, 'The nonzero facts\' carried parameters, callee words and own values (`Res.carryNzG`).')]
-    t.append('namespace LeanVM.Guest.Res\n\n@[expose] public section\n\n')
-    t.append('/-- **The parameters carried nonzero in `K`**: callee, parameter position. -/\n'
-             'def carriedNz : List (String × Nat) := [\n%s]\n\n' % ',\n'.join(
-                 '  ("%s", %d)' % (f, p) for f in sorted(carried) for p in sorted(carried[f])))
-    t.append('/-- **The callee words nonzero in `K`**: callee, position among its parameters then its returns. -/\n'
-             'def nzUp : List (String × Nat) := [\n%s]\n\n' % ',\n'.join('  ("%s", %d)' % c for c in up))
-    t.append('/-- **The own values pinned nonzero in `K`** by their function\'s body (`Res.ownChk`): function, value number. -/\n'
-             'def ownNz : List (String × Nat) := [\n%s]\n\nend\n\nend LeanVM.Guest.Res\n' % ',\n'.join(
-                 '  ("%s", %d)' % c for c in own))
-    files[mod] = ''.join(t)
-    n = resgen.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
-    assert sum(m for _, m in ranges) == n and all(m > 0 for _, m in ranges), ranges
-    mods = []
-    keys = coredata.keys(os.path.join(resgen.ROOT, 'Data'))
-    for k, (a, m) in enumerate(ranges):
-        mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
-        t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
-        one = keys[a] if m == 1 and keys[a] in F and len(F[keys[a]]['body']) > NZ_MIN else None
-        # the nonzero facts by the indexed check (`Fam/CarryIdx.lean`), equal to `carryNzG`
-        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryIdx\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\n' % (a, a, m))
-        if one:
-            # its pass over its body in slices
-            f, n = 'Fn.«%s».core' % one, len(F[one]['body'])
-            cuts = sorted({n * c // NZ_N for c in range(NZ_N + 1)})
-            for c in range(len(cuts) - 1):
-                t.append('theorem carryNz_%d_s%d : allBSlice (nzStmt (kvNz %s)) %s.body (spineE %s.body) %d %d = true :=\n'
-                         '  allBSlice_nzStmtI (by decide +kernel)\n\n' % (a, c, f, f, f, cuts[c], cuts[c + 1]))
-            prf = 'allB_drop_of_le (by decide +kernel)'
-            for c in reversed(range(len(cuts) - 1)):
-                prf = 'allB_drop_of_slice (by decide) carryNz_%d_s%d\n      (%s)' % (a, c, prf)
-            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d 1 :=\n'
-                     '  rangeOk_one (f := %s) rfl <| carryNzG_of\n    (allB_of_drop_zero\n      (%s))\n'
-                     '    (by decide +kernel) (by decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, f, prf))
-        else:
-            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
-                     '  rangeOk_carryNz (by unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
-        files[mod] = ''.join(t); mods.append(mod)
+    names = dict(coredata.name_strings(os.path.join(resgen.ROOT, 'Data'))[0])
+    kc = [(names[f], p, k) for f, p, k in lean_carried(os.path.join(resgen.ROOT, 'CoreMode', 'Fam', 'CarryDefs.lean'))]
+    return F, carried, up, own, kc
+
+
+def render():
+    files = {}
+    ranges = resgen.down_ranges()
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
     t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n')
     t.append('\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Memory\n\npublic section\n\n')
     for name, chk, what in (('carry', 'carryG', 'carried'), ('carryNz', 'carryNzG', 'nonzero')):
@@ -438,7 +407,7 @@ def render():
 
 def main(argv):
     files = render()
-    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'CarryCallers*.lean')), '--check' in argv)
+    bad = genfiles.sync(files, (), '--check' in argv)
     genfiles.fail_if_stale(bad, '--check' in argv)
     print('Carry: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 

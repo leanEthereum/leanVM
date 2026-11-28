@@ -73,6 +73,31 @@ theorem has_hasP {t : Exec.Trie Unit} {i : ℕ} : has t i = hasP t i := by
 
 /-! ## The checks' conjuncts, by name -/
 
+/-- **`presIn` is its test at every precondition.** -/
+theorem presIn_all {G : Mode.Sig} {na : ℕ} {cs : List CCell} {alt : Mode.Mono → Bool} :
+    ∀ (cur : List CCell) (ms : List Mode.Mono), (∀ c ∈ cur, c ∈ cs) → presIn G na cs alt cur ms = true →
+      ms.all (fun m ↦ (monoS G na true m && match monoC m with
+        | some c => cellIn c cs
+        | none => false) || alt m) = true
+  | _, [], _, _ => rfl
+  | cur, m :: ms, hc, h => by
+    simp only [List.all_cons, Bool.and_eq_true]
+    rcases hm : monoC m with _ | c
+    · simp only [presIn, hm, Bool.and_eq_true] at h
+      exact ⟨by simp [h.1], presIn_all cur ms hc h.2⟩
+    rcases cur with _ | ⟨c', cur'⟩
+    · simp only [presIn, hm, Bool.and_eq_true] at h
+      exact ⟨by simpa using h.1, presIn_all [] ms hc h.2⟩
+    simp only [presIn, hm] at h
+    cases hb : (monoS G na true m && c'.beq c)
+    · simp only [hb, Bool.cond_false, Bool.and_eq_true] at h
+      exact ⟨by simpa using h.1, presIn_all _ ms hc h.2⟩
+    · simp only [hb, Bool.cond_true] at h
+      simp only [Bool.and_eq_true] at hb
+      refine ⟨?_, presIn_all cur' ms (fun x hx ↦ hc x (List.mem_cons_of_mem _ hx)) h⟩
+      simp only [hb.1, Bool.true_and, Bool.or_eq_true]
+      exact Or.inl (List.any_eq_true.mpr ⟨c', hc c' List.mem_cons_self, hb.2⟩)
+
 /-- **`fitB`'s conjuncts**, by name. -/
 structure FitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Prop where
   self : (match G.self with
@@ -109,7 +134,8 @@ structure FitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Prop where
 theorem FitB.of_ok {G : Mode.Sig} {h : HSig} {na nr : ℕ} (hf : fitB G h na nr = true) : FitB G h na nr := by
   simp only [fitB, Bool.and_eq_true] at hf
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, ⟨h7, h8⟩⟩, h9⟩, h10⟩, h11⟩, h12⟩, h13⟩, h14⟩ := hf
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14⟩
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, ?_, h10, h11, h12, h13, h14⟩
+  simpa only [Bool.or_assoc] using presIn_all _ _ (fun _ h ↦ h) h9
 
 /-- **`sigOk`'s conjuncts**, by name. -/
 structure SigOkP (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) (jt : Mode.Rng) : Prop where
@@ -295,15 +321,6 @@ theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List
 def WrF (Cf : CFun) (rd : Reader) (σ : Val) (es : List Ev) (x : K) : Prop :=
   WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es x ∨ (faNeed Cf = true ∧ FAW σ Cf.H.fas es x)
 
-theorem heapOkC_params {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (h : heapOkC pows sigOf f H = true) : f.params = (List.range f.params.length).map V.n := by
-  rw [List.range_eq_range']
-  rcases heapOkC_cases h with ⟨-, h⟩ | ⟨h, -⟩
-  · unfold heapOkC1 at h
-    simp only [Bool.and_eq_true] at h
-    exact paramsN_eq _ 0 h.1.1.1.1.1
-  · exact paramsN_eq _ 0 (splitOk_spec h).1
-
 /-- **The heap facts of an honest path**, each call's callee's returned words given: its parameters `V.n k`;
 every event's needs written before it; the promised cells and the signature's runs written by the end, at the
 parameters' and returned words; the returned words' monomials, words and equations. -/
@@ -366,9 +383,9 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
       rw [hv, ha]
       exact h1
   | c hok hterm hcb hpost hders =>
-    have hpar' := heapOkC_params hok
+    have hpar' := hok.params
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
-    obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := heapOkC_sound hp hok hself hw hh hM
+    obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := hok.sound_all hp hself hw hh hM
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG
     have hW : SigOk (WrF Cf rd σ es) Cf.H.sig.post Cf.H.sig.postR (Cf.fn.params.map σ ++ vs.map σ) ∧
         PtrOk (WrF Cf rd σ es) rd Cf.H.sig.postP Cf.H.sig.postPR (Cf.fn.params.map σ ++ vs.map σ) ∧
@@ -388,7 +405,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
             refine ⟨⟨fun c hc ↦ by simp [h1] at hc, fun r hr ↦ by simp [h2] at hr⟩, fun x hx ↦ ?_,
               fun x ⟨p, hp', _⟩ ↦ by simp [h5] at hp', fun c hc ↦ by simp [h6] at hc, fun r hr ↦ by simp [h7] at hr⟩
             simp [PtrSigSet, h3, h4] at hx
-          · exact heapOkC_soundW hp hok hself hw hh hM (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR
+          · exact hok.soundW hp hself hw hh hM (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR
               (derOk_nil hders rd σ) hG (List.isEmpty_iff.mp h)
         exact ⟨hW.1.mono fun x hx ↦ Or.inl hx, fun x hx ↦ Or.inl (hW.2.1 x hx), fun x hx ↦ Or.inl (hW.2.2.1 x hx),
           hW.2.2.2.mono fun x hx ↦ Or.inl hx⟩
@@ -419,7 +436,7 @@ theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
     exact fun es1 e es2 he _ ↦
       (heapK_sound (.m1 hok hpo hstr0 hrm hpv hre) hp hst hw hh hR hG hM).2.1 es1 e es2 he
   | c hok hterm hcb hpost hders =>
-    exact (heapOkC_soundP hp hok (by simp [CFun.sigOf]) hw hh
+    exact (hok.sound hp (by simp [CFun.sigOf]) hw hh
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG).1
 
 /-- A path through a call: the function's heap check is the one with calls. -/

@@ -455,11 +455,13 @@ theorem keccakInOffset_eq : ∀ c : Fin 13,
     1 * keccakInputCellOffset ![addressOfIndex 2, addressOfIndex 3, addressOfIndex 2, addressOfIndex
         3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) c =
       addressOfIndex (kInIdx c) := by
-  decide +kernel
+  intro c
+  rw [one_mul]
+  fin_cases c <;> simp [keccakInputCellOffset, kInIdx, ← pow_add, ← pow_succ']
 
 theorem keccakOutOffset_eq : ∀ c : Fin 13, 1 * (g ^ c.val * addressOfIndex 13) = addressOfIndex
-    (c.val + 13) := by
-  decide +kernel
+    (c.val + 13) :=
+  fun c ↦ (one_mul _).trans (pow_add g c.val 13).symm
 
 /-- The row's reads, on the image with output cell `0` set to `out0`. -/
 theorem keccak_reads (out0 : E) :
@@ -481,11 +483,17 @@ theorem keccak_reads (out0 : E) :
   simp only [keccakIns, execute, executeWith, KeccakOutputCells.cellCount, hin, hout,
     Option.bind_eq_bind, Option.bind_some, Registers.next, mul_one]
 
+/-- Keccak-f[1600] of the row's input cells, in the odd layout, is `kOut`: one kernel evaluation
+of the permutation, which the four rows below share. -/
+theorem kOut_eq : ∀ c : Fin 13, cellsOfState (keccakF1600 (stateOfCells kIn false)) true c = kOut c := by
+  decide +kernel
+
 /-- The row steps: the cells are a Keccak-f[1600] permutation, even layout in, odd layout out. -/
 example : step (oneStep keccakIns) (keccakImage (kOut 0)) ⟨1, 1⟩ = some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (keccakImage (kOut 0)) ⟨1, 1⟩ keccakIns = _
   rw [keccak_reads]
+  simp only [KeccakCellsRelation, kOut_eq]
   decide +kernel
 
 /-- Mutation: output cell `0` holds lane `0` in its high limb (odd layout); with a nonzero low
@@ -494,6 +502,7 @@ example : step (oneStep keccakIns) (keccakImage (kOut 0 + ofK 1)) ⟨1, 1⟩ = n
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (keccakImage _) ⟨1, 1⟩ keccakIns = _
   rw [keccak_reads]
+  simp only [KeccakCellsRelation, kOut_eq]
   decide +kernel
 
 /-- The same row writing only output cell `0` (`out_cells = One`, leanVM main `40f877dc`,
@@ -542,6 +551,7 @@ example (w : E) : step (oneStep keccakIns1) (keccakImage1 (kOut 0) w) ⟨1, 1⟩
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (keccakImage1 (kOut 0) w) ⟨1, 1⟩ keccakIns1 = _
   rw [keccak_reads_one]
+  simp only [KeccakCellsRelation, kOut_eq]
   decide +kernel
 
 /-- … but not with a wrong output cell `0`, the one it writes. -/
@@ -549,6 +559,7 @@ example (w : E) : step (oneStep keccakIns1) (keccakImage1 (kOut 0 + ofK 1) w) �
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (keccakImage1 _ w) ⟨1, 1⟩ keccakIns1 = _
   rw [keccak_reads_one]
+  simp only [KeccakCellsRelation, kOut_eq]
   decide +kernel
 
 /-! ## `halts_in_the_final_state` (`cpu/mod.rs`)

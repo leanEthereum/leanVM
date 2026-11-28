@@ -4,7 +4,7 @@ the check without calls leaves uncovered), with the inference's index rules (`id
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
 `extend(out, why, S)` adds them to `callc.results()`'s."""
-import os, re, sys, collections
+import os, re, sys, time, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
@@ -741,33 +741,45 @@ def extend(out, why, S, verbose=False):
     _, EM.Solver.fact = expq_facts(EM)
     _, EM.Solver.fact = fn_facts(EM)
     got, lost = {}, collections.Counter()
-    def one(k):
+
+    def tries(k):
         # these features, then the check with calls' own (`ptr`, `pfr`), then the arms' growing blocks
         # (`armblock`, `ab`), each with residuals of families; `nohs`: no upper bound met by its next's fact, whose
         # residual is of no family; a dispatch's returned pointer (`retP`, `retM`: `vp`) with a loop's runs at its
         # conditional entry (`callIfR`)
-        r, err = None, None
-        for feats in (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
-                      FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ()):
-            I.F.clear()
-            I.F.update(feats)
-            try:
-                r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
-                break
-            except callc.No as e:
-                err = err or e
+        return (FEATURES, saved, FEATURES | {'armblock'}, FEATURES | {'dup'}, FEATURES | {'jt'},
+                FEATURES | {'dup', 'nohs'}, FEATURES | {'retP', 'retM', 'callIfR'}) + VT_FEATS.get(k, ())
+
+    def attempt(ki):
+        # candidate `k` at its `i`-th feature set: its result or why not, and the seconds it took
+        k, i = ki
+        t = time.monotonic()
         I.F.clear()
-        I.F.update(FEATURES)
-        if r is not None:
-            r['text'] = callc.ldata(k, r)
-        return r, err
+        I.F.update(tries(k)[i])
+        try:
+            r = callc.infer_one(k, S, allow=lambda k, res: res_ok(k, res, S))
+        except callc.No as e:
+            return None, e, time.monotonic() - t
+        finally:
+            I.F.clear()
+            I.F.update(FEATURES)
+        r['text'] = callc.ldata(k, r)
+        return r, None, time.monotonic() - t
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
         callc.fa_past_all(cands)
-        # each candidate on its own, in worker processes (`pmap.py`)
-        for k, (r, err) in zip(cands, pmap(one, cands)):
+        # each candidate at its first feature set, then each one left open at each of its others (the slowest
+        # candidates' first, by their first attempt, so that the longest attempts do not start last), every attempt on
+        # its own in a worker process (`pmap.py`); a candidate takes its first attempt that closes it, as if tried in turn
+        att = {(k, 0): x for k, x in zip(cands, pmap(attempt, [(k, 0) for k in cands]))}
+        left = sorted((k for k in cands if att[(k, 0)][0] is None), key=lambda k: -att[(k, 0)][2])
+        rest = [(k, i) for k in left for i in range(1, len(tries(k)))]
+        att.update(zip(rest, pmap(attempt, rest)))
+        for k in cands:
+            xs = [att[(k, i)] for i in range(len(tries(k))) if (k, i) in att]
+            r = next((r for r, _, _ in xs if r is not None), None)
             if r is None:
-                lost[str(err).split(':')[0]] += 1
+                lost[str(xs[0][1]).split(':')[0]] += 1
                 continue
             got[k] = r
     finally:

@@ -88,14 +88,85 @@ def mulGF2 : List Bool → List Bool → List Bool
 def parityL (mask : ℕ) (M : List Bool) : Bool :=
   (List.range 47).foldl (fun acc c ↦ acc ^^ (mask.testBit c && M.getD c false)) false
 
-/-- The embedding lemma on unit vectors, as a boolean. -/
+/-- A binary polynomial as a number: coefficient `c` is bit `c`. -/
+def natOfBits : List Bool → ℕ
+  | [] => 0
+  | b :: l => Nat.bit b (natOfBits l)
+
+/-- The parity of the low `k` bits of `n`. -/
+def parityLow (n : ℕ) : ℕ → Bool
+  | 0 => false
+  | k + 1 => parityLow n k ^^ n.testBit k
+
+/-- `n` with its bits `m` places up added in: its low `m` bits have the parity of `n`'s low `2m`. -/
+def foldBits (m n : ℕ) : ℕ := n ^^^ (n >>> m)
+
+/-- The parity of the low `64` bits of `n`, in six folds. -/
+def parity64 (n : ℕ) : Bool :=
+  (foldBits 1 (foldBits 2 (foldBits 4 (foldBits 8 (foldBits 16 (foldBits 32 n)))))).testBit 0
+
+/-- The embedding lemma on unit vectors, as a boolean: every mask below `2^47`, and each parity
+`parityL` taken in six folds of a number (`parityL_eq`), not one coefficient at a time. -/
 def rmfeOk (emb proj : List ℕ) : Bool :=
+  ((List.range 16).all fun i ↦ decide (proj.getD i 0 < 2 ^ 47)) &&
   (List.range 16).all fun a ↦ (List.range 16).all fun b ↦ (List.range 16).all fun i ↦
-    parityL (proj.getD i 0) (mulGF2 (bitsFrom (emb.getD a 0) 24) (bitsFrom (emb.getD b 0) 24)) ==
+    parity64 (proj.getD i 0 &&&
+        natOfBits (mulGF2 (bitsFrom (emb.getD a 0) 24) (bitsFrom (emb.getD b 0) 24))) ==
       (i == a && a == b)
 
 /-- **The embedding lemma**, checked by the kernel on the literals. -/
 theorem rmfeOk_lit : rmfeOk embedLit projectLit = true := by decide +kernel
+
+private theorem testBit_natOfBits :
+    ∀ (M : List Bool) (c : ℕ), (natOfBits M).testBit c = M.getD c false
+  | [], c => by simp [natOfBits]
+  | b :: M, 0 => by rw [natOfBits, Nat.testBit_bit_zero, List.getD_cons_zero]
+  | b :: M, c + 1 => by
+    rw [natOfBits, Nat.testBit_bit_succ, testBit_natOfBits M c, List.getD_cons_succ]
+
+private theorem parityLow_add (n a : ℕ) :
+    ∀ b, parityLow n (a + b) = (parityLow n a ^^ parityLow (n >>> a) b)
+  | 0 => by simp [parityLow]
+  | b + 1 => by
+    rw [← Nat.add_assoc, parityLow, parityLow, parityLow_add n a b, Nat.testBit_shiftRight,
+      Bool.xor_assoc]
+
+private theorem parityLow_xor (x y : ℕ) :
+    ∀ k, parityLow (x ^^^ y) k = (parityLow x k ^^ parityLow y k)
+  | 0 => rfl
+  | k + 1 => by
+    rw [parityLow, parityLow, parityLow, parityLow_xor x y k, Nat.testBit_xor]
+    cases parityLow x k <;> cases parityLow y k <;> cases x.testBit k <;> cases y.testBit k <;> rfl
+
+private theorem parityLow_foldBits {m k : ℕ} (h : m + m = k) (n : ℕ) :
+    parityLow (foldBits m n) m = parityLow n k := by
+  rw [foldBits, parityLow_xor, ← h, parityLow_add]
+
+private theorem parity64_eq (n : ℕ) : parity64 n = parityLow n 64 := by
+  rw [parity64, show ∀ z : ℕ, z.testBit 0 = parityLow z 1 from fun z ↦ (Bool.false_xor _).symm,
+    parityLow_foldBits (k := 2) rfl, parityLow_foldBits (k := 4) rfl,
+    parityLow_foldBits (k := 8) rfl, parityLow_foldBits (k := 16) rfl,
+    parityLow_foldBits (k := 32) rfl, parityLow_foldBits (k := 64) rfl]
+
+private theorem parityLow_add_of_lt {n k : ℕ} (h : n < 2 ^ k) :
+    ∀ j, parityLow n (k + j) = parityLow n k
+  | 0 => rfl
+  | j + 1 => by
+    rw [← Nat.add_assoc, parityLow, parityLow_add_of_lt h j,
+      Nat.testBit_eq_false_of_lt (h.trans_le (Nat.pow_le_pow_right two_pos (Nat.le_add_right k j))),
+      Bool.xor_false]
+
+private theorem foldl_testBit (n : ℕ) :
+    ∀ k, (List.range k).foldl (fun acc c ↦ acc ^^ n.testBit c) false = parityLow n k
+  | 0 => rfl
+  | k + 1 => by rw [List.range_succ, List.foldl_concat, foldl_testBit n k, parityLow]
+
+/-- `parityL` in six folds, for a mask below `2^47`. -/
+private theorem parityL_eq {mask : ℕ} (hmask : mask < 2 ^ 47) (M : List Bool) :
+    parityL mask M = parity64 (mask &&& natOfBits M) := by
+  rw [parity64_eq, show 64 = 47 + 17 from rfl,
+    parityLow_add_of_lt (Nat.and_le_left.trans_lt hmask), ← foldl_testBit, parityL]
+  simp only [Nat.testBit_and, testBit_natOfBits]
 
 theorem rmfeOk_at {a b i : ℕ} (ha : a < 16) (hb : b < 16) (hi : i < 16) :
     parityL (rmfeProject.getD i 0)
@@ -103,8 +174,10 @@ theorem rmfeOk_at {a b i : ℕ} (ha : a < 16) (hb : b < 16) (hi : i < 16) :
         (i == a && a == b) := by
   have h := rmfeOk_lit
   rw [← rmfeEmbed_eq, ← rmfeProject_eq] at h
-  simp only [rmfeOk, List.all_eq_true, List.mem_range, beq_iff_eq] at h
-  exact h a ha b hb i hi
+  simp only [rmfeOk, Bool.and_eq_true, List.all_eq_true, List.mem_range, beq_iff_eq,
+    decide_eq_true_eq] at h
+  rw [parityL_eq (h.1 i hi)]
+  exact h.2 a ha b hb i hi
 
 /-! ## Binary polynomials over `E` -/
 

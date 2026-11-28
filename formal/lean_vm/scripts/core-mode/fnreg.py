@@ -1,15 +1,20 @@
-"""Writes `LeanVM/Guest/CoreMode/Gen/FnData.lean`, `FnFams.lean` and `FnSound.lean`: the registries of each function's
+"""Writes `LeanVM/Guest/CoreMode/Gen/FnData.lean`, `FnFams.lean`, `FnSound.lean` and `FnCodes.lean`: the registries of each function's
 own routing facts and families, from its own modules `CoreMode/Fn/<f>/Data.lean`, `Fam.lean`, `Sound.lean` (namespace
 `LeanVM.Guest.CoreMode.Own.<f>`). A kind is a list each function's module may define; its registry is their
 concatenation, and its soundness (`<kind>_ok` in the function's `Sound.lean`, of each entry the kind's predicate) theirs.
 The shared checks and theorems read the registries only, so no shared file names a function, and a guest edit to one
 function changes that function's own modules at most (`formal/notes/core-mode.md`).
-It also checks each rule file's `OWN` (`own_files`): the hand files a change to that function alone may change.
+`FnCodes.lean` holds the codes (`encS`) of the names of every function of a source function with a ghost family's
+loops (`CoreMode.glCodesOk`, which the kernel checks), so that the route checks any other by its name's code
+(`CoreMode.glByCode`). `Gen/Own/<f>.lean` holds a function's own generated data, from its rule file's `own_gen`. It also
+checks each rule file's `OWN` (`own_files`): the hand files a change to that function alone may change.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/fnreg.py [--check]"""
 import ast, os, re, sys, glob
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
+import coredata  # noqa: E402
+import packed  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LV = os.path.normpath(os.path.join(HERE, '..', '..'))
@@ -170,6 +175,24 @@ def render():
             what[0].upper() + what[1:].split(' (`')[0], pred, k, k, pred, proof))
     t.append('end\n\nend LeanVM.Guest.CoreMode.FnReg\n')
     files[os.path.join(OUT, 'FnSound.lean')] = ''.join(t)
+    # the codes of the ghost families' functions' names, every specialization and loop of their source functions
+    sys.path.insert(0, HERE)
+    import fnrules
+    srcs = {f for f, got in fns.items() if got.get('Data', set()) & {'stLoops', 'mlLoops', 'cmLoops'}}
+    names = coredata.name_strings(os.path.join(GUEST, 'Data'))[0]
+    codes = sorted(packed.enc(s) for k, s in names if fnrules.src(k) in srcs)
+    m = 'LeanVM.Guest.CoreMode.Gen.FnCodes'
+    files[os.path.join(OUT, 'FnCodes.lean')] = (
+        header(m, 'The codes of the ghost families\' functions\' names (`CoreMode.glCodesOk`).') +
+        'public import LeanVM.Guest.CoreMode.CoreResG\n\nnamespace LeanVM.Guest.CoreMode.FnReg\n\n'
+        '@[expose] public section\n\n/-- The codes of the names of %s\'s functions. -/\n'
+        'def glCodes : List ℕ :=\n  [%s]\n\nend\n\npublic section\n\n'
+        'theorem glCodes_ok : glCodesOk glCodes = true := by decide +kernel\n\nend\n\n'
+        'end LeanVM.Guest.CoreMode.FnReg\n' % (', '.join('`%s`' % f for f in sorted(srcs)), ', '.join(map(str, codes))))
+    # each function's own generated data (`own_gen`)
+    for h in fnrules.hooks('own_gen'):
+        for f, (what, body) in h().items():
+            files[os.path.join(OUT, 'Own', f + '.lean')] = header('LeanVM.Guest.CoreMode.Gen.Own.«%s»' % f, what) + body
     return files
 
 
@@ -177,7 +200,8 @@ def main(argv):
     own_files()
     files = render()
     check = '--check' in argv
-    bad = genfiles.sync(files, [p for p in files if os.path.exists(p)], check)
+    bad = genfiles.sync(files, sorted(set(p for p in files if os.path.exists(p)) |
+                                      set(glob.glob(os.path.join(OUT, 'Own', '*.lean')))), check)
     genfiles.fail_if_stale(bad, check)
     print('fnreg: %d functions\' modules, %s' % (len(scan()), 'unchanged' if not bad else ('stale' if check else
                                                                                            'written')))

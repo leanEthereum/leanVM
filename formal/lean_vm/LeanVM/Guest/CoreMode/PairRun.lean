@@ -14,7 +14,7 @@ public import LeanVM.Guest.Bridge.AlignRun
 /-!
 # The pairing pass's invariants
 
-`Bridge/AlignRun.lean`'s for the heap-aware pass: each step keeps the zippers their cursors' (`Bridge.ZOk`: `normG_ok`, `hintsStepH_ok`, `scan_ok`, `plainStep_ok`, `jumpStepH_ok`), so each state of the pass is a `Bridge.StOk` (`stepIH_ok`), and the pass over code split in two is the pass over the first part, then over the rest from where it ended (`pairGo_append`), which `PairSlice.lean`'s windows compose by (`pairOk_of_chainS`).
+`Bridge/AlignRun.lean`'s for the heap-aware pass: each step keeps the zippers their cursors' (`Bridge.ZOk`: `normG_ok`, `hintsStepH_ok`, `scan_ok`, `plainStep_ok`, `jumpStepH_ok`), so each state of the pass is a `Bridge.StOk` (`stepIH_ok`), and the pass over code split in two is the pass over the first part, then over the rest from where it ended (`pairGo_append`), and hints past a run's offsets change only its states' hints (`pairGo_appHs`), by which `PairSlice.lean`'s windows compose, each over its own hints (`pairOk_of_chainS`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -269,6 +269,155 @@ theorem pairGo_ok {body : List Stmt} {hs0 : List (ℕ × List Prover.Exec.Hint)}
     obtain ⟨hp1, hpi⟩ := stepIH_ok P ins hst hp
     obtain ⟨h1, h2⟩ := pairGo_ok P c hp1 h
     exact ⟨h1, by rw [h2, hpi, List.length_cons]; omega⟩
+
+/-! ## The hints apart
+
+A step reads only the head of the hints, and only at its own offset (`hintsAt`): hints at later offsets
+appended to a run's change nothing but its states' hints (`pairGo_appHs`), and a run's hints it consumes
+are at its offsets (`pairGo_eq`). -/
+
+theorem hintsAt_append (pc : ℕ) (h rest : List (ℕ × List Prover.Exec.Hint)) (hr : ∀ p ∈ rest, pc < p.1) :
+    hintsAt pc (h ++ rest) = ((hintsAt pc h).1, (hintsAt pc h).2 ++ rest) := by
+  match h, rest with
+  | (p, l) :: t, _ => cases hb : Nat.beq p pc <;> simp [hintsAt, hb]
+  | [], [] => rfl
+  | [], (p, l) :: t =>
+    have hb : Nat.beq p pc = false := by
+      have := hr _ List.mem_cons_self
+      rw [Bool.eq_false_iff]
+      intro h
+      have := Nat.eq_of_beq_eq_true h
+      omega
+    simp [hintsAt, hb]
+
+theorem hintsAt_mem (pc : ℕ) (hs : List (ℕ × List Prover.Exec.Hint)) :
+    ∀ p ∈ hs, p ∈ (hintsAt pc hs).2 ∨ p.1 = pc := by
+  match hs with
+  | [] => simp
+  | (q, l) :: t =>
+    intro p hp
+    cases hb : Nat.beq q pc
+    · simp only [hintsAt, hb, Bool.cond_false]; exact Or.inl hp
+    · simp only [hintsAt, hb, Bool.cond_true]
+      rcases List.mem_cons.mp hp with rfl | hp
+      · exact Or.inr (Nat.eq_of_beq_eq_true hb)
+      · exact Or.inl hp
+
+theorem visitH_append (P : PairCtx) (ins : OffsetInstruction) (i i' : ℕ) (h1 : List Prover.Exec.Hint)
+    (hs' rest : List (ℕ × List Prover.Exec.Hint)) (pend : List (ℕ × Zip)) (tabs : List (ℕ × Zip × ℕ)) (c : Zip) :
+    visitH P ins i i' h1 (hs' ++ rest) pend tabs c = (visitH P ins i i' h1 hs' pend tabs c).map
+      fun r ↦ (⟨r.1.i, r.1.hs ++ rest, r.1.cur, r.1.pend, r.1.tabs⟩, r.2) := by
+  simp only [visitH]
+  cases (P.nL c).bind (hintsStepH P h1) with
+  | none => rfl
+  | some z =>
+    simp only [Option.bind_some]
+    cases ins
+    case jump oc od of =>
+      simp only
+      cases P.kindOk i none
+      · rfl
+      · simp only [Bool.cond_true]
+        cases P.nS z with
+        | none => rfl
+        | some zs => simp only [Option.bind_some, Option.map_map]; rfl
+    all_goals simp only [Option.map_map]; rfl
+
+theorem visitH_next (P : PairCtx) (ins : OffsetInstruction) (i i' : ℕ) (h1 : List Prover.Exec.Hint)
+    (hs' : List (ℕ × List Prover.Exec.Hint)) (pend : List (ℕ × Zip)) (tabs : List (ℕ × Zip × ℕ)) (c : Zip)
+    {r : St × Option (ℕ × Zip)} (h : visitH P ins i i' h1 hs' pend tabs c = some r) : r.1.i = i' ∧ r.1.hs = hs' := by
+  simp only [visitH] at h
+  obtain ⟨z, -, h⟩ := Option.bind_eq_some_iff.mp h
+  cases ins
+  case jump oc od of =>
+    simp only [Bool.cond_eq_ite] at h
+    split at h
+    · obtain ⟨zs, -, h⟩ := Option.bind_eq_some_iff.mp h
+      obtain ⟨q, -, rfl⟩ := Option.map_eq_some_iff.mp h
+      exact ⟨rfl, rfl⟩
+    · cases h
+  all_goals
+    obtain ⟨q, -, rfl⟩ := Option.map_eq_some_iff.mp h
+    exact ⟨rfl, rfl⟩
+
+theorem stepIH_append (P : PairCtx) (ins : OffsetInstruction) (st : St) (rest : List (ℕ × List Prover.Exec.Hint))
+    (hr : ∀ p ∈ rest, P.X.entry + st.i < p.1) :
+    stepIH P ins ⟨st.i, st.hs ++ rest, st.cur, st.pend, st.tabs⟩ = (stepIH P ins st).map
+      fun r ↦ (⟨r.1.i, r.1.hs ++ rest, r.1.cur, r.1.pend, r.1.tabs⟩, r.2) := by
+  obtain ⟨i, hs, cur, pend, tabs⟩ := st
+  unfold stepIH
+  simp only [natSeq_eq]
+  rw [hintsAt_append (Nat.add P.X.entry i) _ _ hr]
+  generalize spanP i pend = S
+  generalize hintsAt (Nat.add P.X.entry i) hs = H
+  obtain ⟨here, rest'⟩ := S
+  obtain ⟨h1, hs'⟩ := H
+  dsimp only
+  cases cur with
+  | some c => cases hk : allKey here c <;> simp [hk, visitH_append]
+  | none =>
+    cases here with
+    | nil => rfl
+    | cons p ps => cases hk : allKey (p :: ps) p.2 <;> simp [hk, visitH_append]
+
+/-- A step's offset is the next, its hints those it does not read. -/
+theorem stepIH_next (P : PairCtx) (ins : OffsetInstruction) {st : St} {r : St × Option (ℕ × Zip)}
+    (h : stepIH P ins st = some r) : r.1.i = st.i + 1 ∧ r.1.hs = (hintsAt (P.X.entry + st.i) st.hs).2 := by
+  unfold stepIH at h
+  rw [natSeq_eq] at h
+  generalize spanP st.i st.pend = S at h
+  generalize hintsAt (Nat.add P.X.entry st.i) st.hs = H at h ⊢
+  obtain ⟨here, rest⟩ := S
+  obtain ⟨h1, hs'⟩ := H
+  simp only [Bool.cond_eq_ite] at h
+  split at h
+  · split at h
+    · exact visitH_next P ins _ _ _ _ _ _ _ h
+    · cases h
+  · cases h; exact ⟨rfl, rfl⟩
+  · split at h
+    · exact visitH_next P ins _ _ _ _ _ _ _ h
+    · cases h
+
+/-- **A run's offsets and the hints it consumes**: each hint it does not keep is at one of its offsets. -/
+theorem pairGo_eq (P : PairCtx) :
+    ∀ (c : List OffsetInstruction) {st st' : St} {acc acc' : List (ℕ × Zip)},
+      pairGo P c st acc = some (st', acc') →
+        st'.i = st.i + c.length ∧ ∀ p ∈ st.hs, p ∈ st'.hs ∨ P.X.entry + st.i ≤ p.1
+  | [], _, _, _, _, h => by
+    simp only [pairGo, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, -⟩ := h
+    exact ⟨rfl, fun p hp ↦ Or.inl hp⟩
+  | ins :: c, st, st', acc, acc', h => by
+    rw [pairGo_cons] at h
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨hi, hhs⟩ := stepIH_next P ins hr
+    obtain ⟨h1, h2⟩ := pairGo_eq P c h
+    refine ⟨by rw [h1, hi, List.length_cons]; omega, fun p hp ↦ ?_⟩
+    rcases hintsAt_mem _ _ p hp with hp | hp
+    · rw [← hhs] at hp
+      rcases h2 p hp with hp | hp
+      · exact Or.inl hp
+      · exact Or.inr (by omega)
+    · exact Or.inr (by omega)
+
+/-- The state `st` with the hints `rest` after its own. -/
+abbrev appHs (rest : List (ℕ × List Prover.Exec.Hint)) (st : St) : St := ⟨st.i, st.hs ++ rest, st.cur, st.pend, st.tabs⟩
+
+/-- **Hints past a run's offsets change only its states' hints.** -/
+theorem pairGo_appHs (P : PairCtx) (rest : List (ℕ × List Prover.Exec.Hint)) :
+    ∀ (c : List OffsetInstruction) (st : St) (acc : List (ℕ × Zip)), (∀ p ∈ rest, P.X.entry + st.i + c.length ≤ p.1) →
+      pairGo P c (appHs rest st) acc = (pairGo P c st acc).map fun r ↦ (appHs rest r.1, r.2)
+  | [], _, _, _ => rfl
+  | ins :: c, st, acc, hr => by
+    rw [pairGo_cons, pairGo_cons, stepIH_append P ins st rest
+      (fun p hp ↦ by have := hr p hp; simp only [List.length_cons] at this; omega)]
+    rcases h : stepIH P ins st with _ | r
+    · rfl
+    · simp only [Option.map_some, Option.bind_some]
+      have hi := (stepIH_next P ins h).1
+      exact pairGo_appHs P rest c _ _ fun p hp ↦ by
+        have := hr p hp; simp only [List.length_cons] at this; rw [hi]; omega
 
 /-! ## Windows -/
 

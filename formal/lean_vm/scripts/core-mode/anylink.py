@@ -1,12 +1,12 @@
-"""Writes `Guest/CoreMode/Gen/AnyLink.lean`, `AnyCallers{k}.lean` and `AnyLinkOk.lean`: the callees of
+"""Writes `Guest/CoreMode/Gen/AnyLink.lean` and `AnyLinkOk.lean`: the callees of
 `child_claim_list_any` that read its entries table (`Res.anyLink`: each callee with the positions of the
 caller's entries parameter and bound quotient among its call's arguments), the callers' check over the whole
-program by ranges, and the link's checks (`EndExec.LinkOk`, `anyLink_ok`). The callees are those every call
+program (from the ranges `down.py` checks, `Gen/Down{k}.lean`), and the link's checks (`EndExec.LinkOk`, `anyLink_ok`). The callees are those every call
 site of the caller passes both its entries parameter and its bound's quotient, read off its core IR
 (`Pack/*/Core.lean`) alone: the core route's `glOk` links their caller's cells.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/anylink.py [--check]"""
-import sys, os, re, glob
+import sys, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -22,7 +22,6 @@ OUT = os.path.join(ROOT, 'CoreMode', 'Gen')
 import fnrules  # noqa: E402
 ORIGIN, = fnrules.table('ANY_ORIGIN')
 UE, UL = (fnrules.param(ORIGIN, p) for p in fnrules.table('ANY_PARAMS')[ORIGIN])
-RANGES = resgen.RANGES
 
 
 def names():
@@ -73,9 +72,7 @@ header = genfiles.header('core-mode/anylink.py')
 
 def render():
     fams, w, c = link(); files = {}
-    n = resgen.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
-    assert sum(m for _, m in ranges) == n
+    ranges = resgen.down_ranges()
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLink'
     t = [header(mod, 'The callees reading `child_claim_list_any`\'s entries table.')]
     t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Core\n\n'
@@ -84,17 +81,9 @@ def render():
              'end\n\nend LeanVM.Guest.Res\n' % (',\n  '.join('(name%% «%s», %d, %d)' % F for F in fams),
                                                 ORIGIN, ORIGIN, UE, UL, w, c))
     files[mod] = ''.join(t)
-    mods = []
-    for k, (a, m) in enumerate(ranges):
-        mod = 'LeanVM.Guest.CoreMode.Gen.AnyCallers%d' % k
-        t = [header(mod, 'The callers\' check of `anyLink`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Gen.AnyLink\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem anyCallers_%d : RangeOk (fun _ fn => callersB anyLink fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
-        files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLinkOk'
     t = [header(mod, '`anyLink`\'s checks.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
     t.append('public import LeanVM.Guest.CoreMode.Fam.ResA\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
@@ -123,7 +112,7 @@ def path(mod):
 def main(argv):
     check = '--check' in argv
     files = {path(m): text for m, text in render().items()}
-    stale = genfiles.sync(files, glob.glob(os.path.join(OUT, 'AnyCallers*.lean')), check)
+    stale = genfiles.sync(files, (), check)
     print('anylink: %d files, %d stale%s' % (len(files), len(stale), (': ' + ', '.join(stale)) if stale else ''))
     return 1 if check and stale else 0
 

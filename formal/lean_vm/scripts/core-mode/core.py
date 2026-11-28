@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
 import genfiles  # noqa: E402
+import packed  # noqa: E402
 import route, heap  # noqa: E402
 import callc  # noqa: E402
 
@@ -56,15 +57,19 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
-# a heap certificate with one list of more residuals than `RES_B` has its families checked in slices (`CoreMode.sliceAll`)
-# of weight at most `RES_B`: the kernel's memory grows over one evaluation, with the residuals' weight; a residual a range check or a top-level selector bounds (`cheap_res`) is two lookups in tries the slice builds once
-# (`CoreMode.resFamT`), of weight `1 / RES_CHEAP`
-RES_B, RES_CHEAP = 2, 32
+# a heap certificate's one list of residuals has its families checked at the generator's hints (`CoreMode.resFamTH`,
+# the disjunct that holds tried first) in slices (`CoreMode.sliceAll`) of weight at most `RES_B`, few: each slice builds
+# the body's tries and index once (`CoreMode.rcT`, `constT`, `AtomIx.of`), and the kernel's memory grows over one
+# evaluation with the residuals' weight; a residual a range check or a top-level selector bounds (`cheap_res`) is two
+# lookups in the tries, of weight `1 / RES_CHEAP`
+RES_B, RES_CHEAP = 16, 32
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
 # a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
-# time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
+# time (`CoreMode.faRetOk_of_kchunks`), from its return states' written cells computed once (`faRetWs`,
+# `CoreMode.retWs`, in the pack's `FaRet` beside its windows): one evaluation over a long run is the heaviest
+# declaration of its module
 FA_RUN = 64
 FA_B = 32
 
@@ -111,12 +116,21 @@ def faret(k):
     if m is None:
         return '', f'CoreMode.faRetOk_of_F {DK}'
     code = 'code.chunks.flatten'
-    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
+    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetCW cfun faRetWs {FA_B} {c} = true') for c in range(m))
     out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
-    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(f'faret{c}' for c in range(m))
+    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(
+        f'CoreMode.faRetC_of_W faRetWs_eq faret{c}' for c in range(m))
     out += thm(k, 'faret', f'CoreMode.faRetOk cfun {code} = true',
                f'\n  CoreMode.faRetOk_of_kchunks {FA_B} {m} (by decide) faret_runs {tail}')
     return out, 'faret'
+
+
+def fa_lit(k):
+    """`k`'s return states' written cells (`CoreMode.retWs`) computed once, for its frame run's chunks, or ''."""
+    if fa_chunks(k) is None:
+        return ''
+    return (f'kernel_lit Fn.«{k}».faRetWs : List (Option ℕ) :=\n'
+            f'  CoreMode.retWs Fn.«{k}».cfun.frame Fn.«{k}».code.chunks.flatten\n')
 
 
 # each pack's `DataC` text, read once
@@ -348,6 +362,24 @@ def hints_text(hs):
     return rl if len(rl) < len(flat) else flat
 
 
+# `Bridge.cellBits`: a cell's lane in a function's cells' lane vector (`CoreMode.laneCell`)
+CELL_BITS = 20
+
+
+def cell_lanes(k):
+    """`k`'s values' cells (`B2C.cellJ`, its certificate's `locs`) as a lane vector literal, lanes of `Bridge.cellBits`."""
+    import infer
+    locs = infer.D['comp'][k]['locs']
+    return packed.nat_hex(packed.pack(locs, CELL_BITS))
+
+
+def sel_bits(body):
+    """The selectors of a body's `match`es and `dispatch`es, at any depth, as a bitset literal over value numbers."""
+    import heapc
+    xs = {t[1] for t in heapc.stmts(body) if t[0] in ('match', 'dispatch')}
+    return packed.bits(xs)
+
+
 def res_cuts(k, items):
     """The slices' ends: each of weight at most `RES_B`, a cheap residual `1 / RES_CHEAP` (`cheap_res`), any other `1`."""
     cuts, acc = [], 0
@@ -385,6 +417,15 @@ def res_count(k, po):
 DK = '(by decide +kernel)'
 LEN = '(by rw [List.length_flatten]; decide +kernel)'
 K = '⟨envC, funC, code.chunks.flatten⟩'
+
+
+# the heap check with calls and loops as the route takes it (`CoreMode/HeapCSpec.lean`)
+HSPEC = 'CoreMode.HeapCSpec cfun.pows cfun.sigOf core hcert'
+
+
+def spec_of(prf):
+    """`HeapCSpec` from a proof of `heapOkC … = true` (`CoreMode.heapOkC_spec`)."""
+    return f'CoreMode.heapOkC_spec ({prf})'
 
 
 def thm(k, name, stmt, prf=DK):
@@ -475,7 +516,7 @@ def cfun_c(k, j, frame):
     """A body with calls: its core data, its heap check (`heapOkC` at its callees' heap signatures `csigs`, in windows
     past `heapwin.BUDGET`, `heap_proof`), the kernel's checks."""
     return (cfun_def(k, j, f'[], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true', heap_proof(k)) +
+            thm(k, 'heap_okC', HSPEC, spec_of(heap_proof(k))) +
             thm(k, 'core_callsB', 'CoreMode.callsB cfun = true') +
             checks(k, j, frame, '.c heap_okC rfl core_callsB rfl rfl', True))
 
@@ -533,14 +574,12 @@ def cfun_lc(k, j, frame):
     callees' heap signatures `csigs`, its signature, code and shape)."""
     if k in LONG:
         # its core data apart (`Gen/<pack>/Cfun.lean`), its passes in windows
-        return ('', thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
-                        'heap_okW' if heap_winL(k) else DK) +
+        return ('', thm(k, 'heap_okC', HSPEC, spec_of('heap_okW' if heap_winL(k) else DK)) +
                 thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                     'cfun.gl = true') +
                 thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') + LONG[k][3] + loop_long(k, j, frame))
     return (cfun_def(k, j, f'[], csigs, [], false, [], {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
-                'heap_okW' if heap_winL(k) else DK) +
+            thm(k, 'heap_okC', HSPEC, spec_of('heap_okW' if heap_winL(k) else DK)) +
             thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                 'cfun.gl = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +
@@ -953,9 +992,13 @@ def main(check=False):
             body.append(cfun_m(k, j, frame_term(frames[k])))
         base = 'LeanVM.Guest.CoreMode.Gen.«%s»' % p
         mod = f'{base}.Core'
-        data = 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
+        data = ('import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n'
+                'meta import LeanVM.Guest.Packed.NatLit\n\nset_option Elab.async false\n')
         pub = lambda ms: ''.join('public import %s\n' % m for m in sorted(ms))
         # past `SPLIT_W`, the core data apart (`Defs`) and the independent checks in windows beside each other
+        lits = ''.join(fa_lit(k) for k in ks)
+        if lits:
+            imps.add('LeanVM.Guest.KernelLit')
         cut = split_pack(decls_of(''.join(t for _, t in body)), core_leaf)
         if cut:
             cwins, rest = cut
@@ -963,16 +1006,24 @@ def main(check=False):
                 HEADER(mod=f'{base}.Defs', what='The core data of `%s` and %d more.' % (ks[0], len(ks) - 1)) + pub(imps) +
                 data + '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n' +
                 ''.join(d for d, _ in body) + '\nend\n\nend LeanVM.Guest\n')
+            # the return states computed once (`fa_lit`) beside the windows, read by the windows of the chunks
+            if lits:
+                files[os.path.join(GEN, p, 'FaRet.lean')] = (
+                    HEADER(mod=f'{base}.FaRet', what='The written cells at the returns of `%s`\'s pack\'s functions with '
+                           'long frame runs, computed once.' % ks[0]) + pub({f'{base}.Defs', 'LeanVM.Guest.KernelLit'}) +
+                    data + '\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n' + lits + '\nend\n\nend LeanVM.Guest\n')
             for w, ds in enumerate(cwins):
                 ws = sorted({re.search(r'Fn\.«([^»]+)»', d).group(1) for d in ds})
+                fa = lits and any('faRetWs' in d for d in ds)
                 files[os.path.join(GEN, p, f'CoreW{w}.lean')] = (
                     HEADER(mod=f'{base}.CoreW{w}', what='Window %d of the core route\'s checks of `%s`\'s pack.' % (w, ks[0])) +
-                    pub({f'{base}.Defs'}) + data + core_file(ws, [('', ''.join(ds))]))
-            imps = {f'{base}.Defs'} | {f'{base}.CoreW{w}' for w in range(len(cwins))} | imps | pimps
+                    pub({f'{base}.FaRet' if fa else f'{base}.Defs'}) + data + core_file(ws, [('', ''.join(ds))]))
+            imps = ({f'{base}.Defs'} | {f'{base}.CoreW{w}' for w in range(len(cwins))} | imps | pimps |
+                    ({f'{base}.FaRet'} if lits else set()))
             text = core_file(ks, [('', ''.join(rest))])
         else:
             imps |= pimps
-            text = core_file(ks, body)
+            text = core_file(ks, body + [(lits, '')])
         files[os.path.join(GEN, p, 'Core.lean')] = (
             HEADER(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
             pub(imps) + data + text +
@@ -1005,7 +1056,7 @@ def main(check=False):
                             f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
                 rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
-            elif res_count(k, po) > RES_B:
+            elif res_count(k, po) > 0:
                 fk = f'Fn.«{k}»'
                 items = res_items(k, po)
                 assert len(items) == res_count(k, po), k
@@ -1031,15 +1082,35 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
-                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list; its
-                # pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
+                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list
                 walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
-                prf = {'ptr': f'CoreMode.all_ptrCellB_of_T (by {walk})', 'ret': f'by {walk}'}
+                # the cells read from a lane vector checked against the certificate's (`CoreMode.lanesEq`), at the data the
+                # glue states (`CoreMode.FnV.of_tie`)
+                lanes = f'(L := {cell_lanes(k)}) (CoreMode.FnV.of_tie Fn.«{k}».tie Fn.«{k}».fsEq) (by decide +kernel)'
+                prf = {'ptr': f'CoreMode.all_ptrCellB_of_P {lanes} (by {walk})',
+                       'ret': f'CoreMode.all_retCellB_of_P {lanes} (by {walk})',
+                       # the atoms remembered cut to those using a selector (`CoreMode.keepIn`)
+                       'sel': f'by rw [CoreMode.selGo_of_keepL (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
+                              f'{sel_bits(heap.CORE[k][1])} {lanes} (by decide +kernel), Bool.true_or]',
+                       'rest': f'CoreMode.honRest_of_L {lanes.replace(" (by decide +kernel)", "")} (by decide +kernel)'}
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
-                rsplit.add('LeanVM.Guest.CoreMode.ResTab')
+                rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.CellLanes'}
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
+            # its links checked by its name's code (`CoreMode.glByCode`), not by comparing its name with each family's;
+            # a short body's cells read from a lane vector (`CoreMode.honL`), checked with its frame in one pass, at its
+            # data the glue states (`CoreMode.FnV.of_tie`), not looked up by its index
+            gl = [f'CoreMode.glOk_of_code CoreMode.FnReg.glCodes_ok (Cf := Fn.«{k}».cfun) (by decide +kernel)']
+            rsplit.add('LeanVM.Guest.CoreMode.Gen.FnCodes')
+            if k not in LONG and nstmts(heap.CORE[k][1]) <= HON_SPLIT:
+                gl.append(f'CoreMode.honB_of_honL (j := {x}) (fn := Fn.«{k}».cfun.fn) (L := {cell_lanes(k)}) '
+                          f'(CoreMode.FnV.of_tie Fn.«{k}».tie Fn.«{k}».fsEq) (by decide +kernel)')
+                rsplit.add('LeanVM.Guest.CoreMode.CellLanes')
+            gl = ', '.join(gl)
+            hb = (f'(by rw [{gl}]; decide +kernel)' if hb == '(by decide +kernel)' else
+                  hb.replace('(by rw [', f'(by rw [{gl}, ', 1))
+            assert gl in hb, hb
             # each its own declaration, its own heartbeats
             hx = f'Fn.«{k}».alignCtxEq' if k in LONG and align_ctx(k)[1] == 'alignCtxP' else 'rfl'
             decls.append(f'theorem cfOk{i} : CoreMode.CfOk Fn.«{k}».cfun := CoreMode.cfOk_of_tie (by decide) Fn.«{k}».tie '
@@ -1068,7 +1139,7 @@ def main(check=False):
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     have = (glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
-            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
+            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'FaRet', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
     stale = genfiles.sync(files, have, check)
     lines = sum(text.count('\n') for text in files.values())
     print('core route: %d functions, %d packs, %d files, %d lines' % (len(R), len(packs), len(files), lines) +

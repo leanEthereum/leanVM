@@ -33,6 +33,19 @@ def quiet(files):
     return {p: one(t) for p, t in files.items()}
 
 
+def sequential(files):
+    """`files` with their proofs elaborated one after another (`Elab.async` off after each module's imports): a
+    generated module is many proofs, and as parallel tasks they contend for the environment's shared reference counts,
+    the same work costing up to five times its sequential CPU time."""
+    def one(text):
+        ms = list(IMPORT.finditer(text))
+        if not ms:
+            return text
+        end = text.index('\n', ms[-1].start()) + 1
+        return text[:end] + '\nset_option Elab.async false\n' + text[end:]
+    return {p: one(t) for p, t in files.items()}
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
@@ -490,7 +503,8 @@ def bundles():
 
 @functools.cache
 def advice():
-    """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc."""
+    """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc and the parts
+    they are written in (the name and length of each, the name `None` for hints written whole)."""
     t = advice_text()
     ds = defs(t)
 
@@ -511,7 +525,11 @@ def advice():
         for p in hl(hs):
             pc, l = p[1]
             hints.append((pc, [isa_hint(h) for h in as_list(l, None)]))
-        out[entry] = dict(j=int(m.group(1)), entry=entry, length=length, hints=hints)
+        if isinstance(hs, tuple) and hs[0] == 'app' and hs[1] == ('id', 'List.flatten'):
+            parts = [(x[1], len(hl(x))) for x in as_list(hs[2][0], env)]
+        else:
+            parts = [(None, len(hints))]
+        out[entry] = dict(j=int(m.group(1)), entry=entry, length=length, hints=hints, parts=parts)
     return out
 
 

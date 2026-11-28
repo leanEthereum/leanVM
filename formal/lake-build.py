@@ -18,8 +18,9 @@ peak RSS and peak anonymous memory, over `DIR/lake-build.tsv` (the heavy modules
 rewrites); an unknown module is taken at 2 GB.
 
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
-module killed by the kernel there, or whose allocation fails (`std::bad_alloc`), is run again, alone; one that crashes, or runs past a multiple of its recorded
-time (`HANG_FACTOR`), is run again (`RETRIES`). After the first module that fails nothing more is admitted
+module killed by the kernel there, or whose allocation fails (`std::bad_alloc`, `INTERNAL PANIC: out of memory`), is run
+again, alone; one that crashes (a signal, or another `INTERNAL PANIC` of Lean's runtime) or runs past a multiple of its
+recorded time (`HANG_FACTOR`), is run again (`RETRIES`). After the first module that fails nothing more is admitted
 and the run fails (with `--keep-going`, every module that does not import a failed one is still built, so one run
 lists every failure, as when adapting the proofs to a spec change); otherwise `lake build --no-build` must find the targets up to date, and a plain `lake build` of
 them, which replays the warnings, ends the run.
@@ -65,9 +66,10 @@ GB = 1 << 30
 MB = 1 << 20
 DEFAULT_NEED = 2 * GB  # an unknown module's anonymous memory
 DEFAULT_WALL = 5.0  # an unknown module's time, for the priorities
-# Lean 4.35 now and then crashes (SIGSEGV) or stalls in a kernel cache's hash table on a module that otherwise builds
-# in seconds: a module past `HANG_FACTOR` times its recorded CPU time plus `HANG_SLACK` CPU seconds (`HANG_UNKNOWN`
-# without a record), doubled at each attempt, is stopped and, like a crashed one, run again, up to `RETRIES` times.
+# Lean 4.35 now and then crashes (SIGSEGV, or an `INTERNAL PANIC` from a corrupted object, such as "too many bound
+# variables", exit code 1) or stalls in a kernel cache's hash table on a module that otherwise builds in seconds: a
+# module past `HANG_FACTOR` times its recorded CPU time plus `HANG_SLACK` CPU seconds (`HANG_UNKNOWN` without a
+# record), doubled at each attempt, is stopped and, like a crashed one, run again, up to `RETRIES` times.
 # CPU time, not wall time, so that a module slowed by a busy machine is left alone.
 HANG_FACTOR, HANG_SLACK, HANG_UNKNOWN, RETRIES = 4.0, 180.0, 1800.0, 2
 TABLE = "lake-build.tsv"
@@ -131,7 +133,8 @@ def wrap(tool: str, args: list[str]) -> None:
                 child.returncode = code = os.waitstatus_to_exitcode(status)
                 # once more, alone; or again, after the watchdog or a crash
                 again_alone = not alone and (code == -signal.SIGKILL or out_of_memory(code, err))
-                again = not again_alone and code in (-signal.SIGTERM, -signal.SIGSEGV) and attempt < RETRIES
+                crashed = code in (-signal.SIGTERM, -signal.SIGSEGV) or internal_panic(code, err)
+                again = not again_alone and crashed and attempt < RETRIES
                 maxrss = usage.ru_maxrss // 1024 if MAC else usage.ru_maxrss  # KB; macOS counts bytes
                 say(f"done {code} {time.monotonic() - start:.3f} {usage.ru_utime + usage.ru_stime:.3f} {maxrss} "
                     f"{int(again_alone or again)}")
@@ -148,12 +151,21 @@ def wrap(tool: str, args: list[str]) -> None:
             sys.exit(code if code >= 0 else 128 - code)
 
 
+def stderr_has(err, text: bytes) -> bool:
+    err.seek(0)
+    return text in err.read()
+
+
 def out_of_memory(code: int, err) -> bool:
     """Whether a module stopped because an allocation failed (the scope's memory cap, or `ulimit -v`)."""
-    if code != -signal.SIGABRT:
-        return False
-    err.seek(0)
-    return b"std::bad_alloc" in err.read()
+    return (code == -signal.SIGABRT and stderr_has(err, b"std::bad_alloc")) or \
+        (code == 1 and stderr_has(err, b"INTERNAL PANIC: out of memory"))
+
+
+def internal_panic(code: int, err) -> bool:
+    """Whether Lean's runtime gave up (`lean_internal_panic`, exit code 1): a crash, never an elaboration error. A
+    deterministic one fails again on each of its `RETRIES`."""
+    return code == 1 and stderr_has(err, b"INTERNAL PANIC: ")
 
 
 # The estimates and the priorities.

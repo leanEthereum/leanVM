@@ -1,9 +1,9 @@
-"""Writes `Guest/CoreMode/Gen/MonoCallers{k}.lean` and `MonoWalkOk.lean`: the callers' check of
-`child_claim_list_mono` and its callees over the whole program by ranges (`Res.monoCallers`) and the gap walk's
+"""Writes `Guest/CoreMode/Gen/MonoWalkOk.lean`: the callers' check of `child_claim_list_mono` and its callees over
+the whole program (`Res.monoCallers`, from the ranges `down.py` checks, `Gen/Down{k}.lean`) and the gap walk's
 other checks (`EndExec.MonoOk`, `mono_ok`), which the core route's `ml` family reads. `--check` writes nothing
 and fails when a file differs.
 Usage: python3 -I scripts/core-mode/monocall.py [--check]"""
-import sys, os, glob
+import sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -19,19 +19,10 @@ header = genfiles.header('core-mode/monocall.py')
 
 def render():
     files = {}
-    n = resgen.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in resgen.RANGES]
-    mods = []
-    for k, (a, m) in enumerate(ranges):
-        mod = 'LeanVM.Guest.CoreMode.Gen.MonoCallers%d' % k
-        t = [header(mod, 'The callers\' check of `monoCallers`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem monoCallers_%d : RangeOk (fun _ fn => callersG monoCallers fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
-        files[mod] = ''.join(t); mods.append(mod)
+    ranges = resgen.down_ranges()
     mod = 'LeanVM.Guest.CoreMode.Gen.MonoWalkOk'
     t = [header(mod, 'The gap walk\'s checks.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
     t.append('public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResMR\n\n'
              'namespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Res LeanVM.Guest.Memory\n\n'
              'public section\n\n')
@@ -50,7 +41,7 @@ def render():
 
 def main(argv):
     files = render()
-    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'MonoCallers*.lean')), '--check' in argv)
+    bad = genfiles.sync(files, (), '--check' in argv)
     genfiles.fail_if_stale(bad, '--check' in argv)
     print('MonoWalk: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 

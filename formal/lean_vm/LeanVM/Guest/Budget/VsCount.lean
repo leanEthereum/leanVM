@@ -261,6 +261,14 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h8 : Bs.getD 8 0 
   simp only [vsWs, List.sum_cons, List.sum_nil]
   omega
 
+/-- `verify_bus_gkr`'s bound among `verify_sub`'s callees' (`B1.VerifySub.vsBsWith`), for any frame sizes. -/
+theorem vsBsAt_getD8 {fs : String → ℕ} (W : B1.VerifySub.VsWordsOs fs) (Bvk μ r : ℕ) :
+    (B1.VerifySub.vsBsAt W Bvk μ r).getD 8 0 = B1.Tables.vbgMax fs W.vbg := rfl
+
+/-- `verify_keccak`'s bound among `verify_sub`'s callees' (`B1.VerifySub.vsBsWith`). -/
+theorem vsBsAt_getD10 {fs : String → ℕ} (W : B1.VerifySub.VsWordsOs fs) (Bvk μ r : ℕ) :
+    (B1.VerifySub.vsBsAt W Bvk μ r).getD 10 0 = Bvk := rfl
+
 /-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs` at
 `Count.vsWordsOs`), `verify_bus_gkr`'s and `verify_keccak`'s bounds within `39767` and `56404`
 words: at most `vsCountT op` at the arm `μ - 20`. -/
@@ -273,7 +281,7 @@ theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hμ1 : 20 ≤ μ) (h
     t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (μ - 20) 0 := by
   have h1 := vs_weight_le op hμ1 hμ2 hd h hv hb
   have h2 := vsWs_mono op (μ - 20) (Bs := B1.VerifySub.vsBsAt vsWordsOs Bvk μ r)
-    (Bs' := vsBs0) h5 h7
+    (Bs' := vsBs0) (by rw [vsBsAt_getD8]; exact h5) (by rw [vsBsAt_getD10]; exact h7)
   have h3 := vsCountT_eq op _ (by omega : μ - 20 < 11)
   have h4 := om_eq op (i := 0) (by norm_num)
   simp only [omNames, List.getD_cons_zero] at h4

@@ -156,13 +156,13 @@ th = 'set_option maxRecDepth 100000 in\ntheorem %s : %s := by\n  decide +kernel\
 for m in range(ARMS):
     t = osBos(m)
     total.append(t)
-    mod('VsOs%02d' % m, '`open_stacked`\'s words at the arm %d (`osCF`), and its callees\' words certificates, by '
-        'the kernel.' % m, imp,
-        '\n' + th % ('osCF_%d' % m, 'osCF %d = %d' % (m, t))
-        + '\n' + th % ('osNames_ok_%d' % m, '(B1.osCalleeNames (B1.Whir.osCfg %d)).all (leafOkB %d) = true' % (m, m)))
+    mod('VsOs%02d' % m, '`open_stacked`\'s words at the arm %d (`osCF`) and its callees\' words certificates, by '
+        'one kernel evaluation, which walks the arm\'s body once for both.' % m, imp,
+        '\n' + th % ('osArm_ok_%d' % m, 'osCF %d = %d ∧ (B1.osCalleeNames (B1.Whir.osCfg %d)).all (leafOkB %d) = true'
+                      % (m, t, m, m)))
     comb.append('/-- `open_stacked`\'s words at the arm %d. -/\ntheorem osC_%d : osC %d = %d := by\n'
-                '  rw [osC_eq_fast, osCF_%d]\n' % (m, m, m, t, m))
-    names.append('osNames_ok_%d' % m)
+                '  rw [osC_eq_fast, osArm_ok_%d.1]\n' % (m, m, m, t, m))
+    names.append('osArm_ok_%d.2' % m)
 comb.append('/-- `open_stacked`\'s words at the arms, in order. -/\ndef osCs : List ℕ := [%s]\n\n'
             '/-- `open_stacked`\'s words at an arm, from the table. -/\n'
             'theorem osC_getD {m : ℕ} (hm : m < %d) : osC m = osCs.getD m 0 := by\n'

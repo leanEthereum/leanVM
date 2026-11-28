@@ -57,9 +57,7 @@ def deployed_value(W, name):
 def deployed_parts(W):
     """`DeployedC`'s `agA0_eq` and `agA1_eq`."""
     return [dict(mod='DeployedC', key=6, items=[
-        W.thm('agA0_eq', 'agA0 B2C.fs wSB', W.v('agA0'), 'agA0', [], fs=[W.L('aggregate_claims')],
-              sb=['batch_sumcheck__L23']),
-        W.thm('agA1_eq', 'agA1 B2C.fs wSK', W.v('agA1'), 'agA1 B1.Main.iterK', [], fs=_lps(), sk=_lps())])]
+        W.thm('agA0_eq', 'agA0 B2C.fs wSB', W.v('agA0')), W.thm('agA1_eq', 'agA1 B2C.fs wSK', W.v('agA1'))])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand

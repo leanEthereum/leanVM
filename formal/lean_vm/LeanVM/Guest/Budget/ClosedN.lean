@@ -18,7 +18,7 @@ namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
 
-open LeanVM.Node
+open LeanVM.Node LeanVM.Parameters
 open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
 
 @[expose] public section
@@ -30,16 +30,24 @@ theorem guestComplete_mono {b b' : NodeStatement → NodeWitness → ℕ} (h : E
     End.GuestComplete b' :=
   fun seed s w hr hl hok hb => h seed s w hr hl hok ((hle seed s w hr hl hok).trans hb)
 
-/-- The deployed budget grows with `verify_sub`'s words at the work's children's shapes. -/
-theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
+/-- A budget grows with `verify_sub`'s words at the work's children's shapes. Stated for any frame sizes and
+bounds: at the deployed ones the kernel would evaluate their closed sums while checking the arithmetic. -/
+theorem mainBudget_size_mono {fs SB SK : String → ℕ} {ω : Opcode → String → ℕ} {H : ∀ op, MainCounts (ω op) fs}
+    {c5 s5 : Opcode → ℕ} {v5 : Opcode → ℕ → ℕ → ℕ} {jt : Opcode → ℕ} {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
     (h : ∀ p ∈ u.childShapes, Bvf p.1 p.2 ≤ Bvf' p.1 p.2) :
-    (deployedBudget Bvf).size u ≤ (deployedBudget Bvf').size u := by
+    (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt).size u ≤ (mainBudget fs SB SK Bvf' ω H c5 s5 v5 jt).size u := by
   apply End.sizeOf_mono
-  · simp only [deployedBudget, mainBudget, End.Linear.eval, B1.Main.mainWords]
+  · simp only [mainBudget, End.Linear.eval, B1.Main.mainWords]
     have := List.sum_le_sum (l := u.childShapes) (f := fun p => Bvf p.1 p.2)
       (g := fun p => Bvf' p.1 p.2) h
     omega
   · exact fun _ => le_rfl
+
+/-- The deployed budget grows with `verify_sub`'s words at the work's children's shapes. -/
+theorem deployedBudget_size_mono {Bvf Bvf' : ℕ → ℕ → ℕ} (u : End.Work)
+    (h : ∀ p ∈ u.childShapes, Bvf p.1 p.2 ≤ Bvf' p.1 p.2) :
+    (deployedBudget Bvf).size u ≤ (deployedBudget Bvf').size u :=
+  mainBudget_size_mono u h
 
 /-- **`verify_sub`'s words for a child of announced stack log `μ`** at the deployed instance:
 entry `μ - 20` for the guest's opening arms (`20 ≤ μ ≤ 30`, whatever the rate `1 ≤ r ≤ 4`); `0`

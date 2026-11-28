@@ -68,11 +68,24 @@ def components : List (Component K) := (leanIsaEnsemble prog0 2).tables
 -- The widths are the Rust's committed column counts, and the blocks' row widths.
 example : components.map Component.width = [13, 13, 7, 14, 14, 92, 4, 15] := by decide +kernel
 
--- The count columns are `count_columns()`, in its order; the memory block's finalize count is its
--- column `3` (after the word's two limbs and the address), the bytecode block's its column `1`.
-example : components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
-    [[9, 10, 11, 12], [9, 10, 11, 12], [5, 6], [10, 11, 12, 13], [8, 9, 10, 11],
-      (List.range 27).map (65 + ·), [3], [1]] := by
+-- The facts that read the eight components' messages, in one kernel evaluation, which builds each
+-- component's messages once:
+example :
+    -- the count columns are `count_columns()`, in its order; the memory block's finalize count is
+    -- its column `3` (after the word's two limbs and the address), the bytecode block's its
+    -- column `1`;
+    components.map (fun c ↦ (c.toM3 channelSep channelDir counted).count.map (·.val)) =
+        [[9, 10, 11, 12], [9, 10, 11, 12], [5, 6], [10, 11, 12, 13], [8, 9, 10, 11],
+          (List.range 27).map (65 + ·), [3], [1]] ∧
+    -- every message coordinate has syntactic degree at most two;
+    (components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
+      i.msg.toList.all fun e ↦ e.degreeBound ≤ 2) ∧
+    -- every read count of the eight components is a column: no count column is lost;
+    (components.all fun c ↦ decide (CountsAreVariables c counted)) ∧
+    -- every expression of the eight components is within its width.
+    (components.all fun c ↦ (c.rowOperations.constraints.all fun e ↦
+      decide (e.WithinWidth c.width)) && c.rowOperations.interactions.all fun i ↦
+        i.msg.toList.all fun e ↦ decide (e.WithinWidth c.width)) := by
   decide +kernel
 
 -- Only `JUMP` has constraints: two, of degree two. No component has a lookup.
@@ -82,19 +95,10 @@ example : components.map (fun c ↦ c.rowOperations.constraints.map Expression.d
 example : components.map (fun c ↦ c.rowOperations.lookups.length) = [0, 0, 0, 0, 0, 0, 0, 0] := by
   decide +kernel
 
--- Every message coordinate has syntactic degree at most two.
-example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
-    i.msg.toList.all fun e ↦ e.degreeBound ≤ 2 := by
-  decide +kernel
-
 -- The `JUMP` table's flushes: ten interactions, the state pull and push first; the push is
 -- on the push side of the bus.
 #guard ((opcodeComponent jumpTable).toM3 channelSep channelDir counted).flushes.map (·.1) =
   [.pull, .push, .pull, .push, .pull, .push, .pull, .push, .pull, .push]
-
--- Every read count of the eight components is a column: no count column is lost.
-example : components.all fun c ↦ decide (CountsAreVariables c counted) := by
-  decide +kernel
 
 -- Every multiplicity of the components but `KECCAK`'s is `1` or `-1`, so the tables drop none. A
 -- pull's is Clean's constant `1`, its direction `.pull` (where it was `-1` before Clean's
@@ -124,12 +128,6 @@ example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
 -- A constant count is no count column: the predicate rejects it.
 example : ¬ CountsAreVariables (memComponent 2) fun c ↦
     c.name = MemPush.name := by
-  decide +kernel
-
--- Every expression of the eight components is within its width.
-example : components.all fun c ↦ (c.rowOperations.constraints.all fun e ↦
-    decide (e.WithinWidth c.width)) && c.rowOperations.interactions.all fun i ↦
-      i.msg.toList.all fun e ↦ decide (e.WithinWidth c.width) := by
   decide +kernel
 
 end LeanVMTests.Protocol.ComponentPolynomial

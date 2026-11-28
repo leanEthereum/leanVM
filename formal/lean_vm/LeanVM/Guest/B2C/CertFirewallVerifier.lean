@@ -1,5 +1,6 @@
 import LeanVM.Guest.B2C.Cpl
-import LeanVM.Guest.B2C.ShareStatic
+import LeanVM.Guest.B2C.ShareLSeg
+import LeanVM.Guest.B2C.ShareChecked
 import LeanVM.Guest.CheckWinC
 import LeanVM.Guest.Memory.Family
 
@@ -8,8 +9,8 @@ import LeanVM.Guest.Memory.Family
 kernel evaluation, read the guest's code, the ISA and the field (`Statement.Field`, with `eOfNat`
 and `gen`; the field's bit facts in `Value/FieldBits.lean`), not the verifier
 (`Statement.LeanVmVerifier`, `Statement.Verifier`), so that an edit of the verifier's statement rebuilds none of them
-(`CertFirewall.lean` guards the rest of their imports). This module, which imports their four
-bases, fails to build if their imports reach the verifier or `Value.Tower`. -/
+(`CertFirewall.lean` guards the rest of their imports). This module, which imports their bases,
+fails to build if their imports reach the verifier or `Value.Tower`. -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do

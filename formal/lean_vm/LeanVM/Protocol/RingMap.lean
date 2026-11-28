@@ -408,7 +408,7 @@ theorem card_ringTarget_bad_le {s z : Fin 64 → E} (h : s ≠ z) :
     h (funext fun i ↦ sub_eq_zero.mp (congrFun h0 i))
   refine le_trans ?_ (card_ringSwitch_zero_le hδ)
   refine Nat.card_le_card_of_injective (fun fg ↦ ⟨fg.1, ?_⟩)
-    fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
+    fun _ _ h ↦ Subtype.ext (Subtype.mk.inj h)
   rw [← ringTarget_sub, fg.2, sub_self]
 
 /-- **Soundness** (§A.4): slice claims `s ≠ z` meet the honest value at a fraction `2/|E|` of the
@@ -423,7 +423,7 @@ theorem ringTarget_bad_ratio_le {s z : Fin 64 → E} (h : s ≠ z) :
   refine le_trans ?_ (ringSwitch_zero_ratio_le hδ)
   gcongr
   refine Nat.card_le_card_of_injective (fun fg ↦ ⟨fg.1, ?_⟩)
-    fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
+    fun _ _ h ↦ Subtype.ext (Subtype.mk.inj h)
   rw [← ringTarget_sub, fg.2, sub_self]
 
 end

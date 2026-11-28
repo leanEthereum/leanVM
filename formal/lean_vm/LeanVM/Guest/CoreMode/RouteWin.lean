@@ -83,14 +83,14 @@ theorem noRetTop_append : ∀ (x y : List Stmt), noRetTop x = true → noRetTop 
 
 theorem selGo_append (j : ℕ) (ps : List V) (B : List Stmt) : ∀ (seen : List Atom) (x y : List Stmt), noRetTop x = true →
     selGo j ps B seen (x ++ y) = (selGo j ps B seen x && selGo j ps B (seenF seen x) y)
-  | seen, [], y, _ => by simp [selGo, seenF]
+  | seen, [], y, _ => by simp [selGo, selGoK, seenF]
   | seen, s :: x, y, h => by
     cases s with
-    | atom a => simp only [List.cons_append, selGo, seenF]; exact selGo_append j ps B (a :: seen) x y h
+    | atom a => simp only [List.cons_append, selGo, selGoK, seenF]; exact selGo_append j ps B (a :: seen) x y h
     | ret vs => simp [noRetTop] at h
     | _ =>
       simp only [noRetTop] at h
-      simp only [List.cons_append, selGo, seenF, selGo_append j ps B seen x y h, Bool.and_assoc]
+      simp only [List.cons_append, selGo, selGoK, seenF, selGo_append j ps B seen x y h, Bool.and_assoc]
 
 /-- **The selectors' check over slices from `a`**, each with no top-level `ret`, from the top-level atoms
 before it. -/
@@ -106,7 +106,7 @@ theorem swins_spec {j : ℕ} {ps : List V} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List ℕ}, SWins j ps l e a cs →
       a ≤ e ∧ noRetTop (slice l a e) = true ∧ selGo j ps l (seenF [] (l.take a)) (slice l a e) = true := fun h ↦
   wins_fold (Q := fun a _ ↦ noRetTop (slice l a e) = true ∧ selGo j ps l (seenF [] (l.take a)) (slice l a e) = true)
-    (by simp [slice_self, noRetTop, selGo]) (fun {a b _} hab hbe hw hq ↦ by
+    (by simp [slice_self, noRetTop, selGo, selGoK]) (fun {a b _} hab hbe hw hq ↦ by
       simp only [id] at hab hbe hw hq
       rw [Bool.and_eq_true] at hw
       refine ⟨?_, ?_⟩
@@ -152,7 +152,7 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
     have e := selGo_append j fn.params fn.body [] _ [.ret []] hn
     rw [hsel, ← hb] at e
     rw [e]
-    simp [selGo, noMatch, noDsp, stmtsOf]
+    simp [selGo, selGoK, noMatch, noDsp, stmtsOf]
 
 /-- **`faOkB` of a function with no `frameAddr`.** -/
 theorem faOkB_of_noFA {j : ℕ} {Cf : CFun} (h : noFA Cf.fn.body = true) : faOkB j Cf = true := by

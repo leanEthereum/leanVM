@@ -7,7 +7,7 @@ not grow.
 
 `results()` returns `{name: dict(pass, sig, cs)}` for the functions whose certificate is complete, and the reasons of the
 others. Usage: python3 -I scripts/core-mode/callc.py --emit [--check] [--why]"""
-import os, re, sys, collections
+import contextlib, io, os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
@@ -1242,46 +1242,60 @@ GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
 def windows(R, po, shared=frozenset()):
     """The heap checks estimated past `heapwin.BUDGET` (the heartbeats, or the memory a module may take), in windows
     (`heapwin.one`): `GenW/<fn>/`, its `Ok.lean` stating `Fn.«fn».heap_okW` at the callees' signatures `csigs` as
-    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes, by path."""
-    import heapwin
+    `CFun.sigOf` reads them, which `core.py`'s `heap_okC` takes, by path. Each function on its own, in worker processes
+    (`pmap.py`), its report printed in order."""
     import heap
     epo = heap.pack_of()
+
+    def one(k):
+        with contextlib.redirect_stdout(io.StringIO()) as log:
+            fs = windows_of(k, R[k], po, epo, shared)
+        return fs, log.getvalue()
     files = {}
-    for k in sorted(R):
-        H = R[k]['cert']
-        sigs = {I.callee(f): h for f, h in R[k]['cs'].items()}
-        sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
-        if getattr(H, 'arms', None):
-            # a split: each arm one kernel evaluation (`core.heap_proof`), or its windows (`GenW/<fn>/A<r>/`), its
-            # namespace `Fn.«fn».Arm<r>` where `core` and `hcert` are the arm's (`Def.lean`)
-            for r in range(len(H.arms)):
-                with I.at_arm(k, (H.sel, r)):
-                    Hr = arm_cert(H, r)
-                    if heapwin.fn_cost(k, Hr, sigOf) <= heapwin.BUDGET:
-                        continue
-                    base = 'LeanVM.Guest.CoreMode.GenW.«%s».A%d' % (k, r)
-                    ns = 'LeanVM.Guest.Fn.«%s».Arm%d' % (k, r)
-                    gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW', base=base, ns=ns,
-                               lpre='a%d_' % r, one=True,
-                               pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
-                               data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
-                               names=sorted(R[k]['cs']))
-                    d = os.path.join(GENW, k, 'A%d' % r)
-                    arm = {os.path.join(d, 'Def.lean'): arm_def(k, r, H.sel, po, base, ns)}
-                    arm.update((os.path.join(d, name + '.lean'), text) for name, text in heapwin.one(k, Hr, sigOf, epo, gen))
-                    # the arm's definitions in the first module of its context, which imports them
-                    first = 'CxD0' if os.path.join(d, 'CxD0.lean') in arm else 'Cx'
-                    files.update(genfiles.merge(arm, {os.path.join(d, first + '.lean'): (
-                        f'{base}.{first}', None, [os.path.join(d, 'Def.lean'), os.path.join(d, first + '.lean')])}, None))
-            continue
-        if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
-            continue
-        gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
-                   pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
-                   data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
-                   names=sorted(R[k]['cs']))
-        for name, text in heapwin.one(k, H, sigOf, epo, gen):
-            files[os.path.join(GENW, k, name + '.lean')] = text
+    for fs, log in pmap(one, sorted(R)):
+        sys.stdout.write(log)
+        files.update(fs)
+    return files
+
+
+def windows_of(k, r, po, epo, shared):
+    """`k`'s windows (`windows`), `r` its result."""
+    import heapwin
+    files = {}
+    H = r['cert']
+    sigs = {I.callee(f): h for f, h in r['cs'].items()}
+    sigOf = lambda g, sigs=sigs: sigs.get(I.callee(g), heapwin.C.EMPTY)
+    if getattr(H, 'arms', None):
+        # a split: each arm one kernel evaluation (`core.heap_proof`), or its windows (`GenW/<fn>/A<r>/`), its
+        # namespace `Fn.«fn».Arm<r>` where `core` and `hcert` are the arm's (`Def.lean`)
+        for a in range(len(H.arms)):
+            with I.at_arm(k, (H.sel, a)):
+                Ha = arm_cert(H, a)
+                if heapwin.fn_cost(k, Ha, sigOf) <= heapwin.BUDGET:
+                    continue
+                base = 'LeanVM.Guest.CoreMode.GenW.«%s».A%d' % (k, a)
+                ns = 'LeanVM.Guest.Fn.«%s».Arm%d' % (k, a)
+                gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW', base=base, ns=ns,
+                           lpre='a%d_' % a, one=True,
+                           pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, r, shared) else 'sig_pre',
+                           data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
+                           names=sorted(r['cs']))
+                d = os.path.join(GENW, k, 'A%d' % a)
+                arm = {os.path.join(d, 'Def.lean'): arm_def(k, a, H.sel, po, base, ns)}
+                arm.update((os.path.join(d, name + '.lean'), text) for name, text in heapwin.one(k, Ha, sigOf, epo, gen))
+                # the arm's definitions in the first module of its context, which imports them
+                first = 'CxD0' if os.path.join(d, 'CxD0.lean') in arm else 'Cx'
+                files.update(genfiles.merge(arm, {os.path.join(d, first + '.lean'): (
+                    f'{base}.{first}', None, [os.path.join(d, 'Def.lean'), os.path.join(d, first + '.lean')])}, None))
+        return files
+    if heapwin.fn_cost(k, H, sigOf) <= heapwin.BUDGET:
+        return files
+    gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
+               pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, r, shared) else 'sig_pre',
+               data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
+               names=sorted(r['cs']))
+    for name, text in heapwin.one(k, H, sigOf, epo, gen):
+        files[os.path.join(GENW, k, name + '.lean')] = text
     return files
 
 

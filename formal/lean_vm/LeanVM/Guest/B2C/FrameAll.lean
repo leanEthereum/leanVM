@@ -69,7 +69,7 @@ theorem read_siteL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} 
     (2 ≤ s.q → s.q < fsN j → L.read (addressOfIndex (I.fp + s.q)) = some (ofK (addressOfIndex kfp))) ∧
     (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
       L.read (addressOfIndex (I.fp + s.tgt)) = some (ofK (addressOfIndex (entryOf c.f)))) := by
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨n, rfl, -, -, -, -, hfs, -⟩ := fn_of_idx hj
   have hsm := siteOf_mem hs
   have hsq : s.q ∈ siteCells (plumbOf (n + 1)) := by
@@ -179,7 +179,7 @@ theorem tailArgs_last {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} (hw : wa
   have hloop : fn.loop = true := by unfold Fn.loop; rw [hrev]; exact hb.1
   have hbody : fn.body = rpre.reverse ⧺ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
-  rw [hbody, walk_append_sh] at hw
+  rw [hbody, walk_appendC] at hw
   refine ⟨hloop, ?_⟩
   have hw2 : walk σ [Stmt.callIf cc g args, Stmt.ret []] =
       .ret [.inK cc, if σ cc = 0 then .skip g args else .call g args []] [] := by
@@ -284,7 +284,7 @@ theorem frameHolds_cover (hsa : ∀ j σ es vs, 1 ≤ j → j < nFns → walk σ
       rw [List.getLast?_eq_getElem?, hlen, ← hi, Nat.add_sub_cancel]; exact hkfp
     have hkt := frame_tail hI ht hj hl hlast
     obtain ⟨hk2, rfl⟩ := List.getElem?_eq_some_iff.mp hca
-    obtain ⟨Ψ, hΨ, -⟩ := shareOk_path hS hchk hw he
+    obtain ⟨Ψ, hΨ, -⟩ := shareOk_path hS hw he
     have hvw : σ v = σ c.args[k] := by
       rw [hΨ v hv (by omega), hΨ _ (List.mem_append_left _ (List.mem_append_right _ hwu)) (by omega), hcv, hcw]
     have e : I.fp + (fsN (n + 1) + (2 + k)) = kfp + (2 + k) := by rw [hkt]; omega

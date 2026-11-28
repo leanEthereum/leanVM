@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.CplCheck
-public import LeanVM.Guest.B2C.ShareCheck
+public import LeanVM.Guest.B2C.ShareDefs
 public import LeanVM.Guest.Memory.Fresh
 
 namespace LeanVM.Guest.B2C

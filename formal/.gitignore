@@ -121,6 +121,7 @@ __pycache__/
 /lean_vm/LeanVM/Guest/Bridge/ProgAl/
 /lean_vm/LeanVM/Guest/Bridge/WitChk/
 /lean_vm/LeanVM/Guest/Bridge/ProgAlData.lean
+/lean_vm/LeanVM/Guest/Bridge/IdxData.lean
 /lean_vm/LeanVM/Guest/CoreMode/AlignOk/
 /lean_vm/LeanVM/Guest/CoreMode/Gen/
 /lean_vm/LeanVM/Guest/CoreMode/GenW/

@@ -50,7 +50,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       CoreMode.cellB j x = true ∧ ∃ a, (a ∈ seen ∨ Ev.atom a ∈ es) ∧ x ∈ Memory.atomUses a
   | _, [], _, _, _, _, _, _, _, hm => absurd hm List.not_mem_nil
   | seen, .atom b :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_atom_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
@@ -64,7 +64,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       · exact Or.inl ha
     · exact Or.inr (by simp [ha])
   | seen, .match_ y arms' :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at h
     obtain ⟨⟨⟨hc, ⟨a, ha, hu⟩⟩, -⟩, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rcases List.mem_cons.mp hm with h' | hm
@@ -76,7 +76,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
         exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
       · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
   | seen, .ite c z n :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
     obtain ⟨-, h⟩ := h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rcases List.mem_cons.mp hm with h' | hm
@@ -87,12 +87,12 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
         exact ⟨hc', a', ha'.imp id (List.mem_append_right _), hu'⟩
       · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
   | seen, .ret vs' :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
     rcases List.mem_cons.mp hm with h' | hm
     · cases h'
     · exact (CoreMode.noMatch_mem h.1 (mem_stmtsOf hm)).elim
   | seen, .call f args rets :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_call_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
@@ -101,7 +101,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
     obtain ⟨hc, a, ha, hu⟩ := selGo_selM seen ss h ht.2 hw' x arms hm
     exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
   | seen, .callIf c f args :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rw [walk_callIf_cons] at hw
     obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
@@ -110,7 +110,7 @@ theorem selGo_selM {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
     obtain ⟨hc, a, ha, hu⟩ := selGo_selM seen ss h ht.2 hw' x arms hm
     exact ⟨hc, a, ha.imp id (fun h ↦ by simp [h]), hu⟩
   | seen, .dispatch y fs' args' rets' :: ss, es, vs, h, ht, hw, x, arms, hm => by
-    simp only [CoreMode.selGo, Bool.and_eq_true] at h
+    simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
     simp only [List.all_cons, Bool.and_eq_true] at ht
     rcases List.mem_cons.mp hm with h' | hm
     · cases h'
@@ -139,7 +139,7 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
     rcases hm with hm | hm | hm
     · -- the head
       subst hm
-      simp only [CoreMode.selGo, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
+      simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true, Bool.or_eq_true, List.contains_iff_mem, decide_eq_true_eq,
         List.any_eq_true] at h
       obtain ⟨⟨hc, hsel⟩, -⟩ := h
       rcases hsel with hp | ⟨a, ha, hu⟩
@@ -149,7 +149,7 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
     · -- the tail
       cases s with
       | atom b =>
-        simp only [CoreMode.selGo] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK] at h
         rw [walk_atom_cons] at hw
         obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
         obtain ⟨hc, hr⟩ := selGo_selD (b :: seen) ss h ht.2 hw' x fs args rets hm
@@ -160,30 +160,30 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
           · exact Or.inl ha
         · exact Or.inr (by simp [ha])
       | ret _ =>
-        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
         have := List.all_eq_true.mp h.2 _ hm
         simp at this
       | match_ _ _ | ite _ _ _ =>
-        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
         rw [walk] at hw
         rcases seq_eq_ret hw with ⟨es1, es2, -, h2, rfl⟩ | h1
         · obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 h2 x fs args rets hm
           exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (List.mem_append_right _), hu⟩⟩
         · exact absurd h1 (CoreMode.walk1_noRetP _ (CoreMode.noRet_of_topOk ht.1) _ _)
       | call f a r =>
-        simp only [CoreMode.selGo] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK] at h
         rw [walk_call_cons] at hw
         obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
         obtain ⟨hc, hr⟩ := selGo_selD seen ss h ht.2 hw' x fs args rets hm
         exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
       | callIf c f a =>
-        simp only [CoreMode.selGo] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK] at h
         rw [walk_callIf_cons] at hw
         obtain ⟨es', hw', rfl⟩ := pre_eq_ret hw
         obtain ⟨hc, hr⟩ := selGo_selD seen ss h ht.2 hw' x fs args rets hm
         exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
       | dispatch y fs' args' rets' =>
-        simp only [CoreMode.selGo, Bool.and_eq_true] at h
+        simp only [CoreMode.selGo, CoreMode.selGoK, Bool.and_eq_true] at h
         obtain ⟨f, -, es', rfl, hw'⟩ := CoreMode.walk_dispatch_ret hw
         obtain ⟨hc, hr⟩ := selGo_selD seen ss h.2 ht.2 hw' x fs args rets hm
         exact ⟨hc, hr.imp id fun ⟨a, ha, hu⟩ ↦ ⟨a, ha.imp id (fun h ↦ by simp [h]), hu⟩⟩
@@ -476,7 +476,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   -- the honest valuation
   rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
   obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
-  simp only [CoreMode.honB, CoreMode.stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hb0
+  simp only [CoreMode.honB, CoreMode.honAt, CoreMode.stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
   -- `main`'s instance is the root, in frame `0`
@@ -491,7 +491,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     -- a parameter at its cell
     intro k hk
     have hc := hcells k (List.mem_range.mpr hk)
-    simp only [Nat.beq_eq, decide_eq_true_eq] at hc
+    simp only [Nat.beq_eq, CoreMode.FnV.of_fs] at hc
+    have hfs : 2 + k < fsN j := of_decide_eq_true hc.2
     have hpe := CoreMode.paramsN_eq _ 0 hpar
     have hnamed : V.n k ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by
       simp only [namedOf, List.mem_append]
@@ -630,7 +631,8 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     obtain ⟨rfl, rfl⟩ := hw0
     have hmem := Bridge.walk_atomS (σ := e.σ) Cf.fn.body (by rw [hfn, hw]; exact hl)
     have hc := hptr _ hmem
-    simp only [CoreMode.ptrCellB, hpa, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    simp only [CoreMode.ptrCellAt, CoreMode.valCell, hpa, Bool.and_eq_true,
+      Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
     have hloc : Cf.X.locAt p.idx = cellJ j p := by
       rw [← hx0]
@@ -659,9 +661,9 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
     have hc := hrc _ (Bridge.walk_retS _ (by rw [hfn]; exact hw))
-    simp only [CoreMode.retCellB, List.all_eq_true] at hc
+    simp only [CoreMode.retCellAt, List.all_eq_true] at hc
     have hc := hc v hv
-    simp only [Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+    simp only [CoreMode.valCell, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
     have hloc : Cf.X.locAt v.idx = cellJ j v := by
       rw [← hx0]
@@ -722,7 +724,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
         Ev.atom a ∈ e.pre ++ e.es) ∧ x ∈ Memory.atomUses a)) →
         CoreMode.Rd r.img e.I.fp ((Bridge.ctxOf j).locAt x.idx) = some (e.σ x) := by
       rintro x ⟨hc, hsel⟩
-      simp only [CoreMode.cellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
+      simp only [CoreMode.cellB, CoreMode.valCell, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
       obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
       have hloc : (Bridge.ctxOf j).locAt x.idx = cellJ j x := Bridge.locAt_ofData (List.all_eq_true.mpr hlocs) hx hidx
       have hnamed : x ∈ namedOf (coreOf j).params (e.pre ++ e.es) vs := by

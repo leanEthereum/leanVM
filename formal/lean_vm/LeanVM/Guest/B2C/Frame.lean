@@ -29,124 +29,10 @@ open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 @[expose] public section
 
-/-! ## Bits -/
-
-section Bits
-
-theorem bitsNodup_spec : ∀ (l : List ℕ) (s : ℕ), bitsNodup l s = true → l.Nodup ∧ ∀ c ∈ l, s.testBit c = false
-  | [], _, _ => ⟨List.nodup_nil, fun _ h ↦ absurd h List.not_mem_nil⟩
-  | c :: cs, s, h => by
-    simp only [bitsNodup, Bool.and_eq_true, Bool.not_eq_true', bitN_eq] at h
-    obtain ⟨h1, h2⟩ := bitsNodup_spec cs _ h.2
-    refine ⟨List.nodup_cons.mpr ⟨fun hc ↦ ?_, h1⟩, fun c' hc' ↦ ?_⟩
-    · have := h2 c hc
-      rw [testBit_setBit] at this
-      simp at this
-    · rcases List.mem_cons.mp hc' with rfl | hc'
-      · exact h.1
-      · have := h2 c' hc'
-        rw [testBit_setBit, Bool.or_eq_false_iff] at this
-        exact this.1
-
-theorem apart_spec {s t c : ℕ} (h : apart s t = true) (hs : s.testBit c = true) : t.testBit c = false := by
-  simp only [apart, nbeq_iff] at h
-  have := congrArg (fun x ↦ x.testBit c) h
-  simp only [testBit_land', hs, Bool.true_and, Nat.zero_testBit] at this
-  exact this
-
-theorem lt_of_testBit_lt {x c n : ℕ} (hx : x < 2 ^ n) (h : x.testBit c = true) : c < n := by
-  by_contra hc
-  have : x < 2 ^ c := lt_of_lt_of_le hx (Nat.pow_le_pow_right (by norm_num) (by omega))
-  rw [Nat.testBit_lt_two_pow this] at h
-  cases h
-
-theorem mem_bitsOf {l : List ℕ} {c : ℕ} (h : c ∈ l) : (bitsOf l).testBit c = true := (testBit_bitsOf l c).mpr h
-
-theorem testBit_lor_l {x y c : ℕ} (h : x.testBit c = true) : (Nat.lor x y).testBit c = true := by
-  rw [testBit_lor', h, Bool.true_or]
-
-theorem testBit_lor_r {x y c : ℕ} (h : y.testBit c = true) : (Nat.lor x y).testBit c = true := by
-  rw [testBit_lor', h, Bool.or_true]
-
-end Bits
 
 /-! ## The cells apart -/
 
 section Apart
-
-/-- **What `apartOk` says**. -/
-structure Apart (j : ℕ) : Prop where
-  statTmp : ∀ q ∈ (plumbOf j).stat, ∀ p ∈ (plumbOf j).tmps, p.2 ≠ q.1
-  site : ∀ c ∈ siteCells (plumbOf j), (∀ p ∈ (plumbOf j).tmps, p.2 ≠ c) ∧ (∀ p ∈ (plumbOf j).runs, p.2 ≠ c) ∧
-    (∀ q ∈ (plumbOf j).stat, q.1 ≠ c) ∧ c ∉ (certOf j).locs
-  arm : ∀ a ∈ (plumbOf j).arms, (∀ p ∈ (plumbOf j).tmps, p.2 ≠ a.2.1) ∧ (∀ p ∈ (plumbOf j).runs, p.2 ≠ a.2.1) ∧
-    (∀ q ∈ (plumbOf j).stat, q.1 ≠ a.2.1) ∧ a.2.1 ∉ (certOf j).locs ∧ a.2.1 ∉ siteCells (plumbOf j)
-  statNodup : ((plumbOf j).stat.map Prod.fst).Nodup
-  siteNodup : (siteCells (plumbOf j)).Nodup
-  armNodup : ((plumbOf j).arms.map fun a ↦ a.2.1).Nodup
-  env : ∀ p ∈ (certOf j).facts.env, (p.1, PC.fpg 0) ∈ (plumbOf j).stat
-  main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < Data.mainCells) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < Data.mainCells) ∧
-    (∀ q ∈ (plumbOf j).stat, q.1 < Data.mainCells) ∧ (∀ c ∈ (certOf j).locs, c < Data.mainCells) ∧
-    (∀ c ∈ siteCells (plumbOf j), c < Data.mainCells) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < Data.mainCells
-
-theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
-  unfold apartOk at h
-  simp only [natSeq_eq, Bool.and_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨⟨ha, hb⟩, hc⟩, h4⟩, h5⟩, h6⟩, h8⟩, h7⟩ := h
-  have tc : ∀ p ∈ (plumbOf j).tmps, (tmpCells (plumbOf j)).testBit p.2 = true := fun p hp ↦
-    mem_bitsOf (List.mem_map_of_mem hp)
-  have rc : ∀ p ∈ (plumbOf j).runs, (bitsOf ((plumbOf j).runs.map Prod.snd)).testBit p.2 = true :=
-    fun p hp ↦ mem_bitsOf (List.mem_map_of_mem hp)
-  have stc : ∀ q ∈ (plumbOf j).stat, (bitsOf ((plumbOf j).stat.map Prod.fst)).testBit q.1 = true :=
-    fun q hq ↦ mem_bitsOf (List.mem_map_of_mem hq)
-  have scc : ∀ c ∈ siteCells (plumbOf j), (bitsOf (siteCells (plumbOf j))).testBit c = true :=
-    fun c hc ↦ mem_bitsOf hc
-  have acc : ∀ a ∈ (plumbOf j).arms, (bitsOf ((plumbOf j).arms.map fun a ↦ a.2.1)).testBit a.2.1 = true :=
-    fun a ha ↦ mem_bitsOf (List.mem_map_of_mem (f := fun a : ℕ × ℕ × ℕ ↦ a.2.1) ha)
-  refine ⟨fun q hq p hp he ↦ ?_, fun c hc ↦ ?_, fun a ha ↦ ?_, (bitsNodup_spec _ _ h4).1,
-    (bitsNodup_spec _ _ h5).1, (bitsNodup_spec _ _ h6).1, fun p hp ↦ ?_, fun hj ↦ ?_⟩
-  · have := apart_spec ha (stc q hq)
-    rw [← he, tc p hp] at this; cases this
-  · have hs := apart_spec hb (scc c hc)
-    simp only [testBit_lor', Bool.or_eq_false_iff] at hs
-    obtain ⟨⟨⟨ht, hr⟩, hst⟩, hv⟩ := hs
-    refine ⟨fun p hp he ↦ ?_, fun p hp he ↦ ?_, fun q hq he ↦ ?_, fun hl ↦ ?_⟩
-    · rw [← he, tc p hp] at ht; cases ht
-    · rw [← he, rc p hp] at hr; cases hr
-    · rw [← he, stc q hq] at hst; cases hst
-    · rw [mem_bitsOf hl] at hv; cases hv
-  · have hs := apart_spec hc (acc a ha)
-    simp only [testBit_lor', Bool.or_eq_false_iff] at hs
-    obtain ⟨⟨⟨⟨ht, hr⟩, hst⟩, hv⟩, hsc⟩ := hs
-    refine ⟨fun p hp he ↦ ?_, fun p hp he ↦ ?_, fun q hq he ↦ ?_, fun hl ↦ ?_, fun hl ↦ ?_⟩
-    · rw [← he, tc p hp] at ht; cases ht
-    · rw [← he, rc p hp] at hr; cases hr
-    · rw [← he, stc q hq] at hst; cases hst
-    · rw [mem_bitsOf hl] at hv; cases hv
-    · rw [scc _ hl] at hsc; cases hsc
-  · simp only [List.all_eq_true, List.any_eq_true, Bool.and_eq_true, nbeq_iff, beq_iff_eq] at h8
-    obtain ⟨q, hq, h1, h2⟩ := h8 p hp
-    rw [← h1, ← h2]; exact hq
-  · subst hj
-    simp only [show Nat.beq 1 1 = true from rfl, Bool.cond_true, Nat.blt_eq] at h7
-    have hlt : ∀ c, (Nat.lor (Nat.lor (Nat.lor (Nat.lor (tmpCells (plumbOf 1)) (bitsOf ((plumbOf 1).runs.map Prod.snd)))
-        (bitsOf ((plumbOf 1).stat.map Prod.fst))) (bitsOf (certOf 1).locs)) (bitsOf (siteCells (plumbOf 1)))).testBit c
-          = true ∨ (bitsOf ((plumbOf 1).arms.map fun a ↦ a.2.1)).testBit c = true → c < Data.mainCells := fun c hc ↦
-      lt_of_testBit_lt h7 (by
-        rcases hc with hc | hc
-        · exact testBit_lor_l hc
-        · exact testBit_lor_r hc)
-    refine ⟨fun p hp ↦ hlt _ (Or.inl ?_), fun p hp ↦ hlt _ (Or.inl ?_), fun q hq ↦ hlt _ (Or.inl ?_),
-      fun c hc ↦ hlt _ (Or.inl ?_), fun c hc ↦ hlt _ (Or.inl ?_), fun a ha ↦ hlt _ (Or.inr (acc a ha))⟩
-    · exact testBit_lor_l (testBit_lor_l (testBit_lor_l (testBit_lor_l (tc p hp))))
-    · exact testBit_lor_l (testBit_lor_l (testBit_lor_l (testBit_lor_r (rc p hp))))
-    · exact testBit_lor_l (testBit_lor_l (testBit_lor_r (stc q hq)))
-    · exact testBit_lor_l (testBit_lor_r (mem_bitsOf hc))
-    · exact testBit_lor_r (scc c hc)
-
-theorem apart_j {j : ℕ} (hS : ShareOk j) : Apart j := by
-  exact apart_of (shareStatic_spec hS.1).2.2.1
-
 
 /-- **The chained `match`es' table targets apart**: in no fixed, temporary's, frame run's, call
 site's or `match` target's cell; two chains sharing a target cell read one table at one selector;
@@ -230,64 +116,6 @@ theorem mem_siteE {j : ℕ} {I : Inst} {es : List Ev} {x : ℕ × E} (h : x ∈ 
         have : Nat.beq s.tgt 0 = false := Bool.eq_false_iff.mpr fun hb ↦ ht (nbeq_iff.mp hb)
         simp [this]
 
-/-- A value's cell from a window's check, under the tail call `ta`. -/
-theorem valOk_cell {j : ℕ} {nx : List ℕ} {loc : Loc} (hl : ∀ v c, loc.get? v.idx = some c → cellJ j v = c) {v : V}
-    (h : valOk loc (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) nx v = true) :
-    v = V.n v.idx ∧ (cellJ j v < fsN j ∨ cellJ j v ∈ nx) ∧
-      bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
-      (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
-  obtain ⟨h1, -, h3, h4, h5⟩ := valOk_spec h
-  have hc : loc.cell v = cellJ j v := (fitV_of hl (vs := [v]) (fun u hu ↦ by
-    rw [List.mem_singleton.mp hu]; exact h) v List.mem_cons_self).2
-  rw [hc] at h3 h4 h5
-  refine ⟨h1, h3, h4, ?_⟩
-  rcases h5 with h5 | h5
-  · exact Or.inl h5
-  · exact Or.inr (listedT_spec h5).2
-
-/-- **A value's cell**, from its window's check: in the frame, or a tail call's argument at the
-next frame's parameter cell. -/
-theorem valOk_global {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
-    (hv : v ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++ Stmt.tmpsList (coreOf j).body) :
-    v = V.n v.idx ∧
-      (cellJ j v < fsN j ∨ cellJ j v ∈ nextCells (certOf j).locs (fsN j) (tailArgs (coreOf j))) ∧
-      bitN (fpgCells (plumbOf j)) (cellJ j v) = false ∧
-      (bitN (tmpCells (plumbOf j)) (cellJ j v) = false ∨ (v.idx, cellJ j v) ∈ (plumbOf j).tmps) := by
-  have hcont := cont_of hchk
-  obtain ⟨-, hsn, -, hpv⟩ := shareStatic_spec hS.1
-  have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
-      cellJ j v = c := fun i hi v c h ↦
-    locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h
-  rcases List.mem_append.mp hv with hv | hv
-  · rcases List.mem_append.mp hv with hv | hv
-    · obtain ⟨h1, h3, h4, h5⟩ := valOk_cell (hA 0 (Nat.zero_le _)) (hpv v hv)
-      refine ⟨h1, ?_, h4, h5⟩
-      rcases h3 with h3 | h3
-      · exact .inl h3
-      · simp at h3
-    · obtain ⟨i, hi, hw⟩ := mem_windows Stmt.usesList usesList_append hS _ 0 (Nat.zero_add _)
-        (by rw [fromW_zero]; exact hv)
-      obtain ⟨-, hval, -⟩ := shareWin_spec (hS.2 i hi)
-      exact valOk_cell (hA i hi) (hval v (List.mem_append_left _ hw))
-  · obtain ⟨i, hi, hw⟩ := mem_windows Stmt.tmpsList tmpsList_append hS _ 0 (Nat.zero_add _)
-      (by rw [fromW_zero]; exact hv)
-    obtain ⟨-, hval, -⟩ := shareWin_spec (hS.2 i hi)
-    exact valOk_cell (hA i hi) (hval v (List.mem_append_right _ hw))
-
-/-- **A parameter's cell is in the frame**, by the first window's check. -/
-theorem valOk_param {j : ℕ} {G : Glob} {f : CompiledFunction} {main : Bool} (hS : ShareOk j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) {v : V}
-    (hv : v ∈ (coreOf j).params) : cellJ j v < fsN j := by
-  have hcont := cont_of hchk
-  obtain ⟨-, hsn, -, hpv⟩ := shareStatic_spec hS.1
-  have hA : ∀ v c, (locW (certOf j) (winW (snapsOf j) 0)).get? v.idx = some c → cellJ j v = c := fun v c h ↦
-    locW_get hcont (winW_le hsn (Nat.zero_le _)) (checkWin_parts (hchk _ (winW_le hsn (Nat.zero_le _)))).2 rfl
-      (shareWin_spec (hS.2 0 (Nat.zero_le _))).1 h
-  rcases (valOk_cell hA (hpv v hv)).2.1 with h | h
-  · exact h
-  · simp at h
-
 end Cand
 
 /-! ## A value's cell -/
@@ -340,10 +168,10 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     {x : ℕ × E} (hx : x ∈ nodeE j f σ I) (hxc : x.1 = cellJ j v) : x.2 = σ v := by
   obtain ⟨i, rfl, -, -, -, hc, -, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
-  have FS := fnStatic hS hchk
-  have AP := apart_j hS
+  have FS := fnStatic hS
+  have AP := hS.apart
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
-  obtain ⟨-, -, hfc, htc⟩ := valOk_global hS hchk (namedOf_sub hw hv)
+  obtain ⟨-, -, hfc, htc⟩ := valOk_global hS (namedOf_sub hw hv)
   have hvΨ := hΨ v hv h2
   simp only [nodeE, List.mem_append, hev, hvs] at hx
   rcases hx with ((((((hx | hx) | hx) | hx) | hx) | hx) | hx) | hx
@@ -363,7 +191,7 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
     · have := FS.tmpsFun _ htc _ ht2 rfl
       simp only at this
       show σ t = σ v
-      rw [ht1, ← this, ← (valOk_global hS hchk (namedOf_sub hw hv)).1]
+      rw [ht1, ← this, ← (valOk_global hS (namedOf_sub hw hv)).1]
   · -- a frame run's
     obtain ⟨p, r, rs, he, k, hk, rfl⟩ := mem_runsE hx
     have ha : Atom.frameAddr p (r :: rs) ∈ lAtoms (coreOf (i + 1)).body :=
@@ -418,7 +246,7 @@ theorem read_valL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ)
     {v : V} (hv : v ∈ namedOf (coreOf j).params es vs) (h2 : 2 ≤ cellJ j v) (hn : cellJ j v < fsN j) :
     L.read (addressOfIndex (I.fp + cellJ j v)) = some (σ v) := by
-  obtain ⟨Ψ, hΨ, hst⟩ := shareOk_path hS hchk hw he
+  obtain ⟨Ψ, hΨ, hst⟩ := shareOk_path hS hw he
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hmem : (cellJ (i + 1) v, σ v) ∈ C I := by
     rw [C_node ht hj, hfs]
@@ -471,18 +299,18 @@ theorem read_statL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) (h2 : 2 ≤ q.1) (hn : q.1 < fsN j) :
     L.read (addressOfIndex (I.fp + q.1)) = some (q.2.word
         I.fp) := by
-  obtain ⟨Ψ, hΨ, hst⟩ := shareOk_path hS hchk hw he
+  obtain ⟨Ψ, hΨ, hst⟩ := shareOk_path hS hw he
   have hΨ' : ∀ u ∈ namedOf (coreOf j).params es vs, 2 ≤ cellJ j u → σ u = Ψ (cellJ j u) :=
     fun u hu hc ↦ hΨ u (by simpa [namedOf, List.append_assoc] using hu) hc
-  have FS := fnStatic hS hchk
-  have AP := apart_j hS
+  have FS := fnStatic hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
   -- a value at the cell: the cell holds a constant, the value's word
   have hval : ∀ u ∈ namedOf (coreOf (i + 1)).params es vs, cellJ (i + 1) u = q.1 → σ u = q.2.word I.fp := by
     intro u hu hcu
-    obtain ⟨-, -, hfc, -⟩ := valOk_global hS hchk (namedOf_sub hw hu)
+    obtain ⟨-, -, hfc, -⟩ := valOk_global hS (namedOf_sub hw hu)
     rcases q with ⟨o, ⟨a, b⟩ | e⟩
     · simp only at hcu ⊢
       rw [hΨ' u hu (by rw [hcu]; exact h2), hcu, hst o a b hq]; rfl
@@ -537,8 +365,8 @@ theorem read_tmpL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (hw : walk σ (coreOf j).body = .ret es vs) {t : V} (htm : t ∈ coreProgram.temps f)
     (h2 : 2 ≤ cellJ j t) (hn : cellJ j t < fsN j) :
     L.read (addressOfIndex (I.fp + cellJ j t)) = some (σ t) := by
-  have FS := fnStatic hS hchk
-  have AP := apart_j hS
+  have FS := fnStatic hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -575,7 +403,7 @@ theorem read_tmpL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     · simp only [valE, List.mem_map] at hx
       obtain ⟨u, hu, rfl⟩ := hx
       simp only [hcJ] at hxc ⊢
-      obtain ⟨hu1, -, -, htc⟩ := valOk_global hS hchk (namedOf_sub hw hu)
+      obtain ⟨hu1, -, -, htc⟩ := valOk_global hS (namedOf_sub hw hu)
       rw [hxc] at htc
       rw [same u hu1 (cellJ_tmp_listed htc ht2)]
     · exact absurd (hxc ▸ rfl) ((AP.site _ (mem_siteE hx)).1 _ ht2)
@@ -605,8 +433,8 @@ theorem read_armL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     {a : ℕ × ℕ × ℕ} (ha : a ∈ (plumbOf j).arms) (h2 : 2 ≤ a.2.1) (hn : a.2.1 < fsN j) :
     L.read (addressOfIndex (I.fp + a.2.1)) = some (armWord σ a.1
         a.2.2) := by
-  have FS := fnStatic hS hchk
-  have AP := apart_j hS
+  have FS := fnStatic hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -664,7 +492,7 @@ theorem read_chainL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (hσk : σ (V.n ch.2.1) = ofK (addressOfIndex k)) (h2 : 2 ≤ t) (hn : t < fsN j) :
     L.read (addressOfIndex (I.fp + t)) =
       some (armWord σ ch.2.2.2.1 ch.2.2.2.2) := by
-  have FS := fnStatic hS hchk
+  have FS := fnStatic hS
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -752,8 +580,8 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   have hpc := checkWin_params (hchk 0 (Nat.zero_le _)) hcont k hk
   have hpk : (coreOf j).params[k] ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++
       Stmt.tmpsList (coreOf j).body := List.mem_append_left _ (List.mem_append_left _ (List.getElem_mem hk))
-  obtain ⟨hvn, -, hfc, -⟩ := valOk_global hS hchk hpk
-  have hlt := valOk_param hS hchk (List.getElem_mem hk)
+  obtain ⟨hvn, -, hfc, -⟩ := valOk_global hS hpk
+  have hlt := valOk_param hS (List.getElem_mem hk)
   rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at hlt hfc
   rcases hgood with ⟨σ, bufs, kids, es, vs, ht, hw, he⟩ | ⟨σ, ht⟩
   · have := read_valL h hL hS hC hchk hJ ht hj hw he (v := (coreOf j).params[k])
@@ -763,7 +591,7 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at this
     rw [ht]; exact this
   · obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
-    have AP := apart_j hS
+    have AP := hS.apart
     have hmem : (2 + k, σ (coreOf (i + 1)).params[k]) ∈ C J := by
       rw [C_phantom ht hj, fs_tailKey hj]
       refine frameE_cell ⟨(cert g (coreOf (i + 1)).params[k], σ (coreOf (i + 1)).params[k]), ?_, ?_⟩
@@ -785,14 +613,6 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     rw [addressOfIndex, pow_add, ht]
     exact hL.read_C h hJ hmem
 
-/-- The fixed cells lie in the frame. -/
-theorem stat_in (hS : ShareOk j) {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) : 2 ≤ q.1 ∧ q.1 < fsN j := by
-  obtain ⟨hlists, -, -, -⟩ := shareStatic_spec hS.1
-  simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
-  have := (hlists.1.1.1.1.1 q hq).1
-  simp only [Nat.ble_eq, Nat.blt_eq] at this
-  exact this
-
 /-- **A callee's frame holds its frame pointer** in its entry environment's cells, on a memory
 covering the honest writes, whether it runs or not. -/
 theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
@@ -805,7 +625,7 @@ theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     {o : ℕ} (ho : o ∈ (certOf j).facts.env.map Prod.fst) :
     L.read (addressOfIndex (J.fp + o)) = some (ofK (addressOfIndex
         J.fp)) := by
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp ho
   have hst := AP.env p hp
   obtain ⟨h2, hn⟩ := stat_in hS hst
@@ -821,7 +641,7 @@ theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
       simp only [phantomE, List.mem_append, valE, List.mem_map] at hx
       rcases hx with ⟨u, hu, rfl⟩ | ⟨p', -, rfl⟩
       · simp only [hcert] at hxc
-        obtain ⟨-, -, hfc, -⟩ := valOk_global hS hchk (v := u)
+        obtain ⟨-, -, hfc, -⟩ := valOk_global hS (v := u)
           (List.mem_append_left _ (List.mem_append_left _ hu))
         have : (fpgCells (plumbOf (i + 1))).testBit p.1 = true := mem_bitsOf (List.mem_filterMap.mpr ⟨_, hst, rfl⟩)
         rw [bitN_eq, show cellJ (i + 1) u = p.1 from hxc, this] at hfc; cases hfc
@@ -948,8 +768,8 @@ theorem cand_site (hS : ShareOk j) (hC : ChainApart j)
     (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
     (hw : walk σ (coreOf j).body = .ret es vs) {o : ℕ} (ho : o ∈ siteCells (plumbOf j)) (h2 : 2 ≤ o)
     {x : ℕ × E} (hx : x ∈ nodeE j f σ I) (hxc : x.1 = o) : x ∈ siteE j I es := by
-  have FS := fnStatic hS hchk
-  have AP := apart_j hS
+  have FS := fnStatic hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw

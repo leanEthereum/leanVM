@@ -39,7 +39,7 @@ def run(check):
             else:
                 continue
             groups.setdefault(os.path.join(OUT, name + '.lean'), (mod, what, []))[2].append(p)
-    files = genfiles.merge(files, groups, genfiles.header('bridge-cert/checks.py'))
+    files = data.sequential(genfiles.merge(files, groups, genfiles.header('bridge-cert/checks.py')))
     stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: {len(groups)} modules of checks merged')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)

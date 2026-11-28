@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.ProgAlData
+public import LeanVM.Guest.Bridge.CalRows
 import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
@@ -18,7 +19,7 @@ import all Statement.Data.AdviceHints
 
 `hintCellsOk fs h`: each frame cell hint `h` writes (an allocation's or a cell address's pointer
 cell, a stack run, a destination cell, a stack destination's run) is below the frame size `fs`.
-`cellsChk_all`: every compiled function's hints pass it.
+`cellsChk_all`: every compiled function's hints pass it, the frame sizes read by index from a trie (`fsNAt`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -52,15 +53,16 @@ end
 
 public section
 
-theorem cellsChk_0 : ∀ j < 400, cellsChk (fnAl j) (B2C.fsN j) = true := by decide +kernel
+theorem cellsChk_0 : ∀ j < 400, cellsChk (fnAl j) (fsNAt j) = true := by decide +kernel
 
-theorem cellsChk_1 : ∀ j < 800, 400 ≤ j → cellsChk (fnAl j) (B2C.fsN j) = true := by decide +kernel
+theorem cellsChk_1 : ∀ j < 800, 400 ≤ j → cellsChk (fnAl j) (fsNAt j) = true := by decide +kernel
 
-theorem cellsChk_2 : ∀ j < 1200, 800 ≤ j → cellsChk (fnAl j) (B2C.fsN j) = true := by decide +kernel
+theorem cellsChk_2 : ∀ j < 1200, 800 ≤ j → cellsChk (fnAl j) (fsNAt j) = true := by decide +kernel
 
-theorem cellsChk_3 : ∀ j < nFns, 1200 ≤ j → cellsChk (fnAl j) (B2C.fsN j) = true := by decide +kernel
+theorem cellsChk_3 : ∀ j < nFns, 1200 ≤ j → cellsChk (fnAl j) (fsNAt j) = true := by decide +kernel
 
 theorem cellsChk_all (j : ℕ) (h : j < nFns) : cellsChk (fnAl j) (B2C.fsN j) = true := by
+  rw [← fsNAt_eq (by have := nFns_lt; omega)]
   have : nFns = fn_count% := rfl
   rcases Nat.lt_or_ge j 400 with h0 | h0
   · exact cellsChk_0 j h0

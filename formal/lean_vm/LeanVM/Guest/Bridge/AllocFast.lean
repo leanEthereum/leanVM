@@ -16,7 +16,8 @@ public import LeanVM.Guest.Bridge.AllocDefs
 instruction there, in each of its conjuncts, and scans the whole code for its jumps three times.
 `curCodeJ` lists the code's jumps once (`jumpsFrom`), each frame hint with its next jump once (`nextJ`,
 from the list), and reads both from those lists; `curCode_eq_curCodeJ` equates the two, so that the
-generated checks (`Bridge/AllocChk/`) run `curCodeJ` (`allocRest_of_fast`).
+generated checks (`Bridge/AllocChk/`) run `curCodeJ` (`allocRest_of_fast`), and `curBody`'s `match` targets likewise
+(`curBodyJ`, `curBody_of_fast`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -88,6 +89,21 @@ noncomputable def curCodeJ (X : AlignCtx) (fs : ℕ) (loop : Bool) (P : B2C.Plum
     ((frJ.isEmpty && P.sites.isEmpty) ||
       (js.all (fun j ↦ siteJ X frJ j.1 j.2.2.2) && js.all (fun j ↦ targetJ X frJ j.2.2.1))) &&
     P.sites.all (fun s ↦ !pendJ frJ (s.r - X.entry))
+
+/-- `armTgtsOk` over the frame hints with their next jumps. -/
+noncomputable def armTgtsJ (X : AlignCtx) (P : B2C.Plumb) (frJ : List (ℕ × ℕ × Prover.Exec.Hint)) (x : V) (n : ℕ) :
+    Bool :=
+  (armsOf P).all fun a ↦ !(Nat.beq a.2.1 x.idx) || (List.range n).all fun k ↦ match getF X.jt (a.2.2 + k) with
+    | some t => !pendJ frJ (t - X.entry)
+    | none => true
+
+/-- **`curBody` over the code's jumps listed once**, each frame hint with its next jump. -/
+noncomputable def curBodyJ (X : AlignCtx) (P : B2C.Plumb) (body : List Stmt) (code : List OffsetInstruction)
+    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
+  let js := jumpsFrom 0 code
+  Exec.listSeq (allocHints d) fun hs ↦
+    Exec.listSeq ((hs.filter fun q ↦ isFrame X q.2).map fun q ↦ (nextJ js code.length q.1, q)) fun frJ ↦
+  decide (cntL body ≤ (hs.filter fun q ↦ isBuf X q.2).length) && (frJ.isEmpty || blockM (armTgtsJ X P frJ) body)
 
 /-- `allocRest` with `curCodeJ`. -/
 noncomputable def allocRestJ (X : AlignCtx) (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (body : List Stmt)
@@ -206,6 +222,22 @@ theorem curCode_eq_curCodeJ (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (code : Lis
         | _ => rfl) 0 code
   rw [hb, hs, ht]
   simp [frameOk_eq_frameOkJ, hpend, List.all_map, Function.comp_def]
+
+/-- **`curBody` from the check over the code's jumps.** -/
+theorem curBody_of_fast {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
+    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : curBodyJ X P body code d = true) :
+    curBody X P body code d = true := by
+  rw [← h]
+  simp only [curBody, curBodyJ, Exec.listSeq_eq, ← nextJump_eq_nextJ, List.isEmpty_map]
+  have hpend : ∀ off, pendIn code ((allocHints d).filter fun q ↦ isFrame X q.2) off =
+      pendJ (((allocHints d).filter fun q ↦ isFrame X q.2).map fun q ↦ (nextJump code q.1, q)) off := fun off ↦ by
+    simp [pendIn, pendJ, List.any_map, Function.comp_def]
+  have : armTgtsOk X P code ((allocHints d).filter fun q ↦ isFrame X q.2) =
+      armTgtsJ X P (((allocHints d).filter fun q ↦ isFrame X q.2).map fun q ↦ (nextJump code q.1, q)) := by
+    funext x n
+    simp only [armTgtsOk, armTgtsJ, hpend]
+    rfl
+  rw [this]
 
 /-- **`allocRest` from the check over the code's jumps.** -/
 theorem allocRest_of_fast {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}

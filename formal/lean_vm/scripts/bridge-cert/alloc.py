@@ -538,14 +538,17 @@ def gen():
             return data.fn_thms(thms)
 
         def body_thm(j, k):
-            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Fn.«{k}».advice = true', prf)]
+            # its `match` targets over the code's jumps listed once (`Bridge.curBody_of_fast`)
+            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Fn.«{k}».advice = true',
+                     'rw [alignCtxEq]\napply Bridge.curBody_of_fast\ndecide +kernel')]
 
         def fr_thm(j, k):
             # the callees by their indices as the glue names them (`Fn.«k».idx`), not as numbers
             cs = '[' + ', '.join(f'Fn.«{lk[c][0]}».idx' for c in frd[j][0]) + ']'
-            # only a window's frame check is a module of its own; it decides the fast form (`Bridge.frChk_of_fast`)
+            # only a window's frame check is a module of its own; it decides the fast form over the callees' rows
+            # (`Bridge.frChk_of_rows`)
             return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true',
-                     'rw [alignCtxEq]\napply Bridge.frChk_of_fast\ndecide +kernel')]
+                     'rw [alignCtxEq]\napply Bridge.frChk_of_rows\ndecide +kernel')]
 
         def thm1(j, k):
             if win:
@@ -560,7 +563,7 @@ def gen():
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
             + 'public import LeanVM.Guest.Bridge.AllocFast\nimport all Statement.Data.AdviceHints\n'
-            + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.ChkLit\n')
+            + ('' if win else 'public import LeanVM.Guest.Bridge.CalRows\npublic import LeanVM.Guest.Bridge.ChkLit\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
             + '\n' + body.rstrip('\n') + '\n')
@@ -570,14 +573,14 @@ def gen():
                 fr_mods[k] = fmod
                 files[os.path.join(OUT, f'F_{k}.lean')] = (
                     HEAD(mod=fmod, what=f"The kernel's check of `{k}`'s frame hints' sizes.")
-                    + 'public import LeanVM.Guest.Bridge.AllocFrDefs\nimport all Statement.Data.AdviceHints\n'
+                    + 'public import LeanVM.Guest.Bridge.CalRows\nimport all Statement.Data.AdviceHints\n'
                     + f'public import {cm}\n' + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, fr_thm(j, k)).rstrip('\n') + '\n')
                 bmod = f'LeanVM.Guest.Bridge.AllocChk.«B_{k}»'
                 body_mods[k] = bmod
                 files[os.path.join(OUT, f'B_{k}.lean')] = (
                     HEAD(mod=bmod, what=f"The kernel's check of `{k}`'s body for the bump pointer.")
-                    + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocFast\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
                     + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, body_thm(j, k)).rstrip('\n') + '\n')
                 smod = f'LeanVM.Guest.Bridge.AllocChk.«S_{k}»'
