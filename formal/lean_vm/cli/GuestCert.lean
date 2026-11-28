@@ -4612,6 +4612,10 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
 
 end B2CPack
 
+/-- `files`'s tasks: each Lean worker thread reserves a large stack, so one task per function exceeds
+the address space `regen-guest.sh` allows. -/
+def certWorkers : ℕ := 16
+
 def files (P : Core.Program) (keys : Array String) (coreAt : String → String) (kOnly : Bool := false) :
     Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
@@ -4663,9 +4667,16 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks stopAt ent
         entW)
     pure (r, parts)
-  let tasks := P.zipIdx.map fun (cf, i) => (cf, i, Task.spawn fun _ => job cf i)
-  for (cf, i, t) in tasks do
-    let ((c, sizes, fsz, _, segs, starts, _, pt, _, _, acs, sh, sp, _, ent), parts) ← t.get
+  -- `certWorkers` tasks, the `w`-th computing functions `w`, `w + certWorkers`, ... in order; read back in
+  -- order, so the first error is still the first function's
+  let Pa := P.toArray
+  let tasks := (List.range (min certWorkers Pa.size)).toArray.map fun w => Task.spawn fun _ =>
+    ((List.range ((Pa.size - w + certWorkers - 1) / certWorkers)).map fun k =>
+      let i := w + k * certWorkers
+      job Pa[i]! i).toArray
+  for (cf, i) in P.zipIdx do
+    let ((c, sizes, fsz, _, segs, starts, _, pt, _, _, acs, sh, sp, _, ent), parts) ←
+      tasks[i % certWorkers]!.get[i / certWorkers]!
     certs := certs.push c
     layouts := layouts.push (LayoutGen.layoutText (← LayoutGen.layoutOf fns[i + 1]! cf segs))
     if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
