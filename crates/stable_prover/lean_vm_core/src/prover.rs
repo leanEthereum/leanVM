@@ -1,7 +1,7 @@
 //! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_vm`) run on.
 
 use crate::cpu::{self, from_scalar, to_scalar};
-use primitives::field::{F64, F128, F128Unreduced};
+use primitives::field::{F64, F128Unreduced};
 use verifier::E;
 
 /// The stable prover.
@@ -34,13 +34,13 @@ impl isa::Prover for StableProver {
 
     fn combine_rows(rows: &[u64], weights: &[E]) -> Vec<E> {
         let width = rows.len() / weights.len();
-        let weights: Vec<F128> = weights.iter().copied().map(from_scalar).collect();
         let partial = parallel::fold_reduce(
             weights.len(),
             || vec![F128Unreduced::ZERO; width],
             |acc: &mut Vec<F128Unreduced>, r| {
+                let weight = from_scalar(weights[r]);
                 for (acc, &word) in acc.iter_mut().zip(&rows[r * width..][..width]) {
-                    *acc ^= weights[r].mul_base_unreduced(F64(word));
+                    *acc ^= weight.mul_base_unreduced(F64(word));
                 }
             },
             |mut a, b| {
@@ -52,14 +52,13 @@ impl isa::Prover for StableProver {
     }
 
     fn dot_rows(rows: &[u64], weights: &[E]) -> Vec<E> {
-        let weights: Vec<F128> = weights.iter().copied().map(from_scalar).collect();
         let width = weights.len();
         parallel::map_collect(rows.len() / width, |i| {
             let dot = rows[i * width..][..width]
                 .iter()
-                .zip(&weights)
+                .zip(weights)
                 .fold(F128Unreduced::ZERO, |sum, (&word, &weight)| {
-                    sum ^ weight.mul_base_unreduced(F64(word))
+                    sum ^ from_scalar(weight).mul_base_unreduced(F64(word))
                 });
             to_scalar(&dot.reduce())
         })
