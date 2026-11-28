@@ -5,7 +5,10 @@ use std::cmp::Ordering;
 
 /// The indices `0..n` sorted by `cmp`, stably: equal ones keep their order.
 pub fn order_by(n: usize, mut cmp: impl FnMut(usize, usize) -> Ordering) -> Vec<usize> {
-    let mut order: Vec<usize> = (0..n).collect();
+    let mut order = vec![0; n];
+    for (i, slot) in order.iter_mut().enumerate() {
+        *slot = i;
+    }
     let mut merged = vec![0; n];
     let mut width = 1;
     while width < n {
