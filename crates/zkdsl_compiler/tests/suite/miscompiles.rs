@@ -126,6 +126,35 @@ fn programs_compile_as_written() {
         "def stop():\n    s = hint_witness(\"stop\")\n    assert log(s) < 8\n    return s\n\ndef main():\n    for i in mul_range(1, stop()):\n        x = i\n    return\n",
         &[("stop", g_pow(3).into())],
     );
+    // A `HeapBuf` after a branch whose first arm emits nothing was allocated on that arm's exit jump, which a run
+    // taking another arm skips: its pointer stayed unwritten. An `if` with an empty fall-through arm, a `match` whose
+    // arm 0 is an inline call returning its target, and a chain whose head's arms are only its chain jumps.
+    runs(
+        "def main():\n    x = hint_witness(\"x\")\n    if x != GEN:\n        y = x * x\n    b = HeapBuf(2)\n    b[1] = 5\n    return\n",
+        &[("x", g_pow(2).into())],
+    );
+    let main = "def main():\n    x = hint_witness(\"x\")\n    s = StackBuf(1)\n    s[0] = 3\n";
+    let after = "    b = HeapBuf(2)\n    b[1] = 5\n    return\n";
+    runs(
+        &format!(
+            "@inline\ndef f(z, i: Const):\n    if const(i == 1):\n        w = z * z\n    return z\n\n{main}    s[0] = match(log(x), range(0, 2), lambda i: f(s[0], i))\n{after}"
+        ),
+        &[("x", g_pow(1).into())],
+    );
+    runs(
+        &format!(
+            "@inline\ndef f(z, i: Const, k: Const):\n    if const(k == 1):\n        w = z * z\n    return z\n\n{main}    for k in unroll(0, 2):\n        s[0] = match(log(x), range(0, 2), lambda i: f(s[0], i, k))\n{after}"
+        ),
+        &[("x", g_pow(0).into())],
+    );
+    // A `HeapBuf` moved before the statement holding the first call went ahead of one queued just before that
+    // statement, so the program was rejected.
+    for e in [0, 1] {
+        runs(
+            "def sq(x):\n    return x * x\n\ndef main():\n    a = hint_witness(\"a\")\n    early = HeapBuf(2)\n    if a == GEN:\n        y = sq(a)\n    late = HeapBuf(2)\n    late[1] = 5\n    early[1] = 5\n    return\n",
+            &[("a", g_pow(e).into())],
+        );
+    }
     // A builtin call as a store's value was looked up as a function.
     compile(
         &parse("def main():\n    bits = StackBuf(4)\n    out = StackBuf(1)\n    out[0] = hint_log2_ceil(bits, 4, 0)\n    return\n")

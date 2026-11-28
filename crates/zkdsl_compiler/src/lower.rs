@@ -214,15 +214,15 @@ struct FnLower<'a> {
     let_name: Option<String>,
     /// The arms holding the code being emitted, outermost first: each a branch (an `if` or a `match`, numbered in
     /// order) and which of its arms. Empty, "depth `0`", at a statement's top level, outside every branch's body.
-    /// A branch's exit jumps sit at depth `0` too (an `if`'s first arm's, a `match` arm's), though only the runs
-    /// that took that arm run them.
+    /// An arm's exit jump is the arm's: only the runs that took it run it.
     path: Vec<(u32, u32)>,
     /// The path of each instruction emitted.
     code_path: Vec<Vec<(u32, u32)>>,
     /// The number of arms of each branch, an `if`'s two (one may be empty).
     branches: Vec<u32>,
-    /// Where the statement being lowered at depth `0` starts, or the chain of `match`es it ends.
-    stmt_start: usize,
+    /// Where the statement being lowered at depth `0` starts, or the chain of `match`es it ends: its first
+    /// instruction, past the hints queued before it, which that instruction carries first.
+    stmt_start: (usize, usize),
     /// The index of each `return` jump.
     returns: Vec<usize>,
     /// The copies into the next loop frame, their targets offsets past this frame's end until it is laid out.
@@ -647,7 +647,7 @@ impl FnLower<'_> {
         );
         (self.chain_next, self.chain_in) = (chain_next, chain_in);
         let branch = self.new_branch(arms.len());
-        self.lower_match_dispatch(xo, arms.len(), |s, j| {
+        self.lower_match_dispatch(xo, arms.len(), branch, |s, j| {
             s.scoped((branch, j as u32), |s| {
                 if let [rcell] = rcells.as_slice() {
                     s.expr_into(&arms[j], *rcell);
@@ -723,7 +723,7 @@ impl FnLower<'_> {
     /// `body` lowers arm `j`, with its own branch-local scope.
     ///
     /// One arm runs, so the arms allocate their locals over the same cells.
-    fn lower_match_dispatch(&mut self, xo: Off, n: usize, mut body: impl FnMut(&mut Self, usize)) {
+    fn lower_match_dispatch(&mut self, xo: Off, n: usize, branch: u32, mut body: impl FnMut(&mut Self, usize)) {
         let next = self.chain_next.take();
         let entered = self.chain_in.take();
         let before = self.code.len();
@@ -770,6 +770,8 @@ impl FnLower<'_> {
             self.next = arms_base;
             self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
+            // The arm's exit is the arm's, as in `lower_if`.
+            self.path.push((branch, j as u32));
             if let (Some(nx), Some(nf), Some(entry)) = (&next, next_first, next_entry) {
                 self.table_jump_via(entry, nx.xo, nf, one, sfp);
             } else if j + 1 != n {
@@ -779,6 +781,7 @@ impl FnLower<'_> {
                     of: sfp,
                 });
             }
+            self.path.pop();
             arms_end = arms_end.max(self.next);
             // The next arm may reuse these cells for something other than a `HeapBuf`.
             self.heap_sizes.retain(|&o, _| o < arms_base);
@@ -865,6 +868,9 @@ impl FnLower<'_> {
         if b_block.is_empty() {
             self.patch_local(bset, self.code.len());
         } else {
+            // The jump over B is A's: at depth `0` it would be, with A empty, the jump `hoist_past_first_branch`
+            // puts reservations on, which B's runs skip.
+            self.path.push((branch, 0));
             let edest = self.fresh();
             let eset = self.code.len();
             self.set(edest, KVal::Local(0)); // patched: the join
@@ -873,6 +879,7 @@ impl FnLower<'_> {
                 od: edest,
                 of: sfp,
             });
+            self.path.pop();
             self.patch_local(bset, self.code.len());
             self.branch((branch, 1), b_block);
             self.patch_local(eset, self.code.len());
@@ -1284,7 +1291,7 @@ impl FnLower<'_> {
     fn stmt(&mut self, s: &Stmt) {
         // A chained `match`, entered from the arms of the one before, starts where its chain does.
         if self.path.is_empty() && self.chain_in.is_none() {
-            self.stmt_start = self.code.len();
+            self.stmt_start = (self.code.len(), self.pending.len());
         }
         let tail = std::mem::take(&mut self.tail_call);
         // Every diagnostic raised while lowering this statement, and every
@@ -1820,7 +1827,7 @@ pub(crate) fn lower_func(
             path: Vec::new(),
             code_path: Vec::new(),
             branches: Vec::new(),
-            stmt_start: 0,
+            stmt_start: (0, 0),
             returns: Vec::new(),
             next_frame_copies: Vec::new(),
             chain_next: None,

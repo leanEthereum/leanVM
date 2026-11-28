@@ -18,8 +18,8 @@ use std::ops::Range;
 /// `match` share cells, so two reservations may share a pointer cell, but then also their site.
 #[derive(Clone)]
 pub(super) struct Site {
-    /// Where the statement at depth `0` holding it starts.
-    stmt_start: usize,
+    /// Where the statement at depth `0` holding it starts ([`FnLower::stmt_start`]).
+    stmt_start: (usize, usize),
     /// The source line of its statement.
     line: u32,
     /// The name its statement binds.
@@ -63,7 +63,7 @@ impl FnLower<'_> {
         let at = if self.code_path[i].is_empty() {
             (i, j)
         } else {
-            (first.stmt_start, 0)
+            first.stmt_start
         };
         assert!(
             self.code_path[at.0].is_empty(),
@@ -268,9 +268,8 @@ fn hint_writes(h: &Hint) -> Vec<Off> {
 /// reads, which both executors require written (an unwritten read fails in the Lean executor, and
 /// in the Rust one is a read of zero that writes it). A `MUL` back-solves at most one operand, so its
 /// three cells are written. A `DEREF` of mode `Cell` writes its frame cell only if its other side is
-/// written, and a slot's destination is not counted for the same reason. A `JUMP` at depth `0` may be
-/// a branch's exit, which not every run reaches, so its cells are not counted; they are written
-/// before it anyway, by the instructions that computed them.
+/// written, and a slot's destination is not counted for the same reason. A `JUMP`'s cells are not
+/// counted, conservatively.
 fn touched(op: &LOp) -> Vec<Off> {
     match *op {
         LOp::Set { o, .. } => vec![o],
