@@ -743,5 +743,100 @@ theorem runsA_atom : ∀ {t a : ℕ} {bs : List (List Stmt)} {q : ℕ} {at' : Co
         exact runsA_atom h hr hw
 end
 
+/-! ## A body's values, by position -/
+
+mutual
+/-- **Every value a block names is named at a position** (its statement's own values). -/
+theorem uses_at : ∀ (c : Ctx) (p : ℕ) (ss : List Stmt) {v : V}, v ∈ Stmt.usesList ss →
+    ∃ q s c', AtL c p ss q s c' ∧ v ∈ names s
+  | _, _, [], _, h => by simp [Stmt.usesList] at h
+  | c, p, s :: ss, v, h => by
+      simp only [Stmt.usesList, List.mem_append] at h
+      rcases h with h | h
+      · rcases usesS_at p s h with h | ⟨q, s', c', h1, h2⟩
+        · exact ⟨p, s, c, .head c p s ss, h⟩
+        · exact ⟨q, s', c', .inside h1, h2⟩
+      · obtain ⟨q, s', c', h1, h2⟩ := uses_at c (p + size s) ss h
+        exact ⟨q, s', c', .tail h1, h2⟩
+
+theorem usesS_at : ∀ (p : ℕ) (s : Stmt) {v : V}, v ∈ Stmt.uses s →
+    v ∈ names s ∨ ∃ q s' c', AtS p s q s' c' ∧ v ∈ names s'
+  | p, .ite x z n, v, h => by
+      simp only [Stmt.uses, List.mem_cons, List.mem_append] at h
+      rcases h with rfl | h | h
+      · exact .inl (by simp [names])
+      · obtain ⟨q, s', c', h1, h2⟩ := uses_at ⟨p + 1 + sizeL z, p, p + 1⟩ (p + 1) z h
+        exact .inr ⟨q, s', c', .zero h1, h2⟩
+      · obtain ⟨q, s', c', h1, h2⟩ := uses_at ⟨p + 1 + sizeL z + sizeL n, p, p + 1 + sizeL z⟩ (p + 1 + sizeL z) n h
+        exact .inr ⟨q, s', c', .nonzero h1, h2⟩
+  | p, .match_ x arms, v, h => by
+      simp only [Stmt.uses, List.mem_cons] at h
+      rcases h with rfl | h
+      · exact .inl (by simp [names])
+      · obtain ⟨q, s', c', h1, h2⟩ := usesA_at p (p + 1) arms h
+        exact .inr ⟨q, s', c', .arm h1, h2⟩
+  | p, .atom _, v, h => .inl (by simpa [Stmt.uses, names] using h)
+  | p, .call .., v, h => .inl (by simpa [Stmt.uses, names] using h)
+  | p, .callIf .., v, h => .inl (by simpa [Stmt.uses, names] using h)
+  | p, .dispatch .., v, h => .inl (by simpa [Stmt.uses, names] using h)
+  | p, .ret _, v, h => .inl (by simpa [Stmt.uses, names] using h)
+
+theorem usesA_at : ∀ (t a : ℕ) (bs : List (List Stmt)) {v : V}, v ∈ Stmt.usesArms bs →
+    ∃ q s c', AtA t a bs q s c' ∧ v ∈ names s
+  | _, _, [], _, h => by simp [Stmt.usesArms] at h
+  | t, a, b :: bs, v, h => by
+      simp only [Stmt.usesArms, List.mem_append] at h
+      rcases h with h | h
+      · obtain ⟨q, s, c', h1, h2⟩ := uses_at ⟨a + sizeL b, t, a⟩ a b h
+        exact ⟨q, s, c', .here h1, h2⟩
+      · obtain ⟨q, s, c', h1, h2⟩ := usesA_at t (a + sizeL b) bs h
+        exact ⟨q, s, c', .next h1, h2⟩
+end
+
+mutual
+/-- **Every temporary of a block is an atom's at a position.** -/
+theorem tmps_at : ∀ (c : Ctx) (p : ℕ) (ss : List Stmt) {v : V}, v ∈ Stmt.tmpsList ss →
+    ∃ q a c', AtL c p ss q (.atom a) c' ∧ v ∈ atomTmps a
+  | _, _, [], _, h => by simp [Stmt.tmpsList] at h
+  | c, p, s :: ss, v, h => by
+      simp only [Stmt.tmpsList, List.mem_append] at h
+      rcases h with h | h
+      · rcases tmpsS_at p s h with ⟨a, rfl, h⟩ | ⟨q, a, c', h1, h2⟩
+        · exact ⟨p, a, c, .head c p _ ss, h⟩
+        · exact ⟨q, a, c', .inside h1, h2⟩
+      · obtain ⟨q, a, c', h1, h2⟩ := tmps_at c (p + size s) ss h
+        exact ⟨q, a, c', .tail h1, h2⟩
+
+theorem tmpsS_at : ∀ (p : ℕ) (s : Stmt) {v : V}, v ∈ Stmt.tmps s →
+    (∃ a, s = .atom a ∧ v ∈ atomTmps a) ∨ ∃ q a c', AtS p s q (.atom a) c' ∧ v ∈ atomTmps a
+  | p, .ite x z n, v, h => by
+      simp only [Stmt.tmps, List.mem_append] at h
+      rcases h with h | h
+      · obtain ⟨q, a, c', h1, h2⟩ := tmps_at ⟨p + 1 + sizeL z, p, p + 1⟩ (p + 1) z h
+        exact .inr ⟨q, a, c', .zero h1, h2⟩
+      · obtain ⟨q, a, c', h1, h2⟩ := tmps_at ⟨p + 1 + sizeL z + sizeL n, p, p + 1 + sizeL z⟩ (p + 1 + sizeL z) n h
+        exact .inr ⟨q, a, c', .nonzero h1, h2⟩
+  | p, .match_ x arms, v, h => by
+      simp only [Stmt.tmps] at h
+      obtain ⟨q, a, c', h1, h2⟩ := tmpsA_at p (p + 1) arms h
+      exact .inr ⟨q, a, c', .arm h1, h2⟩
+  | p, .atom a, v, h => .inl ⟨a, rfl, by simpa [Stmt.tmps] using h⟩
+  | p, .call .., v, h => by simp [Stmt.tmps] at h
+  | p, .callIf .., v, h => by simp [Stmt.tmps] at h
+  | p, .dispatch .., v, h => by simp [Stmt.tmps] at h
+  | p, .ret _, v, h => by simp [Stmt.tmps] at h
+
+theorem tmpsA_at : ∀ (t a : ℕ) (bs : List (List Stmt)) {v : V}, v ∈ Stmt.tmpsArms bs →
+    ∃ q at' c', AtA t a bs q (.atom at') c' ∧ v ∈ atomTmps at'
+  | _, _, [], _, h => by simp [Stmt.tmpsArms] at h
+  | t, a, b :: bs, v, h => by
+      simp only [Stmt.tmpsArms, List.mem_append] at h
+      rcases h with h | h
+      · obtain ⟨q, s, c', h1, h2⟩ := tmps_at ⟨a + sizeL b, t, a⟩ a b h
+        exact ⟨q, s, c', .here h1, h2⟩
+      · obtain ⟨q, s, c', h1, h2⟩ := tmpsA_at t (a + sizeL b) bs h
+        exact ⟨q, s, c', .next h1, h2⟩
+end
+
 end
 end LeanVM.Guest.Local

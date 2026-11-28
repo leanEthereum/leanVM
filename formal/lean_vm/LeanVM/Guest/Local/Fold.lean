@@ -347,5 +347,35 @@ theorem fold_body {ss : List Stmt} {c : Ctx} {p : ℕ} {st st' : St} {es : List 
 
 end Spec
 
+/-! ## Walks of pieces -/
+
+section Append
+
+variable (step : St → ℕ → Stmt → Ctx → Option St)
+
+/-- **A block's walk in two pieces.** -/
+theorem foldL_append : ∀ (l₁ l₂ : List Stmt) (c : Ctx) (p : ℕ) (st : St) (es : List ℕ),
+    foldL step (l₁ ++ l₂) c p st es = bindO (foldL step l₁ c p st es) fun r ↦ foldL step l₂ c r.1 r.2.1 r.2.2
+  | [], l₂, c, p, st, es => rfl
+  | s :: l₁, l₂, c, p, st, es => by
+      rw [List.cons_append, foldL_cons, foldL_cons]
+      unfold consF
+      cases foldS step s c p st es with
+      | none => rfl
+      | some r => exact foldL_append l₁ l₂ c r.1 r.2.1 r.2.2
+
+/-- **A list of arms' walk in two pieces.** -/
+theorem foldA_append : ∀ (b₁ b₂ : List (List Stmt)) (t a : ℕ) (st : St) (es : List ℕ),
+    foldA step (b₁ ++ b₂) t a st es = bindO (foldA step b₁ t a st es) fun r ↦ foldA step b₂ t r.1 r.2.1 r.2.2
+  | [], b₂, t, a, st, es => rfl
+  | b :: b₁, b₂, t, a, st, es => by
+      rw [List.cons_append, foldA_cons, foldA_cons]
+      unfold armsF
+      cases armRun (foldL step b) t a st es with
+      | none => rfl
+      | some r => exact foldA_append b₁ b₂ t r.1 r.2.1 r.2.2
+
+end Append
+
 end
 end LeanVM.Guest.Local
