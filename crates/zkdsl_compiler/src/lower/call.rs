@@ -253,11 +253,12 @@ impl FnLower<'_> {
             };
         }
         let (rcells, binds) = self.ret_targets(targets);
+        // The selector runs first, as in an unfused `match`, where the arguments run in the arm.
+        let xo = self.expr(x);
 
         // Shared callee frame: args, retfp, and retpc = the join (so the callee
         // returns straight past the dispatch). Evaluated once.
         let arg_offs: Vec<Off> = rt_args.iter().map(|a| self.expr(a)).collect();
-        let xo = self.expr(x);
         let one = self.one();
 
         let nfp = self.fresh();
