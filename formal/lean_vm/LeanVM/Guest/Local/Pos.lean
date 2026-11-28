@@ -39,6 +39,9 @@ facts that matter to a certificate:
 * `runs_dom` (**dominance**): if `q` runs and `q'` is a top-level statement of a block with
   `q' ≤ q < e` (`e` the block's end), then `q'` runs: a position runs whenever a later position
   of its block's range does.
+* `runsL_loc` (**localization**): a run position inside the subtree of the statement at `t` is run by that
+  statement; so a run position in an `ite`'s zero (nonzero) branch has its guard `0` (not `0`), `runs_zero`
+  (`runs_nonzero`), and one in arm `i` of a `match` its selector `g^i` (`runs_sel`).
 * `runs_arm` (**exclusive arms**): if `y` runs in the arm starting at `a` of the branch at `t`,
   no position strictly between `t` and `a` runs: those are the earlier arms'.
 
@@ -74,6 +77,11 @@ def sizeA : List (List Stmt) → ℕ
   | [] => 0
   | b :: bs => sizeL b + sizeA bs
 end
+
+theorem sizeA_take_le : ∀ (bs : List (List Stmt)) (i : ℕ), sizeA (bs.take i) ≤ sizeA bs
+  | [], _ => by simp [sizeA]
+  | _ :: _, 0 => by simp [sizeA]
+  | b :: bs, i + 1 => by simp only [List.take_succ_cons, sizeA]; have := sizeA_take_le bs i; omega
 
 theorem size_pos (s : Stmt) : 0 < size s := by
   cases s <;> simp [size]
@@ -171,6 +179,26 @@ theorem atA_ctx : ∀ {t a : ℕ} {bs : List (List Stmt)} {q : ℕ} {s : Stmt} {
       · simp only [sizeA]; omega
   | _, _, _ :: _, _, _, _, .next h, hta => by
       have := atA_ctx h (by omega); simp only [sizeA]; omega
+end
+
+mutual
+/-- A top-level statement's whole subtree fits in its block. -/
+theorem atL_sub : ∀ {c : Ctx} {p : ℕ} {ss : List Stmt} {q : ℕ} {s : Stmt} {c' : Ctx},
+    AtL c p ss q s c' → q + size s ≤ p + sizeL ss
+  | _, _, _ :: _, _, _, _, .head .. => by simp only [sizeL]; omega
+  | _, _, _ :: _, _, _, _, .inside h => by have := atS_sub h; simp only [sizeL]; omega
+  | _, _, _ :: _, _, _, _, .tail h => by have := atL_sub h; simp only [sizeL]; omega
+
+theorem atS_sub : ∀ {p : ℕ} {s : Stmt} {q : ℕ} {s' : Stmt} {c' : Ctx},
+    AtS p s q s' c' → q + size s' ≤ p + size s
+  | _, .ite .., _, _, _, .zero h => by have := atL_sub h; simp only [size]; omega
+  | _, .ite .., _, _, _, .nonzero h => by have := atL_sub h; simp only [size]; omega
+  | _, .match_ .., _, _, _, .arm h => by have := atA_sub h; simp only [size]; omega
+
+theorem atA_sub : ∀ {t a : ℕ} {bs : List (List Stmt)} {q : ℕ} {s : Stmt} {c : Ctx},
+    AtA t a bs q s c → q + size s ≤ a + sizeA bs
+  | _, _, _ :: _, _, _, _, .here h => by have := atL_sub h; simp only [sizeA]; omega
+  | _, _, _ :: _, _, _, _, .next h => by have := atA_sub h; simp only [sizeA]; omega
 end
 
 /-- A top-level statement's context end, when the block's is exact, bounds the position. -/
@@ -404,6 +432,120 @@ theorem runs_arm' {c : Ctx} {p : ℕ} {ss : List Stmt} {y : ℕ} {s : Stmt} {c' 
     (hc : c.a ≤ c.t + 1) (h : AtL c p ss y s c') (hy : RunsL σ p ss y) (h1 : c'.t < z)
     (h2 : z < c'.a) : ¬ RunsL σ p ss z := fun hz ↦ by
   have := runs_arm h hy hz h1 h2; omega
+
+/-! ## Localization -/
+
+mutual
+/-- **Localization**: a run position inside the subtree of the statement at `t` is run by that statement (it runs
+`t` and the arms leading to the position). -/
+theorem runsL_loc : ∀ {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {s : Stmt} {c' : Ctx} {q : ℕ},
+    AtL c p ss t s c' → t ≤ q → q < t + size s → RunsL σ p ss q → RunsS σ t s q
+  | _, p, s :: ss, _, _, _, q, .head .., _, _, hr => by
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · exact hr
+      · have := runsL_range hr; omega
+  | _, p, s :: ss, t, s', c', q, .inside h, h1, h2, hr => by
+      have := atS_sub h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · exact runsS_loc h h1 h2 hr
+      · have := runsL_range hr; omega
+  | _, p, s :: ss, t, s', c', q, .tail h, h1, h2, hr => by
+      have := atL_range h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · have := runsS_range hr; omega
+      · exact runsL_loc h h1 h2 hr
+
+theorem runsS_loc : ∀ {p : ℕ} {s : Stmt} {t : ℕ} {s' : Stmt} {c' : Ctx} {q : ℕ},
+    AtS p s t s' c' → t ≤ q → q < t + size s' → RunsS σ p s q → RunsS σ t s' q
+  | p, .ite x z n, t, s', c', q, .zero h, h1, h2, hr => by
+      have := atL_range h; have := atL_sub h
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨-, hr⟩ | ⟨-, hr⟩
+      · omega
+      · exact runsL_loc h h1 h2 hr
+      · have := runsL_range hr; omega
+  | p, .ite x z n, t, s', c', q, .nonzero h, h1, h2, hr => by
+      have := atL_range h; have := atL_sub h
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨-, hr⟩ | ⟨-, hr⟩
+      · omega
+      · have := runsL_range hr; omega
+      · exact runsL_loc h h1 h2 hr
+  | p, .match_ x arms, t, s', c', q, .arm h, h1, h2, hr => by
+      have := atA_range h
+      simp only [RunsS] at hr
+      rcases hr with rfl | hr
+      · omega
+      · exact runsA_loc h h1 h2 hr
+
+theorem runsA_loc : ∀ {t0 a : ℕ} {bs : List (List Stmt)} {t : ℕ} {s : Stmt} {c' : Ctx} {q : ℕ} {x : V} {j : ℕ},
+    AtA t0 a bs t s c' → t ≤ q → q < t + size s → RunsA σ x j a bs q → RunsS σ t s q
+  | _, a, b :: bs, t, s, c', q, x, j, .here h, h1, h2, hr => by
+      have := atL_sub h
+      simp only [RunsA] at hr
+      rcases hr with ⟨-, hr⟩ | ⟨-, hr⟩
+      · exact runsL_loc h h1 h2 hr
+      · have := runsA_range hr; omega
+  | _, a, b :: bs, t, s, c', q, x, j, .next h, h1, h2, hr => by
+      have := atA_range h
+      simp only [RunsA] at hr
+      rcases hr with ⟨-, hr⟩ | ⟨-, hr⟩
+      · have := runsL_range hr; omega
+      · exact runsA_loc h h1 h2 hr
+end
+
+/-- **A run position in an `ite`'s zero branch**: its guard is `0`. -/
+theorem runs_zero {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {x : V} {z n : List Stmt} {c' : Ctx} {q : ℕ}
+    (h : AtL c p ss t (.ite x z n) c') (h1 : t + 1 ≤ q) (h2 : q < t + 1 + sizeL z) (hr : RunsL σ p ss q) :
+    σ x = 0 := by
+  have hs := runsL_loc h (by omega) (by simp only [size]; omega) hr
+  simp only [RunsS] at hs
+  rcases hs with rfl | ⟨h0, -⟩ | ⟨-, hr⟩
+  · omega
+  · exact h0
+  · have := runsL_range hr; omega
+
+/-- **A run position in an `ite`'s nonzero branch**: its guard is not `0`. -/
+theorem runs_nonzero {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {x : V} {z n : List Stmt} {c' : Ctx} {q : ℕ}
+    (h : AtL c p ss t (.ite x z n) c') (h1 : t + 1 + sizeL z ≤ q) (h2 : q < t + 1 + sizeL z + sizeL n)
+    (hr : RunsL σ p ss q) : σ x ≠ 0 := by
+  have hs := runsL_loc h (by omega) (by simp only [size]; omega) hr
+  simp only [RunsS] at hs
+  rcases hs with rfl | ⟨-, hr⟩ | ⟨h0, -⟩
+  · omega
+  · have := runsL_range hr; omega
+  · exact h0
+
+/-- A run position in arm `i` of the arms from `a` (the first numbered `j`): the selector is `g^(j + i)`. -/
+theorem runsA_sel {x : V} : ∀ {j a : ℕ} {bs : List (List Stmt)} {q : ℕ} (i : ℕ), RunsA σ x j a bs q →
+    a + sizeA (bs.take i) ≤ q → q < a + sizeA (bs.take (i + 1)) → σ x = ofK (addressOfIndex (j + i))
+  | _, _, [], _, _, hr, _, _ => by simp [RunsA] at hr
+  | j, a, b :: bs, q, 0, hr, _, h2 => by
+      simp only [RunsA] at hr
+      rcases hr with ⟨h0, -⟩ | ⟨-, hr⟩
+      · exact h0
+      · have := runsA_range hr; simp [sizeA] at h2; omega
+  | j, a, b :: bs, q, i + 1, hr, h1, h2 => by
+      simp only [RunsA] at hr
+      simp only [List.take_succ_cons, sizeA] at h1 h2
+      rcases hr with ⟨-, hr⟩ | ⟨-, hr⟩
+      · have := runsL_range hr; omega
+      · rw [show j + (i + 1) = j + 1 + i by omega]
+        exact runsA_sel i hr (by omega) (by omega)
+
+/-- **A run position in arm `i` of a `match`**: its selector is `g^i`. -/
+theorem runs_sel {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {x : V} {arms : List (List Stmt)} {c' : Ctx} {q : ℕ}
+    (h : AtL c p ss t (.match_ x arms) c') (i : ℕ) (h1 : t + 1 + sizeA (arms.take i) ≤ q)
+    (h2 : q < t + 1 + sizeA (arms.take (i + 1))) (hr : RunsL σ p ss q) : σ x = ofK (addressOfIndex i) := by
+  have hle : sizeA (arms.take (i + 1)) ≤ sizeA arms := sizeA_take_le arms (i + 1)
+  have hs := runsL_loc h (by omega) (by simp only [size]; omega) hr
+  simp only [RunsS] at hs
+  rcases hs with rfl | hs
+  · omega
+  · have := runsA_sel i hs h1 h2; rwa [Nat.zero_add] at this
 
 /-! ## Events -/
 
