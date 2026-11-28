@@ -176,10 +176,9 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         let counts = (table.count_columns())
             .map(|c| vec![Coord::Col(GLOBAL_COLUMN_BASES[t] + c)])
             .collect();
-        let (kappa, rows) = (taus[t], rows[t]);
-        table_blocks(&mut push, t, kappa, rows, &padding, push_flushes);
-        table_blocks(&mut pull, t, kappa, rows, &padding, pull_flushes);
-        table_blocks(&mut count_blocks, t, kappa, rows, &padding, counts);
+        table_blocks(&mut push, t, taus[t], rows[t], &padding, push_flushes);
+        table_blocks(&mut pull, t, taus[t], rows[t], &padding, pull_flushes);
+        table_blocks(&mut count_blocks, t, taus[t], rows[t], &padding, counts);
     }
 
     let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));

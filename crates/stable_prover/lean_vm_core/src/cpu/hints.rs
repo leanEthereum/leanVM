@@ -192,12 +192,7 @@ pub(crate) fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
         (baby, giant)
     });
     let mut y = x;
-    let max_giant = if nbits > LOG_BABY {
-        1u64 << (nbits - LOG_BABY)
-    } else {
-        1
-    };
-    for a in 0..max_giant {
+    for a in 0..1u64 << nbits.saturating_sub(LOG_BABY) {
         if let Some(j) = baby.lookup(y) {
             return Some((a as u128) << LOG_BABY | j as u128);
         }
