@@ -9,8 +9,9 @@ on:
 permissions:
   contents: read
 
-# A new push cancels a pull request's run, never main's: each push to main checks its own diff, so a
-# cancelled run could leave a change to `crates/` unchecked, and main's runs save the caches.
+# A new push cancels an active pull request run. A running main run keeps its cache save.
+# GitHub can replace a pending main run, so the main path filter uses a checked ancestor.
+# See https://github.com/leanEthereum/leanVM/issues/892 for the missed-check example.
 concurrency:
   group: lean-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -326,28 +327,26 @@ jobs:
   # transcriptions could go stale with green CI. A skipped job counts as passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
       changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'push' && '64' || '1' }}
+      - name: Test the formalization path filter
+        run: python3 -I formal/tools/test-lean-vm-changes.py
       - id: diff
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
-            echo changed=true >> "$GITHUB_OUTPUT"
-          # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
-          # builds all of them.
-          elif git diff --name-only "$BASE" HEAD -- formal crates guests Cargo.toml Cargo.lock .cargo/config.toml \
-              .github/workflows/lean.yml | grep -q .; then
-            echo changed=true >> "$GITHUB_OUTPUT"
-          else
-            echo changed=false >> "$GITHUB_OUTPUT"
-          fi
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
+        run: python3 -I formal/tools/lean-vm-changes.py
 
   lean-vm-formalization:
     needs: lean-vm-changes
-    if: needs.lean-vm-changes.outputs.changed == 'true'
+    if: ${{ !cancelled() && (needs.lean-vm-changes.result != 'success' || needs.lean-vm-changes.outputs.changed != 'false') }}
     runs-on: ubuntu-latest
     # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
     timeout-minutes: 360
