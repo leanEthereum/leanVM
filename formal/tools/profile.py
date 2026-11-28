@@ -3,11 +3,12 @@
 
   python3 -I tools/profile.py FILE [N]    the N costliest declarations of FILE (default 8)
 
-FILE is checked with `lake env lean` in its project, from the built dependencies (build them
-first), one declaration after another (`Elab.async=false`: with it on, the profiler's times
-overlap) under Lean's profiler. For each costly declaration, the steps whose own time (not their
-sub-steps') is largest: the tactic, unification (`Meta.isDefEq`, `whnf`), instance search or kernel
-check where a fix applies. What usually helps, by what the step is:
+FILE is checked with `lake lean` in its project, from the built dependencies (build them first)
+and with the native libraries they load (`nat_hex%`'s), one declaration after another
+(`Elab.async=false`: with it on, the profiler's times overlap) under Lean's profiler. For each
+costly declaration, the steps whose own time (not their sub-steps') is largest: the tactic,
+unification (`Meta.isDefEq`, `whnf`), instance search or kernel check where a fix applies. What
+usually helps, by what the step is:
 
 * `decide`, `decide +kernel` on lists: a quadratic or structural check (`Nodup`, `∉` through a
   derived `DecidableEq`): decide it by numbers, a linear pass (`List.IsChain (· < ·)`, a `Bool`
@@ -94,8 +95,8 @@ def main():
     path, top = sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 8
     proj = project_of(path)
     cap = int(os.environ.get("LEAN_VMEM_KB", "40000000")) * 1024
-    cmd = ["lake", "env", "lean", "-DElab.async=false", "-Dtrace.profiler=true",
-           "-Dtrace.profiler.threshold=50", os.path.relpath(os.path.abspath(path), proj)]
+    cmd = ["lake", "lean", os.path.relpath(os.path.abspath(path), proj), "--", "-DElab.async=false",
+           "-Dtrace.profiler=true", "-Dtrace.profiler.threshold=50"]
     r = subprocess.run(cmd, cwd=proj, capture_output=True, text=True,
                        preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_AS, (cap, cap)))
     use = resource.getrusage(resource.RUSAGE_CHILDREN)
