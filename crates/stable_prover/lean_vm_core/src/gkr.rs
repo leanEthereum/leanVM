@@ -129,14 +129,8 @@ fn pad(values: &mut Vec<F128>) {
 
 /// The level two above `values`, padded: each row's product, those in `ones` the identity.
 fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
-    let eight = |k: usize| eight_products(values, ones, k);
     let n = (values.len() / 4).next_multiple_of(BLOCK) / 8;
-    if n < crate::SERIAL_BELOW {
-        (0..n).map(eight).collect::<Vec<_>>()
-    } else {
-        parallel::map_collect(n, eight)
-    }
-    .into_flattened()
+    parallel::map_collect(n, |k| eight_products(values, ones, k)).into_flattened()
 }
 
 /// The products of rows `8k..8k + 8` of `values`.
