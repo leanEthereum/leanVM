@@ -19,6 +19,7 @@ mod hints;
 pub mod layout;
 mod trace;
 pub use execute::{ExecError, Execution, Fault, Memory, WitnessFault, execute};
+pub(crate) use execute::{Word, execute_with};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
@@ -139,10 +140,20 @@ pub fn prove(
     public_input: [F128; 2],
     log_inv_rate: usize,
 ) -> Result<(Proof, Stats), ProveError> {
+    prove_with(program, witness, public_input, log_inv_rate)
+}
+
+/// [`prove`], the witness in any [`Word`].
+pub(crate) fn prove_with<W: Word>(
+    program: &Program,
+    witness: &[(String, Vec<Vec<W>>)],
+    public_input: [F128; 2],
+    log_inv_rate: usize,
+) -> Result<(Proof, Stats), ProveError> {
     if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let exec = execute(program, witness, public_input).map_err(ProveError::Execution)?;
+    let exec = execute_with(program, witness, public_input).map_err(ProveError::Execution)?;
     // A value read before anything wrote it is the prover's to choose: the proof would be of a weaker statement than
     // the program's.
     if !exec.unconstrained_reads.is_empty() {

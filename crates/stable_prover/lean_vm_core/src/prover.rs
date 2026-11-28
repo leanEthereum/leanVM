@@ -25,16 +25,7 @@ impl isa::Prover for StableProver {
         public_input: [E; 2],
         log_inv_rate: usize,
     ) -> Result<(verifier::Proof, isa::Stats), cpu::ProveError> {
-        let witness: Vec<(String, Vec<Vec<F128>>)> = witness
-            .iter()
-            .map(|(name, entries)| {
-                let entries = entries
-                    .iter()
-                    .map(|entry| entry.iter().copied().map(from_scalar).collect());
-                (name.clone(), entries.collect())
-            })
-            .collect();
-        cpu::prove(program, &witness, public_input.map(from_scalar), log_inv_rate)
+        cpu::prove_with(program, witness, public_input.map(from_scalar), log_inv_rate)
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {

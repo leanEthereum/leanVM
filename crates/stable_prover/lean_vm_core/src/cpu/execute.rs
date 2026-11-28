@@ -426,17 +426,34 @@ impl Mem {
     }
 }
 
+/// A witness value: a machine word, in this tree's type or the `verifier` crate's.
+pub(crate) trait Word: Copy {
+    fn word(self) -> F128;
+}
+
+impl Word for F128 {
+    fn word(self) -> F128 {
+        self
+    }
+}
+
+impl Word for verifier::E {
+    fn word(self) -> F128 {
+        super::from_scalar(self)
+    }
+}
+
 /// What the hints keep across the run: the next free cell and each witness stream's next entry.
-struct Advice<'a> {
+struct Advice<'a, W> {
     next_free: u32,
-    witness: &'a [(String, Vec<Vec<F128>>)],
+    witness: &'a [(String, Vec<Vec<W>>)],
     /// The entry of stream `witness[i]` its next pop takes.
     next: Vec<usize>,
 }
 
-impl<'a> Advice<'a> {
+impl<'a, W> Advice<'a, W> {
     /// The next entry of stream `name`, of `len` values.
-    fn pop(&mut self, name: &str, len: u32) -> Res<&'a [F128]> {
+    fn pop(&mut self, name: &str, len: u32) -> Res<&'a [W]> {
         let witness = self.witness;
         // Byte by byte: `==` would call `bcmp` through a register, an indirect call.
         let problem = match witness.iter().position(|(n, _)| n.bytes().eq(name.bytes())) {
@@ -540,6 +557,15 @@ fn hint_name(h: &RHint) -> &'static str {
 pub fn execute(
     program: &Program,
     witness: &[(String, Vec<Vec<F128>>)],
+    public_input: [F128; 2],
+) -> Result<Execution, ExecError> {
+    execute_with(program, witness, public_input)
+}
+
+/// [`execute`], the witness in any [`Word`].
+pub(crate) fn execute_with<W: Word>(
+    program: &Program,
+    witness: &[(String, Vec<Vec<W>>)],
     public_input: [F128; 2],
 ) -> Result<Execution, ExecError> {
     let ending_pc = (program.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
@@ -738,9 +764,9 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
 
 /// Pop the next entry of stream `name` into the `len` cells from `base`.
 #[inline(never)]
-fn put_witness(m: &mut Mem, advice: &mut Advice, name: &str, base: u32, len: u32) -> Res<()> {
+fn put_witness<W: Word>(m: &mut Mem, advice: &mut Advice<W>, name: &str, base: u32, len: u32) -> Res<()> {
     for (k, &value) in advice.pop(name, len)?.iter().enumerate() {
-        m.put(base + k as u32, value)?;
+        m.put(base + k as u32, value.word())?;
     }
     Ok(())
 }
@@ -755,7 +781,13 @@ fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Res<()> {
 }
 
 /// Apply the hints scheduled before an instruction at frame `fp`, in order. A conflict names the hint that caused it.
-fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Res<()> {
+fn apply_hints<'a, W: Word>(
+    hs: &'a [RHint],
+    fp: u32,
+    m: &mut Mem,
+    g: &mut GPow,
+    advice: &mut Advice<'a, W>,
+) -> Res<()> {
     for h in hs {
         apply_hint(h, fp, m, g, advice).map_err(|mut fault| {
             if let Fault::Conflict { hint, .. } = &mut *fault {
@@ -769,7 +801,7 @@ fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: 
 
 /// Apply a hint scheduled before an instruction at frame `fp`.
 #[inline(never)]
-fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Res<()> {
+fn apply_hint<'a, W: Word>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a, W>) -> Res<()> {
     let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
     // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
     let dyn_size = |m: &Mem, g: &mut GPow, size: u32| {
