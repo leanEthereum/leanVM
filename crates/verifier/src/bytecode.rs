@@ -27,11 +27,10 @@ const _: () = assert!(BLOCK_LOG <= u16::BITS as usize, "a position within a bloc
 /// The Fiat-Shamir IV of the stacked bytecode `stacked_bytecode`, as [`Bytecode::fiat_shamir_iv`] gives it: what a
 /// prover needs of the bytecode, which never evaluates it.
 pub fn fiat_shamir_iv(stacked_bytecode: &[u64]) -> [u8; 32] {
-    let iv_preimage: Vec<u8> = TAG
-        .iter()
-        .copied()
-        .chain(stacked_bytecode.iter().flat_map(|word| word.to_le_bytes()))
-        .collect();
+    let mut iv_preimage = TAG.to_vec();
+    for word in stacked_bytecode {
+        iv_preimage.extend_from_slice(&word.to_le_bytes());
+    }
     keccak_hash(&iv_preimage).0
 }
 

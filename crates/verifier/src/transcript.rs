@@ -280,20 +280,24 @@ impl<'a> Transcript<'a> {
 }
 
 /// [`sumcheck`]'s transcript alone, for a replay: each of `rounds` rounds reads its `count - 1` coefficients, grinds as
-/// [`Transcript::sumcheck_round_poly`] does (one more for an eq factor) and draws its challenge. The challenges.
+/// [`Transcript::sumcheck_round_poly`] does (one more for an eq factor) and draws its challenge, appended to
+/// `challenges` if given.
 pub fn replay_sumcheck(
     transcript: &mut Transcript,
     count: usize,
     rounds: usize,
     eq_factor: bool,
-) -> Result<Vec<E>, VerifierError> {
-    let mut challenges = Vec::with_capacity(rounds);
+    mut challenges: Option<&mut Vec<E>>,
+) -> Result<(), VerifierError> {
     for _ in 0..rounds {
         transcript.skip_scalars(count - 1)?;
         transcript.grind_check(grinding_bits((count - 1 + usize::from(eq_factor)) as u128))?;
-        challenges.push(transcript.sample());
+        let challenge = transcript.sample();
+        if let Some(challenges) = challenges.as_deref_mut() {
+            challenges.push(challenge);
+        }
     }
-    Ok(challenges)
+    Ok(())
 }
 
 pub fn sumcheck(

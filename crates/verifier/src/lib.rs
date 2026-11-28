@@ -325,7 +325,7 @@ fn replay(
     transcript.grind_check(grinding_bits((layout::N_CONSTRAINTS + N_TREES) as u128 - 1))?;
     transcript.sample();
     let n_rounds = layout.table_log_heights.iter().copied().max().unwrap_or(0);
-    transcript::replay_sumcheck(&mut transcript, 4, n_rounds, false)?;
+    transcript::replay_sumcheck(&mut transcript, 4, n_rounds, false, None)?;
     for width in TABLE_WIDTHS {
         transcript.skip_scalars(width)?;
     }

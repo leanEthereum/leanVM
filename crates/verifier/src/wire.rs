@@ -95,7 +95,9 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     write_u32(out, leaf_words);
     write_u32(out, leaf_words - zeros);
     for path in &distinct {
-        out.extend(path.leaf[zeros..].iter().flat_map(|word| word.to_bytes()));
+        for word in &path.leaf[zeros..] {
+            out.extend_from_slice(&word.to_bytes());
+        }
     }
     for level in 0..height {
         let mut nodes: Vec<(u64, [u8; 32])> = distinct

@@ -241,7 +241,7 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
             transcript.grind_check(QUERY_GRINDING_BITS)?;
             let queries = sample_queries(transcript, block_length, config.queries[level])?;
             transcript.merkle_paths(block_length, &queries, leaf_words)?;
-            replay_sumcheck(transcript, 3, mu, false)?;
+            replay_sumcheck(transcript, 3, mu, false, None)?;
             break;
         }
         // The next root and the high part, the OOD sample, then the queries and lambda.

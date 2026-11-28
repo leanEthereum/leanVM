@@ -256,18 +256,18 @@ pub(crate) fn replay_keccak(
         transcript.skip_scalars(PRODUCT_BITS)?;
         transcript.grind_check(grinding_bits(PRODUCT_BITS as u128 - 1))?;
         transcript.sample();
-        replay_sumcheck(transcript, 3, shape.pack_bits() + segment_bits, true)?;
-        replay_sumcheck(transcript, 4, LOCAL_BITS, false)?;
+        replay_sumcheck(transcript, 3, shape.pack_bits() + segment_bits, true, None)?;
+        replay_sumcheck(transcript, 4, LOCAL_BITS, false, None)?;
         transcript.skip_scalars(3)?;
         transcript.grind_check(grinding_bits(2))?;
         transcript.sample();
     }
     if shape.segments() > 1 {
-        replay_sumcheck(transcript, 3, shape.slot_bits(), false)?;
+        replay_sumcheck(transcript, 3, shape.slot_bits(), false, None)?;
         transcript.next_scalar()?;
     }
-    replay_sumcheck(transcript, 3, PACK_BITS, false)?;
-    replay_sumcheck(transcript, 3, shape.slot_bits(), false)?;
+    replay_sumcheck(transcript, 3, PACK_BITS, false, None)?;
+    replay_sumcheck(transcript, 3, shape.slot_bits(), false, None)?;
     transcript.skip_scalars(K_BITS)?;
     Ok(())
 }
