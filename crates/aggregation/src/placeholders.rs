@@ -2,7 +2,7 @@
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::child::{MU_CAP, QUERY_WINDOW_BITS, STREAM_CAP, merkle_cap_depth, whir_levels};
+use super::child::{MU_CAP, QUERY_WINDOW_BITS, STREAM_CAP, merkle_cap_depth};
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
@@ -654,8 +654,13 @@ type Level = fn(&OpeningShape, usize) -> usize;
 
 impl OpeningShape {
     fn new(mu: usize, log_inv_rate: usize) -> Self {
-        let (config, log_message_columns, tree_depths) =
-            whir_levels(mu, log_inv_rate).expect("every candidate stack has a WHIR config");
+        let config = verifier::derive_config(mu, log_inv_rate).expect("every candidate stack has a WHIR config");
+        let (mut cols, mut log_message_columns, mut tree_depths) = (mu, Vec::new(), Vec::new());
+        for (&fold, &rate) in config.folds.iter().zip(&config.log_inv_rates) {
+            cols -= fold;
+            log_message_columns.push(cols);
+            tree_depths.push(cols + rate);
+        }
         let shape = Self {
             folds: config.folds,
             queries: config.queries,

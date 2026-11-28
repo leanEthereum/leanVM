@@ -9,21 +9,6 @@ use lean_vm_core::leaf::{self, Block};
 use lean_vm_core::witness::Placement;
 use primitives::field::F128;
 
-/// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
-/// after its folds and its Merkle tree's depth. The hint builder needs it for the real opening and the placeholder map
-/// for every candidate size, so it lives here: a candidate whose shape differed from the real one would compile a
-/// guest that cannot open the proof it is handed. `None` for a shape no proof has.
-pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::WhirConfig, Vec<usize>, Vec<usize>)> {
-    let config = verifier::derive_config(mu, log_inv_rate).ok()?;
-    let (mut cols, mut log_msg_cols, mut depth) = (mu, Vec::new(), Vec::new());
-    for (&fold, &rate) in config.folds.iter().zip(&config.log_inv_rates) {
-        cols -= fold;
-        log_msg_cols.push(cols);
-        depth.push(cols + rate);
-    }
-    Some((config, log_msg_cols, depth))
-}
-
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
 pub(super) const QUERY_WINDOW_BITS: usize = 6;
 
@@ -94,8 +79,7 @@ pub(super) fn gen_verify(
     hints.push("table_logs", layout.taus.iter().map(|&t| count(t)).collect());
     hints.push("col_group_order", col_group_order(kbc, &layout.placements));
     hints.push("block_group_order", block_group_order(blocks, &sides));
-    let (config, _, depth) = whir_levels(layout.shape.mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
-    merkle_hints(&mut hints, config.queries, &depth, proof);
+    merkle_hints(&mut hints, proof);
     Ok(hints)
 }
 
@@ -131,11 +115,11 @@ fn block_group_order(sides: [&[Block]; 3], layouts: &[leaf::Layout; 3]) -> Vec<F
 /// The stacked WHIR opening's Merkle witness, per level: each query's leaf row and the sibling of every node it
 /// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries
 /// reach, and which of its nodes they reach. The upper tree is shared by a level's queries; a subtree no query reaches
-/// stays zero, unread.
-fn merkle_hints(hints: &mut Hints, queries: &[usize], depth: &[usize], proof: &verifier::Proof) {
-    let levels = queries.iter().zip(depth);
-    for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle_openings).enumerate() {
-        let cap_depth = merkle_cap_depth(queries, depth);
+/// stays zero, unread. A level's query count and tree depth are its paths', which the replay pinned.
+fn merkle_hints(hints: &mut Hints, proof: &verifier::Proof) {
+    for (level, phase) in proof.merkle_openings.iter().enumerate() {
+        let depth = phase.first().map_or(0, |opening| opening.siblings.len());
+        let cap_depth = merkle_cap_depth(phase.len(), depth);
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 << cap_depth];
         let mut active = vec![F128::ZERO; 1 << cap_depth];
