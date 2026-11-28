@@ -72,8 +72,9 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let mut slices = vec![F128::ZERO; (16 * 64) << shape.slot_log()];
     parallel::chunks_mut(&mut slices, 16 * 64, |slot, out| {
         let words = &committed[slot * n..][..n];
-        for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-            for (chunk, fold) in folds.iter().enumerate() {
+        // A chunk's fold table and words serve the sixteen instances while they are in cache.
+        for (chunk, fold) in folds.iter().enumerate() {
+            for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
                 let mut rows: [u64; 64] =
                     std::array::from_fn(|t| words.get(16 * (64 * chunk + t) + i).map_or(0, |w| w.0));
                 transpose64(&mut rows);
