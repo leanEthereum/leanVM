@@ -83,11 +83,8 @@ def deployed_value(W, name):
 
 def deployed_parts(W):
     """`DeployedC`'s `clC_eq` and `clS_eq`."""
-    lp = _lp()
-    return [dict(mod='DeployedC', key=0, items=[W.thm('clC_eq', 'clC B2C.fs wSB', W.v('clC'), 'clC', [],
-                                                      fs=[W.L('claim_list_digest'), W.L('claim_list_chain')] + lp, sb=['list_split', _TAIL])]),
-            dict(mod='DeployedC', key=3, items=[W.thm('clS_eq', 'clS B2C.fs wSK', W.v('clS'), 'clS B1.Main.iterK', [],
-                                                      fs=lp, sk=lp)])]
+    return [dict(mod='DeployedC', key=0, items=[W.thm('clC_eq', 'clC B2C.fs wSB', W.v('clC'))]),
+            dict(mod='DeployedC', key=3, items=[W.thm('clS_eq', 'clS B2C.fs wSK', W.v('clS'))])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand

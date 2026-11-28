@@ -149,7 +149,7 @@ set_option maxRecDepth 100000 in
 /-- **`deployedBudget`'s words.** -/
 theorem deployedBudget_words (Bvf : ℕ → ℕ → ℕ) :
     (Budget.deployedBudget Bvf).words = deployedWords Bvf := by
-  simp only [Budget.deployedBudget, Budget.mainBudget, mainWords, B1.Main.iterK, deployedWords]
+  simp only [Budget.deployedBudget, Budget.mainBudget, B1.Main.mainWords, B1.Main.iterK, deployedWords]
   rw [clC_eq, clS_eq, dvC_eq, dvS_eq, dvP_eq, l5A0_eq, l5A1_eq, l5A2_eq, agA0_eq, agA1_eq]
   congr 1
 
@@ -168,16 +168,16 @@ theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
     return [
         dict(mod='DeployedC', key=2,
              head=(3, 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
-                   'public import LeanVM.Guest.Count.DeployedA2\n'),
-             items=[W.thm('l5A0_eq', 'l5A0 B2C.fs', W.v('l5A0'), 'l5A0',
-                          ['B2C.fs_tailKey (j := %d) (f := "%s") (by decide +kernel)' % (g.by[l4] + 1, l4)])]),
-        dict(mod='DeployedC', key=4, items=[
-            W.thm('l5A1_eq', 'l5A1 B2C.fs wSB', W.v('l5A1'), 'l5A1', ['ccC_eq'], fs=[l4], sb=['statement_digest'])]),
-        dict(mod='DeployedC', key=5, items=[W.thm('l5A2_eq', 'l5A2 B2C.fs', W.v('l5A2'), 'l5A2 ccS', [],
-                                                  fs=fnrules.MODS['child_claim_list_digest'].walk_loops())]),
+                   'public import LeanVM.Guest.Count.Fast\npublic import LeanVM.Guest.B1.Main.WordsDefs\n'),
+             items=['theorem l5A0_eq : l5A0 B2C.fs = %d := by\n  unfold l5A0\n'
+                    '  rw [B2C.fs_tailKey (j := %d) (f := "%s") (by decide +kernel)]\n  decide +kernel\n'
+                    % (W.v('l5A0'), g.by[l4] + 1, l4)]),
+        dict(mod='DeployedC', key=4, items=[W.thm('l5A1_eq', 'l5A1 B2C.fs wSB', W.v('l5A1'))]),
+        dict(mod='DeployedC', key=5, items=[W.thm('l5A2_eq', 'l5A2 B2C.fs', W.v('l5A2'))]),
         dict(mod='Deployed', key=0, out=out,
              head=(4, 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
-                   'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n'),
+                   'public import LeanVM.Guest.Budget.DeployedBudget\npublic import LeanVM.Guest.Count.DeployedB\n'
+                   'public import LeanVM.Guest.Count.DeployedC\n'),
              items=[body])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to

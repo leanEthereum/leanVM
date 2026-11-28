@@ -1,6 +1,6 @@
 """`Count/Deployed*.lean`: the numbers of `Budget.deployedBudget Bv`, computed from the data as
-`B1.Main.mainWords` and `Budget.mainInstrs` define them, and proved by `decide +kernel` (each closed
-part in its own module, the kernel's string lookups being its cost), and `Count/Fast.lean`.
+`B1.Main.mainWords` and `Budget.mainInstrs` define them, and proved by `decide +kernel` through the
+search tree's lookups of `Count/Fast.lean` (which it writes), never a scan of the names.
 
 The rule files (`scripts/core-mode/fn/<f>.py`, `fnrules`) name the functions and give the numbers: each
 answers `deployed_value(W, name)` for its own values (`W.v`), and contributes `deployed_parts(W)`, each
@@ -22,8 +22,7 @@ module
 namespace LeanVM.Guest.Count
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
-open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0 agA1
-  mainWords)
+open LeanVM.Guest.B1.Main (dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0 agA1)
 
 @[expose] public section
 %s
@@ -77,20 +76,11 @@ class W:
             self._v[name] = r
         return self._v[name]
 
-    def idx_rw(self, fs=(), sb=(), sk=()):
-        """Rewrites of `B2C.fs`, `wSB`, `wSK` at the named functions by their core indices."""
-        g = self.g
-        out = ['fs_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(fs)]
-        out += ['wSB_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sb)]
-        out += ['wSK_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sk)]
-        return ',\n    '.join(out)
-
-    def thm(self, name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
-        """`theorem name : lhs = val`, by unfolding `unf`, rewriting `rws` and the names' indices, and the kernel."""
-        r = self.idx_rw(fs, sb, sk)
-        steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
-        return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
-                % (name, lhs, val, unf, steps))
+    def thm(self, name, lhs, val):
+        """`theorem name : lhs = val`, by the kernel through `Count/Fast.lean`'s lookups where `lhs` reads `B2C.fs`,
+        `wSB` or `wSK`."""
+        rws = [r for c, r in (('B2C.fs', '← fsFast_eq'), ('wSB', '← wSBFast_eq'), ('wSK', '← wSKFast_eq')) if c in lhs]
+        return 'theorem %s : %s = %d := by\n  rw [%s]\n  decide +kernel\n' % (name, lhs, val, ', '.join(rws))
 
 
 def write(g, certs, ops):
@@ -98,6 +88,8 @@ def write(g, certs, ops):
     D = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count')
     parts = [p for h in vscount.fnrules.hooks('deployed_parts') for p in h(w)]
     heads = sorted((p for p in parts if 'head' in p), key=lambda p: p['head'][0])
+    for f in os.listdir(D):
+        if re.fullmatch(r'Deployed\w*\.lean', f): os.remove(os.path.join(D, f))
     for hp in heads:
         M = hp['mod']
         _, doc, imports = hp['head']

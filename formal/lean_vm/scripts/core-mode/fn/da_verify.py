@@ -131,24 +131,14 @@ def deployed_value(W, name):
 
 
 def deployed_parts(W):
-    """`DeployedA` (`dlK`) and `DeployedB` (its words)."""
-    L = W.L
-    lp, pad = L('da_verify_loop0'), L('da_pad_loop0')
-    imp0 = 'public import LeanVM.Guest.Budget.DeployedBudget\n'
-    return [
-        dict(mod='DeployedA', key=0, head=(0, 'The tree over the blob roots\' words per padded row (`B1.Main.dlK`).', imp0),
-             items=['/-- The words of the tree over the blob roots, per row of the padded matrix. -/\n'
-                    'theorem dlK_eq : dlK wSB = %d := by decide +kernel\n' % W.v('dlK')]),
-        dict(mod='DeployedB', key=0, head=(2, '`da_verify`\'s words: its constant, per row and per padded row.',
-                                           'public import LeanVM.Guest.Count.DeployedA\n'),
-             items=['/-- **`da_verify`\'s constant words.** -/\n'
-                    + W.thm('dvC_eq', 'dvC B2C.fs wSB', W.v('dvC'), 'dvC', [],
-                            fs=[L('da_verify'), 'da_padding', lp, L('da_pad'), pad], sb=['da_vector', 'da_weights']),
-                    '/-- **`da_verify`\'s words per row.** -/\n'
-                    + W.thm('dvS_eq', 'dvS B2C.fs wSK', W.v('dvS'), 'dvS B1.Main.iterK', [], fs=[lp, pad], sk=[lp, pad]),
-                    '/-- **`da_verify`\'s words per padded row.** -/\n'
-                    + W.thm('dvP_eq', 'dvP B2C.fs wSB wSK', W.v('dvP'), 'dvP B1.Main.iterK', ['dlK_eq'], fs=[pad],
-                            sk=[pad])])]
+    """`DeployedB`: `da_verify`'s words."""
+    return [dict(mod='DeployedB', key=0, head=(2, '`da_verify`\'s words: its constant, per row and per padded row.',
+                                               'public import LeanVM.Guest.Count.Fast\n'
+                                               'public import LeanVM.Guest.B1.Main.WordsDefs\n'),
+                 items=['/-- **`da_verify`\'s constant words.** -/\n' + W.thm('dvC_eq', 'dvC B2C.fs wSB', W.v('dvC')),
+                        '/-- **`da_verify`\'s words per row.** -/\n' + W.thm('dvS_eq', 'dvS B2C.fs wSK', W.v('dvS')),
+                        '/-- **`da_verify`\'s words per padded row.** -/\n'
+                        + W.thm('dvP_eq', 'dvP B2C.fs wSB wSK', W.v('dvP'))])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand

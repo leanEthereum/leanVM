@@ -70,12 +70,6 @@ def count_parts(g, OPS):
 
 # ---- its deployed words (`scripts/count/deployed.py`, `B1.Main.mainWords`)
 
-def walk_loops():
-    """Its walks' loops, the two per `CLAIM_BIG` claims then the two per `CLAIM_GROUP`."""
-    lp = _lists()[0]
-    return [lp[0], lp[2], lp[1], lp[3]]
-
-
 def deployed_value(W, name):
     """A child's claim list (`B1.Main.ccC`, `ccS`), on either walk (the honest prover takes the gap walk when the
     list's slots increase): `ccC`, the larger walk's frame, its chain's first record (`15` words at most), the larger
@@ -100,24 +94,8 @@ def deployed_value(W, name):
 
 
 def deployed_parts(W):
-    """`DeployedA2` (its last digests' frames) and `DeployedC`'s `ccC_eq`."""
-    import fnrules
-    L = W.L
-    group = fnrules.guest_const('CLAIM_GROUP')
-    return [
-        dict(mod='DeployedA2', key=0,
-             head=(1, 'The children\'s claim lists\' last digests\' words over the name lists of `B1.Main.ccC`.',
-                   'public import LeanVM.Guest.Budget.DeployedBudget\n'),
-             items=['/-- The children\'s claim lists\' last digests\' frames. -/\n'
-                    'theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames %d = %d := by decide +kernel\n'
-                    % (group, W.v('ccl')),
-                    '/-- The gap walk\'s last digests\' frames. -/\n'
-                    'theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames %d = %d := by decide +kernel\n'
-                    % (group, W.v('ccm'))]),
-        dict(mod='DeployedC', key=1, items=[W.thm(
-            'ccC_eq', 'ccC B2C.fs wSB', W.v('ccC'), 'ccC', ['ccl_sum', 'ccm_sum'],
-            fs=[L('child_claim_list_digest'), L('child_claim_list_any'), L('child_claim_list_mono')] + walk_loops(),
-            sb=['list_split'])])]
+    """`DeployedC`'s `ccC_eq`."""
+    return [dict(mod='DeployedC', key=1, items=[W.thm('ccC_eq', 'ccC B2C.fs wSB', W.v('ccC'))])]
 
 # its own Lean files beside its B1 proofs' `B1/` modules and its `CoreMode/Fn/<f>/` (`fnreg.own_files`): what a change to
 # it alone may change, by hand
