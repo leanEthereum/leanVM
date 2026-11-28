@@ -499,32 +499,22 @@ where
     accs.into_iter().fold(init(), combine)
 }
 
-/// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
-/// reduce)`. Each block of [`fold_reduce`] folds its indices into one partial; the
-/// partials combine on the dispatcher. The blocks depend on the worker count, so
-/// `reduce` must be associative and commutative, with `identity()` neutral.
+/// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).fold(identity(), reduce)`. Each block of
+/// [`fold_reduce`] folds its indices into one partial from `identity()`; the partials combine on the dispatcher. The
+/// blocks depend on the worker count, so `reduce` must be associative and commutative, with `identity()` neutral.
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
-    T: Send,
-    ID: FnOnce() -> T,
+    T: Copy + Send,
+    ID: Fn() -> T + Sync,
     M: Fn(usize) -> T + Sync,
     R: Fn(T, T) -> T + Sync,
 {
-    // A worker's partial starts at its first `map`, keeping `identity` off the per-item path.
-    let merge = |a: Option<T>, b: T| match a {
-        Some(a) => reduce(a, b),
-        None => b,
-    };
     fold_reduce(
         n_tasks,
-        || None,
-        |partial, i| *partial = Some(merge(partial.take(), map(i))),
-        |a, b| match b {
-            Some(b) => Some(merge(a, b)),
-            None => a,
-        },
+        identity,
+        |partial, i| *partial = reduce(*partial, map(i)),
+        &reduce,
     )
-    .unwrap_or_else(identity)
 }
 
 #[cfg(test)]
