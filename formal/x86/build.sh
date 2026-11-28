@@ -3,13 +3,14 @@
 # need both; without them it runs several times slower), at target/fv/fv_entry, on an x86-64 Linux host with a nightly
 # toolchain and its `rust-src`. Panics abort at once (no unwinding, no formatting); no auto-vectorization or
 # unrolling, so the binary's loops are the source's; static addresses, so a table of function pointers holds the
-# functions' addresses; no tracing spans; the crates off the hot path built for size.
+# functions' addresses; libc called through the PLT, so those calls are direct; no tracing spans; the crates off the
+# hot path built for size.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 flags=(
   -C target-cpu=haswell -C target-feature=+vpclmulqdq,+gfni
-  -C relocation-model=static -C link-arg=-no-pie
+  -C relocation-model=static -C link-arg=-no-pie -Z plt=yes
   -Z unstable-options -C panic=immediate-abort -C force-unwind-tables=no
   -C llvm-args=-vectorize-loops=false -C llvm-args=-vectorize-slp=false
   -C llvm-args=-unroll-threshold=0 -C llvm-args=-unroll-full-max-count=1
