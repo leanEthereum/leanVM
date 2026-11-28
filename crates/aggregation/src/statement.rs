@@ -73,11 +73,6 @@ pub(super) fn claim_cells([pk, message]: &Claim) -> Vec<F128> {
 /// end-to-end statement check holds the two spellings together.
 pub(super) const STATEMENT_HEADER: usize = 8;
 
-/// A plain hash over cells: what the guest gets from `keccak_cells` over the same cells.
-fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
-    hash_to_scalars(&keccak256::hash(&cell_bytes(cells)))
-}
-
 /// A node's public statement, hashed to the two words the VM publishes as its public input. The
 /// guest's `statement_digest` computes exactly this, both for itself and when it
 /// rebuilds a child's, which is what forces a whole tree onto one bytecode and
@@ -87,8 +82,9 @@ fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
 /// field has a fixed width, and the header leads with the environment digest, which
 /// binds this bytecode and the proof system's version and so already separates the
 /// preimage from every other use of the hash here. The header cells, then the
-/// deferred cells, each hashed as its two lanes. Each claim list's digest binds its
-/// own length through the hash's padding, so the pair binds both lists whole.
+/// deferred cells, each hashed as its two lanes (the guest's `keccak_cells`). Each
+/// claim list's digest binds its own length through the hash's padding, so the
+/// pair binds both lists whole.
 pub(super) fn statement_digest(
     lists: &[Vec<Claim>; 2],
     da_commitment: Option<[u8; 32]>,
@@ -103,7 +99,7 @@ pub(super) fn statement_digest(
     let mut cells = header.as_flattened().to_vec();
     cells.extend_from_slice(&defer.bytecode_point);
     cells.push(defer.bytecode_value);
-    cell_hash(cells)
+    hash_to_scalars(&keccak256::hash(&cell_bytes(cells)))
 }
 
 #[cfg(test)]
