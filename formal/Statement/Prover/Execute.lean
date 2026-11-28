@@ -404,7 +404,7 @@ def St.derefCell (s : St) (p : K) (o : ℕ) (fault : Fault) : Except Fault (ℕ 
 def putRun (b : ℕ) (vs : List E) (m : Mem) : Except Fault Mem :=
   vs.zipIdx.foldlM (fun m (v, k) ↦ m.put (b + k) v) m
 
-/-- The base of a heap run: the exponent of the pointer at cell `c` (`heap_base`). -/
+/-- The base of a heap run: the exponent of the pointer at cell `c` (`log_at`). -/
 def heapBase (s : St) (c : ℕ) (what : String) : Except Fault (ℕ × St) := do
   let p ← inK what (s.mem.peek c)
   s.logOr p maxCells (.notAGPower what p)

@@ -489,10 +489,16 @@ fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, fp: u32, ptr: u32, size
     m.put(cell, F128::from(g.pow(base as usize)))
 }
 
-/// The cell a heap run starts at: the pointer in `cell`, inverted.
-fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Res<u32> {
-    let p = in_k(what, m.get(cell))?;
+/// The exponent of the g-power in cell `fp + offset`: a heap run's base, or a runtime size.
+fn log_at(m: &Mem, g: &mut GPow, fp: u32, offset: u32, what: &'static str) -> Res<u32> {
+    let p = k_word_at(m, fp, offset, what)?;
     g.log(p).ok_or_else(|| fault(Fault::NotAGPower { what, value: p }))
+}
+
+/// The exponent of the g-power in cell `fp + offset`, as [`bounded_dlog`] finds it below `2^nbits`.
+fn dlog_at(m: &Mem, fp: u32, offset: u32, nbits: u32, what: &'static str) -> Res<u128> {
+    let x = k_word_at(m, fp, offset, what)?;
+    bounded_dlog(x, nbits).ok_or_else(|| fault(Fault::NotAGPower { what, value: x }))
 }
 
 /// The word in cell `fp + offset`, as a hint reads it.
@@ -518,7 +524,7 @@ fn g_word(k: usize) -> F128 {
 fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, len: u32, what: &'static str) -> Res<u32> {
     match dest {
         BitsDest::Stack(base) => run_at(fp, base, len),
-        BitsDest::Heap(ptr) => run_at(heap_base(m, g, cell_at(fp, ptr)?, what)?, 0, len),
+        BitsDest::Heap(ptr) => run_at(log_at(m, g, fp, ptr, what)?, 0, len),
     }
 }
 
@@ -792,11 +798,6 @@ fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: 
 #[inline(never)]
 fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Res<()> {
     let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
-    // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
-    let dyn_size = |m: &Mem, g: &mut GPow, size: u32| {
-        let size = k_word_at(m, fp, size, "HeapBuf size")?;
-        g.log(size).ok_or_else(|| not_a_g_power("HeapBuf size", size))
-    };
     match *h {
         RHint::FrameAddress { offset } => g.note(cell_at(fp, offset)? as usize),
         RHint::CellAddress { ptr, cell } => {
@@ -807,8 +808,9 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         }
         // A fresh region: write its base `g^{next_free}` into the pointer cell (once) and reserve `size` cells.
         RHint::Alloc { ptr, size } => alloc(m, g, &mut advice.next_free, fp, ptr, size)?,
+        // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
         RHint::AllocDyn { ptr, size } => {
-            let cells = dyn_size(m, g, size)?;
+            let cells = log_at(m, g, fp, size, "HeapBuf size")?;
             alloc(m, g, &mut advice.next_free, fp, ptr, cells)?;
         }
         // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
@@ -843,7 +845,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             put_witness(m, advice, name, run_at(fp, base, len)?, len)?;
         }
         RHint::WitnessHeap { ref name, ptr, lo, len } => {
-            let heap = heap_base(m, g, cell_at(fp, ptr)?, "hint_witness heap pointer")?;
+            let heap = log_at(m, g, fp, ptr, "hint_witness heap pointer")?;
             put_witness(m, advice, name, run_at(heap, lo, len)?, len)?;
         }
         RHint::Log2Ceil {
@@ -869,9 +871,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             put_bits(m, base, nbits, v)?;
         }
         RHint::BitDecomposeExp { value, bits, nbits } => {
-            const WHAT: &str = "hint_decompose_bits_exponent value";
-            let x = k_word_at(m, fp, value, WHAT)?;
-            let n = bounded_dlog(x, nbits).ok_or_else(|| not_a_g_power(WHAT, x))?;
+            let n = dlog_at(m, fp, value, nbits, "hint_decompose_bits_exponent value")?;
             let base = bits_base(m, g, fp, bits, nbits, "hint_decompose_bits_exponent pointer")?;
             put_bits(m, base, nbits, n)?;
         }
@@ -901,16 +901,10 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             start,
             start_cell,
         } => {
-            const WHAT: &str = "hint_decompose_digits_exponent value";
-            let x = k_word_at(m, fp, value, WHAT)?;
-            let n = bounded_dlog(x, nbits).ok_or_else(|| not_a_g_power(WHAT, x))?;
+            let n = dlog_at(m, fp, value, nbits, "hint_decompose_digits_exponent value")?;
             let start = match start_cell {
                 None => start,
-                Some(c) => {
-                    const WHAT: &str = "hint_decompose_digits_exponent start";
-                    let y = k_word_at(m, fp, c, WHAT)?;
-                    bounded_dlog(y, 7).ok_or_else(|| not_a_g_power(WHAT, y))? as u32
-                }
+                Some(c) => dlog_at(m, fp, c, 7, "hint_decompose_digits_exponent start")? as u32,
             };
             let base = bits_base(m, g, fp, dst, ndigits, "hint_decompose_digits_exponent pointer")?;
             let mask = (1u128 << digit_bits) - 1;
