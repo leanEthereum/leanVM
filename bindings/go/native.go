@@ -60,29 +60,64 @@ type Claim struct {
 // XmssSecretKey owns a stateful leanXMSS secret key in the native bridge. Never sign two different
 // messages at the same leaf index. Call Close when finished.
 type XmssSecretKey struct {
-	mu     sync.Mutex
-	handle *C.lpq_xmss_secret_key
+	state *owned[*C.lpq_xmss_secret_key]
 }
 
 // SphincsSecretKey owns a stateless leanSPHINCS secret key in the native bridge. Call Close when
 // finished.
 type SphincsSecretKey struct {
-	mu     sync.Mutex
-	handle *C.lpq_sphincs_secret_key
+	state *owned[*C.lpq_sphincs_secret_key]
 }
 
 // VrfKey is a VRF key: a seed and its range of slots, which fix the root, so keep both. Call
 // Close when finished.
 type VrfKey struct {
-	mu     sync.Mutex
-	handle *C.lpq_vrf_key
+	state *owned[*C.lpq_vrf_key]
 }
 
 // Aggregate owns a verified recursive proof that each of its claims was signed. Call Close when
 // finished.
 type Aggregate struct {
-	mu     sync.Mutex
-	handle *C.lpq_aggregate
+	state *owned[*C.lpq_aggregate]
+}
+
+// owned is the native object behind a wrapper. Every copy of the wrapper points to the same owned,
+// so closing one copy closes them all and frees the object once.
+type owned[P comparable] struct {
+	mu  sync.Mutex
+	ptr P
+}
+
+func newOwned[P comparable](ptr P) *owned[P] {
+	return &owned[P]{ptr: ptr}
+}
+
+// acquire locks the object and returns it with its unlock, or fails if it is closed.
+func (o *owned[P]) acquire(kind string) (P, func(), error) {
+	var none P
+	if o == nil {
+		return none, nil, errClosed(kind)
+	}
+	o.mu.Lock()
+	if o.ptr == none {
+		o.mu.Unlock()
+		return none, nil, errClosed(kind)
+	}
+	return o.ptr, o.mu.Unlock, nil
+}
+
+// close frees the object with destroy unless it is already closed.
+func (o *owned[P]) close(destroy func(P)) {
+	if o == nil {
+		return
+	}
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	var none P
+	if o.ptr != none {
+		destroy(o.ptr)
+		o.ptr = none
+	}
 }
 
 // Setup starts the prover on threads threads (0: one per physical core). It fails if the prover already
@@ -105,7 +140,7 @@ func GenerateXmssSecretKey() (*XmssSecretKey, error) {
 	if err := call(func() C.int32_t { return C.lpq_xmss_secret_key_generate(&handle) }); err != nil {
 		return nil, err
 	}
-	return &XmssSecretKey{handle: handle}, nil
+	return &XmssSecretKey{state: newOwned(handle)}, nil
 }
 
 // XmssSecretKeyFromSeed deterministically creates a leanXMSS key from seed.
@@ -121,7 +156,7 @@ func XmssSecretKeyFromBytes(bytes []byte) (*XmssSecretKey, error) {
 	}); err != nil {
 		return nil, err
 	}
-	return &XmssSecretKey{handle: handle}, nil
+	return &XmssSecretKey{state: newOwned(handle)}, nil
 }
 
 // XmssSecretKeyFromCacheBytes loads a leanXMSS key from its seed, its public key and the bytes
@@ -138,56 +173,56 @@ func XmssSecretKeyFromCacheBytes(seed, publicKey [32]byte, cache []byte) (*XmssS
 	}); err != nil {
 		return nil, err
 	}
-	return &XmssSecretKey{handle: handle}, nil
+	return &XmssSecretKey{state: newOwned(handle)}, nil
 }
 
 // Bytes returns the key's secret encoding (its 32-byte seed).
 func (key *XmssSecretKey) Bytes() ([]byte, error) {
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return nil, errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return nil, err
 	}
+	defer release()
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_xmss_secret_key_to_bytes(key.handle, output)
+		return C.lpq_xmss_secret_key_to_bytes(handle, output)
 	})
 }
 
 // CacheBytes returns the trees the key holds, without any secret.
 func (key *XmssSecretKey) CacheBytes() ([]byte, error) {
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return nil, errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return nil, err
 	}
+	defer release()
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_xmss_secret_key_cache_to_bytes(key.handle, output)
+		return C.lpq_xmss_secret_key_cache_to_bytes(handle, output)
 	})
 }
 
 // PublicKey returns the key's 32-byte public key.
 func (key *XmssSecretKey) PublicKey() ([32]byte, error) {
 	var publicKey [32]byte
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return publicKey, errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return publicKey, err
 	}
-	err := fixedResult(publicKey[:], "public key", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_xmss_secret_key_public_key(key.handle, output)
+	defer release()
+	err = fixedResult(publicKey[:], "public key", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_xmss_secret_key_public_key(handle, output)
 	})
 	return publicKey, err
 }
 
 // Prepare precomputes key material for signing at leafIndex.
 func (key *XmssSecretKey) Prepare(leafIndex uint32) error {
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return err
 	}
+	defer release()
 	return call(func() C.int32_t {
-		return C.lpq_xmss_secret_key_prepare(key.handle, C.uint32_t(leafIndex))
+		return C.lpq_xmss_secret_key_prepare(handle, C.uint32_t(leafIndex))
 	})
 }
 
@@ -196,41 +231,36 @@ func (key *XmssSecretKey) SetBottomTreeCacheSize(size int) error {
 	if size < 0 {
 		return errors.New("leanpq: size must not be negative")
 	}
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return err
 	}
+	defer release()
 	return call(func() C.int32_t {
-		return C.lpq_xmss_secret_key_set_bottom_tree_cache_size(key.handle, C.size_t(size))
+		return C.lpq_xmss_secret_key_set_bottom_tree_cache_size(handle, C.size_t(size))
 	})
 }
 
 // Sign signs message at leafIndex.
 func (key *XmssSecretKey) Sign(message [32]byte, leafIndex uint32) (XmssSignature, error) {
 	var signature XmssSignature
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return signature, errClosed("leanXMSS secret key")
+	handle, release, err := key.state.acquire("leanXMSS secret key")
+	if err != nil {
+		return signature, err
 	}
-	err := fixedResult(signature[:], "leanXMSS signature", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_xmss_secret_key_sign(key.handle, arrayPointer(&message), C.size_t(len(message)), C.uint32_t(leafIndex), output)
+	defer release()
+	err = fixedResult(signature[:], "leanXMSS signature", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_xmss_secret_key_sign(handle, arrayPointer(&message), C.size_t(len(message)), C.uint32_t(leafIndex), output)
 	})
 	return signature, err
 }
 
-// Close releases the native key. It is safe to call repeatedly.
+// Close releases the native key, closing every copy of it. It is safe to call repeatedly.
 func (key *XmssSecretKey) Close() {
 	if key == nil {
 		return
 	}
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle != nil {
-		C.lpq_xmss_secret_key_destroy(key.handle)
-		key.handle = nil
-	}
+	key.state.close(func(handle *C.lpq_xmss_secret_key) { C.lpq_xmss_secret_key_destroy(handle) })
 }
 
 // XmssVerify returns nil when signature is a valid leanXMSS signature over message by publicKey.
@@ -250,7 +280,7 @@ func GenerateSphincsSecretKey() (*SphincsSecretKey, error) {
 	if err := call(func() C.int32_t { return C.lpq_sphincs_secret_key_generate(&handle) }); err != nil {
 		return nil, err
 	}
-	return &SphincsSecretKey{handle: handle}, nil
+	return &SphincsSecretKey{state: newOwned(handle)}, nil
 }
 
 // SphincsSecretKeyFromSeed deterministically creates a leanSPHINCS key from seed.
@@ -261,7 +291,7 @@ func SphincsSecretKeyFromSeed(seed [32]byte) (*SphincsSecretKey, error) {
 	}); err != nil {
 		return nil, err
 	}
-	return &SphincsSecretKey{handle: handle}, nil
+	return &SphincsSecretKey{state: newOwned(handle)}, nil
 }
 
 // SphincsSecretKeyFromBytes restores a leanSPHINCS key from the bytes returned by Bytes.
@@ -272,31 +302,31 @@ func SphincsSecretKeyFromBytes(bytes []byte) (*SphincsSecretKey, error) {
 	}); err != nil {
 		return nil, err
 	}
-	return &SphincsSecretKey{handle: handle}, nil
+	return &SphincsSecretKey{state: newOwned(handle)}, nil
 }
 
 // Bytes returns the key's secret encoding (its 32-byte seed).
 func (key *SphincsSecretKey) Bytes() ([]byte, error) {
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return nil, errClosed("leanSPHINCS secret key")
+	handle, release, err := key.state.acquire("leanSPHINCS secret key")
+	if err != nil {
+		return nil, err
 	}
+	defer release()
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_sphincs_secret_key_to_bytes(key.handle, output)
+		return C.lpq_sphincs_secret_key_to_bytes(handle, output)
 	})
 }
 
 // PublicKey returns the key's 32-byte public key.
 func (key *SphincsSecretKey) PublicKey() ([32]byte, error) {
 	var publicKey [32]byte
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return publicKey, errClosed("leanSPHINCS secret key")
+	handle, release, err := key.state.acquire("leanSPHINCS secret key")
+	if err != nil {
+		return publicKey, err
 	}
-	err := fixedResult(publicKey[:], "public key", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_sphincs_secret_key_public_key(key.handle, output)
+	defer release()
+	err = fixedResult(publicKey[:], "public key", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_sphincs_secret_key_public_key(handle, output)
 	})
 	return publicKey, err
 }
@@ -304,28 +334,23 @@ func (key *SphincsSecretKey) PublicKey() ([32]byte, error) {
 // Sign signs message.
 func (key *SphincsSecretKey) Sign(message [32]byte) (SphincsSignature, error) {
 	var signature SphincsSignature
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return signature, errClosed("leanSPHINCS secret key")
+	handle, release, err := key.state.acquire("leanSPHINCS secret key")
+	if err != nil {
+		return signature, err
 	}
-	err := fixedResult(signature[:], "leanSPHINCS signature", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_sphincs_secret_key_sign(key.handle, arrayPointer(&message), C.size_t(len(message)), output)
+	defer release()
+	err = fixedResult(signature[:], "leanSPHINCS signature", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_sphincs_secret_key_sign(handle, arrayPointer(&message), C.size_t(len(message)), output)
 	})
 	return signature, err
 }
 
-// Close releases the native key. It is safe to call repeatedly.
+// Close releases the native key, closing every copy of it. It is safe to call repeatedly.
 func (key *SphincsSecretKey) Close() {
 	if key == nil {
 		return
 	}
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle != nil {
-		C.lpq_sphincs_secret_key_destroy(key.handle)
-		key.handle = nil
-	}
+	key.state.close(func(handle *C.lpq_sphincs_secret_key) { C.lpq_sphincs_secret_key_destroy(handle) })
 }
 
 // SphincsVerify returns nil when signature is a valid leanSPHINCS signature over message by
@@ -349,7 +374,7 @@ func VrfKeyFromSeed(seed [32]byte, start, end uint32) (*VrfKey, error) {
 	}); err != nil {
 		return nil, err
 	}
-	return &VrfKey{handle: handle}, nil
+	return &VrfKey{state: newOwned(handle)}, nil
 }
 
 // VrfKeyFromCacheBytes rebuilds a key from its seed, its root and a cache from CacheBytes, without
@@ -361,31 +386,31 @@ func VrfKeyFromCacheBytes(seed, root [32]byte, cache []byte) (*VrfKey, error) {
 	}); err != nil {
 		return nil, err
 	}
-	return &VrfKey{handle: handle}, nil
+	return &VrfKey{state: newOwned(handle)}, nil
 }
 
 // CacheBytes encodes the key's cache: its range and cached layer, no secret.
 func (key *VrfKey) CacheBytes() ([]byte, error) {
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return nil, errClosed("VRF key")
+	handle, release, err := key.state.acquire("VRF key")
+	if err != nil {
+		return nil, err
 	}
+	defer release()
 	return bufferResult(func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_vrf_key_cache_to_bytes(key.handle, output)
+		return C.lpq_vrf_key_cache_to_bytes(handle, output)
 	})
 }
 
 // Root returns the root, which the validator registers.
 func (key *VrfKey) Root() ([32]byte, error) {
 	var root [32]byte
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return root, errClosed("VRF key")
+	handle, release, err := key.state.acquire("VRF key")
+	if err != nil {
+		return root, err
 	}
-	err := fixedResult(root[:], "VRF root", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_vrf_key_root(key.handle, output)
+	defer release()
+	err = fixedResult(root[:], "VRF root", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_root(handle, output)
 	})
 	return root, err
 }
@@ -393,28 +418,23 @@ func (key *VrfKey) Root() ([32]byte, error) {
 // Proof returns the proof of slot. It fails outside the range.
 func (key *VrfKey) Proof(slot uint32) (VrfProof, error) {
 	var proof VrfProof
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle == nil {
-		return proof, errClosed("VRF key")
+	handle, release, err := key.state.acquire("VRF key")
+	if err != nil {
+		return proof, err
 	}
-	err := fixedResult(proof[:], "VRF proof", func(output *C.lpq_buffer) C.int32_t {
-		return C.lpq_vrf_key_proof(key.handle, C.uint32_t(slot), output)
+	defer release()
+	err = fixedResult(proof[:], "VRF proof", func(output *C.lpq_buffer) C.int32_t {
+		return C.lpq_vrf_key_proof(handle, C.uint32_t(slot), output)
 	})
 	return proof, err
 }
 
-// Close releases the native key. It is safe to call repeatedly.
+// Close releases the native key, closing every copy of it. It is safe to call repeatedly.
 func (key *VrfKey) Close() {
 	if key == nil {
 		return
 	}
-	key.mu.Lock()
-	defer key.mu.Unlock()
-	if key.handle != nil {
-		C.lpq_vrf_key_destroy(key.handle)
-		key.handle = nil
-	}
+	key.state.close(func(handle *C.lpq_vrf_key) { C.lpq_vrf_key_destroy(handle) })
 }
 
 // VrfVerify returns nil if proof opens slot under root, as is_valid_vrf_proof in the consensus
@@ -483,7 +503,7 @@ func aggregateSignatures(children []*Aggregate, xmss []XmssSignedMessage, sphinc
 	}); err != nil {
 		return nil, err
 	}
-	return &Aggregate{handle: output}, nil
+	return &Aggregate{state: newOwned(output)}, nil
 }
 
 // AggregateFromBytes checks that bytes, from Aggregate.Bytes, prove exactly the given claims, which
@@ -503,7 +523,7 @@ func AggregateFromBytes(bytes []byte, xmssClaims, sphincsClaims []Claim) (*Aggre
 	}); err != nil {
 		return nil, err
 	}
-	return &Aggregate{handle: handle}, nil
+	return &Aggregate{state: newOwned(handle)}, nil
 }
 
 // Bytes returns the aggregate's proof encoding, without its claims.
@@ -532,17 +552,12 @@ func (aggregate *Aggregate) SphincsClaims() ([]Claim, error) {
 	})
 }
 
-// Close releases the native aggregate. It is safe to call repeatedly.
+// Close releases the native aggregate, closing every copy of it. It is safe to call repeatedly.
 func (aggregate *Aggregate) Close() {
 	if aggregate == nil {
 		return
 	}
-	aggregate.mu.Lock()
-	defer aggregate.mu.Unlock()
-	if aggregate.handle != nil {
-		C.lpq_aggregate_destroy(aggregate.handle)
-		aggregate.handle = nil
-	}
+	aggregate.state.close(func(handle *C.lpq_aggregate) { C.lpq_aggregate_destroy(handle) })
 }
 
 func (aggregate *Aggregate) claims(f func(*C.lpq_aggregate, *C.lpq_buffer) C.int32_t) ([]Claim, error) {
@@ -583,26 +598,24 @@ func (aggregate *Aggregate) acquire() (*C.lpq_aggregate, func(), error) {
 	if aggregate == nil {
 		return nil, nil, errors.New("leanpq: aggregate is nil")
 	}
-	aggregate.mu.Lock()
-	if aggregate.handle == nil {
-		aggregate.mu.Unlock()
-		return nil, nil, errClosed("aggregate")
-	}
-	return aggregate.handle, aggregate.mu.Unlock, nil
+	return aggregate.state.acquire("aggregate")
 }
 
 // acquireAggregates locks each distinct aggregate in address order so concurrent calls sharing
-// children cannot deadlock.
+// children cannot deadlock. Copies of an aggregate share its lock, so they count once.
 func acquireAggregates(aggregates []*Aggregate) ([]*C.lpq_aggregate, func(), error) {
-	unique := make(map[*Aggregate]struct{}, len(aggregates))
-	ordered := make([]*Aggregate, 0, len(aggregates))
+	unique := make(map[*owned[*C.lpq_aggregate]]struct{}, len(aggregates))
+	ordered := make([]*owned[*C.lpq_aggregate], 0, len(aggregates))
 	for _, aggregate := range aggregates {
 		if aggregate == nil {
 			return nil, nil, errors.New("leanpq: aggregate is nil")
 		}
-		if _, exists := unique[aggregate]; !exists {
-			unique[aggregate] = struct{}{}
-			ordered = append(ordered, aggregate)
+		if aggregate.state == nil {
+			return nil, nil, errClosed("aggregate")
+		}
+		if _, exists := unique[aggregate.state]; !exists {
+			unique[aggregate.state] = struct{}{}
+			ordered = append(ordered, aggregate.state)
 		}
 	}
 	sort.Slice(ordered, func(left, right int) bool {
@@ -613,18 +626,18 @@ func acquireAggregates(aggregates []*Aggregate) ([]*C.lpq_aggregate, func(), err
 			ordered[index].mu.Unlock()
 		}
 	}
-	for _, aggregate := range ordered {
-		aggregate.mu.Lock()
+	for _, state := range ordered {
+		state.mu.Lock()
 	}
-	for _, aggregate := range ordered {
-		if aggregate.handle == nil {
+	for _, state := range ordered {
+		if state.ptr == nil {
 			release()
 			return nil, nil, errClosed("aggregate")
 		}
 	}
 	handles := make([]*C.lpq_aggregate, len(aggregates))
 	for index, aggregate := range aggregates {
-		handles[index] = aggregate.handle
+		handles[index] = aggregate.state.ptr
 	}
 	return handles, release, nil
 }
