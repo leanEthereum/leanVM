@@ -89,9 +89,9 @@ impl Hints {
     }
 
     /// `other`'s entries after this one's, stream by stream.
-    pub(super) fn extend(&mut self, other: Hints) {
-        for (name, mut entries) in other.0 {
-            self.stream(&name).append(&mut entries);
+    pub(super) fn extend(&mut self, mut other: Hints) {
+        for (name, entries) in &mut other.0 {
+            self.stream(name).append(entries);
         }
     }
 
