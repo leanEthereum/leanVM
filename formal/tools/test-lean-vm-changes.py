@@ -1,15 +1,19 @@
 """Regression checks for the main Lean formalization path filter."""
 
+from contextlib import redirect_stdout
+from io import StringIO
 import os
 from pathlib import Path
 import runpy
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
 
-selector = runpy.run_path(str(Path(__file__).with_name("lean-vm-changes.py")))["needs_formalization"]
+module = runpy.run_path(str(Path(__file__).with_name("lean-vm-changes.py")))
+selector = module["needs_formalization"]
 repository = "leanEthereum/leanVM"
 
 
@@ -28,6 +32,7 @@ class FormalizationChanges(unittest.TestCase):
         self.release = self.commit("bindings/release", "release")
         self.runs = []
         self.jobs = {}
+        self.queried_heads = []
         self.addCleanup(patch.stopall)
         patch.dict(
             os.environ,
@@ -49,13 +54,17 @@ class FormalizationChanges(unittest.TestCase):
         self.git("commit", "--quiet", "-m", name)
         return self.git("rev-parse", "HEAD")
 
-    def records(self, endpoint, collection):
+    def records(self, endpoint, collection, deadline):
         if collection == "workflow_runs":
+            prefix, commit = endpoint.split("&head_sha=")
             self.assertEqual(
-                endpoint,
-                f"repos/{repository}/actions/workflows/lean.yml/runs?branch=main&status=completed&per_page=100",
+                prefix,
+                f"repos/{repository}/actions/workflows/lean.yml/runs?branch=main&status=completed",
             )
-            return self.runs
+            commit, page_size = commit.split("&")
+            self.assertEqual(page_size, "per_page=100")
+            self.queried_heads.append(commit)
+            return [run for run in self.runs if run["head_sha"] == commit]
         prefix, run, _, attempt, _ = endpoint.rsplit("/", 4)
         self.assertEqual(prefix, f"repos/{repository}/actions/runs")
         self.assertEqual(collection, "jobs")
@@ -99,6 +108,7 @@ class FormalizationChanges(unittest.TestCase):
         self.record(self.old, "success")
         self.record(self.changed, "success")
         self.assertFalse(selector())
+        self.assertEqual(self.queried_heads, [self.release, self.changed])
 
     def test_future_fork_and_unrelated_jobs_do_not_advance_base(self):
         self.record(self.changed, "success", event="pull_request")
@@ -126,11 +136,35 @@ class FormalizationChanges(unittest.TestCase):
         self.assertTrue(selector())
 
     def test_lookup_and_comparison_errors_require_full_check(self):
-        self.assertTrue(selector())
-        with patch.dict(selector.__globals__, records=Mock(side_effect=OSError("unavailable"))):
-            self.assertTrue(selector())
+        self.assert_warning("No successful formalization job found")
+        error = OSError("unavailable\n::error::unexpected subprocess output")
+        with patch.dict(selector.__globals__, records=Mock(side_effect=error)):
+            self.assert_warning("Could not confirm the formalization baseline")
         with patch.dict(selector.__globals__, checked_main_base=lambda: "not-a-commit"):
+            self.assert_warning("Could not compare the formalization baseline")
+
+    def assert_warning(self, reason):
+        output = StringIO()
+        with redirect_stdout(output):
             self.assertTrue(selector())
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].startswith(f"::warning::{reason}"))
+
+    def test_lookup_uses_one_page_and_stops_at_the_deadline(self):
+        read_records = module["records"]
+        with patch("time.monotonic", side_effect=[10, 15]), patch(
+            "subprocess.check_output", return_value='{"name":"job"}\n'
+        ) as api:
+            self.assertEqual(read_records("endpoint", "jobs", 15), [{"name": "job"}])
+            with self.assertRaises(TimeoutError):
+                read_records("endpoint", "jobs", 15)
+        api.assert_called_once_with(
+            ["gh", "api", "--jq", ".jobs[] | @json", "endpoint"],
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=5,
+        )
 
     def test_dispatch_runs_and_pull_request_uses_its_base(self):
         os.environ["GITHUB_EVENT_NAME"] = "workflow_dispatch"
@@ -140,6 +174,23 @@ class FormalizationChanges(unittest.TestCase):
         self.assertFalse(selector())
         os.environ["BASE"] = self.old
         self.assertTrue(selector())
+
+    def test_pull_request_fetch_failure_warns_without_git_output(self):
+        script = Path(__file__).with_name("lean-vm-changes.py")
+        output = Path.cwd() / "changed"
+        run = subprocess.run(
+            [sys.executable, "-I", str(script)],
+            env={**os.environ, "GITHUB_EVENT_NAME": "pull_request", "GITHUB_OUTPUT": str(output)},
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertEqual(run.stderr, "")
+        self.assertEqual(
+            run.stdout,
+            "::warning::Could not confirm the formalization baseline. Running the full Lean formalization check.\n",
+        )
+        self.assertEqual(output.read_text(encoding="utf-8"), "changed=true\n")
 
 
 if __name__ == "__main__":

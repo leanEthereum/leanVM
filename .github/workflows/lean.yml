@@ -11,6 +11,7 @@ permissions:
 
 # A new push cancels an active pull request run. A running main run keeps its cache save.
 # GitHub can replace a pending main run, so the main path filter uses a checked ancestor.
+# See https://github.com/leanEthereum/leanVM/issues/892 for the missed-check example.
 concurrency:
   group: lean-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
