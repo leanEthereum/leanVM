@@ -198,7 +198,7 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
 #[inline(never)]
 fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block> {
     use Coord::{Col, Const, Index, Public};
-    let one = Const(F64::ONE);
+    const ONE: Coord = Const(F64::ONE);
     // The run starts at `(pc, fp) = (0, 0)` and halts at the bytecode's last slot `g^{B-1}` with `fp = 0`.
     let (state, memory_count, bytecode_count) = if pull {
         let final_pc = primitives::field::g_pow((1 << log_bytecode) - 1);
@@ -208,14 +208,14 @@ fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block
             Col(BYTECODE_FINAL_COUNTERS),
         )
     } else {
-        (one.clone(), one.clone(), one.clone())
+        (ONE, ONE, ONE)
     };
     // The program columns are public, and a padding entry cancels itself at count 1, so the whole `2^log_bytecode`
     // flushes; each slot past the count is the stacked bytecode's column of that slot.
     let mut bytecode = vec![Const(SEP_BYTECODE), Index, bytecode_count];
     bytecode.extend((bytecode.len()..1 << verifier::layout::BUS_BITS).map(Public));
     vec![
-        Block::full(0, vec![Const(SEP_STATE), state, one]),
+        Block::full(0, vec![Const(SEP_STATE), state, ONE]),
         Block::full(
             log_mem,
             vec![Const(SEP_MEM), Index, memory_count, Col(MEMORY_0), Col(MEMORY_1)],

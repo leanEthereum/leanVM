@@ -357,15 +357,15 @@ impl Table {
         } else {
             [XOR, MUL, SET, DEREF, JUMP][self as usize]
         };
+        let coords = |tuple: &[C]| tuple.iter().map(|c| c.coord(base)).collect::<Vec<_>>();
         let (mut push, mut pull) = (Vec::new(), Vec::new());
         for flush in flushes {
-            let tuple: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord(base)).collect();
-            let mut pulled = tuple.clone();
-            for &(at, c) in &flush.pull {
-                pulled[at] = c.coord(base);
+            let mut pulled = flush.push;
+            for (at, c) in flush.pull {
+                pulled[at] = c;
             }
-            push.push(tuple);
-            pull.push(pulled);
+            push.push(coords(&flush.push[..flush.len]));
+            pull.push(coords(&pulled[..flush.len]));
         }
         [push, pull]
     }
