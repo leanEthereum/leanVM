@@ -111,10 +111,10 @@ pub(crate) fn sums(
     per_pack: &[[F128; PRODUCT_BITS]],
 ) -> Vec<F128> {
     let at = AtS::new(powers);
-    // Word `k` of each position's weight as a polynomial in `s`, at `words[k][j]`.
-    let mut words = [vec![0; BITS], vec![0; BITS]];
+    // Word `k` of each position's weight as a polynomial in `s`, at `words[BITS * k + j]`.
+    let mut words = vec![0; 2 * BITS];
     for (j, &w) in claim.weights.iter().enumerate() {
-        [words[0][j], words[1][j]] = at.poly(w).to_limbs();
+        [words[j], words[BITS + j]] = at.poly(w).to_limbs();
     }
     let half = claim.point[SKIP];
     let mixed = parallel::fold_reduce(
@@ -157,7 +157,7 @@ pub(crate) fn sums(
 /// weights[j] * S[j + 1] * S[j + 2]` at mixed point `i` of group `half`, as its two partial products with the words
 /// of the weights. Lane `i` of a slot holds the positions `z + i` of every run: a row of five runs, which `chi`
 /// mixes, has eight consecutive positions' weights per run.
-fn block_sums(block: &[u64], words: &[Vec<u64>; 2], out: &mut [[Wide8; 2]; 2 * MIXED]) {
+fn block_sums(block: &[u64], words: &[u64], out: &mut [[Wide8; 2]; 2 * MIXED]) {
     let mut extended = [[[0; 8]; SLOTS]; 5];
     for r in 0..5 {
         for z in (0..64).step_by(8) {
@@ -166,7 +166,7 @@ fn block_sums(block: &[u64], words: &[Vec<u64>; 2], out: &mut [[Wide8; 2]; 2 * M
                 embed_run(block, j, extended.first_chunk_mut().expect("the packs"));
                 extend(extended);
             }
-            let w: [[Run; 2]; 5] = js.map(|j| words.each_ref().map(|w| w[j..][..8].try_into().expect("a run")));
+            let w: [[Run; 2]; 5] = js.map(|j| [j, BITS + j].map(|at| words[at..][..8].try_into().expect("a run")));
             for (p, out) in (PACKS..).zip(out.iter_mut()) {
                 let mut sum = [Wide8::ZERO; 2];
                 for (w, &[a, b]) in w.iter().zip(&CHI_RUNS) {
@@ -229,7 +229,10 @@ impl AtS {
     fn new(powers: &[F128]) -> Self {
         // Gauss-Jordan on the powers of `s` below 128, each tagged with its exponent: the reduced rows are the unit
         // vectors, tagged with their polynomials.
-        let mut rows: Vec<(u128, u128)> = (0..128).map(|i| (u128::from(powers[i]), 1u128 << i)).collect();
+        let mut rows = [(0u128, 0u128); 128];
+        for (i, row) in rows.iter_mut().enumerate() {
+            *row = (u128::from(powers[i]), 1 << i);
+        }
         for k in 0..128 {
             let pivot = (k..128)
                 .find(|&r| rows[r].0 >> k & 1 == 1)
@@ -242,9 +245,11 @@ impl AtS {
                 }
             }
         }
-        let unit: Vec<F128> = rows.iter().map(|row| F128::from(row.1)).collect();
-        let [unit, powers] = [&unit[..], powers].map(BitFold::new);
-        Self { unit, powers }
+        let unit = rows.map(|row| F128::from(row.1));
+        Self {
+            unit: BitFold::new(&unit),
+            powers: BitFold::new(powers),
+        }
     }
 
     /// The polynomial of degree below 128 whose value at `s` is `w`, its two words as an element's limbs.
