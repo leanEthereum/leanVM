@@ -67,17 +67,15 @@ impl Block {
 
 /// A table coordinate's value on a row whose columns, from column `base`, are `row`.
 pub(crate) fn coord_at(c: &Coord, row: &[F64], base: usize) -> F64 {
-    // A public column would be read past the row.
-    let (mut terms, mut constant) = (Vec::new(), F128::ZERO);
-    Formula::add(c, F128::ONE, base + row.len(), &mut terms, &mut constant);
-    let value = terms.into_iter().fold(constant, |acc, (term, w)| {
-        acc + w.mul_base(match term {
-            Term::Col(i) => row[i - base],
-            Term::Prod(i, j) => row[i - base] * row[j - base],
-            Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
-        })
-    });
-    value.as_base().expect("a table coordinate lies in K")
+    let col = |i: usize| row[i - base];
+    match *c {
+        Coord::Const(v) => v,
+        Coord::Col(i) => col(i),
+        Coord::GCol(i, k) => g_pow(k as usize) * col(i),
+        Coord::Prod(i, j, k) => g_pow(k as usize) * col(i) * col(j),
+        Coord::Sum(ref cs) => cs.iter().map(|c| coord_at(c, row, base)).sum(),
+        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
+    }
 }
 
 /// Placement of each block in the stacked leaf vector (input order).
