@@ -80,6 +80,14 @@ fn xor(a: V, b: V) -> V {
     width!(_mm512_xor_si512(a, b), _mm256_xor_si256(a, b))
 }
 
+#[inline(always)]
+fn xor3(a: V, b: V, c: V) -> V {
+    width!(
+        _mm512_ternarylogic_epi64::<0x96>(a, b, c),
+        _mm256_xor_si256(_mm256_xor_si256(a, b), c),
+    )
+}
+
 /// Each byte of `bytes` through the affine byte map of its quadword of `matrices`.
 #[inline(always)]
 fn map(bytes: V, matrices: V) -> V {
@@ -332,7 +340,7 @@ fn extend8<const F: usize>(v: &[[V; GROUP]; F], mut output: impl FnMut(usize, [V
                     5 => xor(q(2), q(3)),
                     6 => xor(q(0), q(2)),
                     7 => xor(q(1), q(3)),
-                    _ => xor(xor(q(0), q(1)), xor(q(2), q(3))),
+                    _ => xor(xor3(q(0), q(1), q(2)), q(3)),
                 }
             })
         });
@@ -429,7 +437,7 @@ impl SkipBlock {
         if cfg!(target_feature = "avx512f") {
             extend8(values, |i, [e2, a, e4, b, e0, c]| {
                 let acc = &mut acc[m][slot(half, i)];
-                *acc = xor(xor(*acc, mul(e2, a)), xor(mul(e4, b), mul(e0, c)));
+                *acc = xor3(*acc, mul(e2, a), xor(mul(e4, b), mul(e0, c)));
             });
         } else {
             // A product at a time: six groups' extensions at once spill AVX2's sixteen registers.

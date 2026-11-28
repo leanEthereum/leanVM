@@ -262,8 +262,40 @@ unsafe fn bit_transpose_64bytes_neon(input: &[u8; 64], output: &mut [u8; 64]) {
 }
 
 /// 4-bit bit reversal: the unpack network of the 16x16 in-lane transposes reads source rows in this order.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[cfg(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64"))]
 const REV4: [usize; 16] = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+
+/// The 16x16 byte transpose of 16 NEON registers: `out[k]` byte `p` is `in[p]` byte `k`.
+#[cfg(target_arch = "aarch64")]
+#[inline(always)]
+pub fn transpose_bytes16x16_neon(r: &mut [core::arch::aarch64::uint8x16_t; 16]) {
+    use core::arch::aarch64::*;
+    // SAFETY: aarch64 always has NEON; register-only operations.
+    unsafe {
+        *r = core::array::from_fn(|i| r[REV4[i]]);
+        let zero = vdupq_n_u8(0);
+        let mut t = [zero; 16];
+        for i in 0..8 {
+            t[2 * i] = vzip1q_u8(r[i], r[i + 8]);
+            t[2 * i + 1] = vzip2q_u8(r[i], r[i + 8]);
+        }
+        *r = t;
+        macro_rules! round {
+            ($to:ident, $from:ident, $lo:ident, $hi:ident) => {{
+                let mut t = [zero; 16];
+                for i in 0..8 {
+                    let (a, b) = ($to(r[i]), $to(r[i + 8]));
+                    t[2 * i] = $from($lo(a, b));
+                    t[2 * i + 1] = $from($hi(a, b));
+                }
+                *r = t;
+            }};
+        }
+        round!(vreinterpretq_u16_u8, vreinterpretq_u8_u16, vzip1q_u16, vzip2q_u16);
+        round!(vreinterpretq_u32_u8, vreinterpretq_u8_u32, vzip1q_u32, vzip2q_u32);
+        round!(vreinterpretq_u64_u8, vreinterpretq_u8_u64, vzip1q_u64, vzip2q_u64);
+    }
+}
 
 /// A 16x16 byte transpose inside each 128-bit lane of 16 registers of one width: `out[k]` byte `p` of a lane is
 /// `in[p]` byte `k` of that lane. Four rounds of unpacks.
@@ -389,6 +421,27 @@ mod tests {
                 // SAFETY: aarch64 always has NEON.
                 unsafe { bit_transpose_64bytes_neon(&input, &mut got) };
                 assert_eq!(got, want, "neon");
+            }
+        }
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn transpose_bytes16x16_neon_matches_definition() {
+        use core::arch::aarch64::*;
+        let mut rng = Rng::new(0x1616);
+        let input: [[u8; 16]; 16] = std::array::from_fn(|_| std::array::from_fn(|_| rng.next_u8()));
+        // SAFETY: aarch64 always has NEON; loads/stores read and write 16-byte arrays.
+        let mut regs: [uint8x16_t; 16] = std::array::from_fn(|i| unsafe { vld1q_u8(input[i].as_ptr()) });
+        transpose_bytes16x16_neon(&mut regs);
+        let mut got = [[0u8; 16]; 16];
+        for i in 0..16 {
+            // SAFETY: 16-byte array.
+            unsafe { vst1q_u8(got[i].as_mut_ptr(), regs[i]) };
+        }
+        for k in 0..16 {
+            for p in 0..16 {
+                assert_eq!(got[k][p], input[p][k], "({k}, {p})");
             }
         }
     }

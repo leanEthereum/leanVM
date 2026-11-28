@@ -258,7 +258,10 @@ cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
         pub(crate) use crate::skip_gfni::SkipBlock;
     }
-    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+    any(
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes")
+    ) => {
         pub(crate) use crate::skip_clmul::SkipBlock;
     }
     _ => {
@@ -441,46 +444,86 @@ mod avx2 {
         skip_row_portable as skip_row,
     };
 
+    /// Each nibble table duplicated into both 128-bit lanes, 32-byte aligned for folded `vpshufb` loads.
+    #[repr(C, align(32))]
+    struct Tables256([[u8; 32]; 12]);
+
+    static NIBBLES_256: Tables256 = {
+        let mut t = [[0u8; 32]; 12];
+        let mut i = 0;
+        while i < 12 {
+            let mut j = 0;
+            while j < 16 {
+                t[i][j] = NIBBLES[i][j];
+                t[i][16 + j] = NIBBLES[i][j];
+                j += 1;
+            }
+            i += 1;
+        }
+        Tables256(t)
+    };
+
+    /// Per-lane shuffle separating each pack's low byte (0..8) from its high byte (8..16).
+    const SPLIT: [u8; 32] = {
+        let mut t = [0u8; 32];
+        let mut i = 0;
+        while i < 32 {
+            let j = i % 16;
+            t[i] = if j < 8 { 2 * j as u8 } else { 2 * (j - 8) as u8 + 1 };
+            i += 1;
+        }
+        t
+    };
+
     /// The 32 packs of a block position, embedded, four to a register.
     #[inline(always)]
     fn embed_vectors(words: &[u64; BLOCK_WORDS]) -> [__m128i; 8] {
-        // SAFETY: the loads are of the tables and the eight words.
+        // SAFETY: AVX2 is enabled at compile time; loads read `words`, `SPLIT` and aligned `NIBBLES_256`.
         unsafe {
-            let t: [__m256i; 12] =
-                std::array::from_fn(|i| _mm256_broadcastsi128_si256(_mm_loadu_si128(NIBBLES[i].as_ptr().cast())));
+            let split = _mm256_loadu_si256(SPLIT.as_ptr().cast());
+            let w0 = _mm256_shuffle_epi8(_mm256_loadu_si256(words.as_ptr().cast()), split);
+            let w1 = _mm256_shuffle_epi8(_mm256_loadu_si256(words.as_ptr().add(4).cast()), split);
+            // Natural pack order 0..32: lane 0 holds packs 0..16, lane 1 holds packs 16..32.
+            let lo_b = _mm256_permute4x64_epi64::<0b11_01_10_00>(_mm256_unpacklo_epi64(w0, w1));
+            let hi_b = _mm256_permute4x64_epi64::<0b11_01_10_00>(_mm256_unpackhi_epi64(w0, w1));
             let mask = _mm256_set1_epi8(0x0f);
-            let (low_byte, high_byte) = (_mm256_set1_epi16(0x00ff), _mm256_set1_epi16(0xff00u16 as i16));
-            let mut out = [_mm_setzero_si128(); 8];
-            for half in 0..2 {
-                let v = _mm256_loadu_si256(words.as_ptr().add(4 * half).cast());
-                // A pack's low byte holds its nibbles 0 and 1, its high byte nibbles 2 and 3.
-                let nibbles = [
-                    _mm256_and_si256(v, mask),
-                    _mm256_and_si256(_mm256_srli_epi16(v, 4), mask),
-                ];
-                // Byte `k` of the embedding of each byte, read as a pack's low byte or as its high one.
-                let look = |k: usize, high: usize| {
+            let n0 = _mm256_and_si256(lo_b, mask);
+            let n1 = _mm256_and_si256(_mm256_srli_epi16::<4>(lo_b), mask);
+            let n2 = _mm256_and_si256(hi_b, mask);
+            let n3 = _mm256_and_si256(_mm256_srli_epi16::<4>(hi_b), mask);
+            let look = |k: usize| {
+                let tbl = |i: usize| _mm256_load_si256(NIBBLES_256.0[i].as_ptr().cast());
+                _mm256_xor_si256(
                     _mm256_xor_si256(
-                        _mm256_shuffle_epi8(t[4 * k + 2 * high], nibbles[0]),
-                        _mm256_shuffle_epi8(t[4 * k + 2 * high + 1], nibbles[1]),
-                    )
-                };
-                let low = _mm256_or_si256(
-                    _mm256_and_si256(_mm256_xor_si256(look(0, 0), _mm256_srli_epi16(look(0, 1), 8)), low_byte),
-                    _mm256_and_si256(
-                        _mm256_xor_si256(_mm256_slli_epi16(look(1, 0), 8), look(1, 1)),
-                        high_byte,
+                        _mm256_shuffle_epi8(tbl(4 * k), n0),
+                        _mm256_shuffle_epi8(tbl(4 * k + 1), n1),
                     ),
-                );
-                let high = _mm256_and_si256(_mm256_xor_si256(look(2, 0), _mm256_srli_epi16(look(2, 1), 8)), low_byte);
-                // Per lane, its four low packs, then its four high ones.
-                let (first, second) = (_mm256_unpacklo_epi16(low, high), _mm256_unpackhi_epi16(low, high));
-                out[4 * half] = _mm256_castsi256_si128(first);
-                out[4 * half + 1] = _mm256_castsi256_si128(second);
-                out[4 * half + 2] = _mm256_extracti128_si256::<1>(first);
-                out[4 * half + 3] = _mm256_extracti128_si256::<1>(second);
-            }
-            out
+                    _mm256_xor_si256(
+                        _mm256_shuffle_epi8(tbl(4 * k + 2), n2),
+                        _mm256_shuffle_epi8(tbl(4 * k + 3), n3),
+                    ),
+                )
+            };
+            let zero = _mm256_setzero_si256();
+            let (e0, e1, e2) = (look(0), look(1), look(2));
+            let (lo01, hi01) = (_mm256_unpacklo_epi8(e0, e1), _mm256_unpackhi_epi8(e0, e1));
+            let (lo2z, hi2z) = (_mm256_unpacklo_epi8(e2, zero), _mm256_unpackhi_epi8(e2, zero));
+            let u = [
+                _mm256_unpacklo_epi16(lo01, lo2z),
+                _mm256_unpackhi_epi16(lo01, lo2z),
+                _mm256_unpacklo_epi16(hi01, hi2z),
+                _mm256_unpackhi_epi16(hi01, hi2z),
+            ];
+            [
+                _mm256_castsi256_si128(u[0]),
+                _mm256_castsi256_si128(u[1]),
+                _mm256_castsi256_si128(u[2]),
+                _mm256_castsi256_si128(u[3]),
+                _mm256_extracti128_si256::<1>(u[0]),
+                _mm256_extracti128_si256::<1>(u[1]),
+                _mm256_extracti128_si256::<1>(u[2]),
+                _mm256_extracti128_si256::<1>(u[3]),
+            ]
         }
     }
 

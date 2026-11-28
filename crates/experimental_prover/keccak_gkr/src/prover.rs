@@ -17,10 +17,10 @@ use std::mem::MaybeUninit;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
+use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, mixed_points, slot};
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
-use crate::witness::{Shape, Witness, transpose64, words};
+use crate::witness::{Shape, Witness, transpose64};
 use verifier::keccak::PRODUCT_BITS;
 
 /// The pattern index of a binary assignment.
@@ -57,14 +57,15 @@ const _: () = assert!(PART_WORDS.is_multiple_of(2));
 /// The products of a part of a block position's packs, 48 bits each, grouped while every digit
 /// of the weights groups the block's positions.
 #[derive(Clone, Copy)]
-#[cfg_attr(all(target_arch = "x86_64", target_feature = "avx512f"), repr(C, align(64)))]
-#[cfg_attr(not(all(target_arch = "x86_64", target_feature = "avx512f")), repr(C, align(16)))]
+#[cfg_attr(all(target_arch = "x86_64", target_feature = "avx2"), repr(C, align(64)))]
+#[cfg_attr(not(all(target_arch = "x86_64", target_feature = "avx2")), repr(C, align(16)))]
 struct Part([u64; PART_WORDS]);
 
 impl Part {
     const ZERO: Self = Self([0; PART_WORDS]);
 
     /// Product `q` at bits `48 * q ..`: four products to three words.
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq")))]
     #[inline(always)]
     fn pack(products: &[u64; PART]) -> Self {
         let mut out = [0u64; PART_WORDS];
@@ -93,13 +94,13 @@ impl Part {
             }
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
-        // SAFETY: both parts are six registers, and AVX2 is enabled at compile time.
+        // SAFETY: both parts are six registers, aligned to 64, and AVX2 is enabled at compile time.
         unsafe {
             use core::arch::x86_64::*;
             let (dst, src) = (self.0.as_mut_ptr(), other.0.as_ptr());
             for i in (0..PART_WORDS).step_by(4) {
                 let (d, s) = (dst.add(i).cast::<__m256i>(), src.add(i).cast::<__m256i>());
-                _mm256_storeu_si256(d, _mm256_xor_si256(_mm256_loadu_si256(d), _mm256_loadu_si256(s)));
+                _mm256_store_si256(d, _mm256_xor_si256(_mm256_load_si256(d), _mm256_load_si256(s)));
             }
         }
         // Left to itself, the compiler XORs the words in general registers.
@@ -157,8 +158,7 @@ impl Groups {
     /// `sum over positions of weight[j] (x) payloads[j]` into `rows`: row `DIGIT_BITS * d + i`
     /// sums the payloads whose weight has that bit set. Each group is summed in registers, so
     /// the payloads are only read, then added into the sums of its value's low nibble and of its
-    /// high one, the latter kept in registers; those make the rows of the digit's low bits and of
-    /// its high bits.
+    /// high one, the latter folded straight into the high four rows; zero nibbles are skipped.
     fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128]) {
         for (rows, (order, starts)) in rows
             .as_chunks_mut::<DIGIT_BITS>()
@@ -167,30 +167,275 @@ impl Groups {
             .zip(self.order.iter().zip(&self.starts))
         {
             let mut low = [Part::ZERO; 16];
-            let mut high: [Part; 16] = std::array::from_fn(|h| {
-                let mut nibble = Part::ZERO;
-                for (l, low) in low.iter_mut().enumerate() {
-                    let v = 16 * h + l;
-                    let mut acc = Part::ZERO;
-                    for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
-                        // SAFETY: `order` holds positions.
+            let mut high_rows = [Part::ZERO; 4];
+            // High nibble `h == 0`: contributes only to `low[l]` for `l in 1..16`.
+            for l in 1..16usize {
+                let (s, e) = (starts[l] as usize, starts[l + 1] as usize);
+                if s < e {
+                    // SAFETY: `order` holds positions in `0..BITS` and `s < e <= BITS`.
+                    let mut acc = unsafe { *payloads.get_unchecked(*order.get_unchecked(s) as usize) };
+                    for &p in &order[s + 1..e] {
+                        // SAFETY: `order` holds positions in `0..BITS`.
                         acc.add(unsafe { payloads.get_unchecked(p as usize) });
                     }
-                    nibble.add(&acc);
-                    low.add(&acc);
+                    low[l] = acc;
                 }
-                nibble
-            });
-            for (sums, rows) in [&mut low, &mut high].into_iter().zip(rows.as_chunks_mut::<4>().0) {
-                // Bit `i` of the nibble: the sums whose value has it, then fold it away.
-                for (i, row) in rows.iter_mut().enumerate().rev() {
-                    let (low, high) = sums[..2 << i].split_at_mut(1 << i);
-                    let mut acc = Part::ZERO;
-                    for (low, high) in low.iter_mut().zip(&*high) {
-                        acc.add(high);
-                        low.add(high);
+            }
+            for h in 1..16usize {
+                let mut nibble = Part::ZERO;
+                // Low nibble `l == 0`: contributes only to `nibble`.
+                {
+                    let v = 16 * h;
+                    let (s, e) = (starts[v] as usize, starts[v + 1] as usize);
+                    for &p in &order[s..e] {
+                        // SAFETY: `order` holds positions in `0..BITS`.
+                        nibble.add(unsafe { payloads.get_unchecked(p as usize) });
                     }
-                    *row = acc;
+                }
+                for l in 1..16usize {
+                    let v = 16 * h + l;
+                    let (s, e) = (starts[v] as usize, starts[v + 1] as usize);
+                    if s < e {
+                        // SAFETY: `order` holds positions in `0..BITS` and `s < e <= BITS`.
+                        let mut acc = unsafe { *payloads.get_unchecked(*order.get_unchecked(s) as usize) };
+                        for &p in &order[s + 1..e] {
+                            // SAFETY: `order` holds positions in `0..BITS`.
+                            acc.add(unsafe { payloads.get_unchecked(p as usize) });
+                        }
+                        nibble.add(&acc);
+                        low[l].add(&acc);
+                    }
+                }
+                for (b, row) in high_rows.iter_mut().enumerate() {
+                    if h >> b & 1 != 0 {
+                        row.add(&nibble);
+                    }
+                }
+            }
+            // Fold `low[1..16]` into the low four rows; bit 0 is `low[1]` after higher bits fold away.
+            for i in (1..4).rev() {
+                let (lo, hi) = low[..2 << i].split_at_mut(1 << i);
+                let mut acc = Part::ZERO;
+                for (lo, hi) in lo.iter_mut().zip(&*hi) {
+                    acc.add(hi);
+                    lo.add(hi);
+                }
+                rows[i] = acc;
+            }
+            rows[0] = low[1];
+            rows[4..8].copy_from_slice(&high_rows);
+        }
+    }
+}
+
+/// Fills all `BITS` packed product payloads of one block on x86-64 AVX2+PCLMULQDQ: computes each
+/// position's embedding (`e`) and `ones * e` (`le`) once by `vpshufb` nibble lookups, leaving only
+/// one carry-less product `e[x+1] * e[x+2]` per pack fused with 48-bit SIMD packing.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[cfg_attr(target_feature = "gfni", allow(dead_code))]
+fn fill_payloads_avx2(block: &[u64], payloads: &mut [Part; BITS]) {
+    use core::arch::x86_64::*;
+
+    #[repr(C, align(32))]
+    struct Tables256<const N: usize>([[u8; 32]; N]);
+
+    static EMB_NIBBLES_256: Tables256<12> = {
+        let mut t = [[0u8; 32]; 12];
+        let mut i = 0;
+        while i < 12 {
+            let mut j = 0;
+            while j < 16 {
+                let b = crate::kernels::NIBBLES[i][j];
+                t[i][j] = b;
+                t[i][16 + j] = b;
+                j += 1;
+            }
+            i += 1;
+        }
+        Tables256(t)
+    };
+
+    /// Byte `k` of `RMFE.ones * embed(nibble)` duplicated across both 128-bit lanes.
+    static ONES_NIBBLES_256: Tables256<24> = {
+        const fn mul_poly(a: u32, b: u32) -> u64 {
+            let mut p = 0u64;
+            let mut i = 0;
+            while i < 24 {
+                if a >> i & 1 != 0 {
+                    p ^= (b as u64) << i;
+                }
+                i += 1;
+            }
+            p
+        }
+        let mut t = [[0u8; 32]; 24];
+        let mut i = 0;
+        while i < 24 {
+            let (k, n) = (i / 4, i % 4);
+            let mut v = 0;
+            while v < 16 {
+                let mut e = 0u64;
+                let mut bit = 0;
+                while bit < 4 {
+                    if v >> bit & 1 != 0 {
+                        e ^= mul_poly(crate::rmfe::RMFE.ones, crate::rmfe::RMFE.emb[4 * n + bit]);
+                    }
+                    bit += 1;
+                }
+                let b = (e >> (8 * k)) as u8;
+                t[i][v] = b;
+                t[i][16 + v] = b;
+                v += 1;
+            }
+            i += 1;
+        }
+        Tables256(t)
+    };
+
+    const SPLIT: [u8; 32] = {
+        let mut t = [0u8; 32];
+        let mut i = 0;
+        while i < 32 {
+            let j = i % 16;
+            t[i] = if j < 8 { 2 * j as u8 } else { 2 * (j - 8) as u8 + 1 };
+            i += 1;
+        }
+        t
+    };
+
+    /// Compacts two 48-bit products sitting in two 64-bit lanes into bytes `0..12`.
+    const PACK12: [i8; 16] = [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, -1, -1, -1, -1];
+
+    // SAFETY: AVX2 and PCLMULQDQ are enabled at compile time; `words` checks `block` bounds and
+    // `row_positions` yields indices in `0..BITS`.
+    unsafe {
+        let split = _mm256_loadu_si256(SPLIT.as_ptr().cast());
+        let pack12_128 = _mm_loadu_si128(PACK12.as_ptr().cast());
+        let pack12_256 = _mm256_broadcastsi128_si256(pack12_128);
+        let mask = _mm256_set1_epi8(0x0f);
+        let zero = _mm256_setzero_si256();
+
+        for r in 0..5 {
+            for z in 0..64 {
+                let js = row_positions(r, z);
+                let mut e = [[0u32; PACKS]; 5];
+                let mut le = [Part::ZERO; 5];
+                for x in 0..5 {
+                    let w = crate::witness::words(block, js[x]);
+                    let w0 = _mm256_shuffle_epi8(_mm256_loadu_si256(w.as_ptr().cast()), split);
+                    let w1 = _mm256_shuffle_epi8(_mm256_loadu_si256(w.as_ptr().add(4).cast()), split);
+                    let lo_b = _mm256_permute4x64_epi64::<0b11_01_10_00>(_mm256_unpacklo_epi64(w0, w1));
+                    let hi_b = _mm256_permute4x64_epi64::<0b11_01_10_00>(_mm256_unpackhi_epi64(w0, w1));
+                    let n0 = _mm256_and_si256(lo_b, mask);
+                    let n1 = _mm256_and_si256(_mm256_srli_epi16::<4>(lo_b), mask);
+                    let n2 = _mm256_and_si256(hi_b, mask);
+                    let n3 = _mm256_and_si256(_mm256_srli_epi16::<4>(hi_b), mask);
+                    let look4 = |tbl: &[[u8; 32]], k: usize| {
+                        let ld = |idx: usize| _mm256_load_si256(tbl[idx].as_ptr().cast());
+                        _mm256_xor_si256(
+                            _mm256_xor_si256(
+                                _mm256_shuffle_epi8(ld(4 * k), n0),
+                                _mm256_shuffle_epi8(ld(4 * k + 1), n1),
+                            ),
+                            _mm256_xor_si256(
+                                _mm256_shuffle_epi8(ld(4 * k + 2), n2),
+                                _mm256_shuffle_epi8(ld(4 * k + 3), n3),
+                            ),
+                        )
+                    };
+                    // 3-byte embeddings into `e[x]`.
+                    let (e0, e1, e2) = (
+                        look4(&EMB_NIBBLES_256.0, 0),
+                        look4(&EMB_NIBBLES_256.0, 1),
+                        look4(&EMB_NIBBLES_256.0, 2),
+                    );
+                    let (lo01, hi01) = (_mm256_unpacklo_epi8(e0, e1), _mm256_unpackhi_epi8(e0, e1));
+                    let (lo2z, hi2z) = (_mm256_unpacklo_epi8(e2, zero), _mm256_unpackhi_epi8(e2, zero));
+                    let ep = e[x].as_mut_ptr();
+                    for (i, u) in [
+                        _mm256_unpacklo_epi16(lo01, lo2z),
+                        _mm256_unpackhi_epi16(lo01, lo2z),
+                        _mm256_unpacklo_epi16(hi01, hi2z),
+                        _mm256_unpackhi_epi16(hi01, hi2z),
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    {
+                        _mm_storeu_si128(ep.add(4 * i).cast(), _mm256_castsi256_si128(u));
+                        _mm_storeu_si128(ep.add(16 + 4 * i).cast(), _mm256_extracti128_si256::<1>(u));
+                    }
+                    // 6-byte `ones * embed` packed straight into `le[x]`.
+                    let o: [__m256i; 6] = std::array::from_fn(|k| look4(&ONES_NIBBLES_256.0, k));
+                    let (q01_lo, q01_hi) = (_mm256_unpacklo_epi8(o[0], o[1]), _mm256_unpackhi_epi8(o[0], o[1]));
+                    let (q23_lo, q23_hi) = (_mm256_unpacklo_epi8(o[2], o[3]), _mm256_unpackhi_epi8(o[2], o[3]));
+                    let (q45_lo, q45_hi) = (_mm256_unpacklo_epi8(o[4], o[5]), _mm256_unpackhi_epi8(o[4], o[5]));
+                    let pairs = [
+                        (
+                            _mm256_unpacklo_epi16(q01_lo, q23_lo),
+                            _mm256_unpacklo_epi16(q45_lo, zero),
+                        ),
+                        (
+                            _mm256_unpackhi_epi16(q01_lo, q23_lo),
+                            _mm256_unpackhi_epi16(q45_lo, zero),
+                        ),
+                        (
+                            _mm256_unpacklo_epi16(q01_hi, q23_hi),
+                            _mm256_unpacklo_epi16(q45_hi, zero),
+                        ),
+                        (
+                            _mm256_unpackhi_epi16(q01_hi, q23_hi),
+                            _mm256_unpackhi_epi16(q45_hi, zero),
+                        ),
+                    ];
+                    let dst = le[x].0.as_mut_ptr().cast::<u8>();
+                    for (g, (a, b)) in pairs.into_iter().enumerate() {
+                        let s0 = _mm256_shuffle_epi8(_mm256_unpacklo_epi32(a, b), pack12_256);
+                        let s1 = _mm256_shuffle_epi8(_mm256_unpackhi_epi32(a, b), pack12_256);
+                        let lo = _mm256_or_si256(s0, _mm256_slli_si256::<12>(s1));
+                        let hi = _mm256_srli_si256::<4>(s1);
+                        _mm_storeu_si128(dst.add(24 * g).cast(), _mm256_castsi256_si128(lo));
+                        _mm_storel_epi64(dst.add(24 * g + 16).cast(), _mm256_castsi256_si128(hi));
+                        _mm_storeu_si128(dst.add(96 + 24 * g).cast(), _mm256_extracti128_si256::<1>(lo));
+                        _mm_storel_epi64(dst.add(96 + 24 * g + 16).cast(), _mm256_extracti128_si256::<1>(hi));
+                    }
+                }
+                for &(x, x1, x2) in &[(0, 1, 2), (1, 2, 3), (2, 3, 4), (3, 4, 0), (4, 0, 1)] {
+                    let dst = payloads.get_unchecked_mut(js[x]).0.as_mut_ptr().cast::<u8>();
+                    let (b, c) = (&e[x1], &e[x2]);
+                    let (lx, lx2) = (le[x].0.as_ptr().cast::<u8>(), le[x2].0.as_ptr().cast::<u8>());
+                    for i in 0..8 {
+                        let q = 4 * i;
+                        let zb0 = _mm_cvtepu32_epi64(_mm_loadl_epi64(b.as_ptr().add(q).cast()));
+                        let zc0 = _mm_cvtepu32_epi64(_mm_loadl_epi64(c.as_ptr().add(q).cast()));
+                        let p01 = _mm_unpacklo_epi64(
+                            _mm_clmulepi64_si128::<0x00>(zb0, zc0),
+                            _mm_clmulepi64_si128::<0x11>(zb0, zc0),
+                        );
+                        let zb1 = _mm_cvtepu32_epi64(_mm_loadl_epi64(b.as_ptr().add(q + 2).cast()));
+                        let zc1 = _mm_cvtepu32_epi64(_mm_loadl_epi64(c.as_ptr().add(q + 2).cast()));
+                        let p23 = _mm_unpacklo_epi64(
+                            _mm_clmulepi64_si128::<0x00>(zb1, zc1),
+                            _mm_clmulepi64_si128::<0x11>(zb1, zc1),
+                        );
+                        let s0 = _mm_shuffle_epi8(p01, pack12_128);
+                        let s1 = _mm_shuffle_epi8(p23, pack12_128);
+                        let lo = _mm_xor_si128(
+                            _mm_or_si128(s0, _mm_slli_si128::<12>(s1)),
+                            _mm_xor_si128(
+                                _mm_loadu_si128(lx.add(24 * i).cast()),
+                                _mm_loadu_si128(lx2.add(24 * i).cast()),
+                            ),
+                        );
+                        let hi = _mm_xor_si128(
+                            _mm_srli_si128::<4>(s1),
+                            _mm_xor_si128(
+                                _mm_loadl_epi64(lx.add(24 * i + 16).cast()),
+                                _mm_loadl_epi64(lx2.add(24 * i + 16).cast()),
+                            ),
+                        );
+                        _mm_storeu_si128(dst.add(24 * i).cast(), lo);
+                        _mm_storel_epi64(dst.add(24 * i + 16).cast(), hi);
+                    }
                 }
             }
         }
@@ -308,14 +553,23 @@ impl Layer<'_> {
             || vec![F128Unreduced::ZERO; PAYLOAD_BITS],
             |(payloads, rows), sums, task| {
                 let (_, _, block) = self.block(task);
-                for r in 0..5 {
-                    for z in 0..64 {
-                        let js = row_positions(r, z);
-                        let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
-                        for x in 0..5 {
-                            let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            for (q, part) in payloads.iter_mut().enumerate() {
-                                part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
+                cfg_select! {
+                    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+                        fill_payloads_avx2(block, &mut payloads[0]);
+                    }
+                    _ => {
+                        for r in 0..5 {
+                            for z in 0..64 {
+                                let js = row_positions(r, z);
+                                let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| {
+                                    crate::kernels::embed(crate::witness::words(block, js[x]))
+                                });
+                                for x in 0..5 {
+                                    let p = crate::kernels::products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
+                                    for (q, part) in payloads.iter_mut().enumerate() {
+                                        part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
+                                    }
+                                }
                             }
                         }
                     }
@@ -421,19 +675,22 @@ impl Layer<'_> {
         let field = round.field;
         let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.to_poly(e)).collect();
         let fold: [[u64; GROUP]; 2] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        #[cfg(any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64"))]
         let row_maps = crate::table_maps::RowMaps::new(field, &fold);
         // Rows of segments that do not exist are zero, and so is their product.
         table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(MaybeUninit::new(0));
         pads[self.rounds.len() * ROW..].fill(0);
         // The byte-map rows need no wide scratch.
-        let maps = cfg!(all(target_arch = "x86_64", target_feature = "avx2"));
+        let maps = cfg!(any(
+            all(target_arch = "x86_64", target_feature = "avx2"),
+            target_arch = "aarch64"
+        ));
         let scratch = || vec![0u64; if maps { 0 } else { 6 * BITS }];
         // A block's rows: both groups', or the padding block's one.
         let build = |wide: &mut Vec<u64>, block: &[u64], rows: &mut [u64]| {
             let halves = rows.len() / ROW;
             cfg_select! {
-                all(target_arch = "x86_64", target_feature = "avx2") => {
+                any(all(target_arch = "x86_64", target_feature = "avx2"), target_arch = "aarch64") => {
                     // Each group's value by byte maps (`table_maps`).
                     let _ = wide;
                     row_maps.rows(block, rows, halves);
@@ -441,7 +698,10 @@ impl Layer<'_> {
                 _ => {
                     // Both groups' unreduced sums, three words each and laid out by word, then reduced.
                     for j in 0..BITS {
-                        let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
+                        let sums = crate::kernels::fold_groups(
+                            &crate::kernels::embed(crate::witness::words(block, j)),
+                            &fold,
+                        );
                         for (wide, sum) in wide.as_chunks_mut::<{ 3 * BITS }>().0[..halves].iter_mut().zip(&sums) {
                             let sum: [u64; 3] = crate::basis::carry(sum);
                             for (k, &word) in sum.iter().enumerate() {
@@ -907,6 +1167,30 @@ mod tests {
                 }
             }
             assert_eq!(row.0, want.0, "row {r}");
+        }
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+    #[test]
+    fn fill_payloads_avx2_matches_portable() {
+        let mut rng = Rng::new(0x2C0DE);
+        let block: Vec<u64> = (0..crate::witness::BLOCK_LEN).map(|_| rng.next_u64()).collect();
+        let mut got = Box::new([Part::ZERO; BITS]);
+        fill_payloads_avx2(&block, &mut got);
+        for r in 0..5 {
+            for z in 0..64 {
+                let js = row_positions(r, z);
+                let e: [[u32; PACKS]; 5] =
+                    std::array::from_fn(|x| crate::kernels::embed_portable(crate::witness::words(&block, js[x])));
+                for x in 0..5 {
+                    let p = crate::kernels::products_portable(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
+                    let mut want = [0u64; PART_WORDS];
+                    for (out, p) in want.as_chunks_mut::<3>().0.iter_mut().zip(p.as_chunks::<4>().0) {
+                        *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
+                    }
+                    assert_eq!(got[js[x]].0, want, "pos {}", js[x]);
+                }
+            }
         }
     }
 }
