@@ -89,12 +89,13 @@ cargo leanvm-bench --prover experimental aggregate --xmss 1400 --log-inv-rate 2 
 
 ```
 aggregation, 1,400 leanXMSS signatures
-  cycles (VM steps)           : 1,141,666 = 2^20.123
-    details                   : KECCAK 2^17.994 (22.9%)  XOR 2^17.981 (22.7%)  DEREF 2^17.88 (21.1%)  SET 2^17.366 (14.8%)  MUL 2^17.236 (13.5%)  JUMP 2^15.81 (5.0%)  MEMORY 2^20.845  BYTECODE 2^18.52  TOTAL_COMMITTED 2^25.397
-  proof size                  : 203.6 KiB
-  proving time                : 0.702 s ± 1.6%      peak memory 4.682 GiB
-  per signature               : 1,994.397 signatures/s
-  verifying                   : 5.416 ms
+  cycles (VM steps)           : 1,142,142 = 2^20.123
+    details                   : KECCAK 2^17.994 (22.9%)  XOR 2^17.981 (22.7%)  DEREF 2^17.88 (21.1%)  SET 2^17.37 (14.8%)  MUL 2^17.236 (13.5%)  JUMP 2^15.81 (5.0%)  MEMORY 2^20.847  BYTECODE 2^18.683  TOTAL_COMMITTED 2^24.889
+  proof size                  : 203.1 KiB
+  proof stream                : 2062 F128 scalars (32.2 KiB), Merkle openings 170.5 KiB
+  proving time                : 0.535 s ± 1.6%      peak memory 3.577 GiB
+  per signature               : 2,619.255 signatures/s
+  verifying                   : 6.812 ms
 ```
 
 ### leanSPHINCS aggregation
@@ -107,12 +108,13 @@ cargo leanvm-bench --prover experimental aggregate --sphincs 500 --log-inv-rate 
 
 ```
 aggregation, 500 leanSPHINCS signatures
-  cycles (VM steps)           : 2,753,300 = 2^21.393
-    details                   : XOR 2^19.752 (32.1%)  MUL 2^19.42 (25.5%)  SET 2^19.393 (25.0%)  KECCAK 2^17.976 (9.4%)  DEREF 2^17.233 (5.6%)  JUMP 2^16.058 (2.5%)  MEMORY 2^21.803  BYTECODE 2^18.52  TOTAL_COMMITTED 2^26.205
-  proof size                  : 285.6 KiB
-  proving time                : 0.722 s ± 0.3%      peak memory 5.429 GiB
-  per signature               : 692.09 signatures/s
-  verifying                   : 6.046 ms
+  cycles (VM steps)           : 2,753,776 = 2^21.393
+    details                   : XOR 2^19.752 (32.1%)  MUL 2^19.42 (25.5%)  SET 2^19.394 (25.0%)  KECCAK 2^17.976 (9.4%)  DEREF 2^17.233 (5.6%)  JUMP 2^16.058 (2.5%)  MEMORY 2^21.807  BYTECODE 2^18.683  TOTAL_COMMITTED 2^25.651
+  proof size                  : 287.6 KiB
+  proof stream                : 2094 F128 scalars (32.7 KiB), Merkle openings 254.5 KiB
+  proving time                : 0.623 s ± 3.9%      peak memory 3.971 GiB
+  per signature               : 802.368 signatures/s
+  verifying                   : 7.328 ms
 ```
 
 ### data availability
@@ -123,27 +125,29 @@ cargo leanvm-bench --prover experimental aggregate --blobs 32 --log-inv-rate 1 -
 
 ```
 aggregation, 32 blobs
-  cycles (VM steps)           : 2,571,529 = 2^21.294
-    details                   : XOR 2^20.063 (42.6%)  DEREF 2^19.321 (25.5%)  MUL 2^19.248 (24.2%)  SET 2^16.769 (4.3%)  KECCAK 2^16.088 (2.7%)  JUMP 2^14.096 (0.7%)  MEMORY 2^21.868  BYTECODE 2^18.52  TOTAL_COMMITTED 2^26.291
-  proof size                  : 290.4 KiB
-  proving time                : 0.582 s ± 2.6%      peak memory 4.229 GiB
-  blob throughput             : 54.965 blobs/s, 6.871 MiB/s
-  verifying                   : 6.333 ms
+  cycles (VM steps)           : 2,572,005 = 2^21.294
+    details                   : XOR 2^20.063 (42.6%)  DEREF 2^19.321 (25.5%)  MUL 2^19.248 (24.2%)  SET 2^16.776 (4.4%)  KECCAK 2^16.088 (2.7%)  JUMP 2^14.096 (0.7%)  MEMORY 2^21.874  BYTECODE 2^18.683  TOTAL_COMMITTED 2^25.66
+  proof size                  : 289.9 KiB
+  proof stream                : 2080 F128 scalars (32.5 KiB), Merkle openings 257.0 KiB
+  proving time                : 0.451 s ± 1.9%      peak memory 2.802 GiB
+  blob throughput             : 70.915 blobs/s, 8.864 MiB/s
+  verifying                   : 7.489 ms
 ```
 
 ### recursion
 
 ```bash
-cargo leanvm-bench --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental recursion --n 16 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2
-  cycles (VM steps)           : 405,960 = 2^18.631
-    details                   : MUL 2^16.955 (31.3%)  XOR 2^16.72 (26.6%)  DEREF 2^16.66 (25.5%)  SET 2^15.308 (10.0%)  KECCAK 2^13.743 (3.4%)  JUMP 2^13.675 (3.2%)  MEMORY 2^19.05  BYTECODE 2^18.52  TOTAL_COMMITTED 2^23.405
-  proof size                  : 260.0 KiB
-  proving time                : 0.134 s ± 1.9%      peak memory 0.751 GiB
-  verifying                   : 8.846 ms
+recursion 16→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recursion rate = 1/2
+  cycles (VM steps)           : 3,052,041 = 2^21.541
+    details                   : MUL 2^20.007 (34.5%)  XOR 2^19.78 (29.5%)  DEREF 2^19.487 (24.1%)  SET 2^17.311 (5.3%)  KECCAK 2^16.673 (3.4%)  JUMP 2^16.554 (3.2%)  MEMORY 2^21.935  BYTECODE 2^18.683  TOTAL_COMMITTED 2^25.768
+  proof size                  : 295.5 KiB
+  proof stream                : 2080 F128 scalars (32.5 KiB), Merkle openings 262.6 KiB
+  proving time                : 0.538 s ± 5.4%      peak memory 3.367 GiB
+  verifying                   : 13.104 ms
 ```
 
 ### Proving KECCAK
@@ -175,10 +179,10 @@ cargo leanvm-bench --prover experimental fibonacci --n 2000000 --log-inv-rate 1 
 ```
 Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
   cycles (VM steps)           : 2,036,016
-    details                   : MUL 2^20.937 (98.6%)  DEREF 2^13.774 (0.7%)  SET 2^13.288 (0.5%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.956  BYTECODE 2^10.014  TOTAL_COMMITTED 2^25.019
-  proof size                  : 262.5 KiB
-  proving                     : 0.249 s ± 2.6%   8,181,528 cycles/s      peak memory 1.749 GiB
-  verifying                   : 3.215 ms
+    details                   : MUL 2^20.937 (98.6%)  DEREF 2^13.774 (0.7%)  SET 2^13.288 (0.5%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.956  BYTECODE 2^10.014  TOTAL_COMMITTED 2^24.48
+  proof size                  : 265.7 KiB
+  proving                     : 0.206 s ± 7.2%   9,859,859 cycles/s      peak memory 1.112 GiB
+  verifying                   : 2.978 ms
 ```
 
 ## SNARK machinery
