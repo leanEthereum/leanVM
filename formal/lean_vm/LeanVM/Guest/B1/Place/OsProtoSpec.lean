@@ -20,6 +20,7 @@ public import LeanVM.Guest.B1.Whir.CVal
 public import LeanVM.Guest.B1.Whir.Squeezes
 public import LeanVM.Guest.B1.Whir.SlowSpec
 public import LeanVM.Guest.B1.Whir.WinEx
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The body at honest values, as the lift takes it

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesHonest
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # A query's leaf hash, completeness

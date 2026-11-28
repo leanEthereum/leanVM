@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Wire.Spec
 import LeanVM.Wire.UnpruneList
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # Unpruning a pruned phase gives back its paths

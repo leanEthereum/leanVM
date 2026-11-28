@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Opening.WalkPath
 public import LeanVM.Guest.B1.Opening.QueriesLeaf
 public import LeanVM.Guest.B1.Opening.QueriesFlatC
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # One query, assembled (`opening_query`)

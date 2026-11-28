@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPlaced10
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The function's own words, as layouts

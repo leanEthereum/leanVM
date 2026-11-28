@@ -12,6 +12,7 @@ public import LeanVM.Guest.Child.Merkle
 public import LeanVM.Guest.Child.Accepted
 public import LeanVM.Guest.Child.Range
 public import LeanVM.Guest.Limits
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # Disagreeing openings give a Keccak-256 collision

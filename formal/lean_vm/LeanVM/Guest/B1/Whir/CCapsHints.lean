@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.CCaps
 public import LeanVM.Guest.B1.Merkle.QueryPops
 import LeanVM.ToMathlib.List
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The honest cap is the generator's

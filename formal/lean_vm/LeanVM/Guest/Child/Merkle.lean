@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.Child.Queries
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # Honest openings agree

@@ -45,19 +45,6 @@ The guest program runs every node within the deployed limits, in at most `2^30` 
 whatever proofs its children carry, as long as `NodeRelation` has the verifier accept them, unless
 a child's proof exhibits a Keccak-256 collision in its Merkle openings (`OpeningsCollide`). -/
 
-namespace Limits
-
-/-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`,
-`crates/verifier/src/merkle.rs`), the leaf an opening's climb starts from. -/
-def _root_.LeanVM.Protocol.KeccakHash.merkleLeafDigest (words : List K) : Digest :=
-  keccak256 (words.flatMap K.toBytes)
-
-/-- The digest an opening's climb reaches from `node` at `leafPosition` over `path`. -/
-def climbTo (node : Digest) (leafPosition : ℕ) (path : List Digest) : Digest :=
-  Id.run (climb (m := Id) keccakF1600 node leafPosition path)
-
-end Limits
-
 namespace Completeness
 
 /-! ### A collision in a child's openings
@@ -69,8 +56,9 @@ the phase's root (`openPhase`), hash different bytes to one digest at some level
 /-- **The bytes an opening's climb hashes at `level`** (`climb`): the node it has reached there and
 the sibling its path carries, the left one first. -/
 def climbInput (opening : Opening) (level : ℕ) : Bytes :=
-  let node := Limits.climbTo (merkleLeafDigest opening.leaf) opening.leafIndex
-    (opening.path.take level)
+  let node := Id.run do
+    climb (m := Id) keccakF1600 (← merkleLeafDigestWith (m := Id) keccakF1600 opening.leaf)
+      opening.leafIndex (opening.path.take level)
   let sibling := opening.path.getD level default
   if opening.leafIndex / 2 ^ level % 2 = 0 then digestBytes node ++ digestBytes sibling
   else digestBytes sibling ++ digestBytes node

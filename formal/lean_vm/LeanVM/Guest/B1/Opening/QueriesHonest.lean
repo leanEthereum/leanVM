@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # One query's honest values

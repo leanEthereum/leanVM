@@ -16,6 +16,7 @@ import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
 public import LeanVM.Facts.BytecodeShape
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # A child the guest program accepts

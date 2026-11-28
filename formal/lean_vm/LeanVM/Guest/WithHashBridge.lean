@@ -14,6 +14,7 @@ import LeanDa.Commitment
 public import Common.WithHash
 public import LeanVM.Guest.AcceptableChild
 public import LeanDa.WithHash
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The guest's deployed definitions are the forms with a hash

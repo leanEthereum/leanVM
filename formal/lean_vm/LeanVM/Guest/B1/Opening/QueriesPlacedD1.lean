@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPlacedL
 public import LeanVM.Guest.B1.Opening.QueriesMainW
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # A call's honest data

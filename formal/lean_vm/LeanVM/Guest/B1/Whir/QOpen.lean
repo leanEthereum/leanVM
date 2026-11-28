@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The queries' openings

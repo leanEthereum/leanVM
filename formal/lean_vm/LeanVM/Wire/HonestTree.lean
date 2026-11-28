@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Wire.Spec
 public import LeanVM.Protocol.Compile.Prover
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # One tree's openings are decodable

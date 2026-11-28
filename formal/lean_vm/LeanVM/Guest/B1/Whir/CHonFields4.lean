@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Whir.CHonFields3
 public import LeanVM.Guest.B1.Whir.CCaps
 public import LeanVM.Guest.B1.Whir.CHonBodyRun0
 public import LeanVM.Guest.B1.Whir.CHonBodyRun
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The levels' openings, and OsHonest's memory fields

@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesRow
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # A query's leaf hash (`opening_query`)

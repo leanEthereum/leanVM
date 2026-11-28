@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesPops
 public import LeanVM.Guest.B1.Merkle.HintPath
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # A query's and a level's entries are the generator's

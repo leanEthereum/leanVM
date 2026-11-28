@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Merkle.Climb
 public import LeanVM.Guest.B1.Opening.Interface
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Protocol.WithHashBridge
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The honest cap

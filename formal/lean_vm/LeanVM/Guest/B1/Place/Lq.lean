@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Whir.HelperT
 public import LeanVM.Guest.B1.Whir.Witness
 public import LeanVM.Guest.B1.Whir.LqSound
 public import LeanVM.Guest.B1.Bits.QueryWindowsAt
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # `level_queries`, placed

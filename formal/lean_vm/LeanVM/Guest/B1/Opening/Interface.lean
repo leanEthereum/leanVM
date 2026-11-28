@@ -13,6 +13,7 @@ public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Opening.FoldAlg
 public import LeanVM.Guest.B1.Opening.QueriesT
 public import LeanVM.Protocol.RunWithHash
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The WHIR queries: the interface

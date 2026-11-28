@@ -2,6 +2,7 @@ import LeanVM.Protocol.KeccakHash
 import Statement.Fast.Keccak
 import Statement.LeanVmGuest
 import LeanVM.Guest.AcceptableChild
+import LeanVM.Facts.MerkleLeaf
 
 /-!
 # Keccak tests

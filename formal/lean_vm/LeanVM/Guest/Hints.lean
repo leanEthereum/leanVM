@@ -24,6 +24,7 @@ public import LeanVM.Guest.GuestConst
 public import LeanVM.Guest.Coverage
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
+public import LeanVM.Facts.MerkleLeaf
 
 /-!
 # The honest hint generator

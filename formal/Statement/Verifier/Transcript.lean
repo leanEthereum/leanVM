@@ -266,13 +266,15 @@ def climb : Digest → ℕ → List Digest → m Digest
       else keccak256With π (digestBytes s ++ digestBytes node)
     climb parent (q / 2) ss
 
+/-- The digest of a Merkle leaf: Keccak-256 of its words as bytes (`hash_leaf`, `merkle.rs`). -/
+abbrev merkleLeafDigestWith (leaf : List K) : m Digest := keccak256With π (leaf.flatMap K.toBytes)
+
 /-- Check one opening against a root of the given shape at position `position`: its shape
 (`transcript.rs`), then its leaf hashed and climbed to the root (`hash_leaf` and
 `MerklePath::root`, `merkle.rs`). -/
 def openOne (root : Digest) (height width position : ℕ) (opening : Opening) : m Bool :=
   if opening.leaf.length = width ∧ opening.path.length = height then do
-    let leafDigest ← keccak256With π (opening.leaf.flatMap K.toBytes)
-    let top ← climb π leafDigest position opening.path
+    let top ← climb π (← merkleLeafDigestWith π opening.leaf) position opening.path
     pure (decide (top.toList = root.toList))
   else pure false
 
