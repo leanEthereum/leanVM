@@ -90,7 +90,7 @@ impl Shape {
 pub struct Witness {
     pub shape: Shape,
     /// The blocks holding inputs, then the padding block if any block follows them, which every later one equals:
-    /// per block, every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state being round 0.
+    /// per block, the sliced state each round applies `chi` to, round `r` at `(r - 1) * BLOCK_LEN`.
     pub(crate) blocks: Vec<Vec<u64>>,
     /// The blocks holding inputs: every later one is the padding block, each instance of which is the all-zero input.
     pub(crate) written: usize,
@@ -155,8 +155,8 @@ impl Inputs<'_> {
 
 /// Run block `g` of `inputs`. Without `keep`, returns its committed lanes, slot `s` at `s * BLOCK ..` and a word per
 /// instance, slot `s` being lane `s % 25` of the state after `depth * (s / 25)` rounds: every state a segment starts
-/// from, the output not being committed. With `keep`, returns its input state and the state each round applies `chi`
-/// to, all sliced, round after round.
+/// from, the output not being committed. With `keep`, returns the state each round applies `chi` to, sliced, round
+/// after round.
 pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> Vec<u64> {
     let (mut state, mut u) = (vec![0u64; BLOCK_LEN], vec![0u64; BLOCK_LEN]);
     let (state, u) = (
@@ -176,7 +176,7 @@ pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> V
         }
     }
     let (len, last) = match keep {
-        true => ((ROUNDS + 1) * BLOCK_LEN, ROUNDS),
+        true => (ROUNDS * BLOCK_LEN, ROUNDS),
         false => (STATE_LANES * (ROUNDS / depth) * BLOCK, ROUNDS - depth),
     };
     let (mut out, mut at) = (vec![0u64; len], 0);
@@ -198,11 +198,11 @@ pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> V
                     *w = !*w;
                 }
             }
+            if keep {
+                out[(round - 1) * BLOCK_LEN..][..BLOCK_LEN].copy_from_slice(u.as_flattened());
+            }
         }
-        if keep {
-            out[at..][..BLOCK_LEN].copy_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
-            at += BLOCK_LEN;
-        } else if round.is_multiple_of(depth) {
+        if !keep && round.is_multiple_of(depth) {
             // The lanes of the state a segment starts from, slot after slot.
             for lane in 0..STATE_LANES {
                 for w in 0..BLOCK_WORDS {
@@ -282,11 +282,10 @@ impl Witness {
         self.blocks.len()
     }
 
-    /// Block `g` of the state round `round` applies `chi` to, rounds counted from 1, or of the
-    /// input state for `round` 0, sliced.
+    /// Block `g` of the state round `round` applies `chi` to, rounds counted from 1, sliced.
     pub(crate) fn layer(&self, round: usize, g: usize) -> &[u64] {
         assert!(g < self.shape.n_blocks(), "a block of the batch");
-        &self.blocks[g.min(self.written)][round * BLOCK_LEN..][..BLOCK_LEN]
+        &self.blocks[g.min(self.written)][(round - 1) * BLOCK_LEN..][..BLOCK_LEN]
     }
 }
 

@@ -234,5 +234,5 @@ fn pair_values(summand: &Summand, source: &Source, p: usize, rows: &mut [F128], 
     let values = source
         .write(p, rows)
         .unwrap_or_else(|| summand.pair(&rows[..BITS], &rows[BITS..]));
-    [values[0].mul_unreduced(eq), values[1].mul_unreduced(eq)]
+    values.map(|v| v.mul_unreduced(eq))
 }
