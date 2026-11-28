@@ -21,7 +21,7 @@ pub(super) const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1"
 /// Only the point is transmitted; the value is derived from it on receipt, so a
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct DeferredBytecodeClaim {
     pub(super) bytecode_point: Vec<F128>,
     pub(super) bytecode_value: F128,

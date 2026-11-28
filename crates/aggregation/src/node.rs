@@ -102,7 +102,7 @@ pub fn aggregate<P: Prover>(
 
     // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
     // builds the guest's witness from, and fails only on a proof it cannot walk.
-    let span = span!("Replay children");
+    let span = span!("Build witness");
     // The batch's claims and their sums, each child's fresh one, filled in with its witness, then its carried one.
     let mut claims = Vec::with_capacity(2 * children.len());
     let mut sums = Vec::with_capacity(2 * children.len());
@@ -111,44 +111,39 @@ pub fn aggregate<P: Prover>(
         let carried_sums = bytecode_sums::<P>(&proof.bytecode_point);
         let defer = DeferredBytecodeClaim::from_sums(proof.bytecode_point.clone(), &carried_sums);
         public_inputs.push(statement_digest(&child_lists[i], child.da_commitment, &defer));
-        claims.push(DeferredBytecodeClaim {
-            bytecode_point: Vec::new(),
-            bytecode_value: F128::ZERO,
-        });
+        claims.push(DeferredBytecodeClaim::default());
         claims.push(defer);
         sums.push(Vec::new());
         sums.push(carried_sums);
     }
-    // One child per worker, nothing inside dispatching: its replay's fresh bytecode point and its witness.
+    // One per worker, nothing inside dispatching: each child's replay's fresh bytecode point and its witness, then
+    // each raw signature's witness, leanXMSS first. The first failure, in that order, is the error.
     let kbc = unified_guest().prog.len().trailing_zeros() as usize;
-    let verified = P::map_collect(children.len(), |i| {
-        let pi = public_input_bytes(&public_inputs[i]);
-        let proof = &children[i].1.proof;
-        let guest = unified_guest();
-        let summary = verifier::replay_unchecked(guest.stacked_bytecode().len(), guest.fiat_shamir_iv(), &pi, proof)
-            .map_err(|_| AggregateError::InvalidChild)?;
-        let fresh: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
-        Ok((fresh, gen_verify(kbc, proof, &summary)?))
+    let (n_children, n_lean_xmss) = (children.len(), raw_order[0].len());
+    let mut witnesses = P::map_collect(n_children + n_lean_xmss + raw_order[1].len(), |i| {
+        if i < n_children {
+            let pi = public_input_bytes(&public_inputs[i]);
+            let proof = &children[i].1.proof;
+            let guest = unified_guest();
+            let summary =
+                verifier::replay_unchecked(guest.stacked_bytecode().len(), guest.fiat_shamir_iv(), &pi, proof)
+                    .map_err(|_| AggregateError::InvalidChild)?;
+            let fresh: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
+            Ok((fresh, gen_verify(kbc, proof, &summary)?))
+        } else if i < n_children + n_lean_xmss {
+            let (pk, message, sig) = &raw_lean_xmss[raw_order[0][i - n_children]];
+            Ok((Vec::new(), lean_xmss_hints(pk, sig, message)?))
+        } else {
+            let (pk, message, sig) = &raw_lean_sphincs[raw_order[1][i - n_children - n_lean_xmss]];
+            Ok((Vec::new(), lean_sphincs_hints(pk, sig, message)?))
+        }
     });
-    for child in &verified {
-        if let Err(error) = child {
+    for witness in &witnesses {
+        if let Err(error) = witness {
             return Err(*error);
         }
     }
-    drop(span);
-
-    let span = span!("Build witness");
-    // Each raw signature's witness, leanXMSS first, one per worker.
-    let n_lean_xmss = raw_order[0].len();
-    let signatures = P::map_collect(n_lean_xmss + raw_order[1].len(), |i| {
-        if i < n_lean_xmss {
-            let (pk, message, sig) = &raw_lean_xmss[raw_order[0][i]];
-            lean_xmss_hints(pk, sig, message)
-        } else {
-            let (pk, message, sig) = &raw_lean_sphincs[raw_order[1][i - n_lean_xmss]];
-            lean_sphincs_hints(pk, sig, message)
-        }
-    });
+    let signatures = witnesses.split_off(n_children);
     let mut hints = Hints::default();
     // Per region its declared claims, duplicates and raw signatures, then the children and whether there are blobs.
     let [xmss, sphincs] = &cover;
@@ -184,14 +179,14 @@ pub fn aggregate<P: Prover>(
     for ((region, order), name) in cover.iter().zip(raw_order).zip(["raw_index", "sp_raw_index"]) {
         for (&offset, signature) in region.slots[..order.len()].iter().zip(&mut signatures) {
             hints.push_count(name, offset);
-            hints.extend(signature?);
+            hints.extend(signature?.1);
         }
     }
 
     // Each child's slots, its carried claim, its DA digest and its verification's witness.
     // Where each region's slots of the next child start.
     let mut at = [raw_order[0].len(), raw_order[1].len()];
-    for (i, child) in verified.into_iter().enumerate() {
+    for (i, child) in witnesses.into_iter().enumerate() {
         let (fresh, verified) = child?;
         let lists = &child_lists[i];
         hints.push("child_meta", vec![count(lists[0].len()), count(lists[1].len())]);
