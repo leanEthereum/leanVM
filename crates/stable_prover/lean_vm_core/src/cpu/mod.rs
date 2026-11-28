@@ -5,7 +5,7 @@
 use crate::constraints;
 use crate::leaf::{self, Block, Coord};
 use crate::pcs;
-use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STATE};
+use crate::tables::{self, FillCtx, SEP_BYTECODE, SEP_MEM, SEP_STATE};
 use crate::witness;
 use primitives::field::{F64, F128};
 use primitives::transcript::ProverState;

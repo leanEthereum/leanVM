@@ -53,45 +53,7 @@ pub(crate) const OP_DEREF: F64 = g_pow(verifier::layout::OP_DEREF);
 pub(crate) const OP_JUMP: F64 = g_pow(verifier::layout::OP_JUMP);
 pub(crate) const OP_KECCAK: F64 = g_pow(verifier::layout::OP_KECCAK);
 
-// ---- flush builder -----------------------------------------------------------
-
-/// Collects a table's push/pull bus interactions in *local* column indices. The
-/// push/pull of a memory-checked entry differ only by one coordinate carrying the
-/// post-increment `g·count` (`GCol`) instead of the pre-increment (`Col`); these
-/// helpers encode that pairing so each table reads declaratively.
-pub(crate) struct FlushBuilder {
-    pub(crate) push: Vec<Vec<Coord>>,
-    pub(crate) pull: Vec<Vec<Coord>>,
-    /// The global index of the table's local column 0.
-    base: usize,
-}
-
-impl FlushBuilder {
-    pub(crate) fn new(base: usize) -> Self {
-        Self {
-            push: Vec::new(),
-            pull: Vec::new(),
-            base,
-        }
-    }
-
-    fn pair(&mut self, push: Vec<Coord>, pull: Vec<Coord>) {
-        self.push.push(push);
-        self.pull.push(pull);
-    }
-
-    /// Declare `flushes`, in a table's local columns.
-    fn declare(&mut self, flushes: &[Flush]) {
-        for flush in flushes {
-            let push: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord(self.base)).collect();
-            let mut pull = push.clone();
-            for &(at, c) in &flush.pull {
-                pull[at] = c.coord(self.base);
-            }
-            self.pair(push, pull);
-        }
-    }
-}
+// ---- flushes -----------------------------------------------------------------
 
 /// A [`Coord`] of a table's in a static declaration.
 #[derive(Clone, Copy)]
@@ -117,7 +79,8 @@ impl C {
 }
 
 /// A table's bus interaction, declared in its local columns, `pc` and `fp` columns 0 and 1: the push's tuple, its
-/// first `len` slots, and the pull's, which is the push's but in the two slots `pull` sets.
+/// first `len` slots, and the pull's, which is the push's but in the two slots `pull` sets (a memory-checked entry's
+/// post-increment `g·count` is the pre-increment `count` on the pull).
 #[derive(Clone, Copy)]
 struct Flush {
     push: [C; 1 << verifier::layout::BUS_BITS],
@@ -387,12 +350,24 @@ impl Table {
         }
     }
 
-    /// Declare the table's bus interactions.
-    pub(crate) fn flushes(self, f: &mut FlushBuilder) {
-        match self {
-            Table::Keccak => f.declare(&KECCAK_FLUSHES),
-            _ => f.declare([XOR, MUL, SET, DEREF, JUMP][self as usize]),
+    /// The table's bus interactions, their push tuples and their pull tuples, local column 0 being column `base`.
+    pub(crate) fn flushes(self, base: usize) -> [Vec<Vec<Coord>>; 2] {
+        let flushes = if self == Table::Keccak {
+            &KECCAK_FLUSHES
+        } else {
+            [XOR, MUL, SET, DEREF, JUMP][self as usize]
+        };
+        let (mut push, mut pull) = (Vec::new(), Vec::new());
+        for flush in flushes {
+            let tuple: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord(base)).collect();
+            let mut pulled = tuple.clone();
+            for &(at, c) in &flush.pull {
+                pulled[at] = c.coord(base);
+            }
+            push.push(tuple);
+            pull.push(pulled);
         }
+        [push, pull]
     }
 }
 

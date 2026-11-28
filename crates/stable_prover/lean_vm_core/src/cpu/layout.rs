@@ -136,10 +136,9 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     let mut pull = vec![(0, 0), (1, 0), (0, log_bytecode)];
     let mut count = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
-        let mut fb = tables::FlushBuilder::new(0);
-        table.flushes(&mut fb);
-        push.extend(std::iter::repeat_n((2 + t, 0), fb.push.len()));
-        pull.extend(std::iter::repeat_n((2 + t, 0), fb.pull.len()));
+        let n = table.flushes(0)[0].len();
+        push.extend(std::iter::repeat_n((2 + t, 0), n));
+        pull.extend(std::iter::repeat_n((2 + t, 0), n));
         count.extend(std::iter::repeat_n((2 + t, 0), table.count_columns().len()));
     }
     push.extend(pull);
@@ -173,14 +172,13 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
     let mut count_blocks: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().into_iter().enumerate() {
         let padding = table.padding();
-        let mut fb = FlushBuilder::new(GLOBAL_COLUMN_BASES[t]);
-        table.flushes(&mut fb);
+        let [push_flushes, pull_flushes] = table.flushes(GLOBAL_COLUMN_BASES[t]);
         let counts = (table.count_columns())
             .map(|c| vec![Coord::Col(GLOBAL_COLUMN_BASES[t] + c)])
             .collect();
         let (kappa, rows) = (taus[t], rows[t]);
-        table_blocks(&mut push, t, kappa, rows, &padding, fb.push);
-        table_blocks(&mut pull, t, kappa, rows, &padding, fb.pull);
+        table_blocks(&mut push, t, kappa, rows, &padding, push_flushes);
+        table_blocks(&mut pull, t, kappa, rows, &padding, pull_flushes);
         table_blocks(&mut count_blocks, t, kappa, rows, &padding, counts);
     }
 
