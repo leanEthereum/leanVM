@@ -3,7 +3,7 @@
 //! hint count, then each instruction as [`OP_WORDS`] words, then each hint as [`HINT_WORDS`] words and its list or
 //! name. A record is a tag and its fields in declaration order, zero past them: a `u64` two words, low first, a flag
 //! `0` or `1`, a [`BitsDest`] its variant's index then its offset, an `Option` a flag then its value or zero, a list or
-//! name its length, its items or bytes following the record.
+//! name its length, its items or bytes following the record. Names are ASCII.
 
 use crate::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, Program, RHint};
 use verifier::{E, K, MAX_LOG_BYTECODE};
@@ -272,8 +272,16 @@ impl Reader<'_> {
         Some(())
     }
 
+    /// An ASCII name, each byte a `char`: no UTF-8 validation.
     fn string(&mut self, n: u32) -> Option<String> {
-        String::from_utf8(self.bytes(n)?.to_vec()).ok()
+        let mut name = String::new();
+        for &b in self.bytes(n)? {
+            if !b.is_ascii() {
+                return None;
+            }
+            name.push(char::from(b));
+        }
+        Some(name)
     }
 
     /// The hint of the record `w`, its pc first, and its list or name.

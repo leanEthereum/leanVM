@@ -32,7 +32,7 @@ thread_local! {
 fn capture_next() {
     FORGE.with(|forge| {
         *forge.borrow_mut() = Some(Box::new(|hints: &mut Hints| {
-            INSTALLED.with(|i| *i.borrow_mut() = hints.0.clone());
+            INSTALLED.with(|i| *i.borrow_mut() = hints.0.iter().map(|(n, e)| (n.to_string(), e.clone())).collect());
         }));
     });
 }

@@ -702,6 +702,7 @@ dependencies = [
  "lean_xmss",
  "stable_lean_vm_core",
  "tracing",
+ "verifier",
 ]
 
 [[package]]

@@ -41,9 +41,9 @@ pub fn unified_guest() -> &'static Program {
 }
 
 /// Install [`unified_guest`], compiled elsewhere and read back with `Program::from_bytes`, for a build without the
-/// compiler: `false`, and nothing installed, if a guest is already in place.
+/// compiler: `false`, nothing installed and `program` leaked, if a guest is already in place.
 pub fn set_unified_guest(program: Program) -> bool {
-    GUEST.set(program).is_ok()
+    GUEST.set(program).map_err(std::mem::forget).is_ok()
 }
 
 #[cfg(feature = "compile-guest")]

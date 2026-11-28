@@ -323,7 +323,7 @@ fn guest_column_selectors_match_native_eq() {
                 hints.push("point", point.clone());
                 hints.push("offset", vec![count(offset)]);
                 hints.push("kappa", vec![count(kappa)]);
-                let execution = execute(&guest, &hints.0, [expected, F128::ZERO]).unwrap();
+                let execution = execute(&guest, &hints.named(), [expected, F128::ZERO]).unwrap();
                 assert!(execution.unconstrained_reads.is_empty());
             }
         }
@@ -481,7 +481,7 @@ fn list_split_rejects_a_negative_rest() {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
-        execute(&guest, &hints.0, [body, rest])
+        execute(&guest, &hints.named(), [body, rest])
     };
     // Six claims: no whole group, then six.
     assert!(split(count(0), count(6)).is_ok());
@@ -508,7 +508,7 @@ fn grind_check_reads_the_low_bits() {
     let check = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
-        execute(&guest, &hints.0, [F128::ZERO, F128::ZERO])
+        execute(&guest, &hints.named(), [F128::ZERO, F128::ZERO])
     };
     for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
         assert!(check(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
@@ -556,7 +556,7 @@ fn da_guest_checks_codeword_membership() {
         }
         execute(
             &guest,
-            &hints.0,
+            &hints.named(),
             hash_to_scalars(&verifier::da::digest(Some(commitment))),
         )
     };
@@ -727,7 +727,7 @@ fn a_child_walk_cannot_step_back() {
         }
         let bytes = cell_bytes(child.iter().flatten().copied());
         let claims: Vec<Claim> = bytes.as_chunks::<32>().0.as_chunks::<2>().0.to_vec();
-        execute(&guest, &hints.0, claim_list_digest(&claims))
+        execute(&guest, &hints.named(), claim_list_digest(&claims))
     };
     assert!(walk(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
     let back = count(1).inv();

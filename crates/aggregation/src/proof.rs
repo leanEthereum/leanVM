@@ -63,6 +63,19 @@ impl AggregateProof {
         Some(Self { bytecode_point, proof })
     }
 
+    /// The proof from its deferred point and VM proof, `None` if the point is not `bytecode_vars()` long. Nothing is
+    /// verified.
+    #[doc(hidden)]
+    pub fn __from_parts(bytecode_point: Vec<F128>, proof: verifier::Proof) -> Option<Self> {
+        (bytecode_point.len() == bytecode_vars()).then_some(Self { bytecode_point, proof })
+    }
+
+    /// The deferred point and the VM proof.
+    #[doc(hidden)]
+    pub fn __parts(&self) -> (&[F128], &verifier::Proof) {
+        (&self.bytecode_point, &self.proof)
+    }
+
     /// Whether this proves `claims`: the lists are sorted, the deferred claim holds, and the stark
     /// proof is valid.
     pub fn verify(&self, claims: &AggregateClaims) -> bool {

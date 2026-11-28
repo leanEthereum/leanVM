@@ -5,8 +5,10 @@
 //! `aggregation::unified_guest`), so the binary holds no compiler. The other input, every length and count a
 //! little-endian `u32`:
 //! - `log_inv_rate`, one byte;
-//! - the children: a count, then each child's claims and proof (`AggregateClaims::to_bytes`,
-//!   `AggregateProof::to_bytes`), each a length and its bytes;
+//! - the children: a count, then each child's claims (`AggregateClaims::to_bytes`, a length and its bytes) and proof,
+//!   its Merkle paths in full: the deferred point and the stream, each a count and its elements as two little-endian
+//!   `u64` words, then the phases, a count and each phase's paths, a count and each path's leaf index (a `u64`), leaf
+//!   (a count and its `u64` words) and siblings (a count and their 32 bytes);
 //! - the leanXMSS signatures: a count, then each public key, message and signature;
 //! - the leanSPHINCS signatures, the same way.
 //!
@@ -17,6 +19,8 @@ use aggregation::{AggregateClaims, AggregateProof, OutputClaims};
 use isa::Program;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use stable_lean_vm_core::cpu::from_scalar;
+use verifier::{E, K, MerklePath, Proof};
 
 type P = stable_lean_vm_core::StableProver;
 
@@ -107,10 +111,30 @@ pub fn encode(
     let mut out = vec![log_inv_rate];
     let len = |out: &mut Vec<u8>, n: usize| out.extend(u32::try_from(n).expect("a u32 length").to_le_bytes());
     len(&mut out, children.len());
+    let words = |out: &mut Vec<u8>, words: &[u64]| {
+        len(out, words.len() / 2);
+        out.extend(words.iter().flat_map(|w| w.to_le_bytes()));
+    };
     for (claims, proof) in children {
-        for bytes in [claims.to_bytes(), proof.to_bytes()] {
-            len(&mut out, bytes.len());
-            out.extend(bytes);
+        let claims = claims.to_bytes();
+        len(&mut out, claims.len());
+        out.extend(claims);
+        let (point, proof) = proof.__parts();
+        words(&mut out, &point.iter().flat_map(|x| [x.c0, x.c1]).collect::<Vec<_>>());
+        words(
+            &mut out,
+            &proof.stream.iter().flat_map(|x| [x.c0, x.c1]).collect::<Vec<_>>(),
+        );
+        len(&mut out, proof.merkle_openings.len());
+        for phase in &proof.merkle_openings {
+            len(&mut out, phase.len());
+            for path in phase {
+                out.extend(path.leaf_index.to_le_bytes());
+                len(&mut out, path.leaf.len());
+                out.extend(path.leaf.iter().flat_map(|w| w.0.to_le_bytes()));
+                len(&mut out, path.siblings.len());
+                out.extend(path.siblings.as_flattened());
+            }
         }
     }
     len(&mut out, xmss.len());
@@ -144,7 +168,7 @@ fn decode(input: &[u8]) -> Option<Input> {
     let (mut children, mut xmss, mut sphincs) = (Vec::new(), Vec::new(), Vec::new());
     for _ in 0..r.len()? {
         let claims = AggregateClaims::from_bytes(r.bytes()?)?;
-        children.push((claims, AggregateProof::from_bytes(r.bytes()?)?));
+        children.push((claims, r.proof()?));
     }
     for _ in 0..r.len()? {
         let pk = LeanXmssPublicKey::from_bytes(r.array()?);
@@ -180,5 +204,51 @@ impl<'a> Reader<'a> {
     fn bytes(&mut self) -> Option<&'a [u8]> {
         let n = self.len()?;
         self.take(n)
+    }
+
+    fn word(&mut self) -> Option<u64> {
+        Some(u64::from_le_bytes(*self.array()?))
+    }
+
+    fn scalars(&mut self) -> Option<Vec<E>> {
+        let mut out = Vec::new();
+        for _ in 0..self.len()? {
+            out.push(E::new(self.word()?, self.word()?));
+        }
+        Some(out)
+    }
+
+    /// A child's proof, as [`encode`] writes it. Every item takes input bytes, so a forged count allocates little.
+    fn proof(&mut self) -> Option<AggregateProof> {
+        let point = self.scalars()?.into_iter().map(from_scalar).collect();
+        let stream = self.scalars()?;
+        let mut merkle_openings = Vec::new();
+        for _ in 0..self.len()? {
+            let mut paths = Vec::new();
+            for _ in 0..self.len()? {
+                let leaf_index = self.word()?;
+                let mut leaf = Vec::new();
+                for _ in 0..self.len()? {
+                    leaf.push(K(self.word()?));
+                }
+                let mut siblings = Vec::new();
+                for _ in 0..self.len()? {
+                    siblings.push(*self.array()?);
+                }
+                paths.push(MerklePath {
+                    leaf_index,
+                    leaf,
+                    siblings,
+                });
+            }
+            merkle_openings.push(paths);
+        }
+        AggregateProof::__from_parts(
+            point,
+            Proof {
+                stream,
+                merkle_openings,
+            },
+        )
     }
 }
