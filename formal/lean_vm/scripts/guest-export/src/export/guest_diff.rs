@@ -181,21 +181,22 @@ fn export(
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
     let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone());
-    out.es(&statement_digest(&claims, &defer));
+    out.es(&statement_digest(&claim_lists(&claims), claims.da_commitment, &defer));
     out.tag("statement");
     out.statement(&claims, &defer);
 
     out.tag("children");
     out.n(children.len());
-    let bytecode = unified_guest().bytecode();
     for (child_claims, child) in &children {
         out.tag("child");
         let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone());
         out.statement(child_claims, &defer);
-        let pi = statement_digest(child_claims, &defer);
+        let pi = statement_digest(&claim_lists(child_claims), child_claims.da_commitment, &defer);
         let scalar = child.proof.clone();
+        let guest = unified_guest();
+        let (n, iv) = (guest.stacked_bytecode().len(), guest.fiat_shamir_iv());
         let summary =
-            verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
+            verifier::replay_unchecked(n, iv, &public_input_bytes(&pi), &scalar).expect("the child replays");
         // The fresh claim's value, which the caller evaluates (`aggregate` off its batch's sums).
         let fresh_value = from_scalar(unified_guest().bytecode().evaluate(&summary.bytecode_point).unwrap());
         gen_verify(kbc(), &child.proof, &summary).expect("the child fits");
@@ -281,7 +282,7 @@ fn export(
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
     if let Some(exec_dir) = std::env::var_os("LEANVM_GUEST_EXEC") {
-        let public_input = statement_digest(&claims, &defer);
+        let public_input = statement_digest(&claim_lists(&claims), claims.da_commitment, &defer);
         export_execution(&std::path::Path::new(&exec_dir).join(name), &streams, public_input);
     }
     (claims, node)

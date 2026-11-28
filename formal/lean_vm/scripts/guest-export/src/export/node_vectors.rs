@@ -91,8 +91,6 @@ pub fn file() -> File {
             (key, *m)
         })
         .collect();
-    let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
-    let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
     let root = bytes32(&mut rng);
     let challenge = from_scalar(verifier::da::membership_challenge(&root));
     let da = verifier::da::digest(Some(root));
@@ -104,7 +102,9 @@ pub fn file() -> File {
     };
     let seed = fs_seed();
     let claims = AggregateClaims { lean_xmss: xmss_typed, lean_sphincs: sphincs_typed, da_commitment: Some(root) };
-    let statement = statement_digest(&claims, &defer);
+    let lists = claim_lists(&claims);
+    let (xmss_digest, sphincs_digest) = (claim_list_digest(&lists[0]), claim_list_digest(&lists[1]));
+    let statement = statement_digest(&lists, claims.da_commitment, &defer);
 
     // Two children with true claims on the stacked bytecode: each one's public input and fresh claim.
     let subproofs: Vec<([F128; 2], DeferredBytecodeClaim)> = (0..2)
@@ -129,9 +129,9 @@ pub fn file() -> File {
         .collect();
     let points: Vec<Vec<F128>> = claims.iter().map(|claim| claim.bytecode_point.clone()).collect();
     <StableProver as isa::Prover>::init();
-    let sums = bytecode_sums::<StableProver>(&points);
+    let sums = points.iter().map(|point| bytecode_sums::<StableProver>(point)).collect();
     let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums);
-    let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
+    let hint = |name: &str| hints.0.iter().find(|(n, _)| *n == name).unwrap().1.concat();
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
