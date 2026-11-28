@@ -16,13 +16,21 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **A residual of a function's own family**, ghost-free (`FnReg.fams`). -/
-noncomputable def ownFam (fn : Fn) (r : CRes) : Bool := FnReg.fams.any fun p ↦ fn.name == p.1 && p.2 fn r
+/-- **The function's own families**, ghost-free (`FnReg.fams` under its name): selected once a check, so a residual
+tries its function's families alone. -/
+noncomputable def ownFams (fn : Fn) : List (String × (Fn → CRes → Bool)) := FnReg.fams.filter fun p ↦ fn.name == p.1
 
-/-- **A residual of a function's own family over its own parameter words as ghosts** (`FnReg.gwFams`), its ghost
-slots `gw` some. -/
+/-- **A residual of a function's own family**, ghost-free (`ownFams`). -/
+noncomputable def ownFam (fn : Fn) (r : CRes) : Bool := (ownFams fn).any fun p ↦ p.2 fn r
+
+/-- **The function's own families over its own parameter words as ghosts** (`FnReg.gwFams` under its name). -/
+noncomputable def gwFams (fn : Fn) : List (String × (Fn → List (CCell × ℕ) → CRes → Bool)) :=
+  FnReg.gwFams.filter fun p ↦ fn.name == p.1
+
+/-- **A residual of a function's own family over its own parameter words as ghosts** (`gwFams`), its ghost slots `gw`
+some. -/
 noncomputable def gwFam (fn : Fn) (gw : List (CCell × ℕ)) (r : CRes) : Bool :=
-  !gw.isEmpty && FnReg.gwFams.any fun p ↦ fn.name == p.1 && p.2 fn gw r
+  !gw.isEmpty && (gwFams fn).any fun p ↦ p.2 fn gw r
 
 theorem gwFam_nil (fn : Fn) (r : CRes) : gwFam fn [] r = false := rfl
 

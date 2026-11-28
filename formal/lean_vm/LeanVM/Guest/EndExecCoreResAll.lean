@@ -83,10 +83,9 @@ theorem stK_D {fn : Fn} {D v S : ℕ} (hk : stK fn = some (D, v, S)) : D ≠ 0 :
 theorem ownFam_inst (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids) {fn : Fn}
     (hf : coreProgram.find? f = some fn) {x : CRes} (h : CoreMode.ownFam fn x = true) : x.Holds σ := by
-  obtain ⟨p, hp, hpx⟩ := List.any_eq_true.mp h
-  simp only [Bool.and_eq_true, beq_iff_eq] at hpx
-  obtain ⟨hn, hx⟩ := hpx
-  have hn' : p.1 = f := hn ▸ find_name' hf
+  obtain ⟨p, hp, hx⟩ := List.any_eq_true.mp h
+  obtain ⟨hp, hn⟩ := List.mem_filter.mp hp
+  have hn' : p.1 = f := (beq_iff_eq.mp hn) ▸ find_name' hf
   subst hn'
   exact CoreMode.FnReg.fams_ok p hp hr I hI σ bufs kids ht fn hf x hx
 
@@ -99,10 +98,9 @@ theorem gwFam_inst (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
     (h : CoreMode.gwFam fn G.gw x = true) : x.Holds σ' := by
   simp only [CoreMode.gwFam, Bool.and_eq_true] at h
   obtain ⟨-, h⟩ := h
-  obtain ⟨p, hp, hpx⟩ := List.any_eq_true.mp h
-  simp only [Bool.and_eq_true, beq_iff_eq] at hpx
-  obtain ⟨hn, hx⟩ := hpx
-  have hn' : p.1 = f := hn ▸ find_name' hf
+  obtain ⟨p, hp, hx⟩ := List.any_eq_true.mp h
+  obtain ⟨hp, hn⟩ := List.mem_filter.mp hp
+  have hn' : p.1 = f := (beq_iff_eq.mp hn) ▸ find_name' hf
   subst hn'
   exact CoreMode.FnReg.gwFams_ok p hp hr I hI σ bufs kids ht fn hf σ' hag hng G hgw x hx
 
