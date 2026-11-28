@@ -22,7 +22,7 @@ pub use execute::{ExecError, Execution, Fault, Memory, WitnessFault, execute};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
-pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
+pub(crate) use trace::{Trace, row_len};
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) on the stream, from which the
 /// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not

@@ -286,11 +286,21 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         windows[GLOBAL_COLUMN_BASES[verifier::layout::OP_KECCAK] + verifier::layout::spare_local(k)] = window;
     }
 
+    // Each KECCAK row's input lanes, read back from the final memory image, which is write-once.
+    let keccak_rows = tr.rows[verifier::layout::OP_KECCAK]
+        .as_chunks::<{ super::trace::MAX_ROW }>()
+        .0;
+    let inputs = parallel::map_collect(keccak_rows.len(), |i| {
+        let [pc, fp, ..] = keccak_rows[i];
+        let op = tables::KeccakOp::of(&program.prog[pc as usize]);
+        crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(fp, c) as usize))
+    });
     {
+        let outputs = tables::keccak_outputs(&inputs);
         for (t, table) in tables::tables().iter().enumerate() {
             let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
-            let ctx = FillCtx::new(tr, &exec.mem, &gpow, &program.prog, 1 << l.taus[t], table.padding());
-            table.fill(&ctx, &mut windows[base..base + n]);
+            let ctx = FillCtx::new(tr, &exec.mem, &gpow, program, 1 << l.taus[t], table.padding());
+            table.fill(&ctx, &mut windows[base..base + n], &outputs);
         }
         // The shared columns, from one pass over the image: each cell's two limbs and final count `g^{A[i]}`, then each
         // pc's final count.
@@ -319,16 +329,9 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
             gpow[tr.bytecode_count[i] as usize]
         });
     };
-    // The committed Keccak states, step `j` the `j`-th KECCAK row, its input read back from the final memory
-    // image, which is write-once.
-    let keccak_reduction = {
-        let inputs = parallel::map_collect(tr.keccak.len(), |i| {
-            let row = &tr.keccak[i];
-            let op = tables::KeccakOp::of(&program.prog[row.pc as usize]);
-            crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(row.fp, c) as usize))
-        });
-        crate::keccak::place(&inputs, windows[QKECCAK])
-    };
+    // The committed Keccak states, step `j` the `j`-th KECCAK row.
+    let keccak_reduction = crate::keccak::place(&inputs, windows[QKECCAK]);
+    drop(inputs);
     drop(windows);
     Witness {
         q,

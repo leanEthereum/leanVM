@@ -412,14 +412,17 @@ impl Mem {
         }
     }
 
-    /// Read the running access count and advance it: the column's `×g`, on the exponent.
+    /// Read each cell's running access count into `counts`, in order, and advance it: the column's `×g`, on the
+    /// exponent.
     #[inline(never)]
-    fn bump_access_count(&mut self, cell: u32) -> u32 {
-        let c = self.at(cell);
-        let count = c.count;
-        c.count = count + 1;
-        self.counts = self.counts.max(count + 1);
-        count
+    fn bump_access_counts(&mut self, cells: &[u32], counts: &mut [u32]) {
+        for (&cell, slot) in cells.iter().zip(counts) {
+            let c = self.at(cell);
+            let count = c.count;
+            c.count = count + 1;
+            self.counts = self.counts.max(count + 1);
+            *slot = count;
+        }
     }
 }
 
@@ -568,12 +571,7 @@ pub fn execute(
     }
 
     let mut trace = Trace {
-        xor: Vec::new(),
-        mul: Vec::new(),
-        set: Vec::new(),
-        deref: Vec::new(),
-        jump: Vec::new(),
-        keccak: Vec::new(),
+        rows: Default::default(),
         bytecode_count: vec![0; program.prog.len()],
         counts: 0,
     };
@@ -616,12 +614,16 @@ pub fn execute(
 
 /// Execute the instruction at `pc` in frame `fp`, recording its row: the next `(pc, fp)`.
 fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut Trace) -> Res<(u32, u32)> {
+    use verifier::layout::{OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
     let bytecode_read = tr.bytecode_count[pc as usize];
     tr.bytecode_count[pc as usize] += 1;
     // Loaded once: the shared Xor/Mul arm needs the discriminant again, and `Op` is wide enough that re-reading it
     // costs a second load.
     let op = program.prog[pc as usize];
-    match op {
+    // The row (`Trace::rows`), its `n` access counts from `row[2]`.
+    let mut row = [0; super::trace::MAX_ROW];
+    let mut next = (pc + 1, fp);
+    let (table, n) = match op {
         Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
             let is_xor = matches!(op, Op::Xor { .. });
             let (aa, ab, ac) = (cell_at(fp, a)?, cell_at(fp, b)?, cell_at(fp, c)?);
@@ -641,27 +643,14 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             }
             let (va, vb) = (m.read(aa), m.read(ab));
             m.put(ac, if is_xor { va + vb } else { crate::mul(va, vb) })?;
-            let row = Xrow {
-                pc,
-                fp,
-                ra: m.bump_access_count(aa),
-                rb: m.bump_access_count(ab),
-                rc: m.bump_access_count(ac),
-                bytecode_read,
-            };
-            // A row is appended as a slice: that grows through the one `reserve`, `push` through a copy per row type.
-            if is_xor { &mut tr.xor } else { &mut tr.mul }.extend_from_slice(&[row]);
+            m.bump_access_counts(&[aa, ab, ac], &mut row[2..]);
+            (if is_xor { OP_XOR } else { OP_MUL }, 3)
         }
         Op::Set { o, k } => {
             let a = cell_at(fp, o)?;
             m.put(a, super::from_scalar(k))?;
-            let r = m.bump_access_count(a);
-            tr.set.extend_from_slice(&[Srow {
-                pc,
-                fp,
-                r,
-                bytecode_read,
-            }]);
+            m.bump_access_counts(&[a], &mut row[2..]);
+            (OP_SET, 1)
         }
         Op::Deref { o1, o2, o3, mode } => {
             let a1 = cell_at(fp, o1)?;
@@ -698,14 +687,8 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                     m.put(a2, F128::from(g.pow(fp as usize)))?;
                 }
             }
-            tr.deref.extend_from_slice(&[Drow {
-                pc,
-                fp,
-                r1: m.bump_access_count(a1),
-                r2: m.bump_access_count(a2),
-                r3: m.bump_access_count(a3),
-                bytecode_read,
-            }]);
+            m.bump_access_counts(&[a1, a2, a3], &mut row[2..]);
+            (OP_DEREF, 3)
         }
         Op::Jump { oc, od, of } => {
             let (ac, ad, af) = (cell_at(fp, oc)?, cell_at(fp, od)?, cell_at(fp, of)?);
@@ -715,20 +698,14 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             let c = in_k("JUMP condition", m.read(ac))?;
             let d = in_k("JUMP target", m.read(ad))?;
             let f = in_k("JUMP fp", m.read(af))?;
-            tr.jump.extend_from_slice(&[Jrow {
-                pc,
-                fp,
-                rc: m.bump_access_count(ac),
-                rd: m.bump_access_count(ad),
-                rf: m.bump_access_count(af),
-                bytecode_read,
-            }]);
+            m.bump_access_counts(&[ac, ad, af], &mut row[2..]);
             if !c.is_zero() {
                 let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
                 let pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
                 let fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
-                return Ok((pc, fp));
+                next = (pc, fp);
             }
+            (OP_JUMP, 3)
         }
         Op::Keccak { .. } => {
             use crate::keccak::{ROW_CELLS, STATE_CELLS};
@@ -750,19 +727,13 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             }
             // In flush order, so a cell two operands alias pairs each read with its own count. A cell not written
             // keeps count 0.
-            let mut r = [0; ROW_CELLS];
-            for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
-                *count = m.bump_access_count(cell);
-            }
-            tr.keccak.extend_from_slice(&[Krow {
-                pc,
-                fp,
-                r,
-                bytecode_read,
-            }]);
+            m.bump_access_counts(&cells[..written], &mut row[2..]);
+            (OP_KECCAK, ROW_CELLS)
         }
-    }
-    Ok((pc + 1, fp))
+    };
+    (row[0], row[1], row[2 + n]) = (pc, fp, bytecode_read);
+    tr.rows[table].extend_from_slice(&row[..3 + n]);
+    Ok(next)
 }
 
 /// Pop the next entry of stream `name` into the `len` cells from `base`.
