@@ -46,6 +46,12 @@ pub(super) fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
     order
 }
 
+/// `claims[i]` for each `i` of `order`.
+#[inline(never)]
+pub(super) fn pick(claims: &[Claim], order: &[usize]) -> Vec<Claim> {
+    order.iter().map(|&i| claims[i]).collect()
+}
+
 impl Region {
     /// The region of scheme `scheme` (0 or 1): declares the union of the raw claims and the children's, or exactly
     /// `declare`, which they must cover.
@@ -60,9 +66,9 @@ impl Region {
         for child in children {
             all.extend_from_slice(&child[scheme]);
         }
-        let mut signers: Vec<Claim> = sorted_firsts(&all).into_iter().map(|i| all[i]).collect();
+        let mut signers = pick(&all, &sorted_firsts(&all));
         if let Some(declare) = declare {
-            let wanted: Vec<Claim> = sorted_firsts(declare).into_iter().map(|i| declare[i]).collect();
+            let wanted = pick(declare, &sorted_firsts(declare));
             signers.retain(|claim| wanted.binary_search(claim).is_ok());
             // Both lists are sorted without repeats, so the ones kept are all the wanted ones exactly when as many.
             if signers.len() != wanted.len() {

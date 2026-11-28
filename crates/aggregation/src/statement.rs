@@ -34,6 +34,7 @@ pub(super) fn list_split(n: usize) -> Vec<F128> {
 pub(super) type Claim = [[u8; 32]; 2];
 
 /// Both lists of `claims`, leanXMSS then leanSPHINCS.
+#[inline(never)]
 pub(super) fn claim_lists(claims: &AggregateClaims) -> [Vec<Claim>; 2] {
     [
         claims

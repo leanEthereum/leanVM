@@ -72,6 +72,7 @@ impl Sponge {
         self.absorb(value, DS_OBSERVE);
     }
 
+    #[inline(never)]
     pub fn sample(&mut self) -> E {
         self.ground.take().unwrap_or_else(|| {
             self.duplex();

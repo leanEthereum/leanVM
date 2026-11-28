@@ -3,7 +3,7 @@
 
 use super::cells::count;
 use super::child::gen_verify;
-use super::coverage::{plan_coverage, sorted_firsts};
+use super::coverage::{pick, plan_coverage, sorted_firsts};
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
@@ -97,7 +97,7 @@ pub fn aggregate<P: Prover>(
             .collect(),
     ];
     let raw_order = [sorted_firsts(&raw_claims[0]), sorted_firsts(&raw_claims[1])];
-    let raw_sorted = [0, 1].map(|s| raw_order[s].iter().map(|&i| raw_claims[s][i]).collect());
+    let raw_sorted = [0, 1].map(|s| pick(&raw_claims[s], &raw_order[s]));
     let cover = plan_coverage(&raw_sorted, &child_lists, declare)?;
     if cover.iter().all(|region| region.signers.is_empty()) && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
