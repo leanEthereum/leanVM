@@ -13,7 +13,7 @@ use crate::constraints::Form;
 use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
 use primitives::cast_slice;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, mul_by_g};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, mul_by_g};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
@@ -242,7 +242,7 @@ impl Formula {
                 return;
             }
         };
-        let v = w.mul_base(g_pow(k as usize));
+        let v = w.mul_base(crate::tables::g_pow(k as usize));
         match (terms.last_mut(), &term) {
             (Some((Term::Prod(a, b), u)), Term::Prod(i, j)) if (*a, *b) == (*i, *j) => *u += v,
             _ => terms.push((term, v)),
@@ -414,7 +414,7 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
             _ => F128::ZERO,
         })
         .collect();
-    ps.add_scalar(alpha.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
+    ps.add_scalar(primitives::field::dot(alpha, &slots));
     let (_, slots, _) = product_sumcheck(ps, alpha.to_vec(), slots, 1, F128::ONE);
     ps.add_scalar(slots[0]);
 }
@@ -422,6 +422,7 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::field::g_pow;
     use primitives::test_rng::Rng;
 
     /// A coordinate's value at row `z`, from its definition.

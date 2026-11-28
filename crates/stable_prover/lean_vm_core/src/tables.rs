@@ -37,8 +37,8 @@ const TOWER_LANES: [&[(usize, usize, u32)]; 2] = [&[(0, 0, 0), (1, 1, 0)], &[(0,
 
 // ---- shared bus vocabulary ---------------------------------------------------
 
-/// `g^k` at compile time (`g = x`, so repeated `mul_by_g` from `g^0 = 1`).
-const fn g_pow(k: usize) -> F64 {
+/// `g^k` by repeated `mul_by_g` from `g^0 = 1` (`g = x`): at compile time, or for a small `k`.
+pub(crate) const fn g_pow(k: usize) -> F64 {
     let mut acc = F64::ONE;
     let mut i = 0;
     while i < k {
