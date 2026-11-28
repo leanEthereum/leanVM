@@ -16,7 +16,7 @@ use primitives::multilinear::mle_eval;
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
-use crate::kernels::{dot, eq_table};
+use crate::kernels::{dot, eq_table, mul};
 use crate::protocol::Claim;
 use crate::witness::{Shape, transpose64};
 
@@ -51,7 +51,7 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
     for segment in 0..count {
         let base = 64 * STATE_LANES * (first + segment);
         for j in 0..BITS {
-            out[base + j] = segments[segment] * claim.weights[j];
+            out[base + j] = mul(segments[segment], claim.weights[j]);
         }
     }
     out

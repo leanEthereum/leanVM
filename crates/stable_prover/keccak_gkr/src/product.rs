@@ -16,7 +16,7 @@ use primitives::field::{Acc8, F128, F128x8, clmul8_low};
 use primitives::hash::positions::row_positions;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 
-use crate::kernels::{FieldMap, ONES, PACKS, PACKS_LOG, Run, embed_run, eq_table, field_map, map_sums, xor};
+use crate::kernels::{FieldMap, ONES, PACKS, PACKS_LOG, Run, embed_run, eq_table, field_map, map_sums, mul, xor};
 use crate::layer::Layer;
 use crate::protocol::Claim;
 
@@ -62,7 +62,7 @@ pub(crate) fn polynomial(layer: &Layer, claim: &Claim, tasks: &[F128]) -> ([F128
             let (q, c) = ((8 * i + k) / (8 * PRODUCT_BYTES), (8 * i + k) % (8 * PRODUCT_BYTES));
             if c < PRODUCT_BITS {
                 per_pack[PRODUCT_BITS * q + c] = sum;
-                total[c] += packs[q] * sum;
+                total[c] += mul(packs[q], sum);
             }
         }
     }

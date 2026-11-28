@@ -8,7 +8,7 @@ use verifier::VerifierError;
 use verifier::keccak::{LANE_BITS, LOCAL_BITS, PRODUCT_BITS};
 
 use crate::batch_bench::{batch_transcript, open_commitment, output_claim};
-use crate::witness::{BLOCK, Shape, Witness, run_block};
+use crate::witness::{Inputs, Shape, Witness, run_block};
 
 const LABEL: &[u8] = b"keccak-gkr-test";
 
@@ -134,10 +134,7 @@ fn proof_verifies_against_the_commitment() {
 /// The witness of every block run, the padding ones included.
 fn dense(shape: Shape, inputs: &[[u64; STATE_LANES]]) -> Witness {
     let blocks = (0..shape.n_blocks())
-        .map(|g| {
-            let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-            run_block(shape.depth(), inputs, true).1
-        })
+        .map(|g| run_block(shape.depth(), Inputs::Rows(inputs), g, true))
         .collect();
     Witness {
         shape,

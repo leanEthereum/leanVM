@@ -20,11 +20,10 @@ use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low};
 use primitives::hash::positions::row_positions;
-use primitives::multilinear::{interp, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS, Run, embed_run, eq_table, xor};
+use crate::kernels::{PACKS, Run, embed_run, eq_table, mul, poly_eval, xor};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 
@@ -118,7 +117,7 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, powers: &[F128], tasks: &[F128]
             let mut block = [[Wide8::ZERO; 2]; 2 * MIXED];
             block_sums(layer.task(task), &words, &mut block);
             // The groups of a block alternate, the half being the first variable.
-            let high = half * tasks[task];
+            let high = mul(half, tasks[task]);
             for (h, weight) in [tasks[task] + high, high].into_iter().enumerate() {
                 for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
                     let [p0, p1] = block[MIXED * h + i];
@@ -142,7 +141,7 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, powers: &[F128], tasks: &[F128]
         *at_s = poly_eval(p, powers[1]);
     }
     for q in 0..GROUP {
-        sums[ternary(q)] = interp(at_s[q], at_s[GROUP + q], half);
+        sums[ternary(q)] = at_s[q] + mul(half, at_s[q] + at_s[GROUP + q]);
     }
     sums
 }
@@ -191,17 +190,17 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
         let mut v = [F128::ZERO; 3];
         for (b, &eq) in later.iter().enumerate() {
             for (d, v) in v.iter_mut().enumerate() {
-                *v += eq * sums[d + 3 * ternary(b)];
+                *v += mul(eq, sums[d + 3 * ternary(b)]);
             }
         }
         let [zero, one, infinity] = v;
         let c = sumcheck.round(ps, zero, Some(one), infinity, claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
-        let c2 = c * (c + F128::ONE);
+        let c2 = mul(c, c + F128::ONE);
         let len = sums.len() / 3;
         for k in 0..len {
             let v = &sums[3 * k..][..3];
-            sums[k] = v[0] + c * (v[0] + v[1]) + c2 * v[2];
+            sums[k] = v[0] + mul(c, v[0] + v[1]) + mul(c2, v[2]);
         }
         sums.truncate(len);
     }

@@ -9,11 +9,11 @@
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
 use primitives::field::{F128, powers};
-use primitives::multilinear::{fold, poly_eval};
+use primitives::multilinear::fold;
 use primitives::transcript::ProverState;
-use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS, along};
+use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS_LOG, eq_table};
+use crate::kernels::{PACKS_LOG, along, eq_table, mul, poly_eval};
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::skip::SKIP;
 use crate::table::{Summand, Tables};
@@ -143,7 +143,7 @@ impl Sumcheck {
         let (c0, c2) = (zero, infinity);
         let c1 = match one {
             Some(one) => zero + one + infinity,
-            None => (self.value + c0) * r.inv() + c2,
+            None => mul(self.value + c0, r.inv()) + c2,
         };
         let coeffs = [c0, c1, c2];
         ps.add_round_poly(&coeffs, true);

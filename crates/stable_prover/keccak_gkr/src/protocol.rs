@@ -6,9 +6,9 @@
 //!                 eq(point, (y, m)) * weights[j] * mu[i] * bit(y, j, i)
 //! ```
 
-use crate::kernels::eq_table;
+use crate::kernels::{along, eq_table, mul};
 use primitives::field::F128;
-use verifier::keccak::{BITS, EMBED_BITS, PACK, RMFE_EMBED, along, linear_transpose};
+use verifier::keccak::{BITS, EMBED_BITS, PACK, RMFE_EMBED, linear_transpose};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {
@@ -27,7 +27,9 @@ pub fn first_claim(instance: &[F128], segment: &[F128], r_lane: &[F128]) -> Clai
     Claim {
         mu: eq_table(&instance[..4]).try_into().expect("four low variables"),
         point: [&instance[4..], segment].concat(),
-        weights: (0..BITS).map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0)).collect(),
+        weights: (0..BITS)
+            .map(|j| mul(lanes[j / 64], F128::new(1 << (j % 64), 0)))
+            .collect(),
     }
 }
 
@@ -47,9 +49,9 @@ pub fn instance_weights(powers: &[F128]) -> [F128; PACK] {
 pub fn next_weights(local: &[F128], beta: F128) -> Vec<F128> {
     let eq = eq_table(local);
     let mut w = vec![F128::ZERO; BITS];
-    for (k, b) in [F128::ONE, beta, beta * beta].into_iter().enumerate() {
+    for (k, b) in [F128::ONE, beta, mul(beta, beta)].into_iter().enumerate() {
         for j in 0..BITS {
-            w[along(j, k)] += b * eq[j];
+            w[along(j, k)] += mul(b, eq[j]);
         }
     }
     linear_transpose(&w)

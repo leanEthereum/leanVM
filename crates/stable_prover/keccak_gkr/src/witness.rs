@@ -7,9 +7,9 @@
 use primitives::field::F64;
 use primitives::hash::positions::{iota_bit, linear};
 use primitives::hash::{ROUNDS, STATE_LANES};
-use verifier::keccak::{BITS, along};
+use verifier::keccak::BITS;
 
-use crate::kernels::xor;
+use crate::kernels::{along, xor};
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
@@ -117,13 +117,41 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
     }
 }
 
-/// Run one block of instances, padded with all-zero inputs. Returns its committed lanes, slot `s`
-/// at `s * BLOCK ..` and a word per instance, slot `s` being lane `s % 25` of the state after
-/// `depth * (s / 25)` rounds: every state a segment starts from, the output not being committed.
-/// With `keep`, it also returns its input state and the state each round applies `chi` to, all
-/// sliced, round after round; without, the run ends at the last committed state.
-pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool) -> (Vec<u64>, Vec<u64>) {
-    assert!(inputs.len() <= BLOCK);
+/// Where the blocks' inputs are read, lane `l` of instance `i`: the instances' lanes, or `count` instances of a
+/// committed block, lane `l` of instance `i` at `l * n + i`. Past the inputs, every instance is the all-zero input.
+#[derive(Clone, Copy)]
+pub(crate) enum Inputs<'a> {
+    Rows(&'a [[u64; STATE_LANES]]),
+    Committed { words: &'a [F64], n: usize, count: usize },
+}
+
+impl Inputs<'_> {
+    fn len(self) -> usize {
+        match self {
+            Self::Rows(rows) => rows.len(),
+            Self::Committed { count, .. } => count,
+        }
+    }
+
+    fn lane(self, i: usize, lane: usize) -> u64 {
+        match self {
+            Self::Rows(rows) => rows.get(i).map_or(0, |x| x[lane]),
+            Self::Committed { words, n, count } => {
+                if i < count {
+                    words[lane * n + i].0
+                } else {
+                    0
+                }
+            }
+        }
+    }
+}
+
+/// Run block `g` of `inputs`. Without `keep`, returns its committed lanes, slot `s` at `s * BLOCK ..` and a word per
+/// instance, slot `s` being lane `s % 25` of the state after `depth * (s / 25)` rounds: every state a segment starts
+/// from, the output not being committed. With `keep`, returns its input state and the state each round applies `chi`
+/// to, all sliced, round after round.
+pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> Vec<u64> {
     let (mut state, mut u) = (vec![0u64; BLOCK_LEN], vec![0u64; BLOCK_LEN]);
     let (state, u) = (
         state.as_chunks_mut::<BLOCK_WORDS>().0,
@@ -133,7 +161,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
     for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
             for (i, row) in rows.iter_mut().enumerate() {
-                *row = inputs.get(64 * w + i).map_or(0, |x| x[lane]);
+                *row = inputs.lane(BLOCK * g + 64 * w + i, lane);
             }
             transpose64(&mut rows);
             for z in 0..64 {
@@ -141,9 +169,11 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
             }
         }
     }
-    let mut lanes = vec![0u64; STATE_LANES * (ROUNDS / depth) * BLOCK];
-    let mut rounds = Vec::with_capacity(if keep { (ROUNDS + 1) * BLOCK_LEN } else { 0 });
-    let last = if keep { ROUNDS } else { ROUNDS - depth };
+    let (len, last) = match keep {
+        true => ((ROUNDS + 1) * BLOCK_LEN, ROUNDS),
+        false => (STATE_LANES * (ROUNDS / depth) * BLOCK, ROUNDS - depth),
+    };
+    let mut out = Vec::with_capacity(len);
     for round in 0..=last {
         if round > 0 {
             linear(state, u, xor);
@@ -164,22 +194,28 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
             }
         }
         if keep {
-            rounds.extend_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
-        }
-        if round.is_multiple_of(depth) && round < ROUNDS {
-            let m = round / depth;
+            out.extend_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
+        } else if round.is_multiple_of(depth) {
+            // The lanes of the state a segment starts from, slot after slot.
             for lane in 0..STATE_LANES {
                 for w in 0..BLOCK_WORDS {
                     for z in 0..64 {
                         rows[z] = state[64 * lane + z][w];
                     }
                     transpose64(&mut rows);
-                    lanes[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
+                    out.extend_from_slice(&rows);
                 }
             }
         }
     }
-    (lanes, rounds)
+    out
+}
+
+/// [`run_block`] of each block holding inputs, then of the padding block if any block follows them.
+fn run_blocks(shape: Shape, inputs: Inputs, keep: bool) -> Vec<Vec<u64>> {
+    let written = inputs.len().div_ceil(BLOCK);
+    let held = written + usize::from(written < shape.n_blocks());
+    parallel::map_collect(held, |g| run_block(shape.depth, inputs, g, keep))
 }
 
 /// Run every instance of `inputs`, padding the batch with all-zero inputs, and write the committed states into
@@ -195,14 +231,10 @@ pub fn commit_states(shape: Shape, inputs: &[[u64; STATE_LANES]], states: &mut [
         shape.slots() * n,
         "the committed states are the wrong size"
     );
-    let block_lanes = |inputs: &[[u64; STATE_LANES]]| run_block(shape.depth, inputs, false).0;
-    let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
-        block_lanes(&inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
-    });
-    let padding = (lanes.len() < shape.n_blocks()).then(|| block_lanes(&[]));
+    let lanes = run_blocks(shape, Inputs::Rows(inputs), false);
     parallel::chunks_mut(states, n, |slot, column| {
         for (g, out) in column.chunks_mut(BLOCK).enumerate() {
-            let lanes = lanes.get(g).or(padding.as_ref()).expect("a padding block");
+            let lanes = &lanes[g.min(lanes.len() - 1)];
             for (out, &word) in out.iter_mut().zip(&lanes[slot * BLOCK..][..BLOCK]) {
                 *out = F64(word);
             }
@@ -225,21 +257,16 @@ impl Witness {
     pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
         let n = shape.n();
         assert!(instances <= n && committed.len() >= STATE_LANES * n);
-        let written = instances.div_ceil(BLOCK);
-        let held = written + usize::from(written < shape.n_blocks());
-        let blocks = parallel::map_collect(held, |g| {
-            // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
-            // input reads the all-zero input the block pads with.
-            let inputs: Vec<[u64; STATE_LANES]> = if g < written {
-                (g * BLOCK..(g + 1) * BLOCK)
-                    .map(|i| std::array::from_fn(|lane| committed[lane * n + i].0))
-                    .collect()
-            } else {
-                Vec::new()
-            };
-            run_block(shape.depth, &inputs, true).1
-        });
-        Self { shape, blocks, written }
+        let inputs = Inputs::Committed {
+            words: committed,
+            n,
+            count: instances,
+        };
+        Self {
+            shape,
+            blocks: run_blocks(shape, inputs, true),
+            written: instances.div_ceil(BLOCK),
+        }
     }
 
     /// The blocks held: those written, then the padding block if any block follows them.

@@ -5,12 +5,11 @@
 //! ([`PackFold`]). The table holds a row of positions per group, block and segment, and each round folds it in
 //! half while summing the next round's values over the rows it writes ([`Summand::pair`]).
 
-use primitives::field::lanes::transpose_bytes;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::transcript::ProverState;
-use verifier::keccak::{BITS, PACK, along};
+use verifier::keccak::{BITS, PACK};
 
-use crate::kernels::{FieldMap, eq_table, field_map, map_sums};
+use crate::kernels::{FieldMap, along, eq_table, field_map, map_sums, mul, transpose_bytes};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 use crate::skip::SKIP;
@@ -40,7 +39,7 @@ impl<'a> Summand<'a> {
         let w = &claim.weights;
         Self {
             weights: w,
-            constant: (0..BITS).map(|j| kappa * (w[j] + w[along(j, 2)])).collect(),
+            constant: (0..BITS).map(|j| mul(kappa, w[j] + w[along(j, 2)])).collect(),
         }
     }
 
@@ -75,7 +74,7 @@ impl PackFold {
     fn new(mu: &[F128; PACK], challenges: &[F128]) -> Self {
         let eq = eq_table(challenges);
         Self(std::array::from_fn(|t| {
-            field_map(&std::array::from_fn(|c| eq[t / 2] * mu[8 * (t % 2) + c]))
+            field_map(&std::array::from_fn(|c| mul(eq[t / 2], mu[8 * (t % 2) + c])))
         }))
     }
 
