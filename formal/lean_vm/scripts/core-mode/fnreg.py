@@ -6,7 +6,8 @@ The shared checks and theorems read the registries only, so no shared file names
 function changes that function's own modules at most (`formal/notes/core-mode.md`).
 `FnCodes.lean` holds the codes (`encS`) of the names of every function of a source function with a ghost family's
 loops (`CoreMode.glCodesOk`, which the kernel checks), so that the route checks any other by its name's code
-(`CoreMode.glByCode`). It also checks each rule file's `OWN` (`own_files`): the hand files a change to that function alone may change.
+(`CoreMode.glByCode`). `Gen/Own/<f>.lean` holds a function's own generated data, from its rule file's `own_gen`. It also
+checks each rule file's `OWN` (`own_files`): the hand files a change to that function alone may change.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/fnreg.py [--check]"""
 import ast, os, re, sys, glob
@@ -188,6 +189,10 @@ def render():
         'def glCodes : List ℕ :=\n  [%s]\n\nend\n\npublic section\n\n'
         'theorem glCodes_ok : glCodesOk glCodes = true := by decide +kernel\n\nend\n\n'
         'end LeanVM.Guest.CoreMode.FnReg\n' % (', '.join('`%s`' % f for f in sorted(srcs)), ', '.join(map(str, codes))))
+    # each function's own generated data (`own_gen`)
+    for h in fnrules.hooks('own_gen'):
+        for f, (what, body) in h().items():
+            files[os.path.join(OUT, 'Own', f + '.lean')] = header('LeanVM.Guest.CoreMode.Gen.Own.«%s»' % f, what) + body
     return files
 
 
@@ -195,7 +200,8 @@ def main(argv):
     own_files()
     files = render()
     check = '--check' in argv
-    bad = genfiles.sync(files, [p for p in files if os.path.exists(p)], check)
+    bad = genfiles.sync(files, sorted(set(p for p in files if os.path.exists(p)) |
+                                      set(glob.glob(os.path.join(OUT, 'Own', '*.lean')))), check)
     genfiles.fail_if_stale(bad, check)
     print('fnreg: %d functions\' modules, %s' % (len(scan()), 'unchanged' if not bad else ('stale' if check else
                                                                                            'written')))
