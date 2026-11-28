@@ -299,15 +299,17 @@ fn dot(terms: &Lin, v: impl Fn(usize) -> F64x8) -> Acc8 {
 /// `Σ_b f(b)` over the vectors of eight rows `0..vectors`, reduced once per task.
 fn sum_vectors<const N: usize>(vectors: usize, f: impl Fn(usize, &mut [Acc8; N]) + Sync) -> [F128; N] {
     let chunk = crate::chunk(vectors);
-    parallel::map_reduce(
+    parallel::fold_reduce(
         vectors.div_ceil(chunk),
         || [F128::ZERO; N],
-        |task| {
+        |sums, task| {
             let mut acc = [Acc8::ZERO; N];
             for b in task * chunk..vectors.min((task + 1) * chunk) {
                 f(b, &mut acc);
             }
-            acc.map(Acc8::sum)
+            for (sum, acc) in sums.iter_mut().zip(&acc) {
+                *sum += acc.sum();
+            }
         },
         |a, b| std::array::from_fn(|k| a[k] + b[k]),
     )
@@ -336,8 +338,8 @@ fn add_state_message(lo: &[F128x8], hi: &[F128x8], eq: F128x8, ends: [bool; 2], 
     for (e, acc) in acc.iter_mut().enumerate() {
         let mut sum = Acc8::ZERO;
         if e == 2 || ends[e] {
-            for g in (1..lo.len()).step_by(2) {
-                sum += row(e, g).mul_unreduced(row(e, g + 1));
+            for g in 0..lo.len() / 2 {
+                sum += row(e, 2 * g + 1).mul_unreduced(row(e, 2 * g + 2));
             }
         }
         let linear = if e == 2 { F128x8::ZERO } else { row(e, 0) };

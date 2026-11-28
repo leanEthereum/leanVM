@@ -65,15 +65,15 @@ impl Block {
     }
 }
 
-/// A table coordinate's value on a row whose local columns are `row`.
-pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
+/// A table coordinate's value on a row whose columns, from column `base`, are `row`.
+pub(crate) fn coord_at(c: &Coord, row: &[F64], base: usize) -> F64 {
     // A public column would be read past the row.
     let (mut terms, mut constant) = (Vec::new(), F128::ZERO);
-    Formula::add(c, F128::ONE, row.len(), &mut terms, &mut constant);
+    Formula::add(c, F128::ONE, base + row.len(), &mut terms, &mut constant);
     let value = terms.into_iter().fold(constant, |acc, (term, w)| {
         acc + w.mul_base(match term {
-            Term::Col(i) => row[i],
-            Term::Prod(i, j) => row[i] * row[j],
+            Term::Col(i) => row[i - base],
+            Term::Prod(i, j) => row[i - base] * row[j - base],
             Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
         })
     });

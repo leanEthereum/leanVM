@@ -37,18 +37,6 @@ const _: () = {
     assert!(crate::keccak::SLOTS == QKECCAK_SLOTS && 1 << crate::keccak::SLOT_LOG == QKECCAK_SLOTS + QKECCAK_SPARE);
 };
 
-/// Offset a table's local flush coordinates to global column indices, in place.
-fn offset_coords(base: usize, coords: &mut [Coord]) {
-    for c in coords {
-        match c {
-            Coord::Col(i) | Coord::GCol(i, _) => *i += base,
-            Coord::Prod(i, j, _) => (*i, *j) = (*i + base, *j + base),
-            Coord::Sum(cs) => offset_coords(base, cs),
-            _ => {}
-        }
-    }
-}
-
 /// The public proof structure: everything the verifier reconstructs from the program and the announced sizes, with no
 /// witness values. The flush blocks reference columns by index ([`crate::leaf::Coord`]).
 pub struct Layout {
@@ -148,7 +136,7 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     let mut pull = vec![(0, 0), (1, 0), (0, log_bytecode)];
     let mut count = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
-        let mut fb = tables::FlushBuilder::new();
+        let mut fb = tables::FlushBuilder::new(0);
         table.flushes(&mut fb);
         push.extend(std::iter::repeat_n((2 + t, 0), fb.push.len()));
         pull.extend(std::iter::repeat_n((2 + t, 0), fb.pull.len()));
@@ -181,14 +169,15 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         boundary_blocks(true, log_bytecode, log_mem),
     );
 
-    // Per-table blocks: each table declares its flushes and read-count columns in
-    // local indices; offset them to the table's global columns.
+    // Per-table blocks: each table's flushes and read-count columns, at the table's global columns.
     let mut count_blocks: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().into_iter().enumerate() {
         let padding = table.padding();
-        let mut fb = FlushBuilder::new();
+        let mut fb = FlushBuilder::new(GLOBAL_COLUMN_BASES[t]);
         table.flushes(&mut fb);
-        let counts = table.count_columns().map(|c| vec![Coord::Col(c)]).collect();
+        let counts = (table.count_columns())
+            .map(|c| vec![Coord::Col(GLOBAL_COLUMN_BASES[t] + c)])
+            .collect();
         let (kappa, rows) = (taus[t], rows[t]);
         table_blocks(&mut push, t, kappa, rows, &padding, fb.push);
         table_blocks(&mut pull, t, kappa, rows, &padding, fb.pull);
@@ -238,12 +227,13 @@ fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block
     ]
 }
 
-/// Table `t`'s blocks of `flushes`, in its local columns, at the table's height, onto `out`.
+/// Table `t`'s blocks of `flushes`, at the table's height, onto `out`.
 #[inline(never)]
 fn table_blocks(out: &mut Vec<Block>, t: usize, kappa: usize, rows: usize, padding: &[F64], flushes: Vec<Vec<Coord>>) {
-    for mut coords in flushes {
-        let padding = coords.iter().map(|c| crate::leaf::coord_at(c, padding)).collect();
-        offset_coords(GLOBAL_COLUMN_BASES[t], &mut coords);
+    for coords in flushes {
+        let padding = (coords.iter())
+            .map(|c| crate::leaf::coord_at(c, padding, GLOBAL_COLUMN_BASES[t]))
+            .collect();
         out.push(Block {
             kappa,
             rows,

@@ -62,13 +62,16 @@ pub(crate) const OP_KECCAK: F64 = g_pow(verifier::layout::OP_KECCAK);
 pub(crate) struct FlushBuilder {
     pub(crate) push: Vec<Vec<Coord>>,
     pub(crate) pull: Vec<Vec<Coord>>,
+    /// The global index of the table's local column 0.
+    base: usize,
 }
 
 impl FlushBuilder {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(base: usize) -> Self {
         Self {
             push: Vec::new(),
             pull: Vec::new(),
+            base,
         }
     }
 
@@ -80,10 +83,10 @@ impl FlushBuilder {
     /// Declare `flushes`, in a table's local columns.
     fn declare(&mut self, flushes: &[Flush]) {
         for flush in flushes {
-            let push: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord()).collect();
+            let push: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord(self.base)).collect();
             let mut pull = push.clone();
             for &(at, c) in &flush.pull {
-                pull[at] = c.coord();
+                pull[at] = c.coord(self.base);
             }
             self.pair(push, pull);
         }
@@ -101,13 +104,14 @@ enum C {
 }
 
 impl C {
-    fn coord(self) -> Coord {
+    /// The coordinate, its columns offset by `base`.
+    fn coord(self, base: usize) -> Coord {
         match self {
             C::K(v) => Const(v),
-            C::Col(i) => Col(i),
-            C::G(i, k) => GCol(i, k),
-            C::P(i, j, k) => Prod(i, j, k),
-            C::S(cs) => Coord::Sum(cs.iter().map(|c| c.coord()).collect()),
+            C::Col(i) => Col(base + i),
+            C::G(i, k) => GCol(base + i, k),
+            C::P(i, j, k) => Prod(base + i, base + j, k),
+            C::S(cs) => Coord::Sum(cs.iter().map(|c| c.coord(base)).collect()),
         }
     }
 }
@@ -959,7 +963,7 @@ mod tests {
         let mut row = vec![F64::ZERO; arith::N];
         (row[arith::VA_LO], row[arith::VA_HI]) = (F64(x.c0), F64(x.c1));
         (row[arith::VB_LO], row[arith::VB_HI]) = (F64(y.c0), F64(y.c1));
-        let got = MUL_RESULT.map(|lane| crate::leaf::coord_at(&lane.coord(), &row).0);
+        let got = MUL_RESULT.map(|lane| crate::leaf::coord_at(&lane.coord(0), &row, 0).0);
         assert_eq!(F128::from_limbs(got), x * y);
     }
 
