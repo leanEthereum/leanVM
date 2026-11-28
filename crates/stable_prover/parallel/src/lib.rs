@@ -446,31 +446,22 @@ pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> V
     out
 }
 
-/// The largest block one task of a [`find_first`] tests in a row.
-const FIND_BLOCK: usize = 1 << 12;
-
-/// Blocks per worker in a [`find_first`] wave and a [`fold_reduce`]: more than one, so that faster cores take more.
+/// Blocks per worker in a [`fold_reduce`]: more than one, so that faster cores take more.
 const BLOCKS_PER_WORKER: usize = 4;
 
 /// The smallest `i` in `0..n_tasks` with `pred(i)`, or `None`.
 ///
-/// It searches in waves of `BLOCKS_PER_WORKER` blocks per worker, the blocks doubling from one index to `FIND_BLOCK`,
-/// so a search that ends early tests about as many indices as it needs. Each block writes its own first hit, so no two
-/// tasks share state, and the first block of the first wave with a hit holds the answer.
+/// The workers claim ranges in increasing order and test each in order, up to its first hit or the least hit found so
+/// far: every index below the answer is tested, and few past it.
 pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Option<usize> {
-    let (mut start, mut block) = (0, 1);
-    while start < n_tasks {
-        let end = n_tasks.min(start.saturating_add(BLOCKS_PER_WORKER * num_threads() * block));
-        let hits = map_collect((end - start).div_ceil(block), |b| {
-            let lo = start + b * block;
-            (lo..end.min(lo + block)).find(|&i| pred(i))
-        });
-        if let Some(hit) = hits.into_iter().flatten().next() {
-            return Some(hit);
+    let best = AtomicUsize::new(n_tasks);
+    for_each_chunk(n_tasks, |start, end| {
+        let below = |i: &usize| *i < best.load(Ordering::Relaxed);
+        if let Some(hit) = (start..end).take_while(below).find(|&i| pred(i)) {
+            best.fetch_min(hit, Ordering::Relaxed);
         }
-        (start, block) = (end, (2 * block).min(FIND_BLOCK));
-    }
-    None
+    });
+    Some(best.into_inner()).filter(|&i| i < n_tasks)
 }
 
 /// Parallel fold-then-reduce: `0..n_tasks` is cut into `BLOCKS_PER_WORKER` blocks per worker, each block folds its
