@@ -35,12 +35,11 @@ impl isa::Prover for StableProver {
     fn combine_rows(rows: &[u64], weights: &[E]) -> Vec<E> {
         let width = rows.len() / weights.len();
         let weights: Vec<F128> = weights.iter().copied().map(from_scalar).collect();
-        let rows: Vec<&[u64]> = rows.chunks(width).collect();
         let partial = parallel::fold_reduce(
-            rows.len(),
+            weights.len(),
             || vec![F128Unreduced::ZERO; width],
             |acc: &mut Vec<F128Unreduced>, r| {
-                for (acc, &word) in acc.iter_mut().zip(rows[r]) {
+                for (acc, &word) in acc.iter_mut().zip(&rows[r * width..][..width]) {
                     *acc ^= weights[r].mul_base_unreduced(F64(word));
                 }
             },
@@ -54,9 +53,9 @@ impl isa::Prover for StableProver {
 
     fn dot_rows(rows: &[u64], weights: &[E]) -> Vec<E> {
         let weights: Vec<F128> = weights.iter().copied().map(from_scalar).collect();
-        let rows: Vec<&[u64]> = rows.chunks(weights.len()).collect();
-        parallel::map_collect(rows.len(), |i| {
-            let dot = rows[i]
+        let width = weights.len();
+        parallel::map_collect(rows.len() / width, |i| {
+            let dot = rows[i * width..][..width]
                 .iter()
                 .zip(&weights)
                 .fold(F128Unreduced::ZERO, |sum, (&word, &weight)| {
