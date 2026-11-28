@@ -121,10 +121,10 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
 pub fn g_pow(e: u32) -> u64 {
     static TABLES: OnceLock<[Vec<K>; 2]> = OnceLock::new();
     let [low, high] = TABLES.get_or_init(|| {
-        let powers = |step: K| -> Vec<K> {
-            std::iter::successors(Some(K(1)), |&power| Some(power * step))
-                .take(1 << 16)
-                .collect()
+        let powers = |step: K| {
+            let mut table = vec![K(1); 1 << 16];
+            (1..1 << 16).for_each(|i| table[i] = table[i - 1] * step);
+            table
         };
         let low = powers(K(2));
         let high = powers(low[(1 << 16) - 1] * K(2));
