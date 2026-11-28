@@ -102,5 +102,5 @@ fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], o
 
 /// The unprojected `chi` of eight packs' embeddings: `ones * (a + c) + b * c`.
 fn chi(a: Run, b: Run, c: Run) -> Run {
-    xor(clmul8_low([ONES; 8], xor(a, c)), clmul8_low(b, c))
+    xor(clmul8_low(ONES, xor(a, c)), clmul8_low(b, c))
 }

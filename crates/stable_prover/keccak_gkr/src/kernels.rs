@@ -17,14 +17,14 @@ pub const PACKS_LOG: usize = 5;
 
 /// The embedding of a pack's sixteen bits (Annex C's `lem:rmfe`), as the lanes apply it.
 static EMBEDDING: Linear16 = Linear16::new(RMFE_EMBED);
-/// The embedding of all ones: its product with an embedding projects to what that embeds.
-pub const ONES: u64 = {
+/// The embedding of all ones, in every lane: its product with an embedding projects to what that embeds.
+pub const ONES: Run = {
     let (mut ones, mut i) = (0, 0);
     while i < RMFE_EMBED.len() {
         ones ^= RMFE_EMBED[i] as u64;
         i += 1;
     }
-    ones
+    [ones; 8]
 };
 
 pub fn xor(a: Run, b: Run) -> Run {
