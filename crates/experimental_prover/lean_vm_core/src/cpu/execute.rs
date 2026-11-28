@@ -296,9 +296,9 @@ impl<'a> Stream<'a> {
     }
 }
 
-/// The program, and its hints as per-pc tables. `program.hints` is keyed by pc, so probing it each
-/// step costs a hash of the counter for what is almost always a miss; the program has one
-/// bytecode slot per pc, so flatten the map into a dense table: 0 = no hints, otherwise the
+/// The program, and its hints as per-pc tables. `program.hints` is a sparse list by pc, so searching it each
+/// step costs a search for what is almost always a miss; the program has one
+/// bytecode slot per pc, so flatten the list into a dense table: 0 = no hints, otherwise the
 /// 1-based index into `lists`, whose entries pair a pc's hints with where their streams
 /// start in `streams`, and the stream a loop may pop there once per iteration
 /// ([`super::segments`]), or `NO_MARK`.
@@ -319,9 +319,9 @@ impl<'a> Plan<'a> {
         let mut at = vec![0u32; program.prog.len()];
         let mut lists = Vec::with_capacity(program.hints.len());
         let mut hints = 0;
-        for (&hpc, hs) in &program.hints {
+        for (hpc, hs) in &program.hints {
             lists.push((hs.as_slice(), hints, NO_MARK));
-            at[hpc as usize] = lists.len() as u32;
+            at[*hpc as usize] = lists.len() as u32;
             hints += hs.len();
         }
         // Each list is its own allocation, so the pool reads them: a task numbers the streams of a run of lists in

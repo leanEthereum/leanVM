@@ -576,8 +576,8 @@ pub fn execute(
     };
     // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
     let mut hints: Vec<&[RHint]> = vec![&[]; program.prog.len()];
-    for (&hpc, hs) in &program.hints {
-        hints[hpc as usize] = hs;
+    for (hpc, hs) in &program.hints {
+        hints[*hpc as usize] = hs;
     }
 
     let mut trace = Trace {

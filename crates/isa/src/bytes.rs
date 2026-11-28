@@ -6,7 +6,6 @@
 //! name its length, its items or bytes following the record.
 
 use crate::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, Program, RHint};
-use std::collections::BTreeMap;
 use verifier::{E, K, MAX_LOG_BYTECODE};
 
 /// An instruction's words: its tag, then at most a `KECCAK`'s eleven fields.
@@ -17,13 +16,13 @@ const HINT_WORDS: usize = 11;
 impl Program {
     /// The compiled program, which [`Self::from_bytes`] reads back.
     pub fn to_bytes(&self) -> Vec<u8> {
-        let n_hints = self.hints.values().map(Vec::len).sum();
+        let n_hints = self.hints.iter().map(|(_, hints)| hints.len()).sum();
         let mut w = Vec::new();
         u32s(&mut w, &[self.main_frame, len(self.prog.len()), len(n_hints)]);
         for op in &self.prog {
             record(&mut w, OP_WORDS, &op_words(op));
         }
-        for (&pc, hints) in &self.hints {
+        for &(pc, ref hints) in &self.hints {
             for hint in hints {
                 let (words, tail) = hint_words(hint);
                 record(&mut w, HINT_WORDS, &[&[pc][..], &words].concat());
@@ -42,7 +41,7 @@ impl Program {
         for _ in 0..n {
             prog.push(op(r.words()?)?);
         }
-        let mut hints: BTreeMap<u32, Vec<RHint>> = BTreeMap::new();
+        let mut hints: Vec<(u32, Vec<RHint>)> = Vec::new();
         let mut last = 0;
         for _ in 0..n_hints {
             let words: [u32; HINT_WORDS] = r.words()?;
@@ -51,7 +50,10 @@ impl Program {
             }
             last = words[0];
             let hint = r.hint(words)?;
-            hints.entry(last).or_default().push(hint);
+            match hints.last_mut() {
+                Some((pc, list)) if *pc == last => list.push(hint),
+                _ => hints.push((last, vec![hint])),
+            }
         }
         (r.0.is_empty() && n.is_power_of_two() && n <= 1 << MAX_LOG_BYTECODE).then(|| {
             Self::from(CompiledProgram {

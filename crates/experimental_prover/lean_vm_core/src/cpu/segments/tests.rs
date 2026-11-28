@@ -119,7 +119,7 @@ fn program(frame0: usize, iterations: &[Iteration], heap: bool, prefix: [Op; 2])
     }
     let program = Program::from(isa::CompiledProgram {
         prog: code,
-        hints,
+        hints: hints.into_iter().collect(),
         main_frame: main(frame0) as u32,
         fn_ranges: Vec::new(),
         src_lines: Vec::new(),

@@ -225,7 +225,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
     prog.resize(bytecode_size, Op::Set { o: 0, k: F128::ZERO });
     CompiledProgram {
         prog,
-        hints,
+        hints: hints.into_iter().collect(),
         main_frame: frame_size["main"],
         fn_ranges: lowered
             .iter()

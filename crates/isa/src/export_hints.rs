@@ -14,10 +14,8 @@ impl CompiledProgram {
             BitsDest::Heap(o) => format!("h {o}"),
         };
         let mut out = format!("leanvm-advice 1\nmain_frame {}\n", self.main_frame);
-        let mut pcs: Vec<_> = self.hints.iter().collect();
-        pcs.sort_by_key(|(pc, _)| **pc);
-        writeln!(out, "hints {}", pcs.len()).unwrap();
-        for (pc, hs) in pcs {
+        writeln!(out, "hints {}", self.hints.len()).unwrap();
+        for (pc, hs) in &self.hints {
             let hs: Vec<String> = hs
                 .iter()
                 .filter_map(|h| {

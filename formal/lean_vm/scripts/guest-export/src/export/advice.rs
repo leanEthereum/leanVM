@@ -34,7 +34,10 @@ def adviceText : String := \"{literal}\"
 end LeanVM.Guest.Data
 "
     );
-    File { path: "LeanVM/Guest/Data/Advice.lean".to_string(), text }
+    File {
+        path: "LeanVM/Guest/Data/Advice.lean".to_string(),
+        text,
+    }
 }
 
 /// A function's entries per definition.
@@ -58,7 +61,10 @@ fn hint_lean(h: &RHint) -> Option<String> {
             end,
             start_inverse,
             tail,
-        } => format!("(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}) {tail})", start_inverse.0),
+        } => format!(
+            "(.allocFrames {ptr} {size} {end} (LeanVM.Parameters.K.ofBits 0x{:x}) {tail})",
+            start_inverse.0
+        ),
         RHint::Alloc { ptr, size } => format!("(.alloc {ptr} {size})"),
         RHint::AllocDyn { ptr, size } => format!("(.allocDyn {ptr} {size})"),
         RHint::AllocArm { ptr, sel, sizes } => {
@@ -86,7 +92,10 @@ fn hint_lean(h: &RHint) -> Option<String> {
             start_cell,
         } => {
             let sc = start_cell.map_or("none".to_string(), |c| format!("(some {c})"));
-            format!("(.digitDecomposeExp {value} {} {nbits} {ndigits} {digit_bits} {start} {sc})", dest(dst))
+            format!(
+                "(.digitDecomposeExp {value} {} {nbits} {ndigits} {digit_bits} {start} {sc})",
+                dest(dst)
+            )
         }
         RHint::WindowsExp {
             value,
@@ -124,10 +133,8 @@ fn hints_header(module: &str, about: &str, imports: &str) -> String {
 pub fn data_files() -> Vec<File> {
     let g = guest();
     let main_frame = g.main_frame;
-    let mut pcs: Vec<(&u32, &Vec<RHint>)> = g.hints.iter().collect();
-    pcs.sort_by_key(|(pc, _)| **pc);
-    let entries: Vec<(u64, String)> = (pcs.into_iter())
-        .map(|(&pc, hs)| {
+    let entries: Vec<(u64, String)> = (g.hints.iter())
+        .map(|&(pc, ref hs)| {
             let hs: Vec<String> = hs.iter().filter_map(hint_lean).collect();
             (u64::from(pc), format!("({pc}, [{}])", hs.join(", ")))
         })
@@ -136,9 +143,16 @@ pub fn data_files() -> Vec<File> {
     let mut defs = String::new();
     let close = |files: &mut Vec<File>, defs: &mut String| {
         let module = format!("AdviceHints{:02}", files.len());
-        let text = hints_header(&module, "The compiler's hints by pc of the aggregation guest's functions.",
-            "public import Statement.Prover.Execute") + defs + "end\nend LeanVM.Guest.Data\n";
-        files.push(File { path: format!("{}/{module}.lean", super::bytecode::DATA), text });
+        let text = hints_header(
+            &module,
+            "The compiler's hints by pc of the aggregation guest's functions.",
+            "public import Statement.Prover.Execute",
+        ) + defs
+            + "end\nend LeanVM.Guest.Data\n";
+        files.push(File {
+            path: format!("{}/{module}.lean", super::bytecode::DATA),
+            text,
+        });
         defs.clear();
     };
     let mut names = Vec::new();
@@ -185,18 +199,24 @@ pub fn data_files() -> Vec<File> {
     if !defs.is_empty() {
         close(&mut files, &mut defs);
     }
-    let imports: Vec<String> = (0..files.len()).map(|i| format!("public import Statement.Data.AdviceHints{i:02}\nimport all Statement.Data.AdviceHints{i:02}")).collect();
+    let imports: Vec<String> = (0..files.len())
+        .map(|i| format!("public import Statement.Data.AdviceHints{i:02}\nimport all Statement.Data.AdviceHints{i:02}"))
+        .collect();
     let text = hints_header(
         "AdviceHints",
         "The guest's advice of `LeanVM/Guest/Data/Advice.lean` as data: `main`'s frame size and the\n  compiler's hints by pc, each function's with its entry and length, in layout order.",
         &imports.join("\n"),
-    ) + &split_records + &format!(
-        "/-- `main`'s frame size. -/\ndef adviceMainFrame : ℕ := {main_frame}\n\n\
+    ) + &split_records
+        + &format!(
+            "/-- `main`'s frame size. -/\ndef adviceMainFrame : ℕ := {main_frame}\n\n\
          /-- The functions' hints, in layout order. -/\ndef adviceFns : List (ℕ × ℕ × List (ℕ × List Hint)) := [{}]\n\n\
          /-- The hints by pc. -/\ndef adviceHints : List (ℕ × List Hint) := (adviceFns.map (·.2.2)).flatten\n\n\
          end\nend LeanVM.Guest.Data\n",
-        names.join(", ")
-    );
-    files.push(File { path: format!("{}/AdviceHints.lean", super::bytecode::DATA), text });
+            names.join(", ")
+        );
+    files.push(File {
+        path: format!("{}/AdviceHints.lean", super::bytecode::DATA),
+        text,
+    });
     files
 }

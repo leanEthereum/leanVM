@@ -61,7 +61,13 @@ fn heap_bufs_keep_their_order_before_the_callee_frame() {
         let program = compile(&parse(&format!("{head}{body}\n{main}")).unwrap());
         let &(_, entry, len) = program.fn_ranges.iter().find(|(name, ..)| name == "f").unwrap();
         let sizes: Vec<u32> = (entry..entry + len)
-            .flat_map(|pc| program.hints.get(&pc).into_iter().flatten())
+            .flat_map(|pc| {
+                program
+                    .hints
+                    .iter()
+                    .filter(move |(p, _)| *p == pc)
+                    .flat_map(|(_, hs)| hs)
+            })
             .filter_map(|h| match *h {
                 RHint::Alloc { size, .. } => Some(size),
                 _ => None,
