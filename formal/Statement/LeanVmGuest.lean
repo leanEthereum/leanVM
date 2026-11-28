@@ -201,18 +201,7 @@ def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBy
 
 /-! ## What the guest program proves
 
-`NodeRelation` first, then each of its conditions with what it reads. (A `mutual` block only so
-that the relation reads before its parts: nothing in it is recursive.) -/
-
-mutual
-
-/-- **What the witness `witness` establishes of the statement `statement`**, for the guest
-program's bytecode `bytecode` and under the seed `seed`: the witnesses cover the claims (the four
-conditions below). -/
-def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
-    (witness : NodeWitness) : Prop :=
-  SignatureClaimsHeld statement witness ∧ DaDigestHeld statement witness ∧
-    ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness
+Each of `NodeRelation`'s conditions, with what it reads, then the relation. -/
 
 /-- **Every signature claim is held**: every raw signature verifies its claim (at any leaf
 index), and the declared leanXMSS claims are a sub-multiset (`List.Subperm`) of the raw signatures'
@@ -227,18 +216,6 @@ def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Pr
     (witness.children.map (·.statement.claims.xmss)).flatten) ∧
   statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
     (witness.children.map (·.statement.claims.sphincs)).flatten)
-
-/-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
-opens; without such a matrix, zero or some child's DA digest (`da_pick`,
-`lean_ethereum.py`). -/
-def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
-  match witness.daMatrix with
-  | some (claim, matrix) =>
-    statement.claims.daDigest = daClaimDigest claim ∧
-      LeanVM.Da.MatrixWitness.Opens claim.daRoot claim.membershipChallenge matrix
-  | none =>
-    statement.claims.daDigest = zeroDigest ∨
-      ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py`):
 `1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the commitment to the matrix they
@@ -255,6 +232,18 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root : Digest) (z : E)
     (∀ row ∈ witness.rows, row.length = 2 ^ LeanDa.logM) ∧
     LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (LeanDa.dualCodewordAt z) (fun b ↦ row.getD b 0) = 0
+
+/-- **The DA digest is held**: it is the digest of the DA claim that the matrix checked here
+opens; without such a matrix, zero or some child's DA digest (`da_pick`,
+`lean_ethereum.py`). -/
+def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
+  match witness.daMatrix with
+  | some (claim, matrix) =>
+    statement.claims.daDigest = daClaimDigest claim ∧
+      LeanVM.Da.MatrixWitness.Opens claim.daRoot claim.membershipChallenge matrix
+  | none =>
+    statement.claims.daDigest = zeroDigest ∨
+      ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **Every child is proven**: the deferring verifier (`verifyDeferred`, the guest program's
 `verify_sub`) accepts its proof for its statement's digest under the same seed. It reads the
@@ -273,7 +262,13 @@ def DeferredClaimBatched (bytecode : List K) (seed : Digest) (statement : NodeSt
   else Guest.Batch.batch (Nat.log2 bytecode.length) (witness.childClaims seed)
     witness.batchingHints = some statement.deferredClaim
 
-end
+/-- **What the witness `witness` establishes of the statement `statement`**, for the guest
+program's bytecode `bytecode` and under the seed `seed`: the witnesses cover the claims (the four
+conditions above). -/
+def NodeRelation (bytecode : List K) (seed : Digest) (statement : NodeStatement)
+    (witness : NodeWitness) : Prop :=
+  SignatureClaimsHeld statement witness ∧ DaDigestHeld statement witness ∧
+    ChildrenProven bytecode seed witness ∧ DeferredClaimBatched bytecode seed statement witness
 
 /-! ## What a proof of the guest program establishes, its witness named -/
 
