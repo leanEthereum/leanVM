@@ -6,10 +6,10 @@ use super::hints::Hints;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
-use primitives::field::{F128, powers};
+use primitives::field::{F128, axpy, dot, powers};
 use verifier::layout::BUS_BITS;
 // `eq` tables on the calling thread: the batch runs under either prover, some of it in its pool's tasks.
-use primitives::multilinear::{eq_table_serial as eq_table, interp};
+use primitives::multilinear::{eq_table_serial as eq_table, fold};
 use std::ops::Range;
 
 pub(super) const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1";
@@ -112,11 +112,7 @@ pub(super) fn bytecode_sums<P: Prover>(point: &[F128]) -> Vec<F128> {
 
 /// The stacked bytecode at `point`, from its [`bytecode_sums`].
 pub(super) fn bytecode_value(sums: &[F128], point: &[F128]) -> F128 {
-    eq_table(&point[..BLOCK_VARS])
-        .iter()
-        .zip(sums)
-        .map(|(&eq, &sum)| eq * sum)
-        .sum()
+    dot(&eq_table(&point[..BLOCK_VARS]), sums)
 }
 
 /// Variables of a bytecode claim's point: the log row count plus the stacking
@@ -150,13 +146,8 @@ fn round(
     messages.extend_from_slice(&[g1, gi]);
     messages.extend(nonce.map(|nonce| F128::new(nonce, 0)));
     challenges.push(challenge);
-    for table in [u, m] {
-        let half = table.len() / 2;
-        for i in 0..half {
-            table[i] = interp(table[2 * i], table[2 * i + 1], challenge);
-        }
-        table.truncate(half);
-    }
+    *u = fold(u, 1, challenge);
+    *m = fold(m, 1, challenge);
 }
 
 /// The grind before the batching challenge, whose powers weigh at most `2 MAX_RECURSIONS` claims.
@@ -211,13 +202,10 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     // The low rounds run on the claims' sums end to end against their `eq` on the low rows, each scaled by its power:
     // a claim's run folds within itself, to its value and its weight.
     let mut sums = sums.concat();
-    let mut low_weights = Vec::with_capacity(sums.len());
-    for (c, power) in claims.iter().zip(powers(lam, claims.len())) {
-        low_weights.extend(
-            eq_table(&c.bytecode_point[..BLOCK_VARS])
-                .into_iter()
-                .map(|weight| weight * power),
-        );
+    let mut low_weights = vec![F128::ZERO; sums.len()];
+    for (i, (c, power)) in claims.iter().zip(powers(lam, claims.len())).enumerate() {
+        let eq = eq_table(&c.bytecode_point[..BLOCK_VARS]);
+        axpy(&mut low_weights[i * BLOCK..][..BLOCK], power, &eq);
     }
     for _ in 0..BLOCK_VARS {
         round(
@@ -239,9 +227,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     }
     let mut weights = vec![F128::ZERO; rows.len()];
     for (c, &low_weight) in claims.iter().zip(&low_weights) {
-        for (weight, eq) in weights.iter_mut().zip(eq_table(&c.bytecode_point[BLOCK_VARS..])) {
-            *weight += low_weight * eq;
-        }
+        axpy(&mut weights, low_weight, &eq_table(&c.bytecode_point[BLOCK_VARS..]));
     }
     for _ in BLOCK_VARS..kbcv {
         round(&mut transcript, &mut messages, &mut challenges, &mut rows, &mut weights);
