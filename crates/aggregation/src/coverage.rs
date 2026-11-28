@@ -47,7 +47,6 @@ fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
 }
 
 /// `claims[i]` for each `i` of `order`.
-#[inline(never)]
 fn pick(claims: &[Claim], order: &[usize]) -> Vec<Claim> {
     order.iter().map(|&i| claims[i]).collect()
 }
