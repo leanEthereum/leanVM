@@ -48,6 +48,12 @@ pub fn eq_table(r: &[F128]) -> Vec<F128> {
     primitives::multilinear::eq_table(r)
 }
 
+/// `primitives::field::dot` out of line: one copy for every caller.
+#[inline(never)]
+pub fn dot(a: &[F128], b: &[F128]) -> F128 {
+    primitives::field::dot(a, b)
+}
+
 /// A GF(2)-linear map from a byte to a field element, as one byte map per byte of the element.
 pub type FieldMap = [ByteMap; 16];
 

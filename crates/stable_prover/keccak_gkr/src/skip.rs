@@ -116,32 +116,36 @@ pub(crate) fn sums(
     for (j, &w) in claim.weights.iter().enumerate() {
         [words[0][j], words[1][j]] = at.poly(w).to_limbs();
     }
-    // Each task's weight, for each half: the groups of a block alternate, the half being the first variable.
     let half = claim.point[SKIP];
-    let groups = [F128::ONE + half, half].map(|h| tasks.iter().map(|&t| h * t).collect::<Vec<F128>>());
-    // Each worker's scratch rides beside its sums.
-    let scratch = || (vec![[[0; 8]; SLOTS]; 5], vec![[Wide8::ZERO; 2]; 2 * MIXED]);
-    let (_, mixed) = parallel::fold_reduce(
+    let mixed = parallel::fold_reduce(
         layer.n_tasks(),
-        || (scratch(), [F128Unreduced::ZERO; TERNARY]),
-        |((extended, block), sums), task| {
-            block_sums(layer.task(task), &words, extended, block);
-            for (half, groups) in groups.iter().enumerate() {
+        || [F128Unreduced::ZERO; TERNARY],
+        |sums, task| {
+            let mut block = [[Wide8::ZERO; 2]; 2 * MIXED];
+            block_sums(layer.task(task), &words, &mut block);
+            // The groups of a block alternate, the half being the first variable.
+            let high = half * tasks[task];
+            for (h, weight) in [tasks[task] + high, high].into_iter().enumerate() {
                 for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-                    let product = block[MIXED * half + i].map(Wide8::sum);
-                    sums[t] ^= at.eval(product).mul_unreduced(groups[task]);
+                    sums[t] ^= at.eval(block[MIXED * h + i].map(Wide8::sum)).mul_unreduced(weight);
                 }
             }
         },
-        |(kept, mut a), (_, b)| {
+        |mut a, b| {
             for (a, b) in a.iter_mut().zip(b) {
                 *a ^= b;
             }
-            (kept, a)
+            a
         },
     );
-    let mut sums: Vec<F128> = mixed.iter().map(|s| s.reduce()).collect();
-    let at_s: Vec<F128> = per_pack.iter().map(|p| poly_eval(p, powers[1])).collect();
+    let mut sums = vec![F128::ZERO; TERNARY];
+    for (sum, mixed) in sums.iter_mut().zip(mixed) {
+        *sum = mixed.reduce();
+    }
+    let mut at_s = [F128::ZERO; PACKS];
+    for (at_s, p) in at_s.iter_mut().zip(per_pack) {
+        *at_s = poly_eval(p, powers[1]);
+    }
     for q in 0..GROUP {
         sums[ternary(q)] = interp(at_s[q], at_s[GROUP + q], half);
     }
@@ -152,8 +156,8 @@ pub(crate) fn sums(
 /// weights[j] * S[j + 1] * S[j + 2]` at mixed point `i` of group `half`, as its two partial products with the words
 /// of the weights. Lane `i` of a slot holds the positions `z + i` of every run: a row of five runs, which `chi`
 /// mixes, has eight consecutive positions' weights per run.
-fn block_sums(block: &[u64], words: &[Vec<u64>; 2], extended: &mut [[Run; SLOTS]], out: &mut [[Wide8; 2]]) {
-    out.fill([Wide8::ZERO; 2]);
+fn block_sums(block: &[u64], words: &[Vec<u64>; 2], out: &mut [[Wide8; 2]; 2 * MIXED]) {
+    let mut extended = [[[0; 8]; SLOTS]; 5];
     for r in 0..5 {
         for z in (0..64).step_by(8) {
             let js = row_positions(r, z);
@@ -189,13 +193,13 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
     for i in 0..SKIP {
         // The round's values at `0`, `1` and infinity, summed over the later variables' binary points.
         let later = eq_table(&claim.point[i + 1..SKIP]);
-        let [zero, one, infinity]: [F128; 3] = std::array::from_fn(|d| {
-            later
-                .iter()
-                .enumerate()
-                .map(|(b, &eq)| eq * sums[d + 3 * ternary(b)])
-                .sum()
-        });
+        let mut v = [F128::ZERO; 3];
+        for (b, &eq) in later.iter().enumerate() {
+            for (d, v) in v.iter_mut().enumerate() {
+                *v += eq * sums[d + 3 * ternary(b)];
+            }
+        }
+        let [zero, one, infinity] = v;
         let c = sumcheck.round(ps, zero, Some(one), infinity, claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
         let c2 = c * (c + F128::ONE);

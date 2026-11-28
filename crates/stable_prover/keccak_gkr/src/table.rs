@@ -30,16 +30,16 @@ impl Tables {
 /// What the rounds over the half, block and segment sum over positions: `weights[j] * (kappa T[j] + (kappa +
 /// T[j + 1]) T[j + 2])`. Moving each `kappa T[j]` two columns along, the sum is that of `B[j] * T[j + 2]` with
 /// `B[j] = weights[j] T[j + 1] + constant[j]` and `constant[j] = kappa (weights[j] + weights[j + 2])`.
-pub(crate) struct Summand {
-    weights: Vec<F128>,
+pub(crate) struct Summand<'a> {
+    weights: &'a [F128],
     constant: Vec<F128>,
 }
 
-impl Summand {
-    pub fn new(claim: &Claim, kappa: F128) -> Self {
+impl<'a> Summand<'a> {
+    pub fn new(claim: &'a Claim, kappa: F128) -> Self {
         let w = &claim.weights;
         Self {
-            weights: w.clone(),
+            weights: w,
             constant: (0..BITS).map(|j| kappa * (w[j] + w[along(j, 2)])).collect(),
         }
     }
@@ -53,7 +53,7 @@ impl Summand {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             for z in (0..64).step_by(8) {
                 let at = |v: &[F128], j: usize| F128x8::load(&v[j + z..][..8]);
-                let (w, lb, lc) = (at(&self.weights, a), at(low, b), at(low, c));
+                let (w, lb, lc) = (at(self.weights, a), at(low, b), at(low, c));
                 let x = [lb, lb + at(high, b)];
                 let y = [lc, lc + at(high, c)];
                 let constant = [at(&self.constant, a), F128x8::splat(F128::ZERO)];

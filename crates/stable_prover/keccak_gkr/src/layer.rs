@@ -29,7 +29,7 @@ pub(crate) fn prove_layer(
     claim: &Claim,
     tables: &mut Tables,
 ) -> Claim {
-    let layer = Layer::new(witness, step);
+    let layer = Layer { witness, step };
     // The weights of a block's pairs of groups, by block then segment, and of the tasks: step 1 weighs a block by
     // them too, its packs' low variables being the skip's and the half.
     const { assert!(PACKS_LOG == SKIP + 1) };
@@ -78,19 +78,13 @@ pub(crate) fn prove_layer(
 /// written ones all standing for the padding block, which is walked once.
 pub(crate) struct Layer<'a> {
     witness: &'a Witness,
-    /// Per segment, the round whose `chi` its claim is on.
-    rounds: Vec<usize>,
+    /// Layers below the outputs.
+    step: usize,
 }
 
 impl<'a> Layer<'a> {
-    fn new(witness: &'a Witness, step: usize) -> Self {
-        let shape = witness.shape;
-        let rounds = (0..shape.segments()).map(|m| shape.round(m, step)).collect();
-        Self { witness, rounds }
-    }
-
     pub fn segments(&self) -> usize {
-        self.rounds.len()
+        self.witness.shape.segments()
     }
 
     pub fn n_blocks(&self) -> usize {
@@ -110,7 +104,7 @@ impl<'a> Layer<'a> {
     /// line: one copy for every pass.
     #[inline(never)]
     pub fn state(&self, segment: usize, g: usize) -> &'a [u64] {
-        self.witness.layer(self.rounds[segment], g)
+        self.witness.layer(self.witness.shape.round(segment, self.step), g)
     }
 
     /// Task `held * segment + g`'s block.
@@ -122,13 +116,12 @@ impl<'a> Layer<'a> {
     /// Each task's weight in `eq`, a table over the blocks then the segment: the padding block's is the sum over
     /// the blocks it stands for.
     pub fn task_weights(&self, eq: &[F128]) -> Vec<F128> {
-        let (n_blocks, written) = (self.n_blocks(), self.written());
-        let mut out = Vec::with_capacity(self.n_tasks());
-        for eq in eq.chunks_exact(n_blocks).take(self.segments()) {
-            out.extend_from_slice(&eq[..written]);
-            if written < n_blocks {
-                out.push(eq[written..].iter().sum());
-            }
+        let (n_blocks, written, held) = (self.n_blocks(), self.written(), self.witness.held());
+        let mut out = vec![F128::ZERO; self.n_tasks()];
+        for (task, out) in out.iter_mut().enumerate() {
+            let (segment, g) = (task / held, task % held);
+            let end = if g < written { g + 1 } else { n_blocks };
+            *out = eq[segment * n_blocks..][g..end].iter().sum();
         }
         out
     }
@@ -144,7 +137,8 @@ impl Sumcheck {
     /// Send the next round, whose polynomial without the `eq` factor on its variable has the values `zero`,
     /// `one` and `infinity` at `0`, `1` and infinity, and bind its variable, the claim's coordinate on which is `r`.
     /// Returns the challenge. Without `one`, `value = (1 + r) h(0) + r h(1) = c0 + r (c1 + c2)` gives the coefficient
-    /// the other values do not, which needs `r` nonzero.
+    /// the other values do not, which needs `r` nonzero. Out of line: one copy for both sumchecks.
+    #[inline(never)]
     pub fn round(&mut self, ps: &mut ProverState, zero: F128, one: Option<F128>, infinity: F128, r: F128) -> F128 {
         let (c0, c2) = (zero, infinity);
         let c1 = match one {

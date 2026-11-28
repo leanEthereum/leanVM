@@ -117,9 +117,6 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
     }
 }
 
-/// One position of a block.
-type Word = [u64; BLOCK_WORDS];
-
 /// Run one block of instances, padded with all-zero inputs. Returns its committed lanes, slot `s`
 /// at `s * BLOCK ..` and a word per instance, slot `s` being lane `s % 25` of the state after
 /// `depth * (s / 25)` rounds: every state a segment starts from, the output not being committed.
@@ -142,43 +139,39 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
         }
     }
     let mut lanes = vec![0u64; STATE_LANES * (ROUNDS / depth) * BLOCK];
-    let mut commit = |m: usize, state: &[Word]| {
-        for lane in 0..STATE_LANES {
-            for w in 0..BLOCK_WORDS {
-                for z in 0..64 {
-                    rows[z] = state[64 * lane + z][w];
-                }
-                transpose64(&mut rows);
-                lanes[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
-            }
-        }
-    };
     let mut rounds = Vec::with_capacity(if keep { (ROUNDS + 1) * BLOCK_LEN } else { 0 });
     let last = if keep { ROUNDS } else { ROUNDS - depth };
-    if keep {
-        rounds.extend_from_slice(state.as_flattened());
-    }
-    commit(0, &state);
-    for round in 1..=last {
-        linear(&state, &mut u, xor);
-        if keep {
-            rounds.extend_from_slice(u.as_flattened());
-        }
-        for lane in 0..STATE_LANES {
-            let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
-            // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
-            // over them, which vectorizes with plain loads (by position, it took gathers).
-            let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
-            let (ua, ub, uc) = (flat(a), flat(b), flat(c));
-            for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
-                *s = ua[k] ^ (!ub[k] & uc[k]);
+    for round in 0..=last {
+        if round > 0 {
+            linear(&state, &mut u, xor);
+            for lane in 0..STATE_LANES {
+                let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
+                // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
+                // over them, which vectorizes with plain loads (by position, it took gathers).
+                let flat = |at: usize| -> &[u64] { u[at..at + 64].as_flattened() };
+                let (ua, ub, uc) = (flat(a), flat(b), flat(c));
+                for (k, s) in state[a..a + 64].as_flattened_mut().iter_mut().enumerate() {
+                    *s = ua[k] ^ (!ub[k] & uc[k]);
+                }
+            }
+            for z in (0..64).filter(|&z| iota_bit(round, z)) {
+                state[z] = state[z].map(|w| !w);
             }
         }
-        for z in (0..64).filter(|&z| iota_bit(round, z)) {
-            state[z] = state[z].map(|w| !w);
+        if keep {
+            rounds.extend_from_slice(if round == 0 { &state } else { &u }.as_flattened());
         }
         if round.is_multiple_of(depth) && round < ROUNDS {
-            commit(round / depth, &state);
+            let m = round / depth;
+            for lane in 0..STATE_LANES {
+                for w in 0..BLOCK_WORDS {
+                    for z in 0..64 {
+                        rows[z] = state[64 * lane + z][w];
+                    }
+                    transpose64(&mut rows);
+                    lanes[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
+                }
+            }
         }
     }
     (lanes, rounds)
