@@ -81,13 +81,41 @@ fn all_py_programs() {
     }
 }
 
-/// Both import spellings are tolerated (and skipped).
+/// Both documented import spellings are tolerated (and skipped).
 #[test]
 fn snark_lib_import_forms() {
-    for import in ["import snark_lib", "from snark_lib import *"] {
+    for import in [
+        "import snark_lib",
+        "from snark_lib import *",
+        "from  snark_lib  import  *  # tooling",
+    ] {
         let src = format!("{import}\ndef main():\n    return\n");
         parse(&src).expect("snark_lib import is skipped");
     }
+}
+
+/// The import line is skipped whole, so any other spelling of it is an error:
+/// `from snark_lib import GEN; assert x == 0` dropped the assert.
+#[test]
+fn snark_lib_import_holds_nothing_else() {
+    let main = "def main():\n    p = GEN ** 0\n    x = p[1]\n";
+    let accepted: Vec<String> = [
+        format!("{main}    from snark_lib import GEN; assert x == 0\n    return\n"),
+        format!("{main}    from snark_lib import *\n    return\n"),
+        "from snark_lib import *; assert 1 == 0\ndef main():\n    return\n".to_string(),
+        "from snark_lib import GEN\ndef main():\n    return\n".to_string(),
+        "import snark_lib as s\ndef main():\n    return\n".to_string(),
+    ]
+    .into_iter()
+    .filter(|src| match parse(src) {
+        Ok(_) => true,
+        Err(err) => {
+            assert!(err.contains("the `snark_lib` import must be"), "{err}");
+            false
+        }
+    })
+    .collect();
+    assert!(accepted.is_empty(), "accepted:\n{}", accepted.join("\n---\n"));
 }
 
 /// Importing anything else is a parse error: no multi-file programs (yet).
