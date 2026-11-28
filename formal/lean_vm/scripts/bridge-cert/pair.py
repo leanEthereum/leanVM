@@ -125,9 +125,8 @@ def gen():
             if j not in fss:
                 body.append(f'kernel_rfl fsEq{j} : B2C.fsN {j} = Fn.«{k}».fs\n')
                 fe = f'fsEq{j}'
-            body.append(f'''kernel_rfl adv{j} : Data.adviceFns[{j}]? = some Data.adviceFn{j}
-kernel_rfl len{j} : Data.adviceFn{j}.2.1 = Fn.«{k}».code.instructionCount
-theorem pok{j} : Bridge.PairJ {j} := Bridge.pairJ_of Checked.code{j} Checked.core{j} Checked.cert{j} Bridge.ProgAl.tab{j} {fe} Fn.«{k}».pairOk adv{j} len{j}
+            body.append(f'''kernel_rfl len{j} : Data.adviceFn{j}.2.1 = Fn.«{k}».code.instructionCount
+theorem pok{j} : Bridge.PairJ {j} := Bridge.pairJ_of Checked.code{j} Checked.core{j} Checked.cert{j} Bridge.ProgAl.tab{j} {fe} Fn.«{k}».pairOk (by decide) len{j}
 ''')
         files[os.path.join(OUT, f'{lmod}.lean')] = (
             HEAD(mod=f'LeanVM.Guest.Bridge.PairChk.{lmod}',
