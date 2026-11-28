@@ -6,7 +6,6 @@ public import NativeRustcArm.KeccakF.Spec
 public import NativeRustcArm.Hasher.Update
 public import NativeRustcArm.Hasher.Finalize
 public import NativeRustcArm.Sphincs
-public import NativeRustcArm.Xmss
 public import NativeRustcArm.Rodata
 
 /-!
@@ -45,21 +44,9 @@ contracts. The build fails if an axiom footprint grows beyond Lean's three stand
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcArm.SphincsVerifier.verify_correct
 
-/-- info: 'NativeRustcArm.XmssVerifier.verify_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms NativeRustcArm.XmssVerifier.verify_correct
-
 /-- info: 'NativeRustcArm.SphincsVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcArm.SphincsVerifier.verify_confined
-
-/-- info: 'NativeRustcArm.XmssVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms NativeRustcArm.XmssVerifier.verify_confined
-
-/-- info: 'NativeRustcArm.Xmss.rc_data' depends on axioms: [propext] -/
-#guard_msgs (whitespace := lax) in
-#print axioms NativeRustcArm.Xmss.rc_data
 
 /-- info: 'NativeRustcArm.Sphincs.rc_data' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in

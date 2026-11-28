@@ -79,7 +79,7 @@ esac
 runner=()
 [[ $(uname -m) == "$machine" ]] || runner=("$qemu")
 
-read -r -a schemes <<<"${CHECK_SCHEMES:-xmss sphincs vm}"
+read -r -a schemes <<<"${CHECK_SCHEMES:-sphincs}"
 declare -A defaults=([xmss]="$rustc_xmss" [sphincs]="$rustc_sphincs" [vm]="$rustc_vm")
 declare -A given=([xmss]="" [sphincs]="" [vm]="")
 if [[ ${#paths[@]} -gt 0 ]]; then

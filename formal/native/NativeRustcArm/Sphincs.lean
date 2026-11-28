@@ -18,7 +18,7 @@ public import NativeRustcArm.Mem.Memset
 public import NativeRustcArm.KeccakF.Spec
 public import NativeRustcArm.Hasher.Update
 public import NativeRustcArm.Hasher.Finalize
-public import NativeRustcArm.Xmss
+public import NativeRustcArm.Restrict
 
 /-!
 # The rustc-compiled leanSPHINCS verifier on AArch64 is correct

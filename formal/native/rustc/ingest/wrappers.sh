@@ -20,7 +20,7 @@ trap 'rm -rf "$generated"' EXIT
 )
 
 status=0
-for ns in NativeRustcArm NativeRustcX64 NativeRustcVmArm NativeRustcVmX64; do
+for ns in NativeRustcArm NativeRustcX64; do
   if [ "${1:-}" = --check ]; then
     diff -r -x Infix.lean "$generated/$ns/Code" "$native/$ns/Code" || status=1
     diff "$generated/$ns/Code.lean" "$native/$ns/Code.lean" || status=1

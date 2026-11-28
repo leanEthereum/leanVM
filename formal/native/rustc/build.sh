@@ -34,40 +34,26 @@ export RUSTUP_TOOLCHAIN
 unset RUSTC_BOOTSTRAP RUSTC_WRAPPER RUSTFLAGS
 
 # Sources relative to the repository, copied into both reproducibility check trees.
-sources=(crates/keccak256/src crates/lean_xmss/src crates/lean_sphincs/src formal/native/rustc/xmss.rs formal/native/rustc/sphincs.rs formal/native/rustc/mem.rs formal/native/rustc/runtime.rs formal/native/rustc/signatures.rs formal/native/rustc/vm/src)
+sources=(crates/keccak256/src crates/lean_xmss/src crates/lean_sphincs/src formal/native/rustc/xmss.rs formal/native/rustc/sphincs.rs formal/native/rustc/mem.rs formal/native/rustc/runtime.rs formal/native/rustc/signatures.rs)
 
-# build SRC OUT: writes both programs' complete assembly and their shared hashes.
+# build SRC OUT: writes the signatures assembly and its shared hashes.
 build() {
   local src=$1 out=$2 deps sysroot program asm target arch cpu crate entry
   local targets flags arch_flags
   deps=$(mktemp -d)
   sysroot=$(rustc --print sysroot)
-  for program in signatures vm; do
-    case $program in
-      signatures)
-        asm=$out/asm crate=signatures entry=formal/native/rustc/signatures.rs
-        targets=(x86_64-unknown-linux-musl aarch64-unknown-linux-musl)
-        ;;
-      vm)
-        asm=$out/vm/asm crate=native_vm entry=formal/native/rustc/vm/src/lib.rs
-        targets=(x86_64-unknown-none aarch64-unknown-none-softfloat)
-        ;;
-    esac
+  for program in signatures; do
+    asm=$out/asm crate=signatures entry=formal/native/rustc/signatures.rs
+    targets=(x86_64-unknown-linux-musl aarch64-unknown-linux-musl)
     mkdir -p "$asm"
     for target in "${targets[@]}"; do
       arch=${target%%-*}
       arch_flags=()
       case $arch in
         # LLVM 23's `.prefalign` is unsupported by the harness's assembler.
-        x86_64) cpu=x86-64 arch_flags=(-C llvm-args=-align-all-functions=4) ;;
-        aarch64) cpu=generic ;;
+        x86_64) cpu=x86-64 arch_flags=(-C llvm-args=-align-all-functions=4 -C target-feature=-sse,-sse2) ;;
+        aarch64) cpu=generic arch_flags=(-C target-feature=-neon) ;;
       esac
-      if [[ $program == signatures ]]; then
-        case $arch in
-          x86_64) arch_flags+=(-C target-feature=-sse,-sse2) ;;
-          aarch64) arch_flags+=(-C target-feature=-neon) ;;
-        esac
-      fi
       flags=(
         --edition 2024 --target "$target" -C target-cpu="$cpu"
         -C opt-level=3 -C codegen-units=1 -C panic=abort -C debuginfo=0 -C debug-assertions=no -C overflow-checks=no
@@ -76,32 +62,24 @@ build() {
       )
       (
         cd "$src"
-        case $program in
-          signatures)
-            mkdir -p "$deps/$target"
-            flags+=(-L dependency="$deps/$target" --out-dir "$deps/$target")
-            rustc "${flags[@]}" --crate-type rlib --crate-name keccak256 -C metadata=keccak256 crates/keccak256/src/lib.rs
-            for dependency in lean_xmss lean_sphincs; do
-              rustc "${flags[@]}" --crate-type rlib --crate-name "$dependency" -C metadata="$dependency" \
-                --extern keccak256="$deps/$target/libkeccak256.rlib" "crates/$dependency/src/lib.rs"
-            done
-            rustc "${flags[@]}" --crate-type staticlib --crate-name "$crate" -C metadata="$crate" -C lto=fat \
-              --extern "lean_xmss=$deps/$target/liblean_xmss.rlib" \
-              --extern "lean_sphincs=$deps/$target/liblean_sphincs.rlib" \
-              --emit "link=$deps/$target/libsignatures.a,asm=$asm/signatures-$arch.s" "$entry"
-            ;;
-          vm)
-            rustc "${flags[@]}" --crate-type staticlib --crate-name "$crate" -C metadata="$crate" -C lto=fat \
-              --emit "link=$deps/libnative_vm-$arch.a,asm=$asm/vm-$arch.s" "$entry"
-            ;;
-        esac
+        mkdir -p "$deps/$target"
+        flags+=(-L dependency="$deps/$target" --out-dir "$deps/$target")
+        rustc "${flags[@]}" --crate-type rlib --crate-name keccak256 -C metadata=keccak256 crates/keccak256/src/lib.rs
+        for dependency in lean_xmss lean_sphincs; do
+          rustc "${flags[@]}" --crate-type rlib --crate-name "$dependency" -C metadata="$dependency" \
+            --extern keccak256="$deps/$target/libkeccak256.rlib" "crates/$dependency/src/lib.rs"
+        done
+        rustc "${flags[@]}" --crate-type staticlib --crate-name "$crate" -C metadata="$crate" -C lto=fat \
+          --extern "lean_xmss=$deps/$target/liblean_xmss.rlib" \
+          --extern "lean_sphincs=$deps/$target/liblean_sphincs.rlib" \
+          --emit "link=$deps/$target/libsignatures.a,asm=$asm/signatures-$arch.s" "$entry"
       )
     done
   done
   rm -rf "$deps"
   (
     cd "$out"
-    sha256sum asm/signatures-{aarch64,x86_64}.s vm/asm/vm-{aarch64,x86_64}.s
+    sha256sum asm/signatures-{aarch64,x86_64}.s
   ) >"$out/SHA256SUMS"
 }
 
@@ -127,7 +105,7 @@ case ${1:-} in
         echo "$tree: DIFFERS from SHA256SUMS" >&2
         status=1
       fi
-      for asm in asm vm/asm; do
+      for asm in asm; do
         if ! diff -r "$here/$asm" "$tree.artifacts/$asm"; then
           echo "$tree/$asm: DIFFERS from committed assembly" >&2
           status=1

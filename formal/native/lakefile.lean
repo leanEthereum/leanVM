@@ -37,12 +37,6 @@ target rustcArmInputs pkg : Unit :=
 target rustcX64Inputs pkg : Unit :=
   rustcAssemblyInputs pkg #["rustc/asm/signatures-x86_64.s"]
 
-target rustcVmArmInputs pkg : Unit :=
-  rustcAssemblyInputs pkg #["rustc/vm/asm/vm-aarch64.s", "rustc/ingest/vm-names.txt"]
-
-target rustcVmX64Inputs pkg : Unit :=
-  rustcAssemblyInputs pkg #["rustc/vm/asm/vm-x86_64.s", "rustc/ingest/vm-names.txt"]
-
 
 lean_lib RustcIngest where
   globs := #[.submodules `RustcIngest]
@@ -51,10 +45,6 @@ lean_lib RustcIngest where
 @[default_target]
 lean_lib Native where
   globs := #[.submodules `Native]
-
-@[default_target]
-lean_lib NativeVm where
-  globs := #[.submodules `NativeVm]
 
 @[default_target]
 lean_lib NativeRustc where
@@ -66,59 +56,21 @@ lean_lib NativeRustc where
 lean_lib NativeRustcArm where
   globs := #[
     .one `NativeRustcArm, .one `NativeRustcArm.Basic, .one `NativeRustcArm.Data, .one `NativeRustcArm.Host,
+    .one `NativeRustcArm.Restrict,
     .submodules `NativeRustcArm.Hasher, .submodules `NativeRustcArm.KeccakF,
-    .submodules `NativeRustcArm.LayerRead, .one `NativeRustcArm.LayerRead, .submodules `NativeRustcArm.Mem,
+    .one `NativeRustcArm.LayerRead.Glue, .submodules `NativeRustcArm.Mem,
     .one `NativeRustcArm.Rodata, .submodules `NativeRustcArm.Spec, .one `NativeRustcArm.Sphincs,
-    .submodules `NativeRustcArm.SphincsVerify, .submodules `NativeRustcArm.Sym, .one `NativeRustcArm.Sym,
-    .submodules `NativeRustcArm.WotsLeaf, .one `NativeRustcArm.WotsLeaf, .one `NativeRustcArm.Xmss,
-    .submodules `NativeRustcArm.XmssVerify, .one `NativeRustcArm.XmssVerify]
+    .submodules `NativeRustcArm.SphincsVerify, .submodules `NativeRustcArm.Sym, .one `NativeRustcArm.Sym]
 
 @[default_target]
 lean_lib NativeRustcX64 where
   globs := #[
     .one `NativeRustcX64, .one `NativeRustcX64.Basic, .one `NativeRustcX64.Data,
-    .one `NativeRustcX64.Got, .submodules `NativeRustcX64.Hasher,
-    .submodules `NativeRustcX64.KeccakF, .submodules `NativeRustcX64.LayerRead, .one `NativeRustcX64.LayerRead,
+    .one `NativeRustcX64.Got, .one `NativeRustcX64.Restrict, .submodules `NativeRustcX64.Hasher,
+    .submodules `NativeRustcX64.KeccakF, .one `NativeRustcX64.LayerRead.Glue,
     .submodules `NativeRustcX64.Mem, .one `NativeRustcX64.Mem, .one `NativeRustcX64.Rodata,
     .submodules `NativeRustcX64.Spec, .one `NativeRustcX64.Sphincs, .submodules `NativeRustcX64.SphincsVerify,
-    .submodules `NativeRustcX64.Sym, .one `NativeRustcX64.Sym, .submodules `NativeRustcX64.WotsLeaf,
-    .one `NativeRustcX64.WotsLeaf, .one `NativeRustcX64.Xmss, .submodules `NativeRustcX64.XmssVerify,
-    .one `NativeRustcX64.XmssVerify]
-
-@[default_target]
-lean_lib NativeRustcVm where
-  globs := #[.submodules `NativeRustcVm]
-
-@[default_target]
-lean_lib NativeRustcVmArm where
-  globs := #[
-    .one `NativeRustcVmArm, .submodules `NativeRustcVmArm.Arrays, .one `NativeRustcVmArm.Arrays,
-    .one `NativeRustcVmArm.Basic, .submodules `NativeRustcVmArm.Bus, .one `NativeRustcVmArm.Bus,
-    .submodules `NativeRustcVmArm.Field, .one `NativeRustcVmArm.Field, .submodules `NativeRustcVmArm.Keccak,
-    .one `NativeRustcVmArm.Keccak, .submodules `NativeRustcVmArm.KeccakGkr, .one `NativeRustcVmArm.KeccakGkr,
-    .submodules `NativeRustcVmArm.Layout, .one `NativeRustcVmArm.Layout, .one `NativeRustcVmArm.Mem,
-    .submodules `NativeRustcVmArm.Placed, .one `NativeRustcVmArm.Placed, .submodules `NativeRustcVmArm.Ring,
-    .one `NativeRustcVmArm.Ring, .submodules `NativeRustcVmArm.Rodata, .one `NativeRustcVmArm.Rodata,
-    .submodules `NativeRustcVmArm.Spec, .submodules `NativeRustcVmArm.Sumcheck, .one `NativeRustcVmArm.Sumcheck,
-    .submodules `NativeRustcVmArm.Tables, .one `NativeRustcVmArm.Tables, .submodules `NativeRustcVmArm.Top,
-    .submodules `NativeRustcVmArm.Transcript, .one `NativeRustcVmArm.Transcript, .submodules `NativeRustcVmArm.Whir,
-    .one `NativeRustcVmArm.Whir, .submodules `NativeRustcVmArm.Wire, .one `NativeRustcVmArm.Wire]
-
-@[default_target]
-lean_lib NativeRustcVmX64 where
-  globs := #[
-    .one `NativeRustcVmX64, .submodules `NativeRustcVmX64.Arrays, .one `NativeRustcVmX64.Arrays,
-    .one `NativeRustcVmX64.Basic, .submodules `NativeRustcVmX64.Bus, .one `NativeRustcVmX64.Bus,
-    .submodules `NativeRustcVmX64.Field, .one `NativeRustcVmX64.Field, .one `NativeRustcVmX64.Got,
-    .submodules `NativeRustcVmX64.Keccak, .one `NativeRustcVmX64.Keccak, .submodules `NativeRustcVmX64.KeccakGkr,
-    .one `NativeRustcVmX64.KeccakGkr, .submodules `NativeRustcVmX64.Layout, .one `NativeRustcVmX64.Layout,
-    .one `NativeRustcVmX64.Mem, .submodules `NativeRustcVmX64.Placed, .one `NativeRustcVmX64.Placed,
-    .submodules `NativeRustcVmX64.Ring, .one `NativeRustcVmX64.Ring, .submodules `NativeRustcVmX64.Rodata,
-    .one `NativeRustcVmX64.Rodata, .submodules `NativeRustcVmX64.Spec, .submodules `NativeRustcVmX64.Sumcheck,
-    .one `NativeRustcVmX64.Sumcheck, .submodules `NativeRustcVmX64.Tables, .one `NativeRustcVmX64.Tables,
-    .submodules `NativeRustcVmX64.Top, .one `NativeRustcVmX64.Top, .submodules `NativeRustcVmX64.Transcript,
-    .one `NativeRustcVmX64.Transcript, .submodules `NativeRustcVmX64.Whir, .one `NativeRustcVmX64.Whir,
-    .submodules `NativeRustcVmX64.Wire, .one `NativeRustcVmX64.Wire]
+    .submodules `NativeRustcX64.Sym, .one `NativeRustcX64.Sym]
 
 @[default_target]
 lean_lib NativeRustcArmCode where
@@ -131,18 +83,6 @@ lean_lib NativeRustcX64Code where
   roots := #[`NativeRustcX64.Code]
   globs := #[.andSubmodules `NativeRustcX64.Code]
   needs := #[`@/rustcX64Inputs]
-
-@[default_target]
-lean_lib NativeRustcVmArmCode where
-  roots := #[`NativeRustcVmArm.Code]
-  globs := #[.andSubmodules `NativeRustcVmArm.Code]
-  needs := #[`@/rustcVmArmInputs]
-
-@[default_target]
-lean_lib NativeRustcVmX64Code where
-  roots := #[`NativeRustcVmX64.Code]
-  globs := #[.andSubmodules `NativeRustcVmX64.Code]
-  needs := #[`@/rustcVmX64Inputs]
 
 
 lean_exe «print-rustc-code-arm» where

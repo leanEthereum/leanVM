@@ -17,8 +17,7 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 native=$(cd "$here/../.." && pwd)
 out=$native/rustc/asm
 
-vmout=$native/rustc/vm/asm
-for asm in "$out"/signatures-{aarch64,x86_64}.s "$vmout"/vm-{aarch64,x86_64}.s; do
+for asm in "$out"/signatures-{aarch64,x86_64}.s; do
   [ -f "$asm" ] || { "$native/rustc/build.sh" >&2; break; }
 done
 
@@ -26,18 +25,16 @@ done
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 status=0
-for scheme in xmss sphincs vm; do
+for scheme in sphincs; do
   for arch in arm x64; do
-    case $scheme-$arch in
-      vm-arm) target=aarch64-unknown-linux-musl rustc=$vmout/vm-aarch64.s ;;
-      vm-x64) target=x86_64-unknown-linux-musl rustc=$vmout/vm-x86_64.s ;;
-      *-arm) target=aarch64-unknown-linux-musl rustc=$out/signatures-aarch64.s ;;
-      *-x64) target=x86_64-unknown-linux-musl rustc=$out/signatures-x86_64.s ;;
+    case $arch in
+      arm) target=aarch64-unknown-linux-musl rustc=$out/signatures-aarch64.s ;;
+      x64) target=x86_64-unknown-linux-musl rustc=$out/signatures-x86_64.s ;;
     esac
     "$native/.lake/build/bin/print-rustc-code-$arch" "$scheme" "$tmp/$scheme-$arch-ingested.s"
     clang --target=$target -c "$tmp/$scheme-$arch-ingested.s" -o "$tmp/$scheme-$arch-ingested.o"
     clang --target=$target -c "$rustc" -o "$tmp/$scheme-$arch-rustc.o"
-    entry=${scheme/#vm/leanvm}_verify
+    entry=${scheme}_verify
     python3 "$here/compare.py" --entry "$entry" "$tmp/$scheme-$arch-rustc.o" "$tmp/$scheme-$arch-ingested.o" || status=1
   done
 done

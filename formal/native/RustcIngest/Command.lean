@@ -54,19 +54,13 @@ def filesForModule {I C : Type} [ToExpr I] [ToExpr C] [BEq I] [BEq C]
   let schemes ← inputs.mapM fun (scheme, text) => ingestScheme arch env names scheme text
   emit arch env schemes
 
-/-- The assembly and naming table are Lake-tracked inputs of every reader module. -/
+/-- The assembly is a Lake-tracked input of every reader module. -/
 def elaborateModule {I C : Type} [ToExpr I] [ToExpr C] [BEq I] [BEq C]
     (base : Arch I C) (target ns path : String) : CommandElabM Unit := do
-  let vm := ns == "NativeRustcVmArm" || ns == "NativeRustcVmX64"
-  let arch := { base with ns, labels := !vm }
-  let names ← if vm then readNames "rustc/ingest/vm-names.txt" else pure {}
-  let mut inputs := #[]
-  for scheme in (if vm then #["vm"] else #["xmss", "sphincs"]) do
-    let dir := if vm then "rustc/vm/asm" else "rustc/asm"
-    let file := if vm then "vm" else "signatures"
-    let assembly ← IO.FS.readFile s!"{dir}/{file}-{target}.s"
-    inputs := inputs.push (scheme, assembly)
-  let files ← filesForModule arch (← getEnv) names inputs path
+  let arch := { base with ns, labels := true }
+  let assembly ← IO.FS.readFile s!"rustc/asm/signatures-{target}.s"
+  let inputs := #[("sphincs", assembly)]
+  let files ← filesForModule arch (← getEnv) {} inputs path
   let some (_, source) := files.find? (fun file => file.1 == path)
     | throwError "assembly no longer produces module {path}; run rustc/ingest/wrappers.sh"
   elaborateSource path source

@@ -1,17 +1,13 @@
 module
 
 import Kraken.AArch64.Print
-import NativeRustcArm.Code.Xmss
 import NativeRustcArm.Code.Sphincs
-import NativeRustcArm.Code.XmssAlign
 import NativeRustcArm.Code.SphincsAlign
-import NativeRustcVmArm.Code.Vm
-import NativeRustcVmArm.Code.VmAlign
 
 /-!
 # `print-rustc-code-arm`
 
-`lake exe print-rustc-code-arm xmss|sphincs|vm FILE.s` writes an ingested rustc program
+`lake exe print-rustc-code-arm sphincs FILE.s` writes an ingested rustc program
 as an assembly file, each directive printed by Kraken's printer
 (`Kraken.AArch64.Print.directive`). Sections and alignment are added: each function (a label
 not starting with `.L`) opens a section `.text.<name>`, as rustc's do, and each data label of `rodata`
@@ -46,9 +42,7 @@ def asmFile (code rodata : Program) (dataAlign : String → Nat) : Except String
 
 public def main (args : List String) : IO UInt32 := do
   let prog? : Option (Program × Program × (String → Nat)) := match args with
-    | ["xmss", _] => some (NativeRustcArm.Xmss.code, NativeRustcArm.Xmss.rodata, NativeRustcArm.Xmss.dataAlign)
     | ["sphincs", _] => some (NativeRustcArm.Sphincs.code, NativeRustcArm.Sphincs.rodata, NativeRustcArm.Sphincs.dataAlign)
-    | ["vm", _] => some (NativeRustcVmArm.Vm.code, NativeRustcVmArm.Vm.rodata, NativeRustcVmArm.Vm.dataAlign)
     | _ => none
   match prog?, args with
   | some (code, rodata, dataAlign), [_, path] =>
@@ -56,5 +50,5 @@ public def main (args : List String) : IO UInt32 := do
     | .ok s => IO.FS.writeFile path s; return 0
     | .error e => IO.eprintln e; return 1
   | _, _ =>
-    IO.eprintln "usage: print-rustc-code-arm xmss|sphincs|vm FILE.s"
+    IO.eprintln "usage: print-rustc-code-arm sphincs FILE.s"
     return 2

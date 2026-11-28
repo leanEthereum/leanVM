@@ -699,7 +699,7 @@ def emit (arch : Arch I C) (env : Environment) (schemes : Array (Scheme I C)) : 
   let mut common : Std.HashMap String (Fn I C) := {}
   for s in schemes do
     for f in s.fns do
-      if count.getD f.sym 0 > 1 then
+      if count.getD f.sym 0 > 1 || f.sym != entryOf s.name then
         match common[f.sym]? with
         | some g =>
           unless g.lines == f.lines && g.prog == f.prog do
