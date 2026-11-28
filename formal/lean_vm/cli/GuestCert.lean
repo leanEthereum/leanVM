@@ -1858,7 +1858,8 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
   -- the table jumps' arms; many (a chain's arms each end in a table jump into the next `match`'s
   -- arms): each list of arms defined once, the jumps' in a trie by offset (`Exec.Facts.armsT`)
   let armsL := F.arms.toList.mergeSort (·.1 ≤ ·.1)
-  let manyArms := armsL.foldl (· + ·.2.length) 0 > 8192
+  -- a `Bool`: a `Prop` would be decided again at each use, once an arm in `armsRef`
+  let manyArms : Bool := armsL.foldl (· + ·.2.length) 0 > 8192
   let (tabIdx, tabs) := armsL.foldl (fun ((m : Std.HashMap String ℕ), (ts : Array (List ℕ))) (_, a) =>
     let k := toString a
     if m.contains k then (m, ts) else (m.insert k ts.size, ts.push a)) ({}, #[])
