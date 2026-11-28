@@ -2,6 +2,7 @@
 # Its own workspace, excluded from the root one: the root workspace's `cargo testall`, `clippyall`,
 # `docall` and `fmt --all` never build the bindings.
 members = [
+    "proved_sphincs",
     "python",
     "native",
     "node",
@@ -21,6 +22,7 @@ lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
 lean_vrf = { path = "../crates/lean_vrf" }
 lean-pq = { path = "rust" }
+proved-sphincs = { path = "proved_sphincs" }
 
 [profile.release]
 lto = "thin"

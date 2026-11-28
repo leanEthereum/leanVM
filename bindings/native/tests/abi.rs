@@ -353,3 +353,140 @@ fn native_abi_reveals_and_verifies_vrf_proofs() {
         );
     }
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn lpq_sphincs_verify_respects_guard_pages_on_all_three_inputs() {
+    use std::ffi::c_void;
+
+    const PROT_NONE: i32 = 0;
+    const PROT_READ: i32 = 1;
+    const PROT_WRITE: i32 = 2;
+    const MAP_PRIVATE: i32 = 0x02;
+    const MAP_ANONYMOUS: i32 = 0x20;
+    const SC_PAGESIZE: i32 = 30;
+
+    extern "C" {
+        fn mmap(
+            addr: *mut c_void,
+            length: usize,
+            prot: i32,
+            flags: i32,
+            fd: i32,
+            offset: isize,
+        ) -> *mut c_void;
+        fn mprotect(addr: *mut c_void, len: usize, prot: i32) -> i32;
+        fn munmap(addr: *mut c_void, length: usize) -> i32;
+        fn sysconf(name: i32) -> isize;
+    }
+
+    struct GuardedBuf {
+        base: *mut u8,
+        total: usize,
+        ptr: *const u8,
+    }
+
+    impl GuardedBuf {
+        unsafe fn new(data: &[u8], flush_right: bool) -> Self {
+            let page = usize::try_from(sysconf(SC_PAGESIZE)).expect("positive page size");
+            let data_pages = data.len().div_ceil(page).max(1);
+            let total = (data_pages + 2) * page;
+            let raw = mmap(
+                ptr::null_mut(),
+                total,
+                PROT_NONE,
+                MAP_PRIVATE | MAP_ANONYMOUS,
+                -1,
+                0,
+            );
+            assert_ne!(raw, usize::MAX as *mut c_void, "mmap failed");
+            let base = raw.cast::<u8>();
+            let usable = base.add(page);
+            let usable_len = data_pages * page;
+            assert_eq!(
+                mprotect(usable.cast(), usable_len, PROT_READ | PROT_WRITE),
+                0,
+                "mprotect RW failed"
+            );
+            let offset = if flush_right {
+                usable_len - data.len()
+            } else {
+                0
+            };
+            let dst = usable.add(offset);
+            ptr::copy_nonoverlapping(data.as_ptr(), dst, data.len());
+            assert_eq!(
+                mprotect(usable.cast(), usable_len, PROT_READ),
+                0,
+                "mprotect RO failed"
+            );
+            Self {
+                base,
+                total,
+                ptr: dst,
+            }
+        }
+    }
+
+    impl Drop for GuardedBuf {
+        fn drop(&mut self) {
+            unsafe {
+                let _ = munmap(self.base.cast(), self.total);
+            }
+        }
+    }
+
+    unsafe {
+        let message = [0x42u8; 32];
+        let mut bad_message = message;
+        bad_message[31] ^= 1;
+
+        let mut key = ptr::null_mut();
+        assert_eq!(
+            lpq_sphincs_secret_key_from_seed([0x19; 32].as_ptr(), 32, &mut key),
+            OK
+        );
+        let mut buf = LpqBuffer::default();
+        assert_eq!(lpq_sphincs_secret_key_public_key(key, &mut buf), OK);
+        let pk = take(buf);
+        let mut buf = LpqBuffer::default();
+        assert_eq!(
+            lpq_sphincs_secret_key_sign(key, message.as_ptr(), message.len(), &mut buf),
+            OK
+        );
+        let sig = take(buf);
+        lpq_sphincs_secret_key_destroy(key);
+
+        // Test both flush-left (immediately after a PROT_NONE page) and flush-right
+        // (ending immediately before a PROT_NONE page; also unaligned for 7740-byte sig).
+        for flush_right in [false, true] {
+            let g_pk = GuardedBuf::new(&pk, flush_right);
+            let g_msg = GuardedBuf::new(&message, flush_right);
+            let g_bad = GuardedBuf::new(&bad_message, flush_right);
+            let g_sig = GuardedBuf::new(&sig, flush_right);
+
+            assert_eq!(
+                lpq_sphincs_verify(
+                    g_pk.ptr,
+                    pk.len(),
+                    g_msg.ptr,
+                    message.len(),
+                    g_sig.ptr,
+                    sig.len()
+                ),
+                OK
+            );
+            assert_eq!(
+                lpq_sphincs_verify(
+                    g_pk.ptr,
+                    pk.len(),
+                    g_bad.ptr,
+                    bad_message.len(),
+                    g_sig.ptr,
+                    sig.len()
+                ),
+                ERROR
+            );
+        }
+    }
+}

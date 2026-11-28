@@ -149,6 +149,12 @@ cd bindings/go && go test ./...
 
 Other platforms stage `aarch64-unknown-linux-gnu` into `linux_arm64`, `universal2-apple-darwin` into `darwin_universal` (on macOS, with both Apple Rust targets), and `x86_64-pc-windows-gnu` into `windows_amd64`.
 
+On Linux `amd64` and `arm64`, preserving the exact proved `leanSPHINCS` machine instructions without linker relaxation (GNU `ld.bfd` `R_X86_64_GOTPCREL` relaxation on `amd64` or `lld` `adrp + add` relaxation on `arm64`) requires disabling linker relaxation at link time:
+
+```sh
+go build -ldflags='-linkmode=external -extldflags=-Wl,--no-relax' ./...
+```
+
 ## License
 
 MIT or Apache-2.0, at your option.

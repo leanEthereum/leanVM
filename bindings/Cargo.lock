@@ -734,6 +734,7 @@ dependencies = [
  "lean_vrf",
  "lean_xmss",
  "proptest",
+ "proved-sphincs",
  "thiserror",
 ]
 
@@ -743,6 +744,7 @@ version = "0.19.1"
 dependencies = [
  "allocator",
  "lean-pq",
+ "proved-sphincs",
 ]
 
 [[package]]
@@ -940,6 +942,13 @@ dependencies = [
  "rand_xorshift",
  "regex-syntax",
  "unarray",
+]
+
+[[package]]
+name = "proved-sphincs"
+version = "0.18.0"
+dependencies = [
+ "lean_sphincs",
 ]
 
 [[package]]
