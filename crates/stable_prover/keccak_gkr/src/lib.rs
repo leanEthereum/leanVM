@@ -62,7 +62,9 @@ impl Witness {
     /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to openings of the
     /// commitment, as `crates/verifier`'s `verify_keccak` reads it. `committed` is the whole committed block, its
     /// state slots the ones this witness was built from or wrote: the openings are claims on all of it, so they fold
-    /// whatever rides the spare slots (`lean_vm_core::cpu::keccak_value`).
+    /// whatever rides the spare slots (`lean_vm_core::cpu::keccak_value`). Inline: at its one call in the VM the
+    /// shape's depth is a constant.
+    #[inline]
     pub fn prove(&self, ps: &mut ProverState, committed: &[F64], output: &OutputClaim) -> Openings {
         let shape = self.shape;
         assert_eq!(output.instance.len(), shape.n_log);
