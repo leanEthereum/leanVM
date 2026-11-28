@@ -356,19 +356,20 @@ impl Mem {
         &mut self.pages[c >> PAGE_LOG][c & ((1 << PAGE_LOG) - 1)]
     }
 
-    /// Cell `c`, if its page exists.
-    fn cell(&self, c: u32) -> Option<&Cell> {
+    /// Cell `c`, unwritten if its page does not exist.
+    #[inline(never)]
+    fn cell(&self, c: u32) -> Cell {
         let c = c as usize;
-        (self.pages.get(c >> PAGE_LOG)).map(|page| &page[c & ((1 << PAGE_LOG) - 1)])
+        (self.pages.get(c >> PAGE_LOG)).map_or(Cell::UNWRITTEN, |page| page[c & ((1 << PAGE_LOG) - 1)])
     }
 
     fn written(&self, cell: u32) -> bool {
-        self.cell(cell).is_some_and(|c| c.state == State::Written)
+        self.cell(cell).state == State::Written
     }
 
     /// A hint's read, which writes nothing: what a hint computes is advice the instructions go on to check.
     fn get(&self, cell: u32) -> F128 {
-        self.cell(cell).map_or(F128::ZERO, |c| c.word)
+        self.cell(cell).word
     }
 
     /// An instruction's read. An unwritten cell reads as zero, which is then written there: the row is filled from
@@ -579,9 +580,16 @@ pub fn execute(
         hints[hpc as usize] = hs;
     }
 
-    let mut bytecode_count: Vec<u32> = vec![0; program.prog.len()];
-    let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
-        (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let mut trace = Trace {
+        xor: Vec::new(),
+        mul: Vec::new(),
+        set: Vec::new(),
+        deref: Vec::new(),
+        jump: Vec::new(),
+        keccak: Vec::new(),
+        bytecode_count: vec![0; program.prog.len()],
+        counts: 0,
+    };
     let (mut pc, mut fp) = (0u32, 0u32);
     let mut steps = 0usize;
     loop {
@@ -596,191 +604,16 @@ pub fn execute(
         if steps >= MAX_STEPS {
             return Err(fail(pc, Fault::StepLimit));
         }
-        let fail = move |fault| fail(pc, fault);
-        let at = move |base, offset| cell_at(base, offset).map_err(fail);
-        for h in hints[pc as usize] {
-            apply_hint(h, fp, &mut m, &mut g, &mut advice).map_err(|fault| match fault {
-                Fault::Conflict { cell, had, new, .. } => fail(Fault::Conflict {
-                    cell,
-                    had,
-                    new,
-                    hint: Some(hint_name(h)),
-                }),
-                fault => fail(fault),
-            })?;
-        }
-        // Cover the g-powers this step may index (g²·pc return target, g^fp).
-        g.grow_to((pc as usize + 2).max(fp as usize));
-        let bytecode_read = bytecode_count[pc as usize];
-        bytecode_count[pc as usize] += 1;
-
-        // Loaded once: the shared Xor/Mul arm needs the discriminant again, and `Op` is wide enough that
-        // re-reading it costs a second load.
-        let op = program.prog[pc as usize];
-        match op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
-                let is_xor = matches!(op, Op::Xor { .. });
-                let (aa, ab, ac) = (at(fp, a)?, at(fp, b)?, at(fp, c)?);
-                // The row is `m[c] = m[a] op m[b]` over write-once memory. A `MUL` whose result is written and
-                // exactly one of whose operands is not back-solves that operand: the range check's complement
-                // `y = g^{k-1}·x^{-1}` and the quotient `a / b`, with no hint. An `XOR` does not, as one into a
-                // written cell is how `assert a == b` is spelled.
-                if !is_xor && m.written(ac) {
-                    let (ha, hb) = (m.written(aa), m.written(ab));
-                    if ha ^ hb {
-                        let known = m.get(if ha { aa } else { ab });
-                        if known.is_zero() {
-                            return Err(fail(Fault::BackSolveThroughZero));
-                        }
-                        m.put(if ha { ab } else { aa }, m.get(ac) * inverse(known))
-                            .map_err(fail)?;
-                    }
-                }
-                let (va, vb) = (m.read(aa), m.read(ab));
-                m.put(ac, if is_xor { va + vb } else { va * vb }).map_err(fail)?;
-                let row = Xrow {
-                    pc,
-                    fp,
-                    ra: m.bump_access_count(aa),
-                    rb: m.bump_access_count(ab),
-                    rc: m.bump_access_count(ac),
-                    bytecode_read,
-                };
-                if is_xor {
-                    xor.push(row)
-                } else {
-                    mul.push(row)
-                }
-                pc += 1;
-            }
-            Op::Set { o, k } => {
-                let a = at(fp, o)?;
-                m.put(a, super::from_scalar(k)).map_err(fail)?;
-                let r = m.bump_access_count(a);
-                set.push(Srow {
-                    pc,
-                    fp,
-                    r,
-                    bytecode_read,
-                });
-                pc += 1;
-            }
-            Op::Deref { o1, o2, o3, mode } => {
-                let a1 = at(fp, o1)?;
-                let p = m.read(a1);
-                let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address: the pointer's log when it
-                // has one in range (an allocation notes it), else the product's.
-                let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
-                    Some(c) if c < u64::from(MAX_CELLS) => c as u32,
-                    _ => (g.log(p_addr * F64::G.pow(u128::from(o2))))
-                        .ok_or_else(|| fail(Fault::WildPointer { value: p }))?,
-                };
-                let a3 = at(fp, o3)?;
-                match mode {
-                    // `m[a2] = m[a3]`: carry a written side to the other (`put` checks it when both are), or
-                    // link two unwritten sides until either is written. A range-check touch may leave both
-                    // unwritten for good: only the validity of `a2` matters there.
-                    DerefMode::Cell => {
-                        if m.written(a2) {
-                            m.put(a3, m.get(a2)).map_err(fail)?;
-                        } else if m.written(a3) {
-                            m.put(a2, m.get(a3)).map_err(fail)?;
-                        } else {
-                            m.link(a2, a3);
-                        }
-                    }
-                    // The return target and the frame base are stored as addresses, which JUMP reads back.
-                    DerefMode::Pc => {
-                        g.note(pc as usize + 2);
-                        m.put(a2, F128::from(g.pow(pc as usize + 2))).map_err(fail)?;
-                    }
-                    DerefMode::Fp => {
-                        g.note(fp as usize);
-                        m.put(a2, F128::from(g.pow(fp as usize))).map_err(fail)?;
-                    }
-                }
-                deref.push(Drow {
-                    pc,
-                    fp,
-                    r1: m.bump_access_count(a1),
-                    r2: m.bump_access_count(a2),
-                    r3: m.bump_access_count(a3),
-                    bytecode_read,
-                });
-                pc += 1;
-            }
-            Op::Jump { oc, od, of } => {
-                let (ac, ad, af) = (at(fp, oc)?, at(fp, od)?, at(fp, of)?);
-                // The three cells are `K`-valued on every row, taken or not: the table commits one lane each
-                // and their memory flushes carry zeros above it (§sec:tab-jump). A guest branches on g-powers,
-                // and `assert a != b` takes an inverse hint instead (§sec:prog-div-ne).
-                let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
-                let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
-                let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
-                jump.push(Jrow {
-                    pc,
-                    fp,
-                    rc: m.bump_access_count(ac),
-                    rd: m.bump_access_count(ad),
-                    rf: m.bump_access_count(af),
-                    bytecode_read,
-                });
-                if c.is_zero() {
-                    pc += 1;
-                } else {
-                    let not_a_g_power = |what, value| fail(Fault::NotAGPower { what, value });
-                    pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
-                    fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
-                }
-            }
-            Op::Keccak { .. } => {
-                use crate::keccak::{ROW_CELLS, STATE_CELLS};
-                let k = crate::tables::KeccakOp::of(&op);
-                // Only the cells accessed need an address: the input and those `out` holds.
-                let written = STATE_CELLS + k.out_cells.cells();
-                let mut cells = [0; ROW_CELLS];
-                for (c, cell) in cells[..written].iter_mut().enumerate() {
-                    let (offset, step) = k.cell_parts(c);
-                    *cell = at(at(fp, offset)?, step)?;
-                }
-                // The Keccak reduction proves the output; the run computes it for the later reads.
-                let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
-                let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
-                primitives::hash::keccak_f(&mut lanes);
-                let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
-                for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
-                    m.put(cell, v).map_err(fail)?;
-                }
-                // In flush order, so a cell two operands alias pairs each read with its own count. A cell not
-                // written keeps count 0.
-                let mut r = [0; ROW_CELLS];
-                for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
-                    *count = m.bump_access_count(cell);
-                }
-                keccak.push(Krow {
-                    pc,
-                    fp,
-                    r,
-                    bytecode_read,
-                });
-                pc += 1;
-            }
-        }
+        let next = apply_hints(hints[pc as usize], fp, &mut m, &mut g, &mut advice).and_then(|()| {
+            // Cover the g-powers this step may index (g²·pc return target, g^fp).
+            g.grow_to((pc as usize + 2).max(fp as usize));
+            step(program, pc, fp, &mut m, &mut g, &mut trace)
+        });
+        (pc, fp) = next.map_err(|fault| fail(pc, fault))?;
         steps += 1;
     }
 
-    let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
-    let trace = Trace {
-        xor,
-        mul,
-        set,
-        deref,
-        jump,
-        keccak,
-        bytecode_count,
-        counts,
-    };
+    trace.counts = trace.bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
     // The memory announced: the least power of two covering every cell the run touched.
     Ok(Execution {
         mem: Memory {
@@ -792,6 +625,155 @@ pub fn execute(
         unconstrained_reads: m.unwritten_reads,
         trace,
     })
+}
+
+/// Execute the instruction at `pc` in frame `fp`, recording its row: the next `(pc, fp)`.
+fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut Trace) -> Result<(u32, u32), Fault> {
+    let bytecode_read = tr.bytecode_count[pc as usize];
+    tr.bytecode_count[pc as usize] += 1;
+    // Loaded once: the shared Xor/Mul arm needs the discriminant again, and `Op` is wide enough that re-reading it
+    // costs a second load.
+    let op = program.prog[pc as usize];
+    match op {
+        Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
+            let is_xor = matches!(op, Op::Xor { .. });
+            let (aa, ab, ac) = (cell_at(fp, a)?, cell_at(fp, b)?, cell_at(fp, c)?);
+            // The row is `m[c] = m[a] op m[b]` over write-once memory. A `MUL` whose result is written and exactly one
+            // of whose operands is not back-solves that operand: the range check's complement `y = g^{k-1}·x^{-1}`
+            // and the quotient `a / b`, with no hint. An `XOR` does not, as one into a written cell is how
+            // `assert a == b` is spelled.
+            if !is_xor && m.written(ac) {
+                let (ha, hb) = (m.written(aa), m.written(ab));
+                if ha ^ hb {
+                    let known = m.get(if ha { aa } else { ab });
+                    if known.is_zero() {
+                        return Err(Fault::BackSolveThroughZero);
+                    }
+                    m.put(if ha { ab } else { aa }, crate::mul(m.get(ac), inverse(known)))?;
+                }
+            }
+            let (va, vb) = (m.read(aa), m.read(ab));
+            m.put(ac, if is_xor { va + vb } else { crate::mul(va, vb) })?;
+            let row = Xrow {
+                pc,
+                fp,
+                ra: m.bump_access_count(aa),
+                rb: m.bump_access_count(ab),
+                rc: m.bump_access_count(ac),
+                bytecode_read,
+            };
+            if is_xor { &mut tr.xor } else { &mut tr.mul }.push(row);
+        }
+        Op::Set { o, k } => {
+            let a = cell_at(fp, o)?;
+            m.put(a, super::from_scalar(k))?;
+            let r = m.bump_access_count(a);
+            tr.set.push(Srow {
+                pc,
+                fp,
+                r,
+                bytecode_read,
+            });
+        }
+        Op::Deref { o1, o2, o3, mode } => {
+            let a1 = cell_at(fp, o1)?;
+            let p = m.read(a1);
+            let p_addr = p.as_base().ok_or(Fault::WildPointer { value: p })?;
+            // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address: the pointer's log when it has
+            // one in range (an allocation notes it), else the product's.
+            let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
+                Some(c) if c < u64::from(MAX_CELLS) => c as u32,
+                _ => (g.log(p_addr * super::g_power(o2 as usize))).ok_or(Fault::WildPointer { value: p })?,
+            };
+            let a3 = cell_at(fp, o3)?;
+            match mode {
+                // `m[a2] = m[a3]`: carry a written side to the other (`put` checks it when both are), or link two
+                // unwritten sides until either is written. A range-check touch may leave both unwritten for good:
+                // only the validity of `a2` matters there.
+                DerefMode::Cell => {
+                    if m.written(a2) {
+                        m.put(a3, m.get(a2))?;
+                    } else if m.written(a3) {
+                        m.put(a2, m.get(a3))?;
+                    } else {
+                        m.link(a2, a3);
+                    }
+                }
+                // The return target and the frame base are stored as addresses, which JUMP reads back.
+                DerefMode::Pc => {
+                    g.note(pc as usize + 2);
+                    m.put(a2, F128::from(g.pow(pc as usize + 2)))?;
+                }
+                DerefMode::Fp => {
+                    g.note(fp as usize);
+                    m.put(a2, F128::from(g.pow(fp as usize)))?;
+                }
+            }
+            tr.deref.push(Drow {
+                pc,
+                fp,
+                r1: m.bump_access_count(a1),
+                r2: m.bump_access_count(a2),
+                r3: m.bump_access_count(a3),
+                bytecode_read,
+            });
+        }
+        Op::Jump { oc, od, of } => {
+            let (ac, ad, af) = (cell_at(fp, oc)?, cell_at(fp, od)?, cell_at(fp, of)?);
+            // The three cells are `K`-valued on every row, taken or not: the table commits one lane each and their
+            // memory flushes carry zeros above it (§sec:tab-jump). A guest branches on g-powers, and `assert a != b`
+            // takes an inverse hint instead (§sec:prog-div-ne).
+            let c = in_k("JUMP condition", m.read(ac))?;
+            let d = in_k("JUMP target", m.read(ad))?;
+            let f = in_k("JUMP fp", m.read(af))?;
+            tr.jump.push(Jrow {
+                pc,
+                fp,
+                rc: m.bump_access_count(ac),
+                rd: m.bump_access_count(ad),
+                rf: m.bump_access_count(af),
+                bytecode_read,
+            });
+            if !c.is_zero() {
+                let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
+                let pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
+                let fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
+                return Ok((pc, fp));
+            }
+        }
+        Op::Keccak { .. } => {
+            use crate::keccak::{ROW_CELLS, STATE_CELLS};
+            let k = crate::tables::KeccakOp::of(&op);
+            // Only the cells accessed need an address: the input and those `out` holds.
+            let written = STATE_CELLS + k.out_cells.cells();
+            let mut cells = [0; ROW_CELLS];
+            for (c, cell) in cells[..written].iter_mut().enumerate() {
+                let (offset, step) = k.cell_parts(c);
+                *cell = cell_at(cell_at(fp, offset)?, step)?;
+            }
+            // The Keccak reduction proves the output; the run computes it for the later reads.
+            let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
+            let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
+            primitives::hash::keccak_f(&mut lanes);
+            let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
+            for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
+                m.put(cell, v)?;
+            }
+            // In flush order, so a cell two operands alias pairs each read with its own count. A cell not written
+            // keeps count 0.
+            let mut r = [0; ROW_CELLS];
+            for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
+                *count = m.bump_access_count(cell);
+            }
+            tr.keccak.push(Krow {
+                pc,
+                fp,
+                r,
+                bytecode_read,
+            });
+        }
+    }
+    Ok((pc + 1, fp))
 }
 
 /// Pop the next entry of stream `name` into the `len` cells from `base`.
@@ -808,6 +790,19 @@ fn put_witness<'a>(m: &mut Mem, advice: &mut Advice<'a>, name: &'a str, base: u3
 fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Result<(), Fault> {
     for j in 0..nbits {
         m.put(base + j, F128::from((v >> j) & 1))?;
+    }
+    Ok(())
+}
+
+/// Apply the hints scheduled before an instruction at frame `fp`, in order. A conflict names the hint that caused it.
+fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Result<(), Fault> {
+    for h in hs {
+        apply_hint(h, fp, m, g, advice).map_err(|mut fault| {
+            if let Fault::Conflict { hint, .. } = &mut fault {
+                *hint = Some(hint_name(h));
+            }
+            fault
+        })?;
     }
     Ok(())
 }
