@@ -477,7 +477,7 @@ mod arith {
     pub const N: usize = 13;
 }
 
-/// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
+/// `XOR` and `MUL` share their column layout, flushes, and fill; they
 /// differ only in the opcode tag and in how the destination cell's value rides
 /// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
 /// Neither commits that value and neither has an identity: the destination's
