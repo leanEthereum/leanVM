@@ -297,7 +297,7 @@ fn dispatch(n_tasks: usize, task: Task) {
 
 /// `f(i)` for every `i` in `0..n_tasks`, in parallel.
 pub fn for_each<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
-    for_each_chunk(n_tasks, |start, end| {
+    for_each_chunk(n_tasks, move |start, end| {
         for i in start..end {
             f(i);
         }
@@ -334,7 +334,7 @@ where
 {
     let view = Chunks::new(data, chunk);
     // SAFETY: the dispatch runs each task `i` once, and `data` stays borrowed until it returns.
-    for_each(view.count(), |i| f(i, unsafe { view.get(i) }));
+    for_each(view.count, move |i| f(i, unsafe { view.get(i) }));
 }
 
 /// A `chunks_mut` view that can be handed to tasks: `get(i)` is item `i`'s slice.
@@ -342,30 +342,26 @@ struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
+    /// Number of chunks.
+    count: usize,
 }
 
 impl<T> Chunks<T> {
     /// View `data` as `len.div_ceil(width)` chunks of `width` (the last shorter).
-    #[must_use]
     fn new(data: &mut [T], width: usize) -> Self {
         assert!(width > 0, "chunk width must be non-zero");
         Self {
             base: SendPtr(data.as_mut_ptr()),
             width,
             len: data.len(),
+            count: data.len().div_ceil(width),
         }
-    }
-
-    /// Number of chunks.
-    #[must_use]
-    const fn count(&self) -> usize {
-        self.len.div_ceil(self.width)
     }
 
     /// Chunk `i`.
     ///
     /// # Safety
-    /// `i < self.count()`, no other live borrow covers chunk `i`, and the
+    /// `i < self.count`, no other live borrow covers chunk `i`, and the
     /// underlying buffer outlives `'a`. Calling this once per `i` inside a
     /// [`for_each`] body satisfies all three.
     #[inline]
@@ -397,7 +393,7 @@ where
 {
     let mut widths = widths.into_iter();
     let views = bufs.map(|buf| Chunks::new(buf, widths.next().expect("one width per buffer")));
-    let n_tasks = views.iter().map(Chunks::count).max().unwrap_or(0);
+    let n_tasks = views.iter().map(|view| view.count).max().unwrap_or(0);
     fold_reduce(
         n_tasks,
         init,
@@ -405,7 +401,7 @@ where
             // SAFETY: the dispatch runs each task `i` once, and `bufs` stays borrowed until it returns, so chunk `i`
             // of each buffer is taken once and the slices are disjoint.
             let chunks = views.each_ref().map(|view| {
-                if i < view.count() {
+                if i < view.count {
                     unsafe { view.get(i) }
                 } else {
                     &mut []
@@ -434,7 +430,7 @@ pub fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
 pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> Vec<T> {
     let mut out: Vec<T> = Vec::with_capacity(n_tasks);
     let base = SendPtr(out.as_mut_ptr());
-    for_each(n_tasks, |i| {
+    for_each(n_tasks, move |i| {
         // SAFETY: distinct `i` write disjoint in-bounds slots, each exactly once,
         // and the dispatch blocks until every write is finished. A panic in `f`
         // leaks the slots written so far, which is acceptable: a task panic is
@@ -464,6 +460,12 @@ pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Optio
     Some(best.into_inner()).filter(|&i| i < n_tasks)
 }
 
+/// Block `b` of `0..n` cut into `blocks`, out of line: one copy for every fold.
+#[inline(never)]
+fn block(b: usize, n: usize, blocks: usize) -> std::ops::Range<usize> {
+    b * n / blocks..(b + 1) * n / blocks
+}
+
 /// Parallel fold-then-reduce: `0..n_tasks` is cut into `BLOCKS_PER_WORKER` blocks per worker, each block folds its
 /// indices in order into an accumulator of its own, built with `init`, and the accumulators `combine` on the dispatcher
 /// in block order. The blocks depend on the worker count, so `combine` must be associative and commutative, with
@@ -482,7 +484,7 @@ where
     let blocks = n_tasks.min(BLOCKS_PER_WORKER * num_threads());
     let accs = map_collect(blocks, |b| {
         let mut acc = init();
-        for i in b * n_tasks / blocks..(b + 1) * n_tasks / blocks {
+        for i in block(b, n_tasks, blocks) {
             fold(&mut acc, i);
         }
         acc
