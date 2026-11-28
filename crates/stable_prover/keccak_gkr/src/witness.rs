@@ -124,8 +124,11 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
 /// sliced, round after round; without, the run ends at the last committed state.
 pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool) -> (Vec<u64>, Vec<u64>) {
     assert!(inputs.len() <= BLOCK);
-    let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
-    let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
+    let (mut state, mut u) = (vec![0u64; BLOCK_LEN], vec![0u64; BLOCK_LEN]);
+    let (state, u) = (
+        state.as_chunks_mut::<BLOCK_WORDS>().0,
+        u.as_chunks_mut::<BLOCK_WORDS>().0,
+    );
     let mut rows = [0u64; 64];
     for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
@@ -143,7 +146,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
     let last = if keep { ROUNDS } else { ROUNDS - depth };
     for round in 0..=last {
         if round > 0 {
-            linear(&state, &mut u, xor);
+            linear(state, u, xor);
             for lane in 0..STATE_LANES {
                 let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
                 // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
@@ -161,7 +164,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
             }
         }
         if keep {
-            rounds.extend_from_slice(if round == 0 { &state } else { &u }.as_flattened());
+            rounds.extend_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
         }
         if round.is_multiple_of(depth) && round < ROUNDS {
             let m = round / depth;

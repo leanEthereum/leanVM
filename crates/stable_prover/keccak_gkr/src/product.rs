@@ -28,12 +28,8 @@ const RUN_WORDS: usize = PACKS * PRODUCT_BYTES;
 const SUMS: usize = 8 * RUN_WORDS;
 
 /// `U`, and the 32 packs' parts of it before their weights `eq(point[..5], pack)`, which the skip's binary points
-/// read. `tasks` are the tasks' weights in `eq(point[5..])`.
-pub(crate) fn polynomial(
-    layer: &Layer,
-    claim: &Claim,
-    tasks: &[F128],
-) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
+/// read, pack `q`'s from `PRODUCT_BITS q`. `tasks` are the tasks' weights in `eq(point[5..])`.
+pub(crate) fn polynomial(layer: &Layer, claim: &Claim, tasks: &[F128]) -> ([F128; PRODUCT_BITS], Vec<F128>) {
     let maps: Vec<FieldMap> = claim.weights.as_chunks::<8>().0.iter().map(field_map).collect();
     // Each worker's scratch rides beside its sums, allocated at its first task.
     let (_, sums) = parallel::fold_reduce(
@@ -41,10 +37,10 @@ pub(crate) fn polynomial(
         || (Vec::new(), vec![Acc8::ZERO; SUMS / 8]),
         |(bits, sums), task| {
             if bits.is_empty() {
-                *bits = vec![[0; RUN_WORDS]; BITS / 8];
+                *bits = vec![0; BITS / 8 * RUN_WORDS];
             }
             let mut block = [F128::ZERO; SUMS];
-            block_sums(&maps, layer.task(task), bits, &mut block);
+            block_sums(&maps, layer.task(task), bits.as_chunks_mut().0, &mut block);
             let weight = F128x8::splat(tasks[task]);
             for (sum, block) in sums.iter_mut().zip(block.as_chunks::<8>().0) {
                 *sum += F128x8::from_array(block).mul_unreduced(weight);
@@ -58,14 +54,14 @@ pub(crate) fn polynomial(
         },
     );
     let packs = eq_table(&claim.point[..PACKS_LOG]);
-    let mut per_pack = vec![[F128::ZERO; PRODUCT_BITS]; PACKS];
+    let mut per_pack = vec![F128::ZERO; PACKS * PRODUCT_BITS];
     let mut total = [F128::ZERO; PRODUCT_BITS];
     for (i, sum) in sums.into_iter().enumerate() {
         for (k, sum) in sum.reduce().to_array().into_iter().enumerate() {
             // Pack `q`'s coefficient `c`, its last byte's spare bit past them.
             let (q, c) = ((8 * i + k) / (8 * PRODUCT_BYTES), (8 * i + k) % (8 * PRODUCT_BYTES));
             if c < PRODUCT_BITS {
-                per_pack[q][c] = sum;
+                per_pack[PRODUCT_BITS * q + c] = sum;
                 total[c] += packs[q] * sum;
             }
         }

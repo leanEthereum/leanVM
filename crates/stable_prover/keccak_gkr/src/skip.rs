@@ -103,13 +103,7 @@ const CHI_RUNS: [[usize; 2]; 5] = [[1, 2], [2, 3], [3, 4], [4, 0], [0, 1]];
 /// The summand at every point of `{0, 1, infinity}^SKIP`, by its ternary digits, from the [`COEFFS`] `powers` of
 /// `s`. `tasks` are the tasks' weights in `eq(point[SKIP + 1..])`, and `per_pack` the packs' parts of `U` from the
 /// product pass.
-pub(crate) fn sums(
-    layer: &Layer,
-    claim: &Claim,
-    powers: &[F128],
-    tasks: &[F128],
-    per_pack: &[[F128; PRODUCT_BITS]],
-) -> Vec<F128> {
+pub(crate) fn sums(layer: &Layer, claim: &Claim, powers: &[F128], tasks: &[F128], per_pack: &[F128]) -> Vec<F128> {
     let at = AtS::new(powers);
     // Word `k` of each position's weight as a polynomial in `s`, at `words[BITS * k + j]`.
     let mut words = vec![0; 2 * BITS];
@@ -144,7 +138,7 @@ pub(crate) fn sums(
         *sum = mixed.reduce();
     }
     let mut at_s = [F128::ZERO; PACKS];
-    for (at_s, p) in at_s.iter_mut().zip(per_pack) {
+    for (at_s, p) in at_s.iter_mut().zip(per_pack.as_chunks::<PRODUCT_BITS>().0) {
         *at_s = poly_eval(p, powers[1]);
     }
     for q in 0..GROUP {
