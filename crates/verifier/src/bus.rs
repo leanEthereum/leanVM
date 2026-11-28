@@ -98,8 +98,9 @@ pub fn replay_bus(sizes: &Sizes, transcript: &mut Transcript) -> Result<Vec<E>, 
         replay_sumcheck(transcript, (1 << step) + 1, point.len(), true, Some(&mut x))?;
         transcript.skip_scalars(N_TREES << step)?;
         transcript.grind_check(grinding_bits((step << usize::from(layer == step)) as u128))?;
-        point = transcript.samples(step);
-        point.extend_from_slice(&x);
+        // The point is `y`, then `x`.
+        (0..step).for_each(|i| x.insert(i, transcript.sample()));
+        point = x;
         layer -= step;
     }
     // The framework columns and the bytecode's share, then its sumcheck and its value.
