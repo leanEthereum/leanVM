@@ -227,13 +227,16 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
 }
 
 /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
-/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone. Inlined or out
-/// of line as [`permute`] is.
+/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone, except with
+/// `static-dispatch`, where it is [`permute`]: one copy of the rounds per backend.
 #[cfg(target_arch = "x86_64")]
-#[cfg_attr(feature = "static-dispatch", inline(never))]
-#[cfg_attr(not(feature = "static-dispatch"), inline(always))]
+#[inline(always)]
 pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
-    permute_rows(a, true);
+    if cfg!(feature = "static-dispatch") {
+        permute(a);
+    } else {
+        permute_rows(a, true);
+    }
 }
 
 /// [`permute`], or with `first_row` [`permute_first_row`]: one source for both, each caller passing a constant.
