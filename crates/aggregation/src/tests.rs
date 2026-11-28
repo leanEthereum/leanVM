@@ -202,9 +202,9 @@ fn aggregate_mixed_leaf() {
 fn forged_lean_sphincs_hints_are_rejected() {
     let signers = get_lean_sphincs_signers::<StableProver>(1);
     let forgeries: [Forgery; 3] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_unused", 0)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_unused", 0)[0] *= to_scalar(&count(1))),
         Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0).swap(0, 1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("sp_counter", 1)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_counter", 1)[0] *= to_scalar(&count(1))),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, &[], vec![], signers.clone(), &[]);
@@ -218,9 +218,9 @@ fn forged_lean_sphincs_hints_are_rejected() {
 fn forged_lean_xmss_hints_are_rejected() {
     let signers = get_signers::<StableProver>(1);
     let forgeries: [Forgery; 3] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
-        Box::new(|hints: &mut Hints| hints.entry_mut("lx_digits", 0)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += verifier::E::new(1, 0)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= to_scalar(&count(1))),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_digits", 0)[0] *= to_scalar(&count(1))),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, &[], signers.clone(), vec![], &[]);
@@ -243,19 +243,19 @@ fn forged_da_hints_are_rejected() {
     .unwrap();
     let forgeries: [(Forgery, bool); 4] = [
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F128::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += verifier::E::new(1, 0)),
             false,
         ),
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] *= count(2)),
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] *= to_scalar(&count(2))),
             false,
         ),
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] = count(0)),
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] = to_scalar(&count(0))),
             true,
         ),
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += F128::ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += verifier::E::new(1, 0)),
             true,
         ),
     ];
@@ -270,8 +270,8 @@ fn forged_da_hints_are_rejected() {
 fn forged_opening_hints_are_rejected() {
     let child = prove(&[], &get_signers::<StableProver>(SMALL_LEAF_SIZE), &[]);
     let forgeries: [Forgery; 2] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += verifier::E::new(1, 0)),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += verifier::E::new(1, 0)),
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, std::slice::from_ref(&child), vec![], vec![], &[]);

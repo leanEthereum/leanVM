@@ -261,7 +261,7 @@ pub fn aggregate<P: Prover>(
         std::mem::take(&mut cover[1].signers),
     ];
     let public_input = statement_digest(&signers, da_root, &defer).map(|x| to_scalar(&x));
-    let (proof, stats) = P::prove(unified_guest(), &hints.witness(), public_input, log_inv_rate).map_err(|_error| {
+    let (proof, stats) = P::prove(unified_guest(), &hints.0, public_input, log_inv_rate).map_err(|_error| {
         #[cfg(feature = "spans")]
         tracing::debug!(error = %_error, "proving failed");
         AggregateError::ProvingFailed

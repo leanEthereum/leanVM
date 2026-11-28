@@ -6,6 +6,7 @@ use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_vm_core::cpu::to_scalar;
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
+use verifier::E;
 
 // Both schemes' one-time keys go through the guest's one WOTS+C walk: the same chain
 // length and digits dispatched a group at a time. leanSPHINCS groups DIGIT_GROUP
@@ -59,66 +60,59 @@ thread_local! {
     pub(super) static FORGE: std::cell::RefCell<Option<Forgery>> = const { std::cell::RefCell::new(None) };
 }
 
-/// The `hint_witness` streams of a run: each a name and its entries, in the order the guest pops them.
+/// The `hint_witness` streams of a run as [`isa::Prover::prove`] takes them: each a name and its entries, in the order
+/// the guest pops them.
 #[derive(Default)]
-pub(super) struct Hints(pub(super) Vec<(&'static str, Vec<Vec<F128>>)>);
+pub(super) struct Hints(pub(super) Vec<(String, Vec<Vec<E>>)>);
 
 impl Hints {
     /// Stream `name`'s entries, an empty stream at the end if there is none yet.
-    fn stream(&mut self, name: &'static str) -> &mut Vec<Vec<F128>> {
-        let i = match self.0.iter().position(|(n, _)| *n == name) {
+    fn stream(&mut self, name: &str) -> &mut Vec<Vec<E>> {
+        let i = match self.0.iter().position(|(n, _)| n == name) {
             Some(i) => i,
             None => {
-                self.0.push((name, Vec::new()));
+                self.0.push((name.to_string(), Vec::new()));
                 self.0.len() - 1
             }
         };
         &mut self.0[i].1
     }
 
-    pub(super) fn push(&mut self, name: &'static str, entry: Vec<F128>) {
-        self.stream(name).push(entry);
+    pub(super) fn push(&mut self, name: &str, entry: Vec<F128>) {
+        self.stream(name).push(entry.iter().map(to_scalar).collect());
     }
 
     /// An entry of one count ([`count`]).
-    pub(super) fn push_count(&mut self, name: &'static str, n: usize) {
+    pub(super) fn push_count(&mut self, name: &str, n: usize) {
         self.push(name, vec![count(n)]);
     }
 
     /// `other`'s entries after this one's, stream by stream.
     pub(super) fn extend(&mut self, other: Hints) {
         for (name, mut entries) in other.0 {
-            self.stream(name).append(&mut entries);
+            self.stream(&name).append(&mut entries);
         }
     }
 
     /// A one-cell entry: a 16-byte native value ([`pack_16_bytes`]).
-    fn push_packed(&mut self, name: &'static str, bytes: &[u8]) {
+    fn push_packed(&mut self, name: &str, bytes: &[u8]) {
         self.push(name, vec![pack_16_bytes(bytes)]);
     }
 
     /// Entry `i` of stream `name`, for a test to forge.
     #[cfg(test)]
-    pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F128> {
-        let (_, entries) = self.0.iter_mut().find(|(n, _)| *n == name).expect("a hinted stream");
+    pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<E> {
+        let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
         &mut entries[i]
     }
 
     /// The streams as `cpu::execute` takes them, for a test to run the guest on.
     #[cfg(test)]
     pub(super) fn named(&self) -> Vec<(String, Vec<Vec<F128>>)> {
-        self.0
-            .iter()
-            .map(|(name, entries)| (name.to_string(), entries.clone()))
-            .collect()
-    }
-
-    /// The streams as [`isa::Prover::prove`] takes them.
-    pub(super) fn witness(self) -> Vec<(String, Vec<Vec<verifier::E>>)> {
-        let scalars = |entry: Vec<F128>| entry.into_iter().map(|x| to_scalar(&x)).collect();
-        let streams = self.0.into_iter();
+        let cells = |entry: &Vec<E>| entry.iter().copied().map(lean_vm_core::cpu::from_scalar).collect();
+        let streams = self.0.iter();
         streams
-            .map(|(name, entries)| (name.to_string(), entries.into_iter().map(scalars).collect()))
+            .map(|(name, entries)| (name.clone(), entries.iter().map(cells).collect()))
             .collect()
     }
 }
