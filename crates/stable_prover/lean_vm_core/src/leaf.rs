@@ -253,22 +253,28 @@ impl Formula {
     #[inline]
     fn leaves(&self, cols: &[&[F64]], z: usize) -> [F128; 8] {
         if z >= self.rows {
-            return [F128::ONE; 8];
+            return ONES;
         }
         let n = self.rows - z;
         let load = |values: &[F64]| crate::load_k(values, z, n);
-        let sum = self.terms.iter().fold(Acc8::ZERO, |acc, (term, w)| {
-            acc + F128x8::splat(*w).mul_base_unreduced(match *term {
-                Term::Col(i) => load(cols[i]),
-                Term::Prod(i, j) => load(cols[i]) * load(cols[j]),
-                Term::Index => F64x8::splat(F64(isa::g_pow(z as u32))) * F64x8::from_array(&G_POWERS),
-            })
+        let sum = self.terms.iter().fold(Acc8::ZERO, |acc, &(ref term, w)| {
+            let (w, k) = match *term {
+                Term::Col(i) => (w, load(cols[i])),
+                Term::Prod(i, j) => (w, load(cols[i]) * load(cols[j])),
+                // `g^z` rides the weight.
+                Term::Index => (w.mul_base(F64(isa::g_pow(z as u32))), F64x8::from_array(&G_POWERS)),
+            };
+            acc + F128x8::splat(w).mul_base_unreduced(k)
         });
         let mut leaves = (sum.reduce() + F128x8::splat(self.constant)).to_array();
-        leaves[n.min(8)..].fill(F128::ONE);
+        let n = n.min(8);
+        leaves[n..].copy_from_slice(&ONES[n..]);
         leaves
     }
 }
+
+/// Eight identities.
+const ONES: [F128; 8] = [F128::ONE; 8];
 
 /// `g^0` to `g^7`, which step a row's index to the next seven's.
 const G_POWERS: [F64; 8] = {
@@ -281,8 +287,8 @@ const G_POWERS: [F64; 8] = {
     powers
 };
 
-/// A tree's leaves, every block's rows at its offset, up to the last block: the identity past them is left out.
-/// Each leaf is written once, eight at a time. With them, the runs of padding rows, whose leaves are the identity.
+/// A tree's leaves, every block's rows at its offset, up to the last block, padded with the identity to a multiple of
+/// [`gkr::BLOCK`]: the identity past them is left out. Each leaf is written once, eight at a time. With them, the runs of padding rows, whose leaves are the identity.
 /// `cols` are the committed columns, then the public ones from `public`.
 fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones) {
     // [`verifier::stack_offsets`] places each size from the largest down, its blocks in index order.
@@ -305,7 +311,7 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
     // The blocks tile the leaves from zero, largest first.
     let len = formulas.iter().map(|f| f.size).sum::<usize>();
     let at = |i: usize| &formulas[formulas.partition_point(|f| f.offset <= i) - 1];
-    let mut leaves = parallel::map_collect(len.div_ceil(8), |k| {
+    let leaves = parallel::map_collect(len.next_multiple_of(gkr::BLOCK) / 8, |k| {
         let f = at(8 * k);
         if f.size >= 8 {
             // Aligned at its size, the block holds all eight.
@@ -318,7 +324,6 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
         })
     })
     .into_flattened();
-    leaves.truncate(len);
     (leaves, ones)
 }
 
@@ -497,10 +502,12 @@ mod tests {
                 beta,
             };
             let columns: Vec<&[F64]> = cols.iter().chain(&public).copied().collect();
-            assert_eq!(
+            let (leaves, naive) = (
                 build_leaves(&tree, &columns, cols.len()).0,
-                naive_leaves(&tree, &cols, &public)
+                naive_leaves(&tree, &cols, &public),
             );
+            assert_eq!(leaves[..naive.len()], naive);
+            assert!(leaves[naive.len()..].iter().all(|&l| l == F128::ONE));
         }
     }
 }

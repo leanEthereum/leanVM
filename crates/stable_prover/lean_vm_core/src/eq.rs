@@ -26,15 +26,12 @@ impl SplitEq {
     }
 
     /// `eq` at `8k..8k + 8`, zero past the hypercube.
-    #[inline]
+    #[inline(never)]
     pub(crate) fn lanes(&self, k: usize) -> F128x8 {
         let (block, at) = ((8 * k) >> self.lo_bits, (8 * k) & (self.lo.len() - 1));
-        match (self.hi.get(block), self.lo.get(at..at + 8)) {
-            (Some(&hi), Some(lo)) => F128x8::load(lo) * F128x8::splat(hi),
-            (Some(&hi), None) => F128x8::from_array(&std::array::from_fn(|p| {
-                self.lo.get(at + p).map_or(F128::ZERO, |&lo| lo * hi)
-            })),
-            (None, _) => F128x8::ZERO,
+        match self.hi.get(block) {
+            Some(&hi) => load_e(&self.lo, at, self.lo.len() - at) * F128x8::splat(hi),
+            None => F128x8::ZERO,
         }
     }
 }
@@ -52,8 +49,7 @@ pub(crate) fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
         1
     };
     let zero = || vec![F128::ZERO; columns.len()];
-    let task = |task: usize| {
-        let mut sums = zero();
+    let task = |sums: &mut Vec<F128>, task: usize| {
         for h in task * rows..hi.len().min((task + 1) * rows) {
             let z0 = h << lo_bits;
             for (sum, column) in sums.iter_mut().zip(columns) {
@@ -68,8 +64,12 @@ pub(crate) fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
                 *sum += hi[h] * row.sum();
             }
         }
-        sums
     };
-    let add = |a: Vec<F128>, b: Vec<F128>| a.iter().zip(b).map(|(&a, b)| a + b).collect();
-    parallel::map_reduce(hi.len().div_ceil(rows), zero, task, add)
+    let add = |mut a: Vec<F128>, b: Vec<F128>| {
+        for (a, b) in a.iter_mut().zip(b) {
+            *a += b;
+        }
+        a
+    };
+    parallel::fold_reduce(hi.len().div_ceil(rows), zero, task, add)
 }

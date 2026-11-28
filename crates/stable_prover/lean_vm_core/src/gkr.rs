@@ -8,10 +8,10 @@
 //! odd-depth tree starts with one binary layer.
 //!
 //! The layer below a claim is held as rows of four children, row `x` holding `V_{i-2}(·, ·, x)`, and only as the
-//! prefix that covers its non-identity rows. An identity pair of rows adds only its eq weight to a round
-//! polynomial's constant, which never travels, and folds to an identity row, so no pass reads past the prefix. The
-//! bus's padding rows make long runs of identity leaves inside it, which the bus hands over as `Ones`: no pass
-//! reads them either.
+//! prefix that covers its non-identity rows, padded with the identity to whole blocks of [`BLOCK`] values. An identity
+//! pair of rows adds only its eq weight to a round polynomial's constant, which never travels, and folds to an
+//! identity row, so no pass reads past the prefix. The bus's padding rows make long runs of identity leaves inside it,
+//! which the bus hands over as `Ones`: no pass reads them either.
 
 use std::ops::Range;
 
@@ -55,8 +55,9 @@ pub(crate) fn prove_products(
     );
     // Levels `0, 2, 4, …` of each tree, read as rows of four, up to the top, which has one node, or two when `μ` is
     // odd. A level's rows known to be the identity are the nodes two levels up made of identity leaves only.
-    let mut levels: [Vec<(Vec<F128>, Ones)>; N_BUS_TREES] = trees.map(|(leaves, ones)| {
+    let mut levels: [Vec<(Vec<F128>, Ones)>; N_BUS_TREES] = trees.map(|(mut leaves, ones)| {
         let row_ones = |level: usize| coarsen(&ones, 4 << (2 * level));
+        pad(&mut leaves);
         let mut levels = vec![(leaves, row_ones(0))];
         while levels.len() <= mu / 2 {
             let (values, ones) = levels.last().unwrap();
@@ -107,46 +108,43 @@ fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
 }
 
 /// Whether the `n` rows from `first` all lie in `ones`.
-#[inline]
+#[inline(never)]
 fn known(ones: &[Range<usize>], first: usize, n: usize) -> bool {
     let i = ones.partition_point(|r| r.end < first + n);
     ones.get(i).is_some_and(|r| r.start <= first)
 }
 
-/// The level two above `values`: each row's product, the rows past the end and those in `ones` the identity.
+/// Values in a block: a tree's rows are held padded with the identity to a multiple of it, two groups of rows.
+pub(crate) const BLOCK: usize = 2 * 4 * GROUP;
+
+/// Pad `values` with the identity to a multiple of [`BLOCK`]: nothing to do on the bus's leaves.
+fn pad(values: &mut Vec<F128>) {
+    values.resize(values.len().next_multiple_of(BLOCK), F128::ONE);
+}
+
+/// The level two above `values`, padded: each row's product, those in `ones` the identity.
 fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
-    let n = values.len().div_ceil(4);
     let eight = |k: usize| {
-        if known(ones, 8 * k, 8) {
+        if 32 * k >= values.len() || known(ones, 8 * k, 8) {
             return [F128::ONE; 8];
         }
-        let v: [F128; 32] = padded(values, 32 * k);
+        let v: &[F128; 32] = values[32 * k..][..32].try_into().unwrap();
         let child = |c: usize| lanes(|p| v[4 * p + c]);
         ((child(0) * child(1)) * (child(2) * child(3))).to_array()
     };
-    let mut next = if n < 8 * crate::SERIAL_BELOW {
-        (0..n.div_ceil(8)).map(eight).collect::<Vec<_>>()
+    let n = (values.len() / 4).next_multiple_of(BLOCK) / 8;
+    if n < crate::SERIAL_BELOW {
+        (0..n).map(eight).collect::<Vec<_>>()
     } else {
-        parallel::map_collect(n.div_ceil(8), eight)
+        parallel::map_collect(n, eight)
     }
-    .into_flattened();
-    next.truncate(n);
-    next
+    .into_flattened()
 }
 
 /// Eight lanes, lane `p` being `value(p)`.
 #[inline]
 fn lanes(value: impl Fn(usize) -> F128) -> F128x8 {
     F128x8::from_array(&std::array::from_fn(value))
-}
-
-/// `values[start..start + N]`, the identity past the end.
-#[inline]
-fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
-    match values.get(start..start + N) {
-        Some(run) => run.try_into().unwrap(),
-        None => std::array::from_fn(|i| values.get(start + i).copied().unwrap_or(F128::ONE)),
-    }
 }
 
 /// A round's messages: per tree, `[q(0) + q(1), c2, c3, c4]` of its round polynomial `q`.
@@ -159,7 +157,7 @@ fn add_messages(a: Messages, b: Messages) -> Messages {
 /// The three trees' layer below the claim, during its sumcheck. A round binds the lowest row variable: a fold makes
 /// row `i` `interp(row 2i, row 2i + 1, χ)`, child by child.
 struct Layer {
-    /// Each tree's held rows, four children a row.
+    /// Each tree's held rows, four children a row, padded.
     rows: [Vec<F128>; N_BUS_TREES],
     /// Each tree's rows known to be the identity.
     ones: [Ones; N_BUS_TREES],
@@ -214,7 +212,7 @@ impl Layer {
     fn pass(&mut self, r: Option<F128>, eq: Option<&SplitEq>) -> Messages {
         let span = 2 * GROUP;
         for (rows, spare) in self.rows.iter().zip(&mut self.spare) {
-            let len = 4 * GROUP * rows.len().div_ceil(4 * span);
+            let len = (rows.len() / 2).next_multiple_of(BLOCK);
             if spare.len() < len {
                 *spare = crate::filled(len, F128::ONE);
             }
@@ -231,8 +229,9 @@ impl Layer {
                     let mut acc = [Acc8::ZERO; 4];
                     for (j, group) in out.as_chunks_mut().0.iter_mut().enumerate() {
                         let k = task * chunk + j;
-                        if known(&ones[t], span * k, span) {
-                            *group = [F128::ONE; 4 * GROUP];
+                        // A group past the rows pads the folded ones.
+                        if 4 * span * k >= rows[t].len() || known(&ones[t], span * k, span) {
+                            group.fill(F128::ONE);
                             continue;
                         }
                         match (r, eq) {
@@ -245,14 +244,15 @@ impl Layer {
                             (None, Some(eq)) => {
                                 for k in [2 * k, 2 * k + 1] {
                                     if !known(&ones[t], GROUP * k, GROUP) {
-                                        add_message(&padded(&rows[t], 4 * GROUP * k), eq.lanes(k), &mut acc);
+                                        let group = rows[t][4 * GROUP * k..][..4 * GROUP].try_into().unwrap();
+                                        add_message(group, eq.lanes(k), &mut acc);
                                     }
                                 }
                             }
                             (None, None) => {}
                         }
                     }
-                    for (m, acc) in messages[t].iter_mut().zip(acc) {
+                    for (m, acc) in messages[t].iter_mut().zip(&acc) {
                         *m += acc.sum();
                     }
                 }
@@ -273,11 +273,11 @@ impl Layer {
 /// at a time.
 #[inline]
 fn fold_rows(rows: &[F128], start: usize, r: F128x8, out: &mut [F128]) {
-    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-        let pairs: [F128; 16] = padded(rows, start + 16 * i);
-        // Lane `l` takes child `l mod 4` of the pair `l / 4`.
-        let lo = lanes(|l| pairs[8 * (l / 4) + l % 4]);
-        let hi = lanes(|l| pairs[8 * (l / 4) + 4 + l % 4]);
+    let rows: &[[F128; 4]] = rows[start..][..2 * out.len()].as_chunks().0;
+    for (out, rows) in out.as_chunks_mut::<8>().0.iter_mut().zip(rows.as_chunks::<4>().0) {
+        // Lane `l` takes child `l mod 4` of the pair `l / 4`: the lower rows' children, then the upper rows'.
+        let [a, b, c, d] = *rows;
+        let (lo, hi) = (F128x8::load([a, c].as_flattened()), F128x8::load([b, d].as_flattened()));
         *out = (lo + r * (lo + hi)).to_array();
     }
 }
@@ -338,7 +338,8 @@ mod tests {
     #[test]
     fn quartic_round_message_matches_direct_evaluation() {
         for width in [2, 4, 8, 16, 1 << 13] {
-            let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
+            let mut below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
+            pad(&mut below);
             let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
             let mut layer = Layer::new([0, 1, 2].map(|_| (below.clone(), Ones::new())));
