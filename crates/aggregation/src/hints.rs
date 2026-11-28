@@ -88,8 +88,8 @@ impl Hints {
         self.push(name, vec![count(n)]);
     }
 
-    /// `other`'s entries after this one's, stream by stream.
-    pub(super) fn extend(&mut self, mut other: Hints) {
+    /// `other`'s entries after this one's, stream by stream, taken out of `other`.
+    pub(super) fn extend(&mut self, other: &mut Hints) {
         for (name, entries) in &mut other.0 {
             self.stream(name).append(entries);
         }

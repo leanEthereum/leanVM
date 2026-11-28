@@ -144,8 +144,8 @@ pub fn aggregate<P: Prover>(
             return Err(*error);
         }
     }
-    // No witness is an error past this point, so `flatten` drops none.
-    let signatures = witnesses.split_off(n_children);
+    // No witness is an error past this point, so `flatten` skips none.
+    let (children_witnesses, signatures) = witnesses.split_at_mut(n_children);
     let mut hints = Hints::default();
     // Per region its declared claims, duplicates and raw signatures, then the children and whether there are blobs.
     let [xmss, sphincs] = &cover;
@@ -177,7 +177,7 @@ pub fn aggregate<P: Prover>(
     }
     // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
     // writers off the other's claims.
-    let mut signatures = signatures.into_iter().flatten();
+    let mut signatures = signatures.iter_mut().flatten();
     for ((region, order), name) in cover.iter().zip(raw_order).zip(["raw_index", "sp_raw_index"]) {
         for (&offset, (_, signature)) in region.slots[..order.len()].iter().zip(&mut signatures) {
             hints.push_count(name, offset);
@@ -188,7 +188,7 @@ pub fn aggregate<P: Prover>(
     // Each child's slots, its carried claim, its DA digest and its verification's witness.
     // Where each region's slots of the next child start.
     let mut at = [raw_order[0].len(), raw_order[1].len()];
-    for (i, (fresh, verified)) in witnesses.into_iter().flatten().enumerate() {
+    for (i, (fresh, verified)) in children_witnesses.iter_mut().flatten().enumerate() {
         let lists = &child_lists[i];
         hints.push("child_meta", vec![count(lists[0].len()), count(lists[1].len())]);
         for (region, (list, at)) in cover.iter().zip(lists.iter().zip(&mut at)) {
@@ -215,11 +215,11 @@ pub fn aggregate<P: Prover>(
         let child_da = verifier::da::digest(children[i].0.da_commitment);
         hints.push("child_da", hash_to_scalars(&child_da).to_vec());
         hints.extend(verified);
-        let fresh_sums = bytecode_sums::<P>(&fresh);
+        let fresh_sums = bytecode_sums::<P>(fresh);
         sums[2 * i * fresh_sums.len()..][..fresh_sums.len()].copy_from_slice(&fresh_sums);
-        claims[2 * i] = DeferredBytecodeClaim::from_sums(fresh, &fresh_sums);
+        claims[2 * i] = DeferredBytecodeClaim::from_sums(std::mem::take(fresh), &fresh_sums);
     }
-    drop(span);
+    drop((witnesses, span));
 
     let defer = if children.is_empty() {
         let leaf = DeferredBytecodeClaim::leaf();
@@ -227,8 +227,8 @@ pub fn aggregate<P: Prover>(
         leaf
     } else {
         let _span = span!("Batch deferred claims");
-        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums);
-        hints.extend(batch_hints);
+        let (mut batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums);
+        hints.extend(&mut batch_hints);
         reduced
     };
 
