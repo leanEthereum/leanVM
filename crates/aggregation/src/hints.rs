@@ -79,7 +79,7 @@ impl Hints {
     }
 
     pub(super) fn push(&mut self, name: &str, entry: Vec<F128>) {
-        self.stream(name).push(entry.iter().map(to_scalar).collect());
+        self.stream(name).push(entry.into_iter().map(|x| to_scalar(&x)).collect());
     }
 
     /// An entry of one count ([`count`]).
