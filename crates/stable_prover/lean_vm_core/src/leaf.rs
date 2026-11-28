@@ -6,17 +6,16 @@
 //! The push and pull trees have one product (the bus balances), the count tree the product of every access count
 //! (each nonzero). The batched GKR ([`gkr`]) leaves one claim per tree at one point `ζ`, which splits by block
 //! (eq:gkr_leaves): a boundary block's share is a combination of public columns and of committed columns at `ζ`,
-//! whose values are sent; a table's blocks become one degree-two [`Form`] over its columns, `B^s_j`, which the table
-//! sumcheck proves ([`crate::constraints`]).
+//! whose values are sent; a table's blocks become one degree-two [`crate::constraints::Form`] over its columns,
+//! `B^s_j`, which the table sumcheck proves ([`crate::constraints`]).
 
-use crate::constraints::Form;
 use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
 use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, mul_by_g};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
-use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
+use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES};
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -108,19 +107,19 @@ pub(crate) struct ColumnClaim {
 }
 
 /// What the bus hands on: the boundary blocks' column claims, the GKR's point `ζ` (the table sumcheck's eq point),
-/// and per tree each table's form `B^s_j`. What the forms sum to is never sent: the verifier derives each tree's total.
-pub(crate) struct BusProof {
+/// and the trees, from which [`Self::add_forms`] writes each table's forms `B^s_j`. What the forms sum to is never
+/// sent: the verifier derives each tree's total.
+pub(crate) struct BusProof<'a> {
     pub claims: Vec<ColumnClaim>,
     pub point: Vec<F128>,
-    /// `forms[tree][table]`.
-    pub forms: [Vec<Form>; N_BUS_TREES],
+    trees: [Tree<'a>; N_BUS_TREES],
 }
 
 /// One bus tree: its blocks, where they sit, and its fingerprint weights `α⃗` and `β`.
 struct Tree<'a> {
     blocks: &'a [Block],
     layout: Layout,
-    alpha: &'a [F128],
+    alpha: Vec<F128>,
     beta: F128,
 }
 
@@ -129,12 +128,12 @@ struct Tree<'a> {
 /// The stream: the [`verifier::bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
 /// ([`gkr::prove_products`]); the boundary blocks' fresh column values; the bytecode's share
 /// ([`prove_bytecode_share`]).
-pub(crate) fn prove_balance(
-    blocks: [&[Block]; N_BUS_TREES],
+pub(crate) fn prove_balance<'a>(
+    blocks: [&'a [Block]; N_BUS_TREES],
     cols: &[&[F64]],
     stacked_bytecode: &[u64],
     ps: &mut ProverState,
-) -> BusProof {
+) -> BusProof<'a> {
     // The columns [`Coord::Public`] names.
     let public: Vec<&[F64]> = cast_slice(stacked_bytecode)
         .chunks_exact(stacked_bytecode.len() >> BUS_BITS)
@@ -146,9 +145,11 @@ pub(crate) fn prove_balance(
         "push and pull blocks are paired, so their layouts match"
     );
     assert!(layouts[2].mu <= mu, "the count tree is the shortest");
-    let widest = blocks.iter().flat_map(|b| b.iter()).map(|b| b.coords.len()).max();
-    assert!(
-        widest.unwrap_or(0) <= 1 << BUS_BITS,
+    debug_assert!(
+        blocks
+            .iter()
+            .flat_map(|b| b.iter())
+            .all(|b| b.coords.len() <= 1 << BUS_BITS),
         "a tuple's coordinates index its slots"
     );
 
@@ -160,14 +161,17 @@ pub(crate) fn prove_balance(
     // tree's depth, at which `ζ` splits.
     let mut count_alpha = vec![F128::ZERO; 1 << BUS_BITS];
     count_alpha[0] = F128::ONE;
-    let fingerprints = [(&alpha, beta), (&alpha, beta), (&count_alpha, F128::ZERO)];
+    let mut fingerprints = [(alpha.clone(), beta), (alpha, beta), (count_alpha, F128::ZERO)].into_iter();
     layouts[2].mu = mu;
     let mut layouts = layouts.into_iter();
-    let trees: [Tree; N_BUS_TREES] = std::array::from_fn(|s| Tree {
-        blocks: blocks[s],
-        layout: layouts.next().unwrap(),
-        alpha: fingerprints[s].0,
-        beta: fingerprints[s].1,
+    let trees: [Tree; N_BUS_TREES] = std::array::from_fn(|s| {
+        let (alpha, beta) = fingerprints.next().unwrap();
+        Tree {
+            blocks: blocks[s],
+            layout: layouts.next().unwrap(),
+            alpha,
+            beta,
+        }
     });
 
     // The committed columns, then the public ones.
@@ -176,18 +180,41 @@ pub(crate) fn prove_balance(
     let (zeta, _) = gkr::prove_products(leaves, ps);
 
     let mut claims = Vec::new();
-    let mut forms: [Vec<Form>; N_BUS_TREES] =
-        std::array::from_fn(|_| TABLE_WIDTHS.iter().map(|&width| Form::new(width)).collect());
-    {
-        for (tree, forms) in trees.iter().zip(&mut forms) {
-            decompose(tree, cols, &zeta, forms, &mut claims, ps);
-        }
-        prove_bytecode_share(blocks[0], &public, &zeta, &alpha, ps);
-    };
+    for tree in &trees {
+        claim_boundary(tree, cols, &zeta, &mut claims, ps);
+    }
+    prove_bytecode_share(&public, &zeta, &trees[0].alpha, ps);
     BusProof {
         claims,
         point: zeta,
-        forms,
+        trees,
+    }
+}
+
+impl BusProof<'_> {
+    /// Add `Σ_s weights[s]·B^s_j` to each table's form, `airs[j]`'s (eq:gkr_leaves): its blocks' leaves at `ζ`, each
+    /// block's share weighted by `eq(ζ_hi, ·)` at its index among the blocks of its height.
+    pub(crate) fn add_forms(&self, weights: [F128; N_BUS_TREES], airs: &mut [crate::constraints::Air]) {
+        for (tree, weight) in self.trees.iter().zip(weights) {
+            for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
+                let Some(t) = block.owner else { continue };
+                let sel = offset >> block.kappa;
+                let eq_sel = (self.point[block.kappa..].iter().enumerate()).fold(weight, |acc, (k, &z)| {
+                    crate::mul(acc, if (sel >> k) & 1 == 1 { z } else { F128::ONE + z })
+                });
+                let f = Formula::new(block, offset, &tree.alpha, tree.beta, 0);
+                let (form, base) = (&mut airs[t].form, GLOBAL_COLUMN_BASES[t]);
+                form.constant += crate::mul(eq_sel, f.constant);
+                for (term, w) in f.terms {
+                    let w = crate::mul(eq_sel, w);
+                    match term {
+                        Term::Col(i) => form.coeffs[i - base] += w,
+                        Term::Prod(i, j) => form.prods.push((i - base, j - base, w)),
+                        Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -307,7 +334,7 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
     for kappa in (0..=largest).rev() {
         for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
             if block.kappa == kappa {
-                formulas.push(Formula::new(block, offset, tree.alpha, tree.beta, public));
+                formulas.push(Formula::new(block, offset, &tree.alpha, tree.beta, public));
             }
         }
     }
@@ -340,43 +367,13 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones
     (leaves, ones)
 }
 
-/// Split a tree's leaf claim by block (eq:gkr_leaves). A table's blocks accumulate into its form, `forms[t]`; a
-/// boundary block's committed columns are claimed at `ζ_{<κ}`, each value not already in `claims` sent and recorded,
-/// in coordinate order. The rest of the claim is public, and the verifier derives the forms' share from it.
-fn decompose(
-    tree: &Tree,
-    cols: &[&[F64]],
-    zeta: &[F128],
-    forms: &mut [Form],
-    claims: &mut Vec<ColumnClaim>,
-    ps: &mut ProverState,
-) {
-    let (alpha, beta) = (tree.alpha, tree.beta);
+/// A tree's boundary blocks' share of its leaf claim (eq:gkr_leaves): their committed columns are claimed at `ζ_{<κ}`,
+/// each value not already in `claims` sent and recorded, in coordinate order. The rest of the claim is public or the
+/// tables' ([`BusProof::add_forms`]), and the verifier derives the forms' share from it.
+fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<ColumnClaim>, ps: &mut ProverState) {
     assert_eq!(zeta.len(), tree.layout.mu);
-    for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
-        let (zeta_lo, zeta_hi) = zeta.split_at(block.kappa);
-        if let Some(t) = block.owner {
-            // `eq(ζ_hi, ·)` at the block's index among the blocks of its height.
-            let sel = offset >> block.kappa;
-            let eq_sel: F128 = (zeta_hi.iter().enumerate())
-                .map(|(k, &z)| if (sel >> k) & 1 == 1 { z } else { F128::ONE + z })
-                .product();
-            let (form, base) = (&mut forms[t], GLOBAL_COLUMN_BASES[t]);
-            form.constant += eq_sel * beta;
-            let mut terms = Vec::new();
-            for (c, &w) in block.coords.iter().zip(alpha) {
-                Formula::add(c, eq_sel * w, 0, &mut terms, &mut form.constant);
-            }
-            for (term, w) in terms {
-                match term {
-                    Term::Col(i) => form.coeffs[i - base] += w,
-                    Term::Prod(i, j) => form.prods.push((i - base, j - base, w)),
-                    Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
-                }
-            }
-            continue;
-        }
-
+    for block in tree.blocks.iter().filter(|b| b.owner.is_none()) {
+        let zeta_lo = &zeta[..block.kappa];
         // The block's columns not yet claimed at `ζ_lo`, in coordinate order, at `ζ_lo` in one pass.
         let mut fresh: Vec<usize> = Vec::new();
         for c in &block.coords {
@@ -402,31 +399,15 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> bool {
     claims.iter().any(|c| c.col == col && c.point == point)
 }
 
-/// A block's public columns, in coordinate order.
-fn public_columns<'a>(block: &Block, public: &[&'a [F64]]) -> impl Iterator<Item = &'a [F64]> {
-    block.coords.iter().filter_map(|c| match c {
-        Coord::Public(s) => Some(public[*s]),
-        _ => None,
-    })
-}
-
 /// The program's share of a bytecode leaf, `S = Σ_x α_x·P(ζ_lo, x)` over the slots `x` of the stacked bytecode `P`
 /// (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a sumcheck of [`BUS_BITS`] degree-two rounds
 /// over `x`, the low bit bound first, ending at `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier
 /// checks against the last round.
-fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
-    let block = (push.iter())
-        .find(|block| block.coords.iter().any(|c| matches!(c, Coord::Public(_))))
-        .expect("the push side seeds the bytecode");
-    let zeta_lo = &zeta[..block.kappa];
-    let columns: Vec<&[F64]> = public_columns(block, public).collect();
-    let mut evals = crate::eq::eq_sums(zeta_lo, &columns).into_iter();
-    let slots: Vec<F128> = (0..1 << BUS_BITS)
-        .map(|x| match block.coords.get(x) {
-            Some(Coord::Public(_)) => evals.next().unwrap(),
-            _ => F128::ZERO,
-        })
-        .collect();
+///
+/// The bytecode block carries slot `x` of `P` as its coordinate `x` ([`Coord::Public`]), from the opcode's slot on;
+/// the slots before it, its tag, pc and count, are zero in `P`, so `P(ζ_lo, x)` is the slot's share at every `x`.
+fn prove_bytecode_share(public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
+    let slots = crate::eq::eq_sums(&zeta[..crate::log2_strict_usize(public[0].len())], public);
     ps.add_scalar(primitives::field::dot(alpha, &slots));
     let (_, slots, _) = product_sumcheck(ps, alpha.to_vec(), slots, 1, F128::ONE);
     ps.add_scalar(slots[0]);
@@ -457,7 +438,7 @@ mod tests {
         let mut leaves = vec![F128::ONE; len];
         for (b, blk) in tree.blocks.iter().enumerate() {
             for z in 0..blk.rows {
-                leaves[tree.layout.offsets[b] + z] = (blk.coords.iter().zip(tree.alpha))
+                leaves[tree.layout.offsets[b] + z] = (blk.coords.iter().zip(&tree.alpha))
                     .fold(tree.beta, |acc, (c, &wi)| {
                         acc + wi.mul_base(coord_value(c, cols, public, z))
                     });
@@ -512,7 +493,7 @@ mod tests {
             let tree = Tree {
                 blocks,
                 layout: layout(blocks),
-                alpha: &alpha,
+                alpha: alpha.clone(),
                 beta,
             };
             let columns: Vec<&[F64]> = cols.iter().chain(&public).copied().collect();

@@ -132,7 +132,9 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
     // then sit `k·target` off, and only `claim + u` reaches a sent coefficient (the linear one is not sent), so the
     // offset cancels. A joining table's `σ` leaves `u`.
     let (mut claim, mut u) = (F128::ZERO, F128::ZERO);
-    for m in (0..n).rev() {
+    let mut m = n;
+    while m > 0 {
+        m -= 1;
         // The joined tables' `p(Y)`: an endpoint and its quadratic coefficient.
         let mut p = [F128::ZERO; 2];
         for t in tables.iter_mut().filter(|t| t.tau > m) {

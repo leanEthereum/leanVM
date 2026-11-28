@@ -90,34 +90,19 @@ fn airs<'a>(
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, base + verifier::N_BUS_TREES);
     let mut offset = 0;
-    (tables::tables().into_iter().enumerate())
-        .map(|(t, table)| {
-            let n = table.n_constraints();
-            let mut form = table.constraint(&pows[offset..][..n]);
+    let mut airs: Vec<constraints::Air> = (tables::tables().into_iter())
+        .map(|table| {
+            let (t, n) = (table as usize, table.n_constraints());
             offset += n;
-            for s in 0..verifier::N_BUS_TREES {
-                add_scaled(&mut form, &bus.forms[s][t], pows[base + s]);
-            }
             constraints::Air {
                 tau: taus[t],
                 cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
-                form,
+                form: table.constraint(&pows[offset - n..offset]),
             }
         })
-        .collect()
-}
-
-/// `out += w·f`, over the same columns, `f`'s products listed after `out`'s.
-#[inline(never)]
-fn add_scaled(out: &mut constraints::Form, f: &constraints::Form, w: F128) {
-    assert_eq!(out.coeffs.len(), f.coeffs.len(), "forms over the same columns");
-    for (slot, &c) in out.coeffs.iter_mut().zip(&f.coeffs) {
-        *slot += crate::mul(c, w);
-    }
-    out.constant += crate::mul(f.constant, w);
-    for &(a, b, q) in &f.prods {
-        out.prods.push((a, b, crate::mul(q, w)));
-    }
+        .collect();
+    bus.add_forms(std::array::from_fn(|s| pows[base + s]), &mut airs);
+    airs
 }
 
 /// Where the bus forms' `ξ`-powers start: after every table's identities, one power per tree, shared by every table.
