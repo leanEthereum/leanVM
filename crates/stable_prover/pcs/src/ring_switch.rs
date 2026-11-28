@@ -51,23 +51,22 @@ pub(crate) fn coordinate_weights(challenges: &[F128; MAP_CHALLENGES]) -> [F128; 
     std::array::from_fn(|w| apply_map(F128::from(1u128 << w), challenges))
 }
 
-/// `Phi(value)` of [`coordinate_weights`], stage by stage.
+/// `Phi(value)` of [`coordinate_weights`], stage by stage: `Psi` from the `g_b` on `value`'s Frobenius powers, then
+/// `Phi` from the `f_p` on `Psi`'s powers `2^(8p)`.
 fn apply_map(value: F128, challenges: &[F128; MAP_CHALLENGES]) -> F128 {
     let (f, g) = challenges.split_at(MAP_CHALLENGES / 2);
-    let mut frobenius = value;
-    let mut psi = F128::ZERO;
-    for &g_b in g {
-        psi += g_b * frobenius;
-        frobenius = frobenius.square();
-    }
-    let mut phi = F128::ZERO;
-    for &f_p in f {
-        phi += f_p * psi;
-        for _ in 0..8 {
-            psi = psi.square();
+    let mut base = value;
+    for (coefs, squarings) in [(g, 1), (f, 8)] {
+        let mut acc = F128::ZERO;
+        for &c in coefs {
+            acc += c * base;
+            for _ in 0..squarings {
+                base = base.square();
+            }
         }
+        base = acc;
     }
-    phi
+    base
 }
 
 /// The rectangular tensor-algebra transpose: the row view `s_hat_v` of a `K (x) E` element, 64 `E` elements, to its
@@ -85,24 +84,15 @@ pub(crate) fn transpose_s_hat(s_hat_v: &[F128; 64]) -> [F64; DEGREE_E] {
     s_hat_u
 }
 
-/// A ring claim's weight `Phi(eq(point, y))` over its suffix domain, `Phi` an F_2-linear map given by its images of
-/// the coordinate basis, the claim's batching scalar included.
-pub(crate) struct RingWeight {
-    pub(crate) phi: [F128; DEGREE_E],
-    pub(crate) point: Vec<F128>,
-}
-
-impl RingWeight {
-    /// `Phi(value)`.
-    pub(crate) fn apply(&self, value: F128) -> F128 {
-        let mut bits = u128::from(value);
-        let mut acc = F128::ZERO;
-        while bits != 0 {
-            acc += self.phi[bits.trailing_zeros() as usize];
-            bits &= bits - 1;
-        }
-        acc
+/// `Phi(value)` for the F_2-linear map `Phi` given by its images `phi` of the coordinate basis.
+pub(crate) fn apply(phi: &[F128; DEGREE_E], value: F128) -> F128 {
+    let mut bits = u128::from(value);
+    let mut acc = F128::ZERO;
+    while bits != 0 {
+        acc += phi[bits.trailing_zeros() as usize];
+        bits &= bits - 1;
     }
+    acc
 }
 
 /// `Phi(eq(point, y))` ready to be written out: `eq` as a low and a high table, `Phi` as a bit fold of the products.
@@ -172,15 +162,9 @@ mod tests {
     fn ring_fold_writes_phi_of_eq() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
         for vars in [0, 3, 10] {
-            let weight = RingWeight {
-                phi: std::array::from_fn(|_| rng.ext()),
-                point: rng.ext_vec(vars),
-            };
-            let want: Vec<F128> = eq_table_serial(&weight.point)
-                .iter()
-                .map(|&e| weight.apply(e))
-                .collect();
-            let fold = RingFold::new(weight.phi, &weight.point);
+            let (phi, point) = (std::array::from_fn(|_| rng.ext()), rng.ext_vec(vars));
+            let want: Vec<F128> = eq_table_serial(&point).iter().map(|&e| apply(&phi, e)).collect();
+            let fold = RingFold::new(phi, &point);
             for start in [0, want.len() / 3] {
                 let mut got = vec![F128::ZERO; want.len() - start];
                 fold.add_chunk(start, &mut got);

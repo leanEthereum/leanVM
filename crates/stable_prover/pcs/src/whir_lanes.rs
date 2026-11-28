@@ -15,7 +15,7 @@
 //! The stack's absent lanes are zero, so they take no projection, but `A` keeps a row for every lane: a claim's
 //! weight may reach past the committed lanes. A lane without a partner folds against zero.
 
-use primitives::field::{F64, F64x8, F128, F128x8, dot};
+use primitives::field::{F64, F64x8, F128, F128x8, axpy, dot};
 use primitives::multilinear::fold;
 
 use crate::stack_open::{LOW_VARS, Terms};
@@ -216,9 +216,13 @@ impl FoldRounds for LaneRounds {
             }
             Lanes::Folded(lanes) => {
                 let rows = self.terms.project(n_pairs, 2, &Sequences::FoldedXf(lanes));
-                self.pxf = (0..nt * n_pairs)
-                    .map(|i| rows[i / nt * 2 * nt + i % nt] + F128::Y * rows[i / nt * 2 * nt + nt + i % nt])
-                    .collect();
+                self.pxf = Vec::with_capacity(nt * n_pairs);
+                for limbs in rows.chunks_exact(2 * nt) {
+                    let (lo, hi) = limbs.split_at(nt);
+                    let at = self.pxf.len();
+                    self.pxf.extend_from_slice(lo);
+                    axpy(&mut self.pxf[at..], F128::Y, hi);
+                }
             }
         }
 
@@ -243,15 +247,16 @@ impl FoldRounds for LaneRounds {
     fn fold(&mut self, ch: &FoldChallenges) {
         let (nt, n_pairs) = (self.terms.n_terms(), self.lanes.count().div_ceil(2));
         let FoldChallenges { alpha, beta } = *ch;
-        let p = &self.p;
         self.a = fold(&self.a, nt, alpha);
-        self.p = (0..n_pairs * nt)
-            .map(|i| {
-                let (m, t) = (i / nt, i % nt);
-                let at = |l: usize| p.get(l * nt + t).copied().unwrap_or(F128::ZERO);
-                at(2 * m + 1) + alpha * at(2 * m) + beta * self.pxf[i]
-            })
-            .collect();
+        let mut p = Vec::with_capacity(n_pairs * nt);
+        for m in 0..n_pairs {
+            let at = p.len();
+            p.extend_from_slice(row(&self.p, nt, 2 * m + 1));
+            p.resize(at + nt, F128::ZERO);
+            axpy(&mut p[at..], alpha, row(&self.p, nt, 2 * m));
+            axpy(&mut p[at..], beta, row(&self.pxf, nt, m));
+        }
+        self.p = p;
         self.lanes = Lanes::Folded(self.lanes.fold(ch));
     }
 }

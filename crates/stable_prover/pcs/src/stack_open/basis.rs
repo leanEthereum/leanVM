@@ -22,8 +22,8 @@ use primitives::bit_fold::BitFold;
 use primitives::field::lanes::transpose_bits;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
-use super::StackClaim;
-use crate::ring_switch::{DEGREE_E, RingFold, RingWeight, transpose_s_hat};
+use super::{RingSwitchOpen, StackClaim};
+use crate::ring_switch::{self, DEGREE_E, RingFold, transpose_s_hat};
 use crate::whir_lanes::Sequences;
 
 /// Bits of a block's low part: a block is the 64 bit rows a ring claim folds at once.
@@ -205,54 +205,64 @@ impl Terms {
     }
 }
 
+/// A ring's part of a [`Projection`]: its fold of the run's block once one is needed, its `e_hi` summed over the run
+/// of equal blocks, and its folds weighted by those sums.
+#[derive(Clone)]
+struct RingRun {
+    fold: Option<[F128x8; LANES]>,
+    mass: F128,
+    sigma: [Acc8; LANES],
+}
+
 /// One sequence's projections over a range of blocks.
 struct Projection<'a> {
     terms: &'a Terms,
     blocks: Range<usize>,
-    /// The block before, and its dot with each pattern and fold by each ring once one is needed: an equal block
-    /// shares them.
+    /// The block before: an equal block shares its dots and folds.
     last: Option<[F64; BLOCK]>,
-    dots: Vec<Option<F128>>,
-    folds: Vec<Option<[F128x8; LANES]>>,
     /// Each pattern's dot with every block of the range.
     q: Vec<F128>,
-    /// Each ring's `e_hi` summed over the run of equal blocks, and its folds weighted by those sums.
-    masses: Vec<F128>,
-    sigmas: Vec<[Acc8; LANES]>,
+    rings: Vec<RingRun>,
 }
 
 impl<'a> Projection<'a> {
     fn new(terms: &'a Terms, blocks: Range<usize>) -> Self {
-        let (n_patterns, n_rings) = (terms.patterns.len(), terms.rings.len());
+        let run = RingRun {
+            fold: None,
+            mass: F128::ZERO,
+            sigma: [Acc8::ZERO; LANES],
+        };
         Self {
             terms,
             last: None,
-            dots: vec![None; n_patterns],
-            folds: vec![None; n_rings],
-            q: vec![F128::ZERO; n_patterns * blocks.len()],
-            masses: vec![F128::ZERO; n_rings],
-            sigmas: vec![[Acc8::ZERO; LANES]; n_rings],
+            q: vec![F128::ZERO; terms.patterns.len() * blocks.len()],
+            rings: vec![run; terms.rings.len()],
             blocks,
         }
     }
 
     fn feed(&mut self, h: usize, words: &[F64; BLOCK]) {
-        if self.last.as_ref() != Some(words) {
+        let same = self.last.as_ref() == Some(words);
+        if !same {
             self.end_run();
             self.last = Some(*words);
-            self.dots.fill(None);
         }
         let terms = self.terms;
         for (p, pattern) in terms.patterns.iter().enumerate() {
             if pattern.active[h] {
-                let dot = *self.dots[p].get_or_insert_with(|| dot_block(&pattern.pi, words));
-                self.q[p * self.blocks.len() + h - self.blocks.start] = dot;
+                let i = p * self.blocks.len() + h - self.blocks.start;
+                // Block `h - 1` was fed just before.
+                self.q[i] = if same && pattern.active[h - 1] {
+                    self.q[i - 1]
+                } else {
+                    dot_block(&pattern.pi, words)
+                };
             }
         }
-        for (r, ring) in terms.rings.iter().enumerate() {
+        for (run, ring) in self.rings.iter_mut().zip(&terms.rings) {
             if ring.e_hi[h] != F128::ZERO {
-                self.masses[r] += ring.e_hi[h];
-                self.folds[r].get_or_insert_with(|| ring.fold(words));
+                run.mass += ring.e_hi[h];
+                run.fold.get_or_insert_with(|| ring.fold(words));
             }
         }
     }
@@ -260,14 +270,14 @@ impl<'a> Projection<'a> {
     /// Adds each ring's fold of the run, weighted by its mass, to its sum.
     #[inline(never)]
     fn end_run(&mut self) {
-        for ((fold, mass), sigma) in self.folds.iter_mut().zip(&mut self.masses).zip(&mut self.sigmas) {
-            if let Some(fold) = fold {
-                let mass = F128x8::splat(*mass);
-                for (s, f) in sigma.iter_mut().zip(fold) {
+        for run in &mut self.rings {
+            if let Some(fold) = run.fold.take() {
+                let mass = F128x8::splat(run.mass);
+                for (s, f) in run.sigma.iter_mut().zip(fold) {
                     *s += f.mul_unreduced(mass);
                 }
             }
-            (*fold, *mass) = (None, F128::ZERO);
+            run.mass = F128::ZERO;
         }
     }
 
@@ -290,8 +300,8 @@ impl<'a> Projection<'a> {
             }
         }
         // A ring's 128 terms are the transpose of its 64 bit slices.
-        for (ring, sigma) in terms.rings.iter().zip(&self.sigmas) {
-            let slices: [[F128; 8]; LANES] = sigma.map(|s| s.reduce().to_array());
+        for (ring, run) in terms.rings.iter().zip(&self.rings) {
+            let slices: [[F128; 8]; LANES] = run.sigma.map(|s| s.reduce().to_array());
             let slices = slices.as_flattened().try_into().expect("a block");
             for (term, k) in row[ring.first..].iter_mut().zip(transpose_s_hat(slices)) {
                 *term = F128::from(k);
@@ -302,23 +312,24 @@ impl<'a> Projection<'a> {
 }
 
 /// The opening's weight as terms, and its table `A`: a row of [`Terms::n_terms`] for each of the
-/// `2^(log_n - lane_vars)` lanes.
+/// `2^(log_n - lane_vars)` lanes. `lambdas` are the ring claims' batching scalars, then the point claims', and `phi`
+/// the ring switch's map by its images of the coordinate basis.
 ///
-/// `lane_vars` must be at least [`LOW_VARS`], and every claim must lie inside `2^log_n` words. The ring claims lie at
-/// `ring_offset`.
+/// `lane_vars` must be at least [`LOW_VARS`], and every claim must lie inside `2^log_n` words.
 pub(super) fn initial_basis(
     log_n: usize,
     lane_vars: usize,
-    claims: &[StackClaim],
+    claims: &[&StackClaim],
     lambdas: &[F128],
-    ring_offset: usize,
-    rings: &[RingWeight],
+    ring: &RingSwitchOpen,
+    phi: &[F128; DEGREE_E],
 ) -> (Terms, Vec<F128>) {
+    let (ring_lambdas, lambdas) = lambdas.split_at(ring.points.len());
     assert_eq!(claims.len(), lambdas.len());
     assert!(lane_vars >= LOW_VARS, "a lane block holds at least one block");
     let factors: Vec<Vec<Factor>> = claims
         .iter()
-        .map(|StackClaim { offset, low_point }| point_factors(low_point, *offset, log_n))
+        .map(|&StackClaim { offset, low_point }| point_factors(low_point, *offset, log_n))
         .collect();
     let mut terms = Terms {
         lane_vars,
@@ -353,28 +364,28 @@ pub(super) fn initial_basis(
         }
     }
     // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
-    let n_terms = claims.len() + DEGREE_E * rings.len();
+    let n_terms = claims.len() + DEGREE_E * ring.points.len();
     let mut a = vec![F128::ZERO; n_terms << (log_n - lane_vars)];
     for (c, (factors, &lambda)) in factors.iter().zip(lambdas).enumerate() {
         for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
             a[l * n_terms + c] = lambda * lane;
         }
     }
-    for (i, weight) in rings.iter().enumerate() {
-        let factors = point_factors(&weight.point, ring_offset, log_n);
+    for (i, (point, &lambda)) in ring.points.iter().zip(ring_lambdas).enumerate() {
+        let factors = point_factors(point, ring.offset, log_n);
         let first = claims.len() + DEGREE_E * i;
         for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
             if lane != F128::ZERO {
                 for (w, term) in a[l * n_terms + first..][..DEGREE_E].iter_mut().enumerate() {
-                    *term = weight.apply(F128::from(1u128 << w) * lane);
+                    *term = lambda * ring_switch::apply(phi, F128::from(1u128 << w) * lane);
                 }
             }
         }
         terms.rings.push(Ring {
             fold: BitFold::new(&table(&factors[..LOW_VARS])),
             e_hi: table(&factors[LOW_VARS..lane_vars]),
-            point: weight.point.clone(),
-            x_offset: ring_offset & ((1 << lane_vars) - 1),
+            point: point.clone(),
+            x_offset: ring.offset & ((1 << lane_vars) - 1),
             first,
         });
     }

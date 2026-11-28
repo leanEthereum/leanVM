@@ -19,7 +19,7 @@ use primitives::field::{F64, F128, powers};
 use primitives::multilinear::mle_eval_par;
 use primitives::transcript::ProverState;
 
-use crate::ring_switch::{self, RingWeight};
+use crate::ring_switch;
 use crate::whir::{self, ProverData};
 use crate::whir_lanes::LaneRounds;
 use verifier::{BATCH_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MAX_STACKED_CLAIMS, OOD_GRINDING_BITS};
@@ -102,7 +102,7 @@ pub fn open(
     } = committed;
     let config = verifier::derive_config(log_n, log_inv_rate)
         .unwrap_or_else(|e| panic!("whir config for log_n={log_n}, log_inv_rate={log_inv_rate}: {e}"));
-    let point_claims = [point_claims, &[ood]].concat();
+    let point_claims: Vec<&StackClaim> = point_claims.iter().chain([&ood]).collect();
     let qkeccak = 1usize << ring.qkeccak_vars();
     assert!(ring.offset.is_multiple_of(qkeccak), "q_keccak is aligned");
     assert!(ring.offset + qkeccak <= stack.len(), "q_keccak lies inside the stack");
@@ -110,7 +110,7 @@ pub fn open(
         ring.points.iter().all(|point| point.len() == ring.qkeccak_vars()),
         "every ring claim is on q_keccak"
     );
-    for StackClaim { offset, low_point } in &point_claims {
+    for &StackClaim { offset, low_point } in &point_claims {
         assert!(
             offset + (1 << low_point.len()) <= 1 << log_n,
             "every claim lies inside the stack"
@@ -121,19 +121,9 @@ pub fn open(
     ps.grind(BATCH_GRINDING_BITS);
     let phi = ring_switch::coordinate_weights(&std::array::from_fn(|_| ps.sample()));
     let lambdas = powers(ps.sample(), ring.points.len() + point_claims.len());
-    let (ring_lambdas, point_lambdas) = lambdas.split_at(ring.points.len());
-    let rings: Vec<RingWeight> = ring
-        .points
-        .iter()
-        .zip(ring_lambdas)
-        .map(|(point, &lambda)| RingWeight {
-            phi: phi.map(|w| lambda * w),
-            point: point.clone(),
-        })
-        .collect();
 
     let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
-    let (terms, a) = basis::initial_basis(log_n, lane_vars, &point_claims, point_lambdas, ring.offset, &rings);
+    let (terms, a) = basis::initial_basis(log_n, lane_vars, &point_claims, &lambdas, ring, &phi);
     whir::open(ps, &config, LaneRounds::new(stack, terms, a), prover_data);
 }
 
@@ -197,12 +187,11 @@ mod tests {
                 if offset + qkeccak_len > stack.len() {
                     continue;
                 }
-                let rings: Vec<RingWeight> = (0..2)
-                    .map(|_| RingWeight {
-                        phi: std::array::from_fn(|_| rng.ext()),
-                        point: rng.ext_vec(qkeccak_vars),
-                    })
-                    .collect();
+                let ring = RingSwitchOpen {
+                    offset,
+                    points: (0..2).map(|_| rng.ext_vec(qkeccak_vars)).collect(),
+                };
+                let phi = std::array::from_fn(|_| rng.ext());
                 let last_lane = (lanes_count - 1) * lane_block;
                 let shared = rng.ext_vec(lane_vars);
                 // Two claims on one low point at separated offsets: a pattern active on some blocks only.
@@ -235,14 +224,16 @@ mod tests {
                         low_point: point.unwrap_or_else(|| rng.ext_vec(vars)),
                     })
                     .collect();
-                let lambdas = rng.ext_vec(claims.len());
+                // The ring claims' scalars, then the point claims'.
+                let lambdas = rng.ext_vec(ring.points.len() + claims.len());
 
                 // Oracle: the dense weight written out naively, one eq entry at a time.
                 let mut dense = vec![F128::ZERO; lane_block << LANE_ROUNDS];
-                for ring in &rings {
-                    RingFold::new(ring.phi, &ring.point).add_chunk(0, &mut dense[offset..offset + qkeccak_len]);
+                for (point, &lambda) in ring.points.iter().zip(&lambdas) {
+                    let phi = phi.map(|w: F128| lambda * w);
+                    RingFold::new(phi, point).add_chunk(0, &mut dense[offset..offset + qkeccak_len]);
                 }
-                for (claim, &lambda) in claims.iter().zip(&lambdas) {
+                for (claim, &lambda) in claims.iter().zip(&lambdas[ring.points.len()..]) {
                     let StackClaim { offset, low_point } = claim;
                     for j in 0..1usize << low_point.len() {
                         let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
@@ -252,8 +243,9 @@ mod tests {
                     }
                 }
 
+                let claim_refs: Vec<&StackClaim> = claims.iter().collect();
                 let (terms, a) =
-                    basis::initial_basis(lane_vars + LANE_ROUNDS, lane_vars, &claims, &lambdas, offset, &rings);
+                    basis::initial_basis(lane_vars + LANE_ROUNDS, lane_vars, &claim_refs, &lambdas, &ring, &phi);
                 let mut lanes = LaneRounds::new(stack.clone(), terms, a);
                 let context =
                     format!("lane_vars={lane_vars}, lanes={lanes_count}, qkeccak_vars={qkeccak_vars}, offset={offset}");
