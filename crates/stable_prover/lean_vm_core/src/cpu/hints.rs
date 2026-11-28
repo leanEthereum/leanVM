@@ -32,7 +32,7 @@ pub struct GPow {
 }
 
 /// A map from 64-bit keys to `u32` for the interpreter's hot lookups, by field element or cell: open addressing with
-/// linear probing, never deleting. The keys are not chosen by an adversary.
+/// linear probing, never deleting or overwriting. The keys are not chosen by an adversary.
 #[derive(Default)]
 pub(crate) struct WordMap {
     slots: Vec<Option<(u64, u32)>>,
@@ -61,9 +61,9 @@ impl WordMap {
         self.slots[self.slot(key)].map(|(_, v)| v)
     }
 
-    /// The slot for `key`, with room for one more entry: empty if `key` is new.
+    /// The value at `key`, `value` put there first if there is none.
     #[inline(never)]
-    fn entry(&mut self, key: u64) -> &mut Option<(u64, u32)> {
+    pub(crate) fn get_or_insert(&mut self, key: u64, value: u32) -> u32 {
         if 2 * (self.len + 1) > self.slots.len() {
             // At most half full: double, and put every entry back.
             let size = (2 * self.slots.len()).max(16);
@@ -74,23 +74,10 @@ impl WordMap {
             }
         }
         let i = self.slot(key);
-        &mut self.slots[i]
-    }
-
-    pub(crate) fn insert(&mut self, key: u64, value: u32) {
-        let slot = self.entry(key);
-        let new = slot.is_none();
-        *slot = Some((key, value));
-        self.len += usize::from(new);
-    }
-
-    /// The value at `key`, `value` put there first if there is none.
-    pub(crate) fn get_or_insert(&mut self, key: u64, value: u32) -> u32 {
-        let slot = self.entry(key);
-        match *slot {
+        match self.slots[i] {
             Some((_, v)) => v,
             None => {
-                *slot = Some((key, value));
+                self.slots[i] = Some((key, value));
                 self.len += 1;
                 value
             }
@@ -109,7 +96,7 @@ impl GPow {
             index: WordMap::default(),
             coarse: WordMap::default(),
         };
-        g.coarse.insert(F64::ONE.0, 0);
+        g.coarse.get_or_insert(F64::ONE.0, 0);
         g.grow_to(upto);
         g
     }
@@ -137,7 +124,7 @@ impl GPow {
             let p = mul_by_g(self.pow[k - 1]);
             self.pow[k] = p;
             if k.is_multiple_of(STRIDE) {
-                self.coarse.insert(p.0, k as u32);
+                self.coarse.get_or_insert(p.0, k as u32);
             }
         }
     }
@@ -146,7 +133,7 @@ impl GPow {
     /// is about to store it in memory as an address. Covers `k` first.
     pub fn note(&mut self, k: usize) {
         self.grow_to(k);
-        self.index.insert(self.pow[k].0, k as u32);
+        self.index.get_or_insert(self.pow[k].0, k as u32);
     }
 
     /// The discrete log of `x`, if it is a g-power below `MAX_CELLS`, covering it.
