@@ -83,12 +83,16 @@ impl FlushBuilder {
         self.pull.push(pull);
     }
 
+    /// `push`, and the pull that differs from it only in coordinate `at`, which it carries as `pulled`.
+    fn pair_but(&mut self, push: Vec<Coord>, at: usize, pulled: Coord) {
+        let mut pull = push.clone();
+        pull[at] = pulled;
+        self.pair(push, pull);
+    }
+
     /// Fall-through state step: the next pc is `g·pc`, fp unchanged.
     pub(crate) fn state_step(&mut self, pc: usize, fp: usize) {
-        self.pair(
-            vec![Const(SEP_STATE), GCol(pc, 1), Col(fp)],
-            vec![Const(SEP_STATE), Col(pc), Col(fp)],
-        );
+        self.pair_but(vec![Const(SEP_STATE), GCol(pc, 1), Col(fp)], 1, Col(pc));
     }
 
     /// Explicit state transition (JUMP): push the next state, which the row
@@ -104,10 +108,8 @@ impl FlushBuilder {
     /// with the per-pc execution count advanced by ×g on the push side.
     pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
         let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
-        let mut pull = vec![Const(SEP_BYTECODE), Col(pc), Col(count), Const(opcode)];
         push.extend_from_slice(operands);
-        pull.extend_from_slice(operands);
-        self.pair(push, pull);
+        self.pair_but(push, 2, Col(count));
     }
 
     /// The shape every memory interaction shares: the word at `addr` carried as
@@ -127,12 +129,9 @@ impl FlushBuilder {
         self.memory_pushing(counter, addr, count, vals);
     }
 
-    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, vals: [Coord; 2]) {
-        let mut push = vec![Const(SEP_MEM), addr.clone(), counter];
-        let mut pull = vec![Const(SEP_MEM), addr, Col(count)];
-        push.extend_from_slice(&vals);
-        pull.extend(vals);
-        self.pair(push, pull);
+    #[inline(never)]
+    fn memory_pushing(&mut self, counter: Coord, addr: Coord, count: usize, [lo, hi]: [Coord; 2]) {
+        self.pair_but(vec![Const(SEP_MEM), addr, counter, lo, hi], 2, Col(count));
     }
 
     /// Memory access: read the two-limb word at `addr`.
