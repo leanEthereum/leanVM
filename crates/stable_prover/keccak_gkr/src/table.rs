@@ -31,7 +31,7 @@ impl Tables {
 /// `B[j] = weights[j] T[j + 1] + constant[j]` and `constant[j] = kappa (weights[j] + weights[j + 2])`.
 pub(crate) struct Summand<'a> {
     weights: &'a [F128],
-    constant: Vec<F128>,
+    constant: [F128; BITS],
 }
 
 impl<'a> Summand<'a> {
@@ -39,7 +39,7 @@ impl<'a> Summand<'a> {
         let w = &claim.weights;
         Self {
             weights: w,
-            constant: (0..BITS).map(|j| mul(kappa, w[j] + w[along(j, 2)])).collect(),
+            constant: std::array::from_fn(|j| mul(kappa, w[j] + w[along(j, 2)])),
         }
     }
 

@@ -102,10 +102,16 @@ const CHI_RUNS: [[usize; 2]; 5] = [[1, 2], [2, 3], [3, 4], [4, 0], [0, 1]];
 /// The summand at every point of `{0, 1, infinity}^SKIP`, by its ternary digits, from the [`COEFFS`] `powers` of
 /// `s`. `tasks` are the tasks' weights in `eq(point[SKIP + 1..])`, and `per_pack` the packs' parts of `U` from the
 /// product pass.
-pub(crate) fn sums(layer: &Layer, claim: &Claim, powers: &[F128], tasks: &[F128], per_pack: &[F128]) -> Vec<F128> {
+pub(crate) fn sums(
+    layer: &Layer,
+    claim: &Claim,
+    powers: &[F128],
+    tasks: &[F128],
+    per_pack: &[F128],
+) -> [F128; TERNARY] {
     let at = AtS::new(powers);
     // Word `k` of each position's weight as a polynomial in `s`, at `words[BITS * k + j]`.
-    let mut words = vec![0; 2 * BITS];
+    let mut words = [0; 2 * BITS];
     for (j, &w) in claim.weights.iter().enumerate() {
         [words[j], words[BITS + j]] = at.poly(w).to_limbs();
     }
@@ -132,10 +138,7 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, powers: &[F128], tasks: &[F128]
             a
         },
     );
-    let mut sums = vec![F128::ZERO; TERNARY];
-    for (sum, mixed) in sums.iter_mut().zip(mixed) {
-        *sum = mixed.reduce();
-    }
+    let mut sums = mixed.map(F128Unreduced::reduce);
     let mut at_s = [F128::ZERO; PACKS];
     for (at_s, p) in at_s.iter_mut().zip(per_pack.as_chunks::<PRODUCT_BITS>().0) {
         *at_s = poly_eval(p, powers[1]);
@@ -183,7 +186,8 @@ fn extend(slots: &mut [Run; SLOTS]) {
 }
 
 /// Send the skip's rounds from the summand at every point they read.
-pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F128>, sumcheck: &mut Sumcheck) {
+pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: [F128; TERNARY], sumcheck: &mut Sumcheck) {
+    let mut len = TERNARY;
     for i in 0..SKIP {
         // The round's values at `0`, `1` and infinity, summed over the later variables' binary points.
         let later = eq_table(&claim.point[i + 1..SKIP]);
@@ -197,12 +201,11 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
         let c = sumcheck.round(ps, zero, Some(one), infinity, claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
         let c2 = mul(c, c + F128::ONE);
-        let len = sums.len() / 3;
+        len /= 3;
         for k in 0..len {
             let v = &sums[3 * k..][..3];
             sums[k] = v[0] + mul(c, v[0] + v[1]) + mul(c2, v[2]);
         }
-        sums.truncate(len);
     }
 }
 

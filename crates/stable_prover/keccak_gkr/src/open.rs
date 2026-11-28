@@ -67,15 +67,9 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
 /// [`BitFold`] of those packs' weights.
 fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let n = shape.n();
-    let eq = eq_table(point);
-    let folds: Vec<BitFold> = eq
-        .chunks(64)
-        .map(|eq| {
-            let mut weights = [F128::ZERO; 64];
-            weights[..eq.len()].copy_from_slice(eq);
-            BitFold::new(&weights)
-        })
-        .collect();
+    let mut eq = eq_table(point);
+    eq.resize(eq.len().next_multiple_of(64), F128::ZERO);
+    let folds: Vec<BitFold> = eq.chunks(64).map(BitFold::new).collect();
     let mut slices = parallel::filled((16 * 64) << shape.slot_log(), F128::ZERO);
     parallel::chunks_mut(&mut slices, 16 * 64, |slot, out| {
         let words = &committed[slot * n..][..n];
@@ -97,8 +91,9 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
 /// segment's but the last: what [`slot_weights`] gives its bit 0.
 pub fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
     slot_weights(shape, claim, 1, shape.segments() - 1)
-        .into_iter()
+        .iter()
         .step_by(64)
+        .copied()
         .collect()
 }
 

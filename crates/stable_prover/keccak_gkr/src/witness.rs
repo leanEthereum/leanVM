@@ -24,6 +24,8 @@ pub struct Shape {
     pub(crate) n_log: usize,
     /// Rounds between two committed states. Divides 24.
     pub(crate) depth: usize,
+    /// `24 / depth`.
+    segments: usize,
 }
 
 impl Shape {
@@ -31,7 +33,11 @@ impl Shape {
         assert!(ROUNDS.is_multiple_of(depth), "depth must divide the round count");
         let n = if n_instances < BLOCK { BLOCK } else { n_instances };
         let n_log = n.next_power_of_two().ilog2() as usize;
-        let shape = Self { n_log, depth };
+        let shape = Self {
+            n_log,
+            depth,
+            segments: ROUNDS / depth,
+        };
         // Every size this crate derives is at most the `2^stack_log` words of the committed
         // block (`slots <= 2^slot_log`), so bounding that one keeps them all from wrapping.
         assert!(
@@ -54,7 +60,7 @@ impl Shape {
         self.n() / BLOCK
     }
     pub const fn segments(&self) -> usize {
-        ROUNDS / self.depth
+        self.segments
     }
     pub const fn seg_log(&self) -> usize {
         self.segments().next_power_of_two().ilog2() as usize
@@ -173,7 +179,7 @@ pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> V
         true => ((ROUNDS + 1) * BLOCK_LEN, ROUNDS),
         false => (STATE_LANES * (ROUNDS / depth) * BLOCK, ROUNDS - depth),
     };
-    let mut out = Vec::with_capacity(len);
+    let (mut out, mut at) = (vec![0u64; len], 0);
     for round in 0..=last {
         if round > 0 {
             linear(state, u, xor);
@@ -194,7 +200,8 @@ pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> V
             }
         }
         if keep {
-            out.extend_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
+            out[at..][..BLOCK_LEN].copy_from_slice(if round == 0 { &*state } else { &*u }.as_flattened());
+            at += BLOCK_LEN;
         } else if round.is_multiple_of(depth) {
             // The lanes of the state a segment starts from, slot after slot.
             for lane in 0..STATE_LANES {
@@ -203,7 +210,8 @@ pub(crate) fn run_block(depth: usize, inputs: Inputs, g: usize, keep: bool) -> V
                         rows[z] = state[64 * lane + z][w];
                     }
                     transpose64(&mut rows);
-                    out.extend_from_slice(&rows);
+                    out[at..][..64].copy_from_slice(&rows);
+                    at += 64;
                 }
             }
         }

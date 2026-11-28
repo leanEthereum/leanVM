@@ -48,7 +48,7 @@ pub fn instance_weights(powers: &[F128]) -> [F128; PACK] {
 /// before `chi`, `t[k] = sum_j eq(local, j) * u[j + k]` batched by `beta`, then moved through the linear map.
 pub fn next_weights(local: &[F128], beta: F128) -> Vec<F128> {
     let eq = eq_table(local);
-    let mut w = vec![F128::ZERO; BITS];
+    let mut w = [F128::ZERO; BITS];
     for (k, b) in [F128::ONE, beta, mul(beta, beta)].into_iter().enumerate() {
         for j in 0..BITS {
             w[along(j, k)] += mul(b, eq[j]);

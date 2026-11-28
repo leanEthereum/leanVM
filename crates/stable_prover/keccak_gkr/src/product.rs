@@ -53,17 +53,24 @@ pub(crate) fn polynomial(layer: &Layer, claim: &Claim, tasks: &[F128]) -> ([F128
             (kept, a)
         },
     );
+    let mut reduced = [F128::ZERO; SUMS];
+    for (out, sum) in reduced.as_chunks_mut::<8>().0.iter_mut().zip(sums) {
+        *out = sum.reduce().to_array();
+    }
     let packs = eq_table(&claim.point[..PACKS_LOG]);
     let mut per_pack = vec![F128::ZERO; PACKS * PRODUCT_BITS];
     let mut total = [F128::ZERO; PRODUCT_BITS];
-    for (i, sum) in sums.into_iter().enumerate() {
-        for (k, sum) in sum.reduce().to_array().into_iter().enumerate() {
-            // Pack `q`'s coefficient `c`, its last byte's spare bit past them.
-            let (q, c) = ((8 * i + k) / (8 * PRODUCT_BYTES), (8 * i + k) % (8 * PRODUCT_BYTES));
-            if c < PRODUCT_BITS {
-                per_pack[PRODUCT_BITS * q + c] = sum;
-                total[c] += mul(packs[q], sum);
-            }
+    // Pack `q`'s coefficients, its last byte's spare bit past them.
+    for (q, (out, sums)) in per_pack
+        .as_chunks_mut::<PRODUCT_BITS>()
+        .0
+        .iter_mut()
+        .zip(reduced.as_chunks::<{ 8 * PRODUCT_BYTES }>().0)
+        .enumerate()
+    {
+        out.copy_from_slice(&sums[..PRODUCT_BITS]);
+        for (total, &sum) in total.iter_mut().zip(out.iter()) {
+            *total += mul(packs[q], sum);
         }
     }
     (total, per_pack)

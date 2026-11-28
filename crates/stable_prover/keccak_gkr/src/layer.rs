@@ -157,18 +157,22 @@ impl Sumcheck {
 /// Step 4: the sumcheck of `sum over j of w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])` over the bit
 /// position, `T` being `folded`, the state at the bound pack and segment. Returns its point and `T`, `T[j + 1]` and
 /// `T[j + 2]` there.
-fn prove_positions(ps: &mut ProverState, weights: &[F128], folded: Vec<F128>, kappa: F128) -> (Vec<F128>, [F128; 3]) {
+fn prove_positions(
+    ps: &mut ProverState,
+    weights: &[F128],
+    folded: Vec<F128>,
+    kappa: F128,
+) -> ([F128; LOCAL_BITS], [F128; 3]) {
     // Per position `j`, four in a row: `w`, then `T`, `T[j + 1]` and `T[j + 2]`, zero past the positions.
     let mut t = vec![F128::ZERO; 4 << LOCAL_BITS];
     for (j, t) in t.as_chunks_mut::<4>().0[..BITS].iter_mut().enumerate() {
         *t = [weights[j], folded[j], folded[along(j, 1)], folded[along(j, 2)]];
     }
-    let mut point = Vec::with_capacity(LOCAL_BITS);
-    for _ in 0..LOCAL_BITS {
+    let mut point = [F128::ZERO; LOCAL_BITS];
+    for challenge in &mut point {
         ps.add_round_poly(&position_round(&t, kappa), false);
-        let challenge = ps.sample();
-        point.push(challenge);
-        t = fold(&t, 4, challenge);
+        *challenge = ps.sample();
+        t = fold(&t, 4, *challenge);
     }
     (point, [t[1], t[2], t[3]])
 }
