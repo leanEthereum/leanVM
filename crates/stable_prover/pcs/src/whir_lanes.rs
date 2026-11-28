@@ -103,6 +103,8 @@ impl Lanes {
     }
 
     /// The lanes `G + alpha F + beta X F`, one coefficient longer, written by the pool eight coefficients at a time.
+    /// Out of line: one copy for both levels' rounds.
+    #[inline(never)]
     pub(crate) fn fold(&self, ch: &FoldChallenges) -> Folded {
         let (alpha, beta) = (F128x8::splat(ch.alpha), F128x8::splat(ch.beta));
         let (n_pairs, len) = (self.count().div_ceil(2), 1 + self.len());

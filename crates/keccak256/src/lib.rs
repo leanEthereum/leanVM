@@ -254,7 +254,8 @@ pub fn zero_prefix_state(n_blocks: usize) -> [u64; STATE_LANES] {
 }
 
 /// [`hash`] continued from a sponge state that has absorbed whole blocks (see [`zero_prefix_state`]): `data` is the
-/// rest of the message.
+/// rest of the message. Out of line: one copy for [`hash`] and the batched hashes' remainder.
+#[inline(never)]
 fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
     let mut state = *state;
     let (blocks, tail) = data.as_chunks::<RATE>();

@@ -106,12 +106,19 @@ impl AdditiveNttF64 {
         assert!(dim <= 63, "standard NTT requires dim <= 63");
         // `s_0(v) = v` and `s_(i+1)(v) = s_i(v) (s_i(v) + s_i(x^i))`; row `i` is scaled so that `s_i(x^i) = 1`, which
         // it leaves out.
-        let mut rows = Vec::with_capacity(dim * (dim + 1) / 2);
-        let mut s: Vec<F64> = (0..dim).map(|j| F64(1 << j)).collect();
-        while let Some((&first, rest)) = s.split_first() {
-            let inv = first.inv();
-            rows.extend(rest.iter().map(|&v| v * inv));
-            s = rest.iter().map(|&v| v * (v + first)).collect();
+        let mut rows = vec![F64::ZERO; dim * dim.saturating_sub(1) / 2];
+        let mut s = [F64::ZERO; 63];
+        for (j, s) in s.iter_mut().enumerate() {
+            *s = F64(1 << j);
+        }
+        let mut at = 0;
+        for i in 0..dim {
+            let (first, inv) = (s[i], s[i].inv());
+            for j in i + 1..dim {
+                rows[at] = s[j] * inv;
+                s[j] *= s[j] + first;
+                at += 1;
+            }
         }
         Self { rows, dim }
     }
