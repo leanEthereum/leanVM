@@ -22,10 +22,11 @@ use primitives::field::{F128, F128Unreduced, clmul8_low, mul};
 use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
-use verifier::keccak::{BITS, PRODUCT_BITS};
+use verifier::keccak::BITS;
 
 use crate::kernels::{PACKS, Run, embed_run, xor};
 use crate::layer::{Layer, Sumcheck};
+use crate::product::PACK_SUMS;
 use crate::protocol::Claim;
 
 /// The rounds the skip proves, and the packs of a group they bind.
@@ -141,7 +142,7 @@ pub(crate) fn sums(
     );
     let mut sums = mixed.map(F128Unreduced::reduce);
     let mut at_s = [F128::ZERO; PACKS];
-    for (at_s, p) in at_s.iter_mut().zip(per_pack.as_chunks::<PRODUCT_BITS>().0) {
+    for (at_s, p) in at_s.iter_mut().zip(per_pack.as_chunks::<PACK_SUMS>().0) {
         *at_s = poly_eval(p, powers[1]);
     }
     for q in 0..GROUP {

@@ -25,11 +25,13 @@ use crate::protocol::Claim;
 const PRODUCT_BYTES: usize = PRODUCT_BITS.div_ceil(8);
 /// A run's product bits: word `PRODUCT_BYTES q + m` holds byte `m` of pack `q`'s products, transposed.
 const RUN_WORDS: usize = PACKS * PRODUCT_BYTES;
-/// A block's sums: per pack, one per bit of a product.
-const SUMS: usize = 8 * RUN_WORDS;
+/// A pack's sums, one per bit of a product's bytes: the coefficients, then a spare bit, always zero.
+pub const PACK_SUMS: usize = 8 * PRODUCT_BYTES;
+/// A block's sums.
+const SUMS: usize = PACKS * PACK_SUMS;
 
 /// `U`, and the 32 packs' parts of it before their weights `eq(point[..5], pack)`, which the skip's binary points
-/// read, pack `q`'s from `PRODUCT_BITS q`. `tasks` are the tasks' weights in `eq(point[5..])`.
+/// read, pack `q`'s from `PACK_SUMS q`. `tasks` are the tasks' weights in `eq(point[5..])`.
 pub(crate) fn polynomial(layer: &Layer, claim: &Claim, tasks: &[F128]) -> ([F128; PRODUCT_BITS], Vec<F128>) {
     let maps: Vec<FieldMap> = claim.weights.as_chunks::<8>().0.iter().map(field_map).collect();
     // Each worker's scratch rides beside its sums, allocated at its first task.
@@ -54,30 +56,21 @@ pub(crate) fn polynomial(layer: &Layer, claim: &Claim, tasks: &[F128]) -> ([F128
             (kept, a)
         },
     );
-    let mut reduced = [F128::ZERO; SUMS];
-    for (out, sum) in reduced.as_chunks_mut::<8>().0.iter_mut().zip(sums) {
+    let mut per_pack = vec![F128::ZERO; SUMS];
+    for (out, sum) in per_pack.as_chunks_mut::<8>().0.iter_mut().zip(sums) {
         *out = sum.reduce().to_array();
     }
     let packs = eq_table(&claim.point[..PACKS_LOG]);
-    let mut per_pack = vec![F128::ZERO; PACKS * PRODUCT_BITS];
     let mut total = [F128::ZERO; PRODUCT_BITS];
-    // Pack `q`'s coefficients, its last byte's spare bit past them.
-    for (q, (out, sums)) in per_pack
-        .as_chunks_mut::<PRODUCT_BITS>()
-        .0
-        .iter_mut()
-        .zip(reduced.as_chunks::<{ 8 * PRODUCT_BYTES }>().0)
-        .enumerate()
-    {
-        out.copy_from_slice(&sums[..PRODUCT_BITS]);
-        for (total, &sum) in total.iter_mut().zip(out.iter()) {
-            *total += mul(packs[q], sum);
+    for (&eq, sums) in packs.iter().zip(per_pack.as_chunks::<PACK_SUMS>().0) {
+        for (total, &sum) in total.iter_mut().zip(sums) {
+            *total += mul(eq, sum);
         }
     }
     (total, per_pack)
 }
 
-/// A block's sums: entry `8 PRODUCT_BYTES q + c` of `out` is the sum over positions `j` of `maps`' weights times
+/// A block's sums: entry `PACK_SUMS q + c` of `out` is the sum over positions `j` of `maps`' weights times
 /// coefficient `c` of `chi(q, j)`. `bits` holds each run's product bits.
 fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], out: &mut [F128; SUMS]) {
     let mut e = [[[0; 8]; PACKS]; 5];
