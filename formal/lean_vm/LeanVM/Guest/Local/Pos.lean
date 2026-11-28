@@ -42,6 +42,9 @@ facts that matter to a certificate:
 * `runsL_loc` (**localization**): a run position inside the subtree of the statement at `t` is run by that
   statement; so a run position in an `ite`'s zero (nonzero) branch has its guard `0` (not `0`), `runs_zero`
   (`runs_nonzero`), and one in arm `i` of a `match` its selector `g^i` (`runs_sel`).
+* `runsL_after`: a run position past a statement's subtree, in its block, follows the statement falling through;
+  `runsL_of_falls`: a block falling through runs its top-level statements (with `falls_ite`, `walkArms_falls`: the
+  arm taken falls through). Together, a fact every falling arm establishes holds after the branch (a join).
 * `runs_arm` (**exclusive arms**): if `y` runs in the arm starting at `a` of the branch at `t`,
   no position strictly between `t` and `a` runs: those are the earlier arms'.
 
@@ -546,6 +549,125 @@ theorem runs_sel {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {x : V} {arms : 
   rcases hs with rfl | hs
   · omega
   · have := runsA_sel i hs h1 h2; rwa [Nat.zero_add] at this
+
+/-! ## Falling through -/
+
+theorem falls_seq {o k : Out} (h : Falls (o.seq k)) : Falls o ∧ Falls k := by
+  obtain ⟨es, h⟩ := h
+  cases o with
+  | fall es1 =>
+    refine ⟨⟨es1, rfl⟩, ?_⟩
+    cases k with
+    | fall es2 => exact ⟨es2, rfl⟩
+    | ret _ _ => cases h
+    | stuck => cases h
+  | ret _ _ => cases h
+  | stuck => cases h
+
+theorem falls_pre {o : Out} {es : List Ev} (h : Falls (o.pre es)) : Falls o := by
+  obtain ⟨es', h⟩ := h
+  cases o with
+  | fall es1 => exact ⟨es1, rfl⟩
+  | ret _ _ => cases h
+  | stuck => cases h
+
+/-- **A block that falls through runs its top-level statements** (those of its own context `c`, whose branch is
+before it). -/
+theorem runsL_of_falls : ∀ {c : Ctx} {p : ℕ} {ss : List Stmt} {q : ℕ} {s : Stmt}, Falls (walk σ ss) →
+    AtL c p ss q s c → c.t < p → RunsL σ p ss q
+  | c, p, s :: ss, _, _, _, .head .., _ => .inl (runsS_self σ p s)
+  | c, p, s :: ss, q, s', _, .inside h, _ => by have := atS_ctx h; omega
+  | c, p, s :: ss, q, s', hf, .tail h, hct => by
+      have hf' := falls_seq hf
+      exact .inr ⟨hf'.1, runsL_of_falls hf'.2 h (by omega)⟩
+
+/-- An `ite` falling through: the branch taken falls through. -/
+theorem falls_ite {x : V} {z n : List Stmt} (h : Falls (walk1 σ (.ite x z n))) :
+    (σ x = 0 → Falls (walk σ z)) ∧ (σ x ≠ 0 → Falls (walk σ n)) := by
+  simp only [walk1] at h
+  have h := falls_pre h
+  exact ⟨fun h0 ↦ by rwa [ite_eq_left h0] at h, fun h0 ↦ by rwa [ite_eq_right h0] at h⟩
+
+/-- Arms falling through: the arm `i` taken, `x = g^(j + i)`, falls through. -/
+theorem walkArms_falls {x : V} : ∀ {j : ℕ} {bs : List (List Stmt)}, Falls (walkArms σ x j bs) →
+    ∃ i b, bs[i]? = some b ∧ σ x = ofK (addressOfIndex (j + i)) ∧ Falls (walk σ b)
+  | _, [], h => by obtain ⟨_, h⟩ := h; cases h
+  | j, b :: bs, h => by
+      unfold walkArms at h
+      split_ifs at h with h0
+      · exact ⟨0, b, rfl, by rwa [Nat.add_zero], h⟩
+      · obtain ⟨i, b', hb, hx, hf⟩ := walkArms_falls h
+        exact ⟨i + 1, b', by simpa using hb, by rw [show j + (i + 1) = j + 1 + i by omega]; exact hx, hf⟩
+
+theorem sizeA_take_succ : ∀ {bs : List (List Stmt)} {i : ℕ} {b : List Stmt}, bs[i]? = some b →
+    sizeA (bs.take (i + 1)) = sizeA (bs.take i) + sizeL b
+  | [], _, _, h => by cases h
+  | b' :: bs, 0, b, h => by simp only [List.getElem?_cons_zero, Option.some.injEq] at h; subst h; simp [sizeA]
+  | b' :: bs, i + 1, b, h => by
+      simp only [List.getElem?_cons_succ] at h
+      simp only [List.take_succ_cons, sizeA, sizeA_take_succ h]; omega
+
+mutual
+/-- **A statement a path runs past falls through**: a run position after the subtree of the statement at `t`, in its
+block, follows the statement falling through. -/
+theorem runsL_after : ∀ {c : Ctx} {p : ℕ} {ss : List Stmt} {t : ℕ} {s : Stmt} {c' : Ctx} {q : ℕ},
+    AtL c p ss t s c' → t + size s ≤ q → q < c'.e → RunsL σ p ss q → Falls (walk1 σ s)
+  | _, p, s :: ss, _, _, _, q, .head .., h1, _, hr => by
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨hf, -⟩
+      · have := runsS_range hr; omega
+      · exact hf
+  | _, p, s :: ss, t, s', c', q, .inside h, h1, h2, hr => by
+      have := atS_ctx h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · exact runsS_after h h1 h2 hr
+      · have := runsL_range hr; omega
+  | _, p, s :: ss, t, s', c', q, .tail h, h1, h2, hr => by
+      have := atL_range h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · have := runsS_range hr; omega
+      · exact runsL_after h h1 h2 hr
+
+theorem runsS_after : ∀ {p : ℕ} {s : Stmt} {t : ℕ} {s' : Stmt} {c' : Ctx} {q : ℕ},
+    AtS p s t s' c' → t + size s' ≤ q → q < c'.e → RunsS σ p s q → Falls (walk1 σ s')
+  | p, .ite x z n, t, s', c', q, .zero h, h1, h2, hr => by
+      have := atL_range h; have := atL_e rfl h; have := size_pos s'
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨-, hr⟩ | ⟨-, hr⟩
+      · omega
+      · exact runsL_after h h1 h2 hr
+      · have := runsL_range hr; omega
+  | p, .ite x z n, t, s', c', q, .nonzero h, h1, h2, hr => by
+      have := atL_range h; have := atL_e rfl h; have := size_pos s'
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨-, hr⟩ | ⟨-, hr⟩
+      · omega
+      · have := runsL_range hr; omega
+      · exact runsL_after h h1 h2 hr
+  | p, .match_ x arms, t, s', c', q, .arm h, h1, h2, hr => by
+      have := atA_range h; have := size_pos s'
+      simp only [RunsS] at hr
+      rcases hr with rfl | hr
+      · omega
+      · exact runsA_after h h1 h2 hr
+
+theorem runsA_after : ∀ {t0 a : ℕ} {bs : List (List Stmt)} {t : ℕ} {s : Stmt} {c' : Ctx} {q : ℕ} {x : V} {j : ℕ},
+    AtA t0 a bs t s c' → t + size s ≤ q → q < c'.e → RunsA σ x j a bs q → Falls (walk1 σ s)
+  | _, a, b :: bs, t, s, c', q, x, j, .here h, h1, h2, hr => by
+      have := atL_e rfl h
+      simp only [RunsA] at hr
+      rcases hr with ⟨-, hr⟩ | ⟨-, hr⟩
+      · exact runsL_after h h1 h2 hr
+      · have := runsA_range hr; omega
+  | _, a, b :: bs, t, s, c', q, x, j, .next h, h1, h2, hr => by
+      have := atA_range h
+      simp only [RunsA] at hr
+      rcases hr with ⟨-, hr⟩ | ⟨-, hr⟩
+      · have := runsL_range hr; omega
+      · exact runsA_after h h1 h2 hr
+end
 
 /-! ## Events -/
 
