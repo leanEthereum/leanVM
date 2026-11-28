@@ -69,7 +69,7 @@ theorem read_siteL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E} 
     (2 ≤ s.q → s.q < fsN j → L.read (addressOfIndex (I.fp + s.q)) = some (ofK (addressOfIndex kfp))) ∧
     (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
       L.read (addressOfIndex (I.fp + s.tgt)) = some (ofK (addressOfIndex (entryOf c.f)))) := by
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨n, rfl, -, -, -, -, hfs, -⟩ := fn_of_idx hj
   have hsm := siteOf_mem hs
   have hsq : s.q ∈ siteCells (plumbOf (n + 1)) := by

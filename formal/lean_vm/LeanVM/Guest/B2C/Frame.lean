@@ -169,7 +169,7 @@ theorem cand_val (hS : ShareOk j) (hC : ChainApart j)
   obtain ⟨i, rfl, -, -, -, hc, -, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   have FS := fnStatic hS
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
   obtain ⟨-, -, hfc, htc⟩ := valOk_global hS (namedOf_sub hw hv)
   have hvΨ := hΨ v hv h2
@@ -303,7 +303,7 @@ theorem read_statL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   have hΨ' : ∀ u ∈ namedOf (coreOf j).params es vs, 2 ≤ cellJ j u → σ u = Ψ (cellJ j u) :=
     fun u hu hc ↦ hΨ u (by simpa [namedOf, List.append_assoc] using hu) hc
   have FS := fnStatic hS
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -366,7 +366,7 @@ theorem read_tmpL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (h2 : 2 ≤ cellJ j t) (hn : cellJ j t < fsN j) :
     L.read (addressOfIndex (I.fp + cellJ j t)) = some (σ t) := by
   have FS := fnStatic hS
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -434,7 +434,7 @@ theorem read_armL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     L.read (addressOfIndex (I.fp + a.2.1)) = some (armWord σ a.1
         a.2.2) := by
   have FS := fnStatic hS
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw
@@ -591,7 +591,7 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at this
     rw [ht]; exact this
   · obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
-    have AP := apart_j hS
+    have AP := hS.apart
     have hmem : (2 + k, σ (coreOf (i + 1)).params[k]) ∈ C J := by
       rw [C_phantom ht hj, fs_tailKey hj]
       refine frameE_cell ⟨(cert g (coreOf (i + 1)).params[k], σ (coreOf (i + 1)).params[k]), ?_, ?_⟩
@@ -625,7 +625,7 @@ theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     {o : ℕ} (ho : o ∈ (certOf j).facts.env.map Prod.fst) :
     L.read (addressOfIndex (J.fp + o)) = some (ofK (addressOfIndex
         J.fp)) := by
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp ho
   have hst := AP.env p hp
   obtain ⟨h2, hn⟩ := stat_in hS hst
@@ -769,7 +769,7 @@ theorem cand_site (hS : ShareOk j) (hC : ChainApart j)
     (hw : walk σ (coreOf j).body = .ret es vs) {o : ℕ} (ho : o ∈ siteCells (plumbOf j)) (h2 : 2 ≤ o)
     {x : ℕ × E} (hx : x ∈ nodeE j f σ I) (hxc : x.1 = o) : x ∈ siteE j I es := by
   have FS := fnStatic hS
-  have AP := apart_j hS
+  have AP := hS.apart
   obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
   have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
   obtain ⟨hev, hvs⟩ := node_path ht hj hw

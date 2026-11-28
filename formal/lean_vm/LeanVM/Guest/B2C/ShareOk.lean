@@ -91,8 +91,6 @@ theorem shareOk_path (hS : ShareOk j)
       ∀ o a b, (o, PC.k a b) ∈ (plumbOf j).stat → Ψ o = OffsetInstruction.immediateWord a b :=
   hS.path hw he
 
-theorem apart_j (hS : ShareOk j) : Apart j := hS.apart
-
 theorem fnStatic (hS : ShareOk j) : FnStatic j :=
   hS.static
 
