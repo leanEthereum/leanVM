@@ -40,30 +40,6 @@ impl Form {
         }
     }
 
-    /// The form scaled by `w`.
-    pub fn scaled(&self, w: F128) -> Self {
-        Self {
-            coeffs: self.coeffs.iter().map(|&c| c * w).collect(),
-            prods: self.prods.iter().map(|&(a, b, q)| (a, b, q * w)).collect(),
-            constant: self.constant * w,
-        }
-    }
-
-    /// The sum of forms over the same columns, their products listed together.
-    pub fn sum(forms: impl IntoIterator<Item = Self>) -> Self {
-        let mut forms = forms.into_iter();
-        let mut out = forms.next().expect("a table has at least one form");
-        for form in forms {
-            assert_eq!(out.coeffs.len(), form.coeffs.len(), "forms over the same columns");
-            for (slot, c) in out.coeffs.iter_mut().zip(form.coeffs) {
-                *slot += c;
-            }
-            out.constant += form.constant;
-            out.prods.extend(form.prods);
-        }
-        out
-    }
-
     /// `constant + Σ coeffs[c]·evals[c]`.
     #[cfg(test)]
     fn linear(&self, evals: &[F128]) -> F128 {
@@ -364,12 +340,11 @@ fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
     parallel::map_collect(rows.div_ceil(8) * width, |v| {
         let (b, c) = (v / width, v % width);
         let load = |col: usize| load_k(cols[col], 8 * b, rows - 8 * b);
-        match c {
-            // The linear parts, `lin` then each `right_g`, in the even columns.
-            0 => dot(&form.lin, load).reduce(),
-            _ if c % 2 == 0 => dot(&form.groups[c / 2 - 1].1, load).reduce(),
-            _ => F128x8::from_array(&load(form.groups[c / 2].0).to_array().map(F128::from)),
+        if c % 2 == 1 {
+            return F128x8::from_array(&load(form.groups[c / 2].0).to_array().map(F128::from));
         }
+        // The linear parts, `lin` then each `right_g`, in the even columns.
+        dot(if c == 0 { &form.lin } else { &form.groups[c / 2 - 1].1 }, load).reduce()
     })
 }
 
