@@ -290,10 +290,15 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(fp, c) as usize))
     });
     let outputs = tables::keccak_outputs(&inputs);
-    for (t, table) in tables::tables().iter().enumerate() {
+    let ctx = FillCtx {
+        trace: tr,
+        mem: &exec.mem,
+        gpow: &gpow,
+        program,
+    };
+    for (t, table) in tables::tables().into_iter().enumerate() {
         let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
-        let ctx = FillCtx::new(tr, &exec.mem, &gpow, program, 1 << l.taus[t], table.padding());
-        table.fill(&ctx, &mut windows[base..base + n], &outputs);
+        ctx.fill(table, 1 << l.taus[t], &mut windows[base..base + n], &outputs);
     }
     drop(outputs);
     // The shared columns, from one pass over the image: each cell's two limbs and final count `g^{A[i]}`, then each

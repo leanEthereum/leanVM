@@ -181,53 +181,33 @@ pub(crate) struct FillCtx<'a> {
     pub(crate) trace: &'a Trace,
     pub(crate) mem: &'a Memory,
     pub(crate) gpow: &'a [F64],
-    pub(crate) prog: &'a [Op],
-    /// [`isa::Program::stacked_bytecode`].
-    bytecode: &'a [u64],
-    /// This table's height `2^tau`, the length of every window in `out`. Rows past the
-    /// trace's are padding rows, each holding `padding` ([`Table::padding`]).
-    height: usize,
-    padding: Vec<F64>,
+    pub(crate) program: &'a isa::Program,
 }
 
-impl<'a> FillCtx<'a> {
-    pub(crate) fn new(
-        trace: &'a Trace,
-        mem: &'a Memory,
-        gpow: &'a [F64],
-        program: &'a isa::Program,
-        height: usize,
-        padding: Vec<F64>,
-    ) -> Self {
-        Self {
-            trace,
-            mem,
-            gpow,
-            prog: &program.prog,
-            bytecode: program.stacked_bytecode(),
-            height,
-            padding,
-        }
-    }
-
-    /// Write `table`'s local columns but `skip`, `table.row` writing a row's values, and the padding row to the end of
-    /// each window.
-    fn fill_cols(&self, table: Table, out: &mut [&mut [F64]], skip: Range<usize>, outputs: &[[u64; STATE_LANES]]) {
+impl FillCtx<'_> {
+    /// Fill `table`'s columns from the trace: `out[i]` is local column `i`'s window of `height` rows, those past the
+    /// trace's padding rows ([`Table::padding`]), but for `KECCAK`'s input lanes, which are `q_keccak`'s and have no
+    /// window here. `outputs` are the `KECCAK` rows' output lanes ([`keccak_outputs`]).
+    pub(crate) fn fill(&self, table: Table, height: usize, out: &mut [&mut [F64]], outputs: &[[u64; STATE_LANES]]) {
         /// Rows per task.
         const CHUNK: usize = 1 << 12;
         /// Rows staged at a time. A row's values go to windows a power of two apart, which share cache sets, so they
         /// are written a column's run at a time rather than a row at a time.
         const STAGE: usize = 64;
+        let skip = if table == Table::Keccak {
+            keccakt::V_IN..keccakt::V_OUT
+        } else {
+            0..0
+        };
+        let padding = table.padding();
         let n_rows = self.trace.row_counts()[table as usize];
-        assert!(n_rows <= self.height, "a table's rows must fit its cube");
+        assert!(n_rows <= height, "a table's rows must fit its cube");
         let width = out.len() - skip.len();
         let (head, rest) = out.split_at_mut(skip.start);
         // Every column's chunk for each task, split up front, so that the tasks write disjoint slices.
-        let mut tasks: Vec<Vec<&mut [F64]>> = (0..self.height.div_ceil(CHUNK))
-            .map(|_| Vec::with_capacity(width))
-            .collect();
+        let mut tasks: Vec<Vec<&mut [F64]>> = (0..height.div_ceil(CHUNK)).map(|_| Vec::with_capacity(width)).collect();
         for column in head.iter_mut().chain(&mut rest[skip.len()..]) {
-            assert_eq!(column.len(), self.height, "a column's window is the table's height");
+            assert_eq!(column.len(), height, "a column's window is the table's height");
             for (task, chunk) in tasks.iter_mut().zip(column.chunks_mut(CHUNK)) {
                 task.push(chunk);
             }
@@ -245,8 +225,8 @@ impl<'a> FillCtx<'a> {
                         self.row(table, outputs, row, values);
                     } else {
                         let (head, tail) = values.split_at_mut(skip.start);
-                        head.copy_from_slice(&self.padding[..skip.start]);
-                        tail.copy_from_slice(&self.padding[skip.end..]);
+                        head.copy_from_slice(&padding[..skip.start]);
+                        tail.copy_from_slice(&padding[skip.end..]);
                     }
                 }
                 for (k, column) in chunks.iter_mut().enumerate() {
@@ -258,7 +238,7 @@ impl<'a> FillCtx<'a> {
         });
     }
 
-    /// The values of row `i`'s columns ([`Self::fill_cols`]'s), `outputs` being `KECCAK`'s permutations.
+    /// The values of row `i`'s columns ([`Self::fill`]'s), `outputs` being `KECCAK`'s permutations.
     fn row(&self, table: Table, outputs: &[[u64; STATE_LANES]], i: usize, v: &mut [F64]) {
         let r = &self.trace.rows[table as usize][row_len(table) * i..][..row_len(table)];
         let (pc, fp) = (r[0], r[1]);
@@ -267,7 +247,7 @@ impl<'a> FillCtx<'a> {
         // The operands are the instruction's bytecode tuple's, which the stacked bytecode holds: they are read back
         // rather than copied into every row (`cpu::trace`).
         for (j, slot) in v[table.operands()].iter_mut().enumerate() {
-            *slot = F64(self.bytecode[(OPERAND_SLOT + j) * self.prog.len() + pc as usize]);
+            *slot = F64(self.program.stacked_bytecode()[(OPERAND_SLOT + j) * self.program.prog.len() + pc as usize]);
         }
         // `KECCAK`'s input lanes, before its counts, have no window here.
         let counts = table.count_columns();
@@ -276,7 +256,7 @@ impl<'a> FillCtx<'a> {
             *slot = g(k);
         }
         let word = |cell: u32| self.mem.word(cell as usize);
-        let op = &self.prog[pc as usize];
+        let op = &self.program.prog[pc as usize];
         match table {
             Table::Set => {}
             Table::Keccak => {
@@ -413,18 +393,6 @@ impl Table {
             Table::Keccak => f.declare(&KECCAK_FLUSHES),
             _ => f.declare([XOR, MUL, SET, DEREF, JUMP][self as usize]),
         }
-    }
-
-    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s window, at its padded length, written
-    /// in full by `FillCtx::fill_cols`, but for `KECCAK`'s input lanes, which are `q_keccak`'s and have no window here.
-    /// `outputs` are the `KECCAK` rows' output lanes ([`keccak_outputs`]).
-    pub(crate) fn fill(self, ctx: &FillCtx, out: &mut [&mut [F64]], outputs: &[[u64; STATE_LANES]]) {
-        let skip = if self == Table::Keccak {
-            keccakt::V_IN..keccakt::V_OUT
-        } else {
-            0..0
-        };
-        ctx.fill_cols(self, out, skip, outputs);
     }
 }
 
