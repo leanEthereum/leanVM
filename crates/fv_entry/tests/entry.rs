@@ -2,10 +2,10 @@ use aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use fv_entry::{Error, decode_output, encode, prove};
 use stable_lean_vm_core::StableProver;
 
-/// A leaf from both schemes' signers, through the bytes: its proof verifies against its claims, and a cut guest or
-/// input is refused.
+/// A leaf from both schemes' signers, then a node of it, through the bytes: each proof verifies against its claims,
+/// and a cut guest or input is refused.
 #[test]
-fn a_leaf_through_the_bytes() {
+fn a_leaf_and_its_parent_through_the_bytes() {
     let input = encode(
         1,
         &[],
@@ -19,5 +19,12 @@ fn a_leaf_through_the_bytes() {
     assert_eq!((claims.lean_xmss.len(), claims.lean_sphincs.len()), (2, 1));
     assert!(proof.verify(&claims));
     assert_eq!(prove(&guest[..guest.len() - 1], &input, &mut out), Err(Error::Guest));
+    assert_eq!(prove(&guest, &input[..input.len() - 1], &mut out), Err(Error::Decode));
+
+    let input = encode(1, &[(claims.clone(), proof)], &[], &[]);
+    let written = prove(&guest, &input, &mut out).expect("the parent proves");
+    let (parent, proof) = decode_output(&out[..written]).expect("the output decodes");
+    assert_eq!(parent, claims);
+    assert!(proof.verify(&parent));
     assert_eq!(prove(&guest, &input[..input.len() - 1], &mut out), Err(Error::Decode));
 }

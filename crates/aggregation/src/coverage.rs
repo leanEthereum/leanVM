@@ -33,10 +33,10 @@ pub(super) struct Region {
     /// The declared claims, strictly sorted.
     pub(super) signers: Vec<Claim>,
     pub(super) dups: Vec<Claim>,
-    /// The slot of each raw signature, in the order given.
-    pub(super) raw: Vec<usize>,
-    /// Per child, the slot of each of its claims.
-    pub(super) children: Vec<Vec<usize>>,
+    /// The raw signatures in walk order, by index: sorted on their claims, the first of each repeat kept.
+    pub(super) raw_order: Vec<usize>,
+    /// The slot of each write, in walk order: the raw signatures' of `raw_order`, then each child's claims'.
+    pub(super) slots: Vec<usize>,
 }
 
 /// The order that sorts `claims`, stably, keeping the first of each repeat.
@@ -48,13 +48,13 @@ pub(super) fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
 
 /// `claims[i]` for each `i` of `order`.
 #[inline(never)]
-pub(super) fn pick(claims: &[Claim], order: &[usize]) -> Vec<Claim> {
+fn pick(claims: &[Claim], order: &[usize]) -> Vec<Claim> {
     order.iter().map(|&i| claims[i]).collect()
 }
 
 impl Region {
-    /// The region of scheme `scheme` (0 or 1): declares the union of the raw claims and the children's, or exactly
-    /// `declare`, which they must cover.
+    /// The region of scheme `scheme` (0 or 1), from its raw claims in any order: declares the union of the raw claims
+    /// and the children's, or exactly `declare`, which they must cover.
     #[inline(never)]
     fn plan(
         scheme: usize,
@@ -62,56 +62,57 @@ impl Region {
         children: &[[Vec<Claim>; 2]],
         declare: Option<&[Claim]>,
     ) -> Result<Self, AggregateError> {
-        let mut all = raw.to_vec();
+        let raw_order = sorted_firsts(raw);
+        let mut all = pick(raw, &raw_order);
         for child in children {
             all.extend_from_slice(&child[scheme]);
         }
-        let mut signers = pick(&all, &sorted_firsts(&all));
-        if let Some(declare) = declare {
-            let wanted = pick(declare, &sorted_firsts(declare));
-            signers.retain(|claim| wanted.binary_search(claim).is_ok());
-            // Both lists are sorted without repeats, so the ones kept are all the wanted ones exactly when as many.
-            if signers.len() != wanted.len() {
-                return Err(AggregateError::InvalidInput(
-                    "a requested claim is not covered by the inputs",
-                ));
+        let wanted = declare.map(|declare| pick(declare, &sorted_firsts(declare)));
+        // Each write's slot, in walk order: a declared claim's first write takes its declared slot, every other write
+        // a fresh slot outside the hashed prefix.
+        let mut slots = vec![usize::MAX; all.len()];
+        let mut signers = Vec::new();
+        for &i in &sorted_firsts(&all) {
+            if wanted
+                .as_ref()
+                .is_none_or(|wanted| wanted.binary_search(&all[i]).is_ok())
+            {
+                slots[i] = signers.len();
+                signers.push(all[i]);
             }
         }
-        // A claim takes its declared slot once; later or undeclared occurrences take fresh slots outside the hashed
-        // prefix.
-        let mut claimed = vec![false; signers.len()];
+        // Both lists are sorted without repeats, so the ones kept are all the wanted ones exactly when as many.
+        if wanted.is_some_and(|wanted| wanted.len() != signers.len()) {
+            return Err(AggregateError::InvalidInput(
+                "a requested claim is not covered by the inputs",
+            ));
+        }
         let mut dups = Vec::new();
-        let mut take_slot = |claim: &Claim| match signers.binary_search(claim) {
-            Ok(pos) if !claimed[pos] => {
-                claimed[pos] = true;
-                pos
-            }
-            _ => {
+        for (slot, claim) in slots.iter_mut().zip(&all) {
+            if *slot == usize::MAX {
+                *slot = signers.len() + dups.len();
                 dups.push(*claim);
-                signers.len() + dups.len() - 1
             }
-        };
-        let raw = raw.iter().map(&mut take_slot).collect();
-        let children = children
-            .iter()
-            .map(|child| child[scheme].iter().map(&mut take_slot).collect())
-            .collect();
+        }
         Ok(Self {
             signers,
             dups,
-            raw,
-            children,
+            raw_order,
+            slots,
         })
     }
 }
 
-/// Both regions, from each scheme's raw claims (sorted, without repeats) and each child's claim lists.
+/// Both regions, from each scheme's raw claims and each child's claim lists.
 pub(super) fn plan_coverage(
     raw: &[Vec<Claim>; 2],
     children: &[[Vec<Claim>; 2]],
     declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateError> {
     let declare = declare.map(claim_lists);
-    let plan = |s: usize| Region::plan(s, &raw[s], children, declare.as_ref().map(|lists| lists[s].as_slice()));
+    let plan = |s: usize| {
+        let declare = declare.as_ref().map(|lists| lists[s].as_slice());
+        Region::plan(s, &raw[s], children, declare)
+    };
     Ok([plan(0)?, plan(1)?])
 }

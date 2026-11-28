@@ -344,7 +344,7 @@ fn aggregate_two_to_one() {
     let lists = [&left, &right].map(|(claims, _)| claim_lists(claims));
     let cover = super::coverage::plan_coverage(&[vec![], vec![]], &lists, None).unwrap();
     assert!(
-        !cover[0].children[1].is_sorted_by(|a, b| a < b),
+        !cover[0].slots[lists[0][0].len()..].is_sorted_by(|a, b| a < b),
         "the right list takes the repeated-slot walk"
     );
     // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.

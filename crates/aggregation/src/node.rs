@@ -3,7 +3,7 @@
 
 use super::cells::count;
 use super::child::gen_verify;
-use super::coverage::{pick, plan_coverage, sorted_firsts};
+use super::coverage::plan_coverage;
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
@@ -96,9 +96,8 @@ pub fn aggregate<P: Prover>(
             .map(|(pk, message, _)| [pk.to_bytes(), *message])
             .collect(),
     ];
-    let raw_order = [sorted_firsts(&raw_claims[0]), sorted_firsts(&raw_claims[1])];
-    let raw_sorted = [pick(&raw_claims[0], &raw_order[0]), pick(&raw_claims[1], &raw_order[1])];
-    let mut cover = plan_coverage(&raw_sorted, &child_lists, declare)?;
+    let mut cover = plan_coverage(&raw_claims, &child_lists, declare)?;
+    let raw_order = [&cover[0].raw_order, &cover[1].raw_order];
     if cover.iter().all(|region| region.signers.is_empty()) && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
@@ -154,7 +153,7 @@ pub fn aggregate<P: Prover>(
     });
     let mut hints = Hints::default();
     let mut meta = Vec::new();
-    for (region, order) in cover.iter().zip(&raw_order) {
+    for (region, order) in cover.iter().zip(raw_order) {
         meta.extend([
             count(region.signers.len()),
             count(region.dups.len()),
@@ -181,20 +180,23 @@ pub fn aggregate<P: Prover>(
     // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
     // writers off the other's claims.
     let mut signatures = signatures.into_iter();
-    for (region, name) in cover.iter().zip(["raw_index", "sp_raw_index"]) {
-        for (&offset, signature) in region.raw.iter().zip(&mut signatures) {
+    for ((region, order), name) in cover.iter().zip(raw_order).zip(["raw_index", "sp_raw_index"]) {
+        for (&offset, signature) in region.slots[..order.len()].iter().zip(&mut signatures) {
             hints.push_count(name, offset);
             hints.extend(signature?);
         }
     }
 
     // Each child's slots, its carried claim, its DA digest and its verification's witness.
+    // Where each region's slots of the next child start.
+    let mut at = [raw_order[0].len(), raw_order[1].len()];
     for (i, child) in verified.into_iter().enumerate() {
         let (fresh, verified) = child?;
         let lists = &child_lists[i];
         hints.push("child_meta", vec![count(lists[0].len()), count(lists[1].len())]);
-        for region in &cover {
-            let offsets = &region.children[i];
+        for (region, (list, at)) in cover.iter().zip(lists.iter().zip(&mut at)) {
+            let offsets = &region.slots[*at..*at + list.len()];
+            *at += list.len();
             if offsets.is_empty() {
                 continue;
             }
