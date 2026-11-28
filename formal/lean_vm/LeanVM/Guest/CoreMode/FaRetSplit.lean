@@ -2,8 +2,8 @@
   LeanVM.Guest.CoreMode.FaRetSplit
 
   `faRetOk` in chunks of offsets, each its own kernel evaluation, for a function whose frame run at its
-  returns is longer than `core.py`'s `FA_RUN` values, checked `FA_B` values at a time; and `faRetOkF`, the
-  same check in one pass for the kernel.
+  returns is longer than `core.py`'s `FA_RUN` values, checked `FA_B` values at a time from the return states
+  computed once (`faRetCW`); and `faRetOkF`, the same check in one pass for the kernel.
 -/
 
 module
@@ -238,6 +238,47 @@ theorem faRetOk_of_F {Cf : CFun} {code : List OffsetInstruction} (h : faRetOkF C
       rw [stmtsAll_eq] at this
       exact stmtsAll_of fun s hs ↦ faRetAt_of_F (List.all_eq_true.1 this s hs)
     · exact absurd this Bool.false_ne_true
+  · rfl
+
+/-! ## The return states once
+
+Each chunk of `faRetC` computes the walk's state at every return again. `retWs` lists the states' written cells at
+the returns, all that `faRetAtC` reads (`FSt.hasW`), for the kernel to compute once (`kernel_lit`, `core.py`), and
+`faRetCW` checks a chunk from that list. -/
+
+/-- The written cells of the walk's state at each return of `code` (`retOffs`, `retSt`). -/
+noncomputable def retWs (Fn : FFun) (code : List OffsetInstruction) : List (Option ℕ) :=
+  (retOffs 0 code).map fun i ↦ (retSt Fn code i).map FSt.w
+
+/-- The state with the written cells `w` and nothing else. -/
+def FSt.ofW (w : ℕ) : FSt := ⟨⟨.nil, [], []⟩, w, 0, .nil, .nil, .nil, .nil⟩
+
+/-- **`faRetC` from the written cells of the states at the returns**, `ws` (`retWs`). -/
+noncomputable def faRetCW (Cf : CFun) (ws : List (Option ℕ)) (B c : ℕ) : Bool :=
+  !faNeed Cf || ws.all fun w ↦ match w with
+    | some w => stmtsAll (faRetAtC Cf.X Cf.fn.body Cf.H.fas (FSt.ofW w) B c) Cf.fn.body
+    | none => false
+
+theorem faRetAtC_ofW (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (ℕ × ℕ)) (A : FSt) (B c : ℕ) :
+    faRetAtC X body fas (FSt.ofW A.w) B c = faRetAtC X body fas A B c := by
+  funext s
+  rfl
+
+theorem faRetC_of_W {Cf : CFun} {code : List OffsetInstruction} {ws : List (Option ℕ)} {B c : ℕ}
+    (hw : retWs Cf.frame code = ws) (h : faRetCW Cf ws B c = true) : faRetC Cf code B c = true := by
+  subst hw
+  unfold faRetC
+  unfold faRetCW at h
+  cases hf : faNeed Cf
+  · rfl
+  simp only [hf, Bool.not_true, Bool.false_or, List.all_eq_true, List.mem_range] at h ⊢
+  intro i hi
+  split
+  · rename_i a hc
+    have := h _ (List.mem_map.mpr ⟨i, by simpa using mem_retOffs code 0 i a hc, rfl⟩)
+    cases hr : retSt Cf.frame code i with
+    | none => simp [hr] at this
+    | some A => simpa only [hr, Option.map_some, faRetAtC_ofW] using this
   · rfl
 
 end

@@ -67,7 +67,9 @@ RES_B, RES_CHEAP = 16, 32
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
 # a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
-# time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
+# time (`CoreMode.faRetOk_of_kchunks`), from its return states' written cells computed once (`faRetWs`,
+# `CoreMode.retWs`, in the pack's `FaRet` beside its windows): one evaluation over a long run is the heaviest
+# declaration of its module
 FA_RUN = 64
 FA_B = 32
 
@@ -114,12 +116,21 @@ def faret(k):
     if m is None:
         return '', f'CoreMode.faRetOk_of_F {DK}'
     code = 'code.chunks.flatten'
-    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
+    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetCW cfun faRetWs {FA_B} {c} = true') for c in range(m))
     out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
-    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(f'faret{c}' for c in range(m))
+    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(
+        f'CoreMode.faRetC_of_W faRetWs_eq faret{c}' for c in range(m))
     out += thm(k, 'faret', f'CoreMode.faRetOk cfun {code} = true',
                f'\n  CoreMode.faRetOk_of_kchunks {FA_B} {m} (by decide) faret_runs {tail}')
     return out, 'faret'
+
+
+def fa_lit(k):
+    """`k`'s return states' written cells (`CoreMode.retWs`) computed once, for its frame run's chunks, or ''."""
+    if fa_chunks(k) is None:
+        return ''
+    return (f'kernel_lit Fn.«{k}».faRetWs : List (Option ℕ) :=\n'
+            f'  CoreMode.retWs Fn.«{k}».cfun.frame Fn.«{k}».code.chunks.flatten\n')
 
 
 # each pack's `DataC` text, read once
@@ -985,6 +996,9 @@ def main(check=False):
                 'meta import LeanVM.Guest.Packed.NatLit\n\nset_option Elab.async false\n')
         pub = lambda ms: ''.join('public import %s\n' % m for m in sorted(ms))
         # past `SPLIT_W`, the core data apart (`Defs`) and the independent checks in windows beside each other
+        lits = ''.join(fa_lit(k) for k in ks)
+        if lits:
+            imps.add('LeanVM.Guest.KernelLit')
         cut = split_pack(decls_of(''.join(t for _, t in body)), core_leaf)
         if cut:
             cwins, rest = cut
@@ -992,16 +1006,24 @@ def main(check=False):
                 HEADER(mod=f'{base}.Defs', what='The core data of `%s` and %d more.' % (ks[0], len(ks) - 1)) + pub(imps) +
                 data + '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n' +
                 ''.join(d for d, _ in body) + '\nend\n\nend LeanVM.Guest\n')
+            # the return states computed once (`fa_lit`) beside the windows, read by the windows of the chunks
+            if lits:
+                files[os.path.join(GEN, p, 'FaRet.lean')] = (
+                    HEADER(mod=f'{base}.FaRet', what='The written cells at the returns of `%s`\'s pack\'s functions with '
+                           'long frame runs, computed once.' % ks[0]) + pub({f'{base}.Defs', 'LeanVM.Guest.KernelLit'}) +
+                    data + '\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n' + lits + '\nend\n\nend LeanVM.Guest\n')
             for w, ds in enumerate(cwins):
                 ws = sorted({re.search(r'Fn\.«([^»]+)»', d).group(1) for d in ds})
+                fa = lits and any('faRetWs' in d for d in ds)
                 files[os.path.join(GEN, p, f'CoreW{w}.lean')] = (
                     HEADER(mod=f'{base}.CoreW{w}', what='Window %d of the core route\'s checks of `%s`\'s pack.' % (w, ks[0])) +
-                    pub({f'{base}.Defs'}) + data + core_file(ws, [('', ''.join(ds))]))
-            imps = {f'{base}.Defs'} | {f'{base}.CoreW{w}' for w in range(len(cwins))} | imps | pimps
+                    pub({f'{base}.FaRet' if fa else f'{base}.Defs'}) + data + core_file(ws, [('', ''.join(ds))]))
+            imps = ({f'{base}.Defs'} | {f'{base}.CoreW{w}' for w in range(len(cwins))} | imps | pimps |
+                    ({f'{base}.FaRet'} if lits else set()))
             text = core_file(ks, [('', ''.join(rest))])
         else:
             imps |= pimps
-            text = core_file(ks, body)
+            text = core_file(ks, body + [(lits, '')])
         files[os.path.join(GEN, p, 'Core.lean')] = (
             HEADER(mod=mod, what='The core route\'s checks of `%s` and %d more.' % (ks[0], len(ks) - 1)) +
             pub(imps) + data + text +
@@ -1117,7 +1139,7 @@ def main(check=False):
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     have = (glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
-            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
+            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'FaRet', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
     stale = genfiles.sync(files, have, check)
     lines = sum(text.count('\n') for text in files.values())
     print('core route: %d functions, %d packs, %d files, %d lines' % (len(R), len(packs), len(files), lines) +
