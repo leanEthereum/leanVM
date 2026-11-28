@@ -16,7 +16,6 @@
 
 pub mod constraints;
 pub mod cpu;
-mod eq;
 pub mod gkr;
 pub mod keccak;
 pub mod leaf;
@@ -28,8 +27,6 @@ pub mod witness;
 pub use prover::StableProver;
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
-
-use primitives::field::{F64, F64x8, F128, F128x8};
 
 /// Vectors of eight rows below which a pass runs on the calling thread: waking the pool would cost more than it
 /// saves, and a proof makes many such passes (the GKR's and the table sumcheck's last rounds, the small tables).
@@ -51,29 +48,4 @@ pub(crate) fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
 }
 
 pub(crate) use primitives::field::mul;
-
-/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
-#[inline]
-pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
-    if n >= 8 {
-        F64x8::load(&values[i..i + 8])
-    } else {
-        F64x8::from_array(&partial(values, i, n, F64::ZERO))
-    }
-}
-
-/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
-#[inline]
-pub(crate) fn load_e(values: &[F128], i: usize, n: usize) -> F128x8 {
-    if n >= 8 {
-        F128x8::load(&values[i..i + 8])
-    } else {
-        F128x8::from_array(&partial(values, i, n, F128::ZERO))
-    }
-}
-
-/// The `n < 8` values from `values[i]`, then `zero`: out of line, as only the last vector of a pass takes it.
-#[inline(never)]
-fn partial<T: Copy>(values: &[T], i: usize, n: usize, zero: T) -> [T; 8] {
-    std::array::from_fn(|p| if p < n { values[i + p] } else { zero })
-}
+pub(crate) use primitives::multilinear::{load_e, load_k};

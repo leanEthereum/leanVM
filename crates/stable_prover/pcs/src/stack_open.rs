@@ -16,7 +16,7 @@
 //! none is observed here. `W` stays factored (`basis`), and level 0's fold rounds run on its terms (`whir_lanes`).
 
 use primitives::field::{F64, F128, powers};
-use primitives::multilinear::mle_eval_par;
+use primitives::multilinear::eq_sums;
 use primitives::transcript::ProverState;
 
 use crate::ring_switch;
@@ -73,7 +73,7 @@ pub fn commit(ps: &mut ProverState, stack: &[F64], log_n: usize, log_inv_rate: u
     ps.add_root(&prover_data.root());
     ps.grind(OOD_GRINDING_BITS);
     let low_point = ps.sample_vec(log_n);
-    ps.add_scalar(mle_eval_par(stack, &low_point));
+    ps.add_scalar(eq_sums(&low_point, &[stack])[0]);
     Committed {
         prover_data,
         log_n,

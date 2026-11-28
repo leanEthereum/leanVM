@@ -15,9 +15,8 @@
 
 use std::ops::Range;
 
-use crate::eq::SplitEq;
 use primitives::field::{Acc8, F128, F128x8, dot};
-use primitives::multilinear::eq_table;
+use primitives::multilinear::{SplitEq, eq_table};
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 

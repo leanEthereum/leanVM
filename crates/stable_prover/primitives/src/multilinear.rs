@@ -1,9 +1,9 @@
 // CREDIT: https://github.com/succinctlabs/flock (`build_eq`), MIT OR Apache-2.0.
 //! Multilinear helpers: one-variable interpolation and folding, the equality polynomial and its tables, the evaluation
-//! of a committed table's multilinear extension. A table is indexed little-endian: variable `k` is bit `k` of the index.
+//! of committed columns' multilinear extensions. A table is indexed little-endian: variable `k` is bit `k` of the index.
 //! Committed data is `K`-valued ([`F64`]) and randomness `E`-valued ([`F128`]).
 
-use crate::field::{F64, F128, F128Unreduced};
+use crate::field::{Acc8, F64, F64x8, F128, F128x8};
 
 /// Multilinear interpolation in one variable: `lo + t·(lo+hi)`, the characteristic-2 form of `(1−t)·lo + t·hi`.
 #[inline]
@@ -85,54 +85,103 @@ pub fn poly_eval(coeffs: &[F128], point: F128) -> F128 {
     coeffs.iter().rev().fold(F128::ZERO, |acc, &c| acc * point + c)
 }
 
-/// The variables of the low `eq` table of an MLE evaluation.
-const MLE_LOW_VARS: usize = 10;
-
-/// Below this many entries, an evaluation stays on the calling thread.
-const MLE_PAR_LEN: usize = 1 << 12;
-
-/// The MLE of a `K`-valued table at an `E`-point of `log2(table.len())` coordinates.
-///
-/// The `eq` weights factor into a low and a high table, so the evaluation is one dot product per row of `2^L` entries,
-/// each reduced once:
-///
-/// ```text
-///     f(point) = sum_h eq(point_high, h) * sum_l eq(point_low, l) * f[h * 2^L + l]
-/// ```
-pub fn mle_eval(table: &[F64], point: &[F128]) -> F128 {
-    assert_eq!(table.len(), 1 << point.len());
-    let low_vars = point.len().min(MLE_LOW_VARS);
-    let low = eq_table_serial(&point[..low_vars]);
-    let high = eq_table_serial(&point[low_vars..]);
-    table
-        .chunks_exact(low.len())
-        .zip(high)
-        .map(|(row, h)| h * dot(&low, row))
-        .sum()
+/// `eq(point, z) = lo[z mod 2^lo_bits]·hi[z >> lo_bits]`: a table over the low variables, up to `LO_BITS`
+/// of them, and one over the rest, so that none of the hypercube's size is built.
+pub struct SplitEq {
+    pub lo: Vec<F128>,
+    pub hi: Vec<F128>,
+    lo_bits: usize,
 }
 
-/// [`mle_eval`] with the rows spread over the pool. A shorter `table` is zero past its end, which must be a whole
-/// number of rows. A caller inside a dispatch must use [`mle_eval`].
-pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
-    assert!(table.len() <= 1 << point.len());
-    if table.len() == 1 << point.len() && table.len() < MLE_PAR_LEN {
-        return mle_eval(table, point);
+impl SplitEq {
+    /// The low table's variables: a few kilobytes, which stay in cache.
+    const LO_BITS: usize = 10;
+
+    pub fn new(point: &[F128]) -> Self {
+        let lo_bits = point.len().min(Self::LO_BITS);
+        Self {
+            lo: eq_table(&point[..lo_bits]),
+            hi: eq_table(&point[lo_bits..]),
+            lo_bits,
+        }
     }
-    let low_vars = point.len().min(MLE_LOW_VARS);
-    let low = eq_table_serial(&point[..low_vars]);
-    let high = eq_table(&point[low_vars..]);
-    assert!(table.len().is_multiple_of(low.len()));
-    let eval = |row: usize| high[row] * dot(&low, &table[row * low.len()..][..low.len()]);
-    parallel::map_reduce(table.len() / low.len(), || F128::ZERO, eval, |a, b| a + b)
+
+    /// `eq` at `8k..8k + 8`, zero past the hypercube.
+    #[inline(never)]
+    pub fn lanes(&self, k: usize) -> F128x8 {
+        let (block, at) = ((8 * k) >> self.lo_bits, (8 * k) & (self.lo.len() - 1));
+        match self.hi.get(block) {
+            Some(&hi) => load_e(&self.lo, at, self.lo.len() - at) * F128x8::splat(hi),
+            None => F128x8::ZERO,
+        }
+    }
 }
 
-/// `sum_i w_i * k_i`, reduced once.
+/// Below this many points of the hypercube, [`eq_sums`] runs on the calling thread.
+const EQ_SUMS_SERIAL: usize = 1 << 13;
+
+/// `Σ_z eq(point, z)·c(z)` for every column `c`, the multilinear extensions of `K`-valued columns at an `E` point, in
+/// one pass over the rows. A column shorter than `2^point.len()` is zero past its end.
+///
+/// A task is a run of rows of the high table, one row unless the sum is small: each row's sums are taken against the
+/// low table, reduced once, and scaled once.
+pub fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
+    let SplitEq { lo, hi, lo_bits } = SplitEq::new(point);
+    let rows = if hi.len() * lo.len() < EQ_SUMS_SERIAL {
+        hi.len()
+    } else {
+        1
+    };
+    let zero = || vec![F128::ZERO; columns.len()];
+    let task = |sums: &mut Vec<F128>, task: usize| {
+        for h in task * rows..hi.len().min((task + 1) * rows) {
+            let z0 = h << lo_bits;
+            for (sum, column) in sums.iter_mut().zip(columns) {
+                let row = (0..lo.len().div_ceil(8)).fold(Acc8::ZERO, |acc, v| {
+                    let (i, z) = (8 * v, z0 + 8 * v);
+                    acc + load_e(&lo, i, lo.len() - i).mul_base_unreduced(load_k(
+                        column,
+                        z,
+                        column.len().saturating_sub(z),
+                    ))
+                });
+                *sum += hi[h] * row.sum();
+            }
+        }
+    };
+    let add = |mut a: Vec<F128>, b: Vec<F128>| {
+        for (a, b) in a.iter_mut().zip(b) {
+            *a += b;
+        }
+        a
+    };
+    parallel::fold_reduce(hi.len().div_ceil(rows), zero, task, add)
+}
+
+/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
+#[inline]
+pub fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
+    if n >= 8 {
+        F64x8::load(&values[i..i + 8])
+    } else {
+        F64x8::from_array(&partial(values, i, n, F64::ZERO))
+    }
+}
+
+/// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
+#[inline]
+pub fn load_e(values: &[F128], i: usize, n: usize) -> F128x8 {
+    if n >= 8 {
+        F128x8::load(&values[i..i + 8])
+    } else {
+        F128x8::from_array(&partial(values, i, n, F128::ZERO))
+    }
+}
+
+/// The `n < 8` values from `values[i]`, then `zero`: out of line, as only the last vector of a pass takes it.
 #[inline(never)]
-fn dot(w: &[F128], k: &[F64]) -> F128 {
-    w.iter()
-        .zip(k)
-        .fold(F128Unreduced::ZERO, |acc, (w, &k)| acc ^ w.mul_base_unreduced(k))
-        .reduce()
+fn partial<T: Copy>(values: &[T], i: usize, n: usize, zero: T) -> [T; 8] {
+    std::array::from_fn(|p| if p < n { values[i + p] } else { zero })
 }
 
 #[cfg(test)]
@@ -147,18 +196,22 @@ mod tests {
     }
 
     #[test]
-    fn mle_matches_folding() {
+    fn eq_sums_match_folding() {
         for n in [0, 1, 2, 3, 4, 5, 9, 11, 12, 13, 16] {
             let table: Vec<_> = (0..1 << n)
                 .map(|i: u64| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15)))
                 .collect();
-            let point: Vec<_> = (0..n).map(|i| F128::new(17 + i, 231 + 3 * i)).collect();
-            assert_eq!(mle_eval(&table, &point), folded(&table, &point));
-            assert_eq!(mle_eval_par(&table, &point), folded(&table, &point));
-            assert_eq!(mle_eval_par(&[], &point), F128::ZERO);
-            let point: Vec<_> = (0..n).map(|i| F128::from(F64(i % 2))).collect();
-            assert_eq!(mle_eval(&table, &point), folded(&table, &point));
-            assert_eq!(mle_eval_par(&table, &point), folded(&table, &point));
+            // A column zero past its end, not at a row or vector boundary.
+            let short = &table[..(1 << n) * 5 / 8];
+            let mut padded = short.to_vec();
+            padded.resize(1 << n, F64::ZERO);
+            for point in [
+                (0..n).map(|i| F128::new(17 + i, 231 + 3 * i)).collect::<Vec<_>>(),
+                (0..n).map(|i| F128::from(F64(i % 2))).collect(),
+            ] {
+                let want = [folded(&table, &point), folded(&padded, &point), F128::ZERO];
+                assert_eq!(eq_sums(&point, &[&table, short, &[]]), want);
+            }
         }
     }
 

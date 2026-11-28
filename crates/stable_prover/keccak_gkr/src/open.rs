@@ -12,7 +12,7 @@ use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128, dot, mul};
 use primitives::hash::STATE_LANES;
-use primitives::multilinear::{eq_table, mle_eval};
+use primitives::multilinear::{eq_sums, eq_table};
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
@@ -101,10 +101,7 @@ pub fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
 /// the slots the claim puts no weight on are evaluated too: the spare ones past [`Shape::slots`] carry other columns
 /// (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
 pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], weights: &[F128]) -> (Vec<F128>, F128) {
-    let n = shape.n();
-    let words = parallel::map_collect(1 << shape.slot_log(), |slot| {
-        mle_eval(&committed[slot * n..][..n], instance)
-    });
+    let words = eq_sums(instance, &committed.chunks_exact(shape.n()).collect::<Vec<_>>());
     let value = dot(&words, weights);
     (words, value)
 }

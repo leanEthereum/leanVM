@@ -163,7 +163,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Cl
     // Every column at its table's point, a table's in one pass: the columns themselves were never folded.
     let mut evals = Vec::new();
     for t in &tables {
-        let table = crate::eq::eq_sums(&chi[..t.tau], t.cols);
+        let table = primitives::multilinear::eq_sums(&chi[..t.tau], t.cols);
         ps.add_scalars(&table);
         evals.extend_from_slice(&table);
     }

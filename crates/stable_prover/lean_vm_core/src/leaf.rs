@@ -382,7 +382,7 @@ fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<
             }
         }
         let columns: Vec<&[F64]> = claims[fresh..].iter().map(|c| cols[c.col]).collect();
-        ps.add_scalars(&crate::eq::eq_sums(&zeta[..block.kappa], &columns));
+        ps.add_scalars(&primitives::multilinear::eq_sums(&zeta[..block.kappa], &columns));
     }
 }
 
@@ -394,7 +394,7 @@ fn claim_boundary(tree: &Tree, cols: &[&[F64]], zeta: &[F128], claims: &mut Vec<
 /// The bytecode block carries slot `x` of `P` as its coordinate `x` ([`Coord::Public`]), from the opcode's slot on;
 /// the slots before it, its tag, pc and count, are zero in `P`, so `P(ζ_lo, x)` is the slot's share at every `x`.
 fn prove_bytecode_share(public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
-    let slots = crate::eq::eq_sums(&zeta[..crate::log2_strict_usize(public[0].len())], public);
+    let slots = primitives::multilinear::eq_sums(&zeta[..crate::log2_strict_usize(public[0].len())], public);
     ps.add_scalar(primitives::field::dot(alpha, &slots));
     let (_, slots, _) = product_sumcheck(ps, alpha.to_vec(), slots, 1, F128::ONE);
     ps.add_scalar(slots[0]);
