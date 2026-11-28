@@ -439,8 +439,7 @@ impl<'a> Advice<'a> {
     /// The next entry of stream `name`, of `len` values.
     fn pop(&mut self, name: &str, len: u32) -> Res<&'a [E]> {
         let witness = self.witness;
-        // Byte by byte: `==` would call `bcmp` through a register, an indirect call.
-        let stream = witness.iter().position(|(n, _)| n.bytes().eq(name.bytes()));
+        let stream = witness.iter().position(|(n, _)| n == name);
         if let Some(i) = stream
             && let Some(entry) = witness[i].1.get(self.next[i])
             && entry.len() == len as usize
