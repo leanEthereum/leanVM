@@ -51,23 +51,29 @@ impl StackShape {
 /// a virtual (uncommitted) column. Depends only on lengths, so the verifier can
 /// reconstruct it.
 pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
-    let committed: Vec<usize> = kappas.iter().flatten().copied().collect();
+    let (mut committed, mut placed) = (Vec::new(), 0usize);
+    for &k in kappas.iter().flatten() {
+        committed.push(k);
+        placed += 1 << k;
+    }
     let (offsets, placed_log) = verifier::stack_offsets(&committed);
-    let mut offsets = offsets.into_iter();
-    let placements = kappas
-        .iter()
-        .map(|k| match *k {
-            Some(n_vars) => Placement {
-                n_vars,
-                offset: offsets.next().unwrap() as usize,
-            },
+    let mut placements = Vec::with_capacity(kappas.len());
+    let mut j = 0;
+    for k in kappas {
+        placements.push(match *k {
+            Some(n_vars) => {
+                j += 1;
+                Placement {
+                    n_vars,
+                    offset: offsets[j - 1] as usize,
+                }
+            }
             None => Placement::VIRTUAL,
-        })
-        .collect();
+        });
+    }
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny
     // witnesses zero-pad up. Both sides derive this identically from the kappas.
     let mu = placed_log.max(crate::pcs::MIN_STACKED_LOG);
-    let placed: usize = committed.iter().map(|k| 1 << k).sum();
     // The columns tile from 0, so the padding is the tail: round it up to a whole
     // lane and the lanes past that are never committed at all.
     let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);

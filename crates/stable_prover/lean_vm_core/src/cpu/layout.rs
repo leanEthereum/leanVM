@@ -86,9 +86,9 @@ impl Layout {
 /// announce it).
 pub(crate) struct Witness {
     pub(crate) q: Vec<F64>,
-    /// The KECCAK output lanes' values as `(global column index, values)`. They carry
-    /// data for the bus but are not committed, so they are not in `q`.
-    pub(crate) virt: Vec<(usize, Vec<F64>)>,
+    /// The KECCAK output lanes' values, lane `l`'s from `l·2^τ`. They carry data for the bus but are not committed,
+    /// so they are not in `q`.
+    pub(crate) virt: Vec<F64>,
     pub(crate) layout: Layout,
     /// What the Keccak reduction needs beside `q`, which holds the states it rebuilds its witness from.
     pub(crate) keccak_reduction: crate::keccak::Reduction,
@@ -105,12 +105,10 @@ impl Witness {
         for (i, p) in self.layout.placements.iter().enumerate() {
             cols.push(match keccak_value(i) {
                 Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
+                Some(KeccakLane::Output(lane)) => &self.virt[lane * steps..][..steps],
                 _ if p.is_virtual() => &[][..],
                 _ => &self.q[p.offset..][..1 << p.n_vars],
             });
-        }
-        for (i, buf) in &self.virt {
-            cols[*i] = buf;
         }
         cols
     }
@@ -177,53 +175,10 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
 /// columns ([`Coord::Public`]), so this needs no committed witness: prover and verifier reconstruct the same structure.
 pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
     let taus = table_logs(rows);
-    let bytecode_size = 1 << log_bytecode;
-
-    // Derived boundary: the run starts at (pc,fp) = (0,0) and, by convention, the
-    // final pc is the bytecode's last cell g^{B-1} (the compiler emits a halt jump
-    // there), with fp returned to 0. All public, no trace needed.
-    let final_pc = (bytecode_size - 1) as u32;
-
-    let one = F64::ONE;
-
-    // ---- bus blocks ----
-    use Coord::{Col, Const, Index, Public};
-
-    // bytecode seed + finalize (program columns are public; padding entries
-    // self-cancel at count 1, so the whole 2^log_bytecode is "real").
-    let bytecode_block = |count: Coord| {
-        // Each later slot is the stacked bytecode's column of that slot.
-        let mut coords = vec![Const(SEP_BYTECODE), Index, count];
-        coords.extend((coords.len()..1 << verifier::layout::BUS_BITS).map(Public));
-        Block::full(log_bytecode, coords)
-    };
-    // Shared blocks (cross-instruction infra, not owned by any single table): the boundary state, the memory's seed
-    // and finalize (every address real, no padding; the value is the full two-limb 128-bit word), the bytecode's.
-    let mut push = vec![
-        Block::full(0, vec![Const(SEP_STATE), Const(one), Const(one)]),
-        Block::full(
-            log_mem,
-            vec![Const(SEP_MEM), Index, Const(one), Col(MEMORY_0), Col(MEMORY_1)],
-        ),
-        bytecode_block(Const(one)),
-    ];
-    let mut pull = vec![
-        Block::full(
-            0,
-            vec![Const(SEP_STATE), Const(super::g_power(final_pc as usize)), Const(one)],
-        ),
-        Block::full(
-            log_mem,
-            vec![
-                Const(SEP_MEM),
-                Index,
-                Col(MEMORY_FINAL_COUNTERS),
-                Col(MEMORY_0),
-                Col(MEMORY_1),
-            ],
-        ),
-        bytecode_block(Col(BYTECODE_FINAL_COUNTERS)),
-    ];
+    let (mut push, mut pull) = (
+        boundary_blocks(false, log_bytecode, log_mem),
+        boundary_blocks(true, log_bytecode, log_mem),
+    );
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
@@ -234,13 +189,12 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         table.flushes(&mut fb);
         let mut counts = Vec::new();
         for c in table.count_columns() {
-            counts.push(vec![Col(c)]);
+            counts.push(vec![Coord::Col(c)]);
         }
-        for (blocks, flushes) in [(&mut push, fb.push), (&mut pull, fb.pull), (&mut count_blocks, counts)] {
-            for coords in flushes {
-                blocks.push(table_block(t, taus[t], rows[t], &padding, coords));
-            }
-        }
+        let (kappa, rows) = (taus[t], rows[t]);
+        table_blocks(&mut push, t, kappa, rows, &padding, fb.push);
+        table_blocks(&mut pull, t, kappa, rows, &padding, fb.pull);
+        table_blocks(&mut count_blocks, t, kappa, rows, &padding, counts);
     }
 
     let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
@@ -255,15 +209,48 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
     }
 }
 
-/// Table `t`'s block of the flush `coords`, in its local columns, at the table's height.
+/// The shared blocks of one side, owned by no table: the boundary state, the memory's seed or finalize (every address
+/// real, no padding; the value is the full two-limb word), the bytecode's.
 #[inline(never)]
-fn table_block(t: usize, kappa: usize, rows: usize, padding: &[F64], coords: Vec<Coord>) -> Block {
-    Block {
-        kappa,
-        rows,
-        padding: coords.iter().map(|c| crate::leaf::coord_at(c, padding)).collect(),
-        coords: offset_coords(GLOBAL_COLUMN_BASES[t], coords),
-        owner: Some(t),
+fn boundary_blocks(pull: bool, log_bytecode: usize, log_mem: usize) -> Vec<Block> {
+    use Coord::{Col, Const, Index, Public};
+    let one = Const(F64::ONE);
+    // The run starts at `(pc, fp) = (0, 0)` and halts at the bytecode's last slot `g^{B-1}` with `fp = 0`.
+    let (state, memory_count, bytecode_count) = if pull {
+        let final_pc = super::g_power((1 << log_bytecode) - 1);
+        (
+            Const(final_pc),
+            Col(MEMORY_FINAL_COUNTERS),
+            Col(BYTECODE_FINAL_COUNTERS),
+        )
+    } else {
+        (one.clone(), one.clone(), one.clone())
+    };
+    // The program columns are public, and a padding entry cancels itself at count 1, so the whole `2^log_bytecode`
+    // flushes; each slot past the count is the stacked bytecode's column of that slot.
+    let mut bytecode = vec![Const(SEP_BYTECODE), Index, bytecode_count];
+    bytecode.extend((bytecode.len()..1 << verifier::layout::BUS_BITS).map(Public));
+    vec![
+        Block::full(0, vec![Const(SEP_STATE), state, one]),
+        Block::full(
+            log_mem,
+            vec![Const(SEP_MEM), Index, memory_count, Col(MEMORY_0), Col(MEMORY_1)],
+        ),
+        Block::full(log_bytecode, bytecode),
+    ]
+}
+
+/// Table `t`'s blocks of `flushes`, in its local columns, at the table's height, onto `out`.
+#[inline(never)]
+fn table_blocks(out: &mut Vec<Block>, t: usize, kappa: usize, rows: usize, padding: &[F64], flushes: Vec<Vec<Coord>>) {
+    for coords in flushes {
+        out.push(Block {
+            kappa,
+            rows,
+            padding: coords.iter().map(|c| crate::leaf::coord_at(c, padding)).collect(),
+            coords: offset_coords(GLOBAL_COLUMN_BASES[t], coords),
+            owner: Some(t),
+        });
     }
 }
 
@@ -289,14 +276,11 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
     let mut windows = witness::split_stack(&mut q, &l.placements);
     // An output lane is in neither the stack nor `q_keccak`, but the bus reads it: it has a buffer of its own.
     let steps = 1 << l.taus[verifier::layout::OP_KECCAK];
-    let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
-    for i in 0..N_COLUMNS {
-        if matches!(keccak_value(i), Some(KeccakLane::Output(_))) {
-            virt.push((i, vec![F64::ZERO; steps]));
-        }
-    }
-    for (i, buf) in virt.iter_mut() {
-        windows[*i] = buf;
+    let mut virt = vec![F64::ZERO; primitives::hash::STATE_LANES * steps];
+    let out = GLOBAL_COLUMN_BASES[verifier::layout::OP_KECCAK] + tables::keccakt::V_OUT;
+    for (lane, buf) in virt.chunks_exact_mut(steps).enumerate() {
+        debug_assert_eq!(keccak_value(out + lane), Some(KeccakLane::Output(lane)));
+        windows[out + lane] = buf;
     }
     // `q_keccak`'s window is the committed states, then a spare slot per KECCAK column riding there.
     let (states, spare) = std::mem::take(&mut windows[QKECCAK]).split_at_mut(crate::keccak::SLOTS * steps);
