@@ -20,20 +20,20 @@ x86_64 needs AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
-pip install py-lean-pq==0.19.1
-npm install @kevaundray/lean-pq@0.19.1
-dotnet add package Ethereum.LeanPq --version 0.19.1
-go get leanvm.org/go@v0.19.1
-version=0.19.1
+pip install py-lean-pq==0.19.2
+npm install @kevaundray/lean-pq@0.19.2
+dotnet add package Ethereum.LeanPq --version 0.19.2
+go get leanvm.org/go@v0.19.2
+version=0.19.2
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.19.1") // Java, Gradle
+implementation("io.github.crate-crypto:lean-pq:0.19.2") // Java, Gradle
 ```
 
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.1" # Nim, .nimble
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.2" # Nim, .nimble
 ```
 <!-- x-release-please-end -->
 
