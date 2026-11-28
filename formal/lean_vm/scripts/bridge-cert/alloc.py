@@ -538,7 +538,9 @@ def gen():
             return data.fn_thms(thms)
 
         def body_thm(j, k):
-            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Fn.«{k}».advice = true', prf)]
+            # its `match` targets over the code's jumps listed once (`Bridge.curBody_of_fast`)
+            return [(k, 'curBodyOk', f'Bridge.curBody alignCtx plumb core.body code.code Fn.«{k}».advice = true',
+                     'rw [alignCtxEq]\napply Bridge.curBody_of_fast\ndecide +kernel')]
 
         def fr_thm(j, k):
             # the callees by their indices as the glue names them (`Fn.«k».idx`), not as numbers
@@ -578,7 +580,7 @@ def gen():
                 body_mods[k] = bmod
                 files[os.path.join(OUT, f'B_{k}.lean')] = (
                     HEAD(mod=bmod, what=f"The kernel's check of `{k}`'s body for the bump pointer.")
-                    + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
+                    + 'public import LeanVM.Guest.Bridge.AllocFast\nimport all Statement.Data.AdviceHints\n' + f'public import {cm}\n'
                     + ''.join(f'public import {m}\n' for m in imps)
                     + '\n' + ns(k, body_thm(j, k)).rstrip('\n') + '\n')
                 smod = f'LeanVM.Guest.Bridge.AllocChk.«S_{k}»'
