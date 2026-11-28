@@ -111,20 +111,17 @@ pub fn encode(
     let mut out = vec![log_inv_rate];
     let len = |out: &mut Vec<u8>, n: usize| out.extend(u32::try_from(n).expect("a u32 length").to_le_bytes());
     len(&mut out, children.len());
-    let words = |out: &mut Vec<u8>, words: &[u64]| {
-        len(out, words.len() / 2);
-        out.extend(words.iter().flat_map(|w| w.to_le_bytes()));
+    let scalars = |out: &mut Vec<u8>, limbs: Vec<[u64; 2]>| {
+        len(out, limbs.len());
+        out.extend(limbs.as_flattened().iter().flat_map(|w| w.to_le_bytes()));
     };
     for (claims, proof) in children {
         let claims = claims.to_bytes();
         len(&mut out, claims.len());
         out.extend(claims);
         let (point, proof) = proof.__parts();
-        words(&mut out, &point.iter().flat_map(|x| [x.c0, x.c1]).collect::<Vec<_>>());
-        words(
-            &mut out,
-            &proof.stream.iter().flat_map(|x| [x.c0, x.c1]).collect::<Vec<_>>(),
-        );
+        scalars(&mut out, point.iter().map(|x| [x.c0, x.c1]).collect());
+        scalars(&mut out, proof.stream.iter().map(|x| [x.c0, x.c1]).collect());
         len(&mut out, proof.merkle_openings.len());
         for phase in &proof.merkle_openings {
             len(&mut out, phase.len());
@@ -210,31 +207,23 @@ impl<'a> Reader<'a> {
         Some(u64::from_le_bytes(*self.array()?))
     }
 
-    fn scalars(&mut self) -> Option<Vec<E>> {
-        let mut out = Vec::new();
-        for _ in 0..self.len()? {
-            out.push(E::new(self.word()?, self.word()?));
-        }
-        Some(out)
+    /// A count, then that many `N`-byte items.
+    fn items<const N: usize>(&mut self) -> Option<&'a [[u8; N]]> {
+        let n = self.len()?;
+        Some(self.take(n.checked_mul(N)?)?.as_chunks().0)
     }
 
     /// A child's proof, as [`encode`] writes it. Every item takes input bytes, so a forged count allocates little.
     fn proof(&mut self) -> Option<AggregateProof> {
-        let point = self.scalars()?.into_iter().map(from_scalar).collect();
-        let stream = self.scalars()?;
+        let point = self.items()?.iter().map(|x| from_scalar(scalar(x))).collect();
+        let stream = self.items()?.iter().map(scalar).collect();
         let mut merkle_openings = Vec::new();
         for _ in 0..self.len()? {
             let mut paths = Vec::new();
             for _ in 0..self.len()? {
                 let leaf_index = self.word()?;
-                let mut leaf = Vec::new();
-                for _ in 0..self.len()? {
-                    leaf.push(K(self.word()?));
-                }
-                let mut siblings = Vec::new();
-                for _ in 0..self.len()? {
-                    siblings.push(*self.array()?);
-                }
+                let leaf = self.items()?.iter().map(|&word| K(u64::from_le_bytes(word))).collect();
+                let siblings = self.items()?.to_vec();
                 paths.push(MerklePath {
                     leaf_index,
                     leaf,
@@ -251,4 +240,10 @@ impl<'a> Reader<'a> {
             },
         )
     }
+}
+
+/// An element as its two words, little-endian, the low one first.
+fn scalar(bytes: &[u8; 16]) -> E {
+    let x = u128::from_le_bytes(*bytes);
+    E::new(x as u64, (x >> 64) as u64)
 }
