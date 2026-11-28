@@ -76,11 +76,11 @@ random-permutation model where an adversary is involved, except the memory-decod
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
   `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
   sound for the straight-line extractor `transcriptExtractor`, and complete;
-* `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
+* `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge decode` (`lean_vm`'s
   definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
   (`Statement/LeanVmGuest.lean`;
   with `knowledgeSoundness_holds` they compose to `LeanVM.Guest.End.aggregate_sound_outer :
-  MemoryAggregateSound guestProgram decode transcriptExtractor`): the leanISA guest program, its
+  MemoryAggregateSound decode transcriptExtractor`): the leanISA guest program, its
   witness named by the decoder of memories `LeanVM.Guest.End.decode`
   (`LeanVM/Guest/EndFinal.lean`); `GuestKnowledgeSoundness D` of
   `Statement/LeanVmGuest.lean` follows
@@ -132,10 +132,10 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 
 example : LeanVM.KnowledgeSoundness LeanVM.transcriptExtractor := LeanVM.knowledgeSoundness_holds
 example : LeanVM.Completeness := LeanVM.completeness_holds
-example : LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.guestProgram LeanVM.Guest.End.decode :=
+example : LeanVM.Node.MemoryGuestKnowledge LeanVM.Guest.End.decode :=
   LeanVM.Guest.End.guest_knowledge
 example : LeanVM.Node.StatementDigestBinds := LeanVM.Guest.Binding.digest_binds
-example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.guestProgram LeanVM.Guest.End.decode
+example : LeanVM.Node.MemoryAggregateSound LeanVM.Guest.End.decode
     LeanVM.transcriptExtractor :=
   LeanVM.Guest.End.aggregate_sound_outer
 example : LeanVM.Guest.Completeness.GuestExecutionComplete :=

@@ -35,27 +35,27 @@ theorem knowledgeSoundness_iff_capped (extractor : StraightLineExtractor) :
     fun h A Q hA _ ↦ h A Q hA⟩
 
 /-- `AggregateSound` capped at `Q ≤ 2^128`. -/
-def AggregateSoundCapped (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
+def AggregateSoundCapped (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost adversary Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[∃ statement : NodeStatement,
-      outcome.accepted ∧ outcome.program = guest ∧
-      publicInputDigest outcome.input = statementDigest (deployedSeed guest) statement ∧
-      statement.deferredClaim.HoldsWithShape (bytecodeWords guest) ∧
+      outcome.accepted ∧ outcome.program = LeanVM.Guest.guestProgram ∧
+      publicInputDigest outcome.input = statementDigest (deployedSeed LeanVM.Guest.guestProgram) statement ∧
+      statement.deferredClaim.HoldsWithShape (bytecodeWords LeanVM.Guest.guestProgram) ∧
       ¬ ∃ execution, ∃ decoding : SeedStatementAndWitness,
         extractor outcome.program outcome.input outcome.transcript outcome.proof = some execution ∧
         Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
           (guestWitnessDecoderBudget execution)
           (Cost.encodeGuestWitnessDecoderInput outcome.program execution) =
             some (Cost.encodeValue decoding) ∧
-        ExplainsStatement guest statement decoding] ≤
+        ExplainsStatement statement decoding] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
-theorem aggregateSound_iff_capped (guest : LeanIsaProgram) (decoder : LeanVM.Cost.MachineProgram)
+theorem aggregateSound_iff_capped (decoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) :
-    AggregateSoundCapped guest decoder extractor ↔ AggregateSound guest decoder extractor :=
+    AggregateSoundCapped decoder extractor ↔ AggregateSound decoder extractor :=
   ⟨fun h A Q hA ↦ (le_or_gt Q (2 ^ 128)).elim (h A Q hA) fun hQ ↦
       (prEvent_le_one _).trans (one_le_knowledgeSoundnessBound hQ),
     fun h A Q hA _ ↦ h A Q hA⟩

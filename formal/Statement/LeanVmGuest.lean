@@ -283,15 +283,6 @@ structure SeedStatementAndWitness where
   /-- Its witness. -/
   witness : NodeWitness
 
-/-- **The decoding explains the public input `input`**: its seed and statement have the input's
-digest (the statement is the one the input commits to), and its witness holds that statement's
-claims (`NodeRelation`). `GuestKnowledgeSoundness` (below) says this of what the decoder
-program outputs on every valid execution. -/
-def ExplainsPublicInput (guest : LeanIsaProgram) (input : PublicInput)
-    (decoding : SeedStatementAndWitness) : Prop :=
-  statementDigest decoding.seed decoding.statement = publicInputDigest input ∧
-    NodeRelation (bytecodeWords guest) decoding.seed decoding.statement decoding.witness
-
 /-- **The candidate collisions** of two statements' digests: the pairs of inputs of the three
 hashes the digests compute, the outer one and the two claim lists'. The DA digest enters the
 preimage as it is. -/
@@ -467,6 +458,15 @@ open LeanVM.Parameters LeanVM.Semantics
 decoder's size and a slack of `430`, less than two leanXMSS signatures' encodings. -/
 def guestWitnessDecoderSizeBound : ℕ := 237007
 
+/-- **The decoding explains the public input `input`**: its seed and statement have the input's
+digest (the statement is the one the input commits to), and its witness holds that statement's
+claims for the guest program (`NodeRelation`). `GuestKnowledgeSoundness` (below) says this of what
+the decoder program outputs on every valid execution. -/
+def ExplainsPublicInput (input : PublicInput) (decoding : SeedStatementAndWitness) : Prop :=
+  statementDigest decoding.seed decoding.statement = publicInputDigest input ∧
+    NodeRelation (bytecodeWords Guest.guestProgram) decoding.seed decoding.statement
+      decoding.witness
+
 /-- **The guest decoder's budget** on an execution of `steps` steps on a memory of `2^κ` words:
 the most the decoder's run may cost, in the machine's price, with `lg = log₂(steps + 1)`,
 `(steps + 1)·(2^21 + 2^13·lg) + (70κ + 374 + 2^23 + 2^14·lg)·2^κ + 2^37·(lg + 16)`. Its constants
@@ -492,7 +492,7 @@ def GuestKnowledgeSoundness (guestWitnessDecoder : Cost.MachineProgram) : Prop :
           (guestWitnessDecoderBudget execution)
           (Cost.encodeGuestWitnessDecoderInput Guest.guestProgram execution) =
         some (Cost.encodeValue decoding) ∧
-      ExplainsPublicInput Guest.guestProgram input decoding
+      ExplainsPublicInput input decoding
 
 end LeanVM.Node
 

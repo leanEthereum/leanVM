@@ -44,7 +44,7 @@ structure DecoderProgramSpec (decoderProgram : Cost.MachineProgram) (decoder : E
 /-- **The decoder's decodings explain the public input**: on every valid execution of the guest
 on a public input, `decoder`'s decoding explains it (`ExplainsPublicInput`). -/
 def DecoderExplains (decoder : Execution guestProgram → SeedStatementAndWitness) : Prop :=
-  ∀ input (t : Execution guestProgram), ValidExecution guestProgram input t → ExplainsPublicInput guestProgram input (decoder t)
+  ∀ input (t : Execution guestProgram), ValidExecution guestProgram input t → ExplainsPublicInput input (decoder t)
 
 /-- `decode`, read off the memory, explains the public input: `guest_knowledge`. -/
 theorem decoderExplains_decode : DecoderExplains fun t ↦ decode t.memory := guest_knowledge

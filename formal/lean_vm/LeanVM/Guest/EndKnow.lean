@@ -42,7 +42,7 @@ call relation that unfolds along a frame map (`Located.MainSoundV`).
   shape) has, under the
   seed `iv`, the public input's digest learns that the decoded seed and statement are `iv` and
   `s₀`, or holds an explicit Keccak-256 collision (`collisionCandidates`).
-* `aggregate_knowledge_of`, `aggregate_sound_outer_of : MemoryAggregateSound guest (decodeWith W)`:
+* `aggregate_knowledge_of`, `aggregate_sound_outer_of : MemoryAggregateSound (decodeWith W)`:
   composed with knowledge soundness in the random-permutation model, in `LeanVM/Guest/EndRpm.lean`.
 
 **With B1's witnesses** (`decodeV piOf`): `W σ rd V = B1.Main.decWitV σ rd V piOf`, `main`'s
@@ -65,11 +65,11 @@ the proofs' form, which `LeanVM/Guest/DecoderProgram.lean` relates to it. -/
 abbrev MemoryDecoder : Type := ∀ {κ : ℕ}, MemoryImage κ → SeedStatementAndWitness
 
 /-- **Knowledge soundness of the guest program, for a decoder of memories**: from the memory of
-every valid execution of `guest` on a public input, `decode` reads a seed, the node statement the
+every valid execution of the guest program on a public input, `decode` reads a seed, the node statement the
 input commits to under that seed, and a witness proving it (`ExplainsPublicInput`). -/
-def MemoryGuestKnowledge (guest : LeanIsaProgram) (decode : MemoryDecoder) : Prop :=
-  ∀ input (t : Execution guest), ValidExecution guest input t →
-    ExplainsPublicInput guest input (decode t.memory)
+def MemoryGuestKnowledge (decode : MemoryDecoder) : Prop :=
+  ∀ input (t : Execution Guest.guestProgram), ValidExecution Guest.guestProgram input t →
+    ExplainsPublicInput input (decode t.memory)
 
 end
 
@@ -106,7 +106,7 @@ variable {W : Val → Reader → FrameMap → NodeWitness}
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge guestProgram (decodeWith W) := by
+theorem guest_knowledge_of (h : SoundHyps W) : MemoryGuestKnowledge (decodeWith W) := by
   intro input t hv
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of h.b2 hv
   have hm : MemOk t.memory.read :=
@@ -155,7 +155,7 @@ theorem soundHyps_of_sub {piOf : Reader → Val → FrameMap → Protocol.Compil
 
 /-- **Soundness of the deployed guest, its witness named**, from B2 and `verify_sub`'s statement. -/
 theorem guest_knowledge_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) : MemoryGuestKnowledge guestProgram (decodeV piOf) :=
+    (hv : B1.Main.SubSoundW bytecode piOf) : MemoryGuestKnowledge (decodeV piOf) :=
   guest_knowledge_of (soundHyps_of_sub hb2 hv)
 
 /-- **What a consumer learns**, from B2 and `verify_sub`'s statement. -/

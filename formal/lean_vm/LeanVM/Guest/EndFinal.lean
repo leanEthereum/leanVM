@@ -33,14 +33,14 @@ choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only 
 (whose `KECCAK` instruction checks Keccak-f[1600]), is checked by a test alone,
 `tests/LeanVMTests/Guest/DecodeNoChoice.lean`, which follows every definition it unfolds to.
 
-* `guest_knowledge : MemoryGuestKnowledge guest decode`: every valid execution of the guest on a
+* `guest_knowledge : MemoryGuestKnowledge decode`: every valid execution of the guest on a
   public input decodes to a statement of that input's digest under the decoded seed, and a witness
   holding it (`NodeRelation`). B2 locates every call of `main` at a frame the run entered
   (`Check.EnteredAt`), so the located relation unfolds along the replayed frame map
   (`Located.unfoldsV_replay`), and B1 applies to it.
 * `decode_eq`: on a memory of fewer than `2^64` words, `decode` is `decodeV`'s reading with the
   replayed frame map in place of `Located.frameV`.
-* `aggregate_sound_outer : MemoryAggregateSound guest decode` (`EndRpm.lean`): in the
+* `aggregate_sound_outer : MemoryAggregateSound decode` (`EndRpm.lean`): in the
   random-permutation experiment, the verifier accepts a proof of the guest on the digest of a
   statement `s` under the deployed seed, `s` of the guest's shape, while no
   execution is extracted from the proof and the adversary's transcript, or the extracted one does
@@ -98,13 +98,13 @@ theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
 seed and a witness holding it. -/
-theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode := by
+theorem guest_knowledge : MemoryGuestKnowledge decode := by
   intro input t hv
   have hκ : t.logMemorySize < 64 := by
     have := hv.1.2.1
     unfold maxLogMem at this
     omega
-  show ExplainsPublicInput guestProgram input (decode t.memory)
+  show ExplainsPublicInput input (decode t.memory)
   rw [decode_eq hκ]
   obtain ⟨hb, h0, h1⟩ := mainBodyL_of (b2SoundL endPending_proved) hv
   have hm : MemOk t.memory.read :=

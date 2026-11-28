@@ -26,17 +26,17 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-- **The decoding `decoding` explains the statement `statement`**: it is the deployed seed,
 `statement` and a witness holding `statement`; or the decoded seed and statement, with the deployed
 seed and `statement`, give a Keccak-256 collision among the candidates. -/
-def ExplainsStatement (guest : LeanIsaProgram) (statement : NodeStatement)
-    (decoding : SeedStatementAndWitness) : Prop :=
-  (decoding.seed = deployedSeed guest ∧ decoding.statement = statement ∧
-      NodeRelation (bytecodeWords guest) (deployedSeed guest) statement decoding.witness) ∨
+def ExplainsStatement (statement : NodeStatement) (decoding : SeedStatementAndWitness) : Prop :=
+  (decoding.seed = deployedSeed Guest.guestProgram ∧ decoding.statement = statement ∧
+      NodeRelation (bytecodeWords Guest.guestProgram) (deployedSeed Guest.guestProgram) statement
+        decoding.witness) ∨
     HasCollision
-      (collisionCandidates decoding.seed decoding.statement (deployedSeed guest) statement)
+      (collisionCandidates decoding.seed decoding.statement (deployedSeed Guest.guestProgram) statement)
 
 open OracleComp OracleSpec in
 /-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
 `LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
-accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement `statement`
+accepts it as a proof of the guest program on the digest, under the deployed seed, of a statement `statement`
 whose deferred claim holds of the guest program's bytecode (`BytecodeClaim.HoldsWithShape`, as the
 deployed outer verifier checks by recomputing it), and yet the execution the knowledge extractor
 `extractor` reads off the adversary's transcript and the proof does not explain `statement`: no
@@ -47,21 +47,21 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`. The
 digest, the seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks
 meet here). -/
-def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
+def AggregateSound (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
     Common.QueryCostAtMost adversary Common.permutationCallCost Q →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[∃ statement : NodeStatement,
-      outcome.accepted ∧ outcome.program = guest ∧
-      publicInputDigest outcome.input = statementDigest (deployedSeed guest) statement ∧
-      statement.deferredClaim.HoldsWithShape (bytecodeWords guest) ∧
+      outcome.accepted ∧ outcome.program = Guest.guestProgram ∧
+      publicInputDigest outcome.input = statementDigest (deployedSeed Guest.guestProgram) statement ∧
+      statement.deferredClaim.HoldsWithShape (bytecodeWords Guest.guestProgram) ∧
       ¬ ∃ execution, ∃ decoding : SeedStatementAndWitness,
         extractor outcome.program outcome.input outcome.transcript outcome.proof = some execution ∧
         Cost.outputWithin guestWitnessDecoder guestWitnessDecoderSizeBound
           (guestWitnessDecoderBudget execution)
           (Cost.encodeGuestWitnessDecoderInput outcome.program execution) =
             some (Cost.encodeValue decoding) ∧
-        ExplainsStatement guest statement decoding] ≤
+        ExplainsStatement statement decoding] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
 
@@ -108,7 +108,7 @@ structure Corollaries
   Keccak-256 collision, except with the bound of `leanVmKnowledgeSoundness`: from
   `leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds`. Claims held
   through children carry no knowledge of their own (`AggregateSound`). -/
-  aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
+  aggregateSound : LeanVM.Node.AggregateSound guestWitnessDecoder
     (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
   /-- The guest's prover (`LeanVM.Guest.guestProve`), run on the statement and the witness of a
   node `guestExecutionComplete` covers, unless a child's proof exhibits a Keccak-256 collision,
