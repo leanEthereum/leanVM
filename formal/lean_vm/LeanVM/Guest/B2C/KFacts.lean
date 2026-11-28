@@ -12,6 +12,7 @@ public import LeanVM.Guest.B2C.KRetemp
 public import LeanVM.Guest.B2C.ArmsFresh
 public import LeanVM.Guest.B2C.RunsFit
 public import LeanVM.Guest.B2C.Shared
+public import LeanVM.Guest.B2C.ShareLink
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.EndComplete
 
@@ -37,7 +38,8 @@ open LeanVM.Guest.Exec LeanVM.Guest.Check
 
 section Static
 
-theorem shareOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : ShareOk j := Shared.all j h1 h2
+theorem shareOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : ShareOk j :=
+  shareOk_of_checked (Shared.all j h1 h2)
 
 end Static
 

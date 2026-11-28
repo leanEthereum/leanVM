@@ -3979,13 +3979,13 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
 
 def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
 
-/-- The index of the sharing checks, `B2C/Shared.lean`: every function's `ShareOk` from the glue
+/-- The index of the sharing checks, `B2C/Shared.lean`: every function's `ShareChecked` from the glue
 modules `glue` (`B2C/Shared/Fn*`, `B2CPack`). -/
 def sharedIndex (n : ℕ) (glue : List String) : System.FilePath × String :=
   (("LeanVM/Guest/B2C" : System.FilePath) / "Shared.lean", checkedHeader "B2C.Shared" "Every compiled function's sharing check." ++
     "public import Mathlib.Tactic.IntervalCases\n" ++ String.join (glue.map fun m => s!"public import {m}\n") ++
     "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
-    okSplit "Every function but `__jump_tables` passes the sharing check." "all" "" "ShareOk" "" ""
+    okSplit "Every function but `__jump_tables` passes the sharing check." "all" "" "ShareChecked" "" ""
       (fun k => s!"ok{k}") n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n")
 
 namespace CplK
@@ -4606,8 +4606,8 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
     (fs, fs.map fun (p, _) => s!"LeanVM.Guest.B2C.{dir}.{p.fileStem.getD ""}")
   let (cg, cmods) := glue "Cplw" "Cpl" "CplOk" "Compiled functions pass the completeness check, from their packs' checks."
     (!special ·) cplHome fun j => s!"cplOk_of_link link{j} plumbEq{j} fsEq{j} partsEq{j} armsEq{j} rfl Fn.«{I[j]!.key}».cplOk"
-  let (sg, smods) := glue "Shared" "ShareLink" "ShareOk" "Compiled functions pass the sharing check, from their packs' checks."
-    (fun _ ↦ true) shareHome fun j => s!"shareOk_of_link link{j} plumbEq{j} fsEq{j} rfl " ++
+  let (sg, smods) := glue "Shared" "ShareChecked" "ShareChecked" "Compiled functions pass the sharing check, from their packs' checks."
+    (fun _ ↦ true) shareHome fun j => s!"shareChecked_of_link link{j} plumbEq{j} fsEq{j} rfl " ++
       (if j == 1 then "(fun _ ↦ rfl)" else "(fun h ↦ nomatch h)") ++ s!" Fn.«{I[j]!.key}».shareL"
   return (out.toList ++ cg ++ sg, cmods, smods)
 

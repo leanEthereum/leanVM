@@ -8,12 +8,13 @@
 module
 
 public import LeanVM.Guest.B2C.ShareLStatic
+public import LeanVM.Guest.B2C.ShareChecked
 
 /-!
 # The sharing check of a compiled function
 
-`shareOk_of_link`: function `j`'s core IR, certificate, completeness data and frame size are the
-data a local sharing check holds on (`Check.Link`), so `ShareOk j`: its path conclusion
+`shareOk_of_checked`: function `j`'s core IR, certificate, completeness data and frame size are
+the data a local sharing check holds on (`ShareChecked`), so `ShareOk j`: its path conclusion
 (`ShareL.path_of_check`), its static facts (`ShareL.staticD_of_check`), and from them and the
 certificate's lists its cells apart (`Apart`) and its temporaries and runs listed (`FnStatic`).
 -/
@@ -82,14 +83,12 @@ theorem apart_of_static {j : ℕ} {cf : Core.Fn} {fs : ℕ} {main : Bool} {mc : 
     · exact testBit_lor_r (testBit_lor_l (scc c hc))
     · exact testBit_lor_r (testBit_lor_r (acc a ha))
 
-/-- **A function's sharing check from its local check**, over its data (`Check.Link`). -/
-theorem shareOk_of_link {j : ℕ} {G : Glob} {f : CompiledFunction} {cf : Core.Fn} {C : Cert} {P : Plumb}
-    {fs : ℕ} {main : Bool} {mc : ℕ} {T : ShareL.Tabs} (h : Link j G f cf C) (hP : plumbOf j = P)
-    (hfs : fsN j = fs) (hm : Nat.beq j 1 = main) (hmc : main = true → Data.mainCells = mc)
-    (ok : ShareL.shareCheckL cf C P fs main mc T = true) : ShareOk j := by
+/-- **A function's sharing check from its local check**, over its data. -/
+theorem shareOk_of_checked {j : ℕ} (hc : ShareChecked j) : ShareOk j := by
+  obtain ⟨G, f, cf, C, main, mc, T, h, hm, hmc, ok⟩ := hc
   have H := ShareL.checkL_spec ok
   have hS := ShareL.staticD_of_check H
-  rw [← h.core, ← h.cert, ← hP, ← hfs] at H hS
+  rw [← h.core, ← h.cert] at H hS
   have hlists := hS.lists
   simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
   obtain ⟨⟨⟨⟨⟨-, ht⟩, hr⟩, hrt⟩, -⟩, -⟩ := hlists
