@@ -1,43 +1,16 @@
-"""The witnesses of the carried facts' checks (`Res.carryGW`, `Res.carryNzW`, `CoreMode/Fam/CarryWit.lean`): for each
-function, the events of its spine that the derivations of its searches use, as a bitset over the spine. The searches
-(`Res.kOf`, `Res.ptrOk`, `Res.nzOf`, `Res.kIn`, `Res.tabNz`, `Res.selTabB`) are mirrored here returning the indices
-of the events a success uses; the kernel runs the same searches over those events alone. Used by `carry.py`."""
-import re
+"""The hints of the facts carried to callees (`Res.downH`, `CoreMode/Fam/DownDefs.lean`): for each function, the events
+of its spine that the derivations of its searches use, as a bitset over the spine. The searches (`Res.kOf`,
+`Res.ptrOk`, `Res.nzOf`, `Res.kIn`, `Res.tabNz`, `Res.selTabB`, `CoreMode.constExpS`) are mirrored here returning the
+indices of the events a success uses; the kernel runs the same searches over those events alone. Used by `down.py`."""
+import os
+import sys
 
-NZ_DEPTH, K_DEPTH = 12, 8
-
-
-def enc(s):
-    """`encS`: the name's bytes as digits in base `2^9`, each shifted by one, the first the lowest."""
-    n = 0
-    for c in reversed(s.encode()):
-        n = n * 512 + c + 1
-    return n
-
-
-def ntree(items, val, ind='  '):
-    """A balanced `NTree` literal over sorted `(key, value)` items."""
-    if not items:
-        return '.leaf'
-    m = len(items) // 2
-    k, v = items[m]
-    return '(.node %d %s\n%s%s\n%s%s)' % (k, val(v), ind, ntree(items[:m], val, ind + ' '), ind,
-                                         ntree(items[m + 1:], val, ind + ' '))
-
-
-def tab(entries, val):
-    """An `NTab` literal of `(name, payload)` entries: the payloads by the name's code."""
-    by = {}
-    for f, p in entries:
-        ps = by.setdefault(enc(f), [])
-        if p not in ps:
-            ps.append(p)
-    return ntree(sorted(by.items()), lambda ps: '[%s]' % ', '.join(map(val, ps)))
-
-
-def hexbits(sub):
-    """A bitset literal: bit `j` set for each `j` of `sub`."""
-    return 'nat_hex%% "%x"' % sum(1 << j for j in sub)
+import carry
+import heapc
+import resgen
+from carry import NZ_DEPTH, K_DEPTH
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+import coredata  # noqa: E402
 
 
 def vals(a):
@@ -284,15 +257,101 @@ def raw_atoms(body):
                 yield from raw_atoms(x)
 
 
-def lean_carried(path):
-    """`Res.carried` (`Fam/CarryDefs.lean`): `(stable name, parameter, kind)`."""
-    t = open(path, encoding='utf-8').read()
-    t = t[t.index('def carried :'):]
-    t = t[:t.index('\n\n')]
-    return [(f, int(p), k) for f, p, k in re.findall(r'name% «([^»]+)», (\d+), \.(\w+)\)', t)]
+# ---- the hints -----------------------------------------------------------------------------------------------------
+
+def carry_hints(F, carried, up, own, kc):
+    """Each function's sub-spines, by name: of the carried facts' searches over `Bridge.spine`, of the nonzero facts'
+    over `Memory.spineE`. A search with no derivation over the body's spine fails the generator."""
+    ups = set(up)
+    upf = lambda g, i: (g, i) in ups
+    C = carry.Check(F, carried, upf)
+    owns = {}
+    for f, v in own:
+        owns.setdefault(f, []).append(v)
+    kcs = {}
+    for f, p, k in kc:
+        kcs.setdefault(f, []).append((p, k))
+    gbits, nzbits, bad = {}, {}, []
+    for f, G in F.items():
+        body, raw = G['body'], G['raw']
+        # carryG
+        A = AtomWit(atom_spine(raw, heapc.noret))
+        cv = sorted(p for p, k in kcs.get(f, ()) if k == 'inK') + ([0] if G['loop'] else [])
+        sub = set()
+        def need(r, what):
+            if r is None:
+                bad.append((f, what))
+            else:
+                sub.update(r)
+        for g, args, _ in C.sites(f):
+            for p, k in kcs.get(g, ()):
+                if k == 'inK':
+                    need(A.kof(cv, K_DEPTH, args[p]) if p < len(args) else None, ('carried', g, p))
+        for a in raw_atoms(raw):
+            if a[0] == 'hint' and a[1][0] == 'witness' and a[1][2][0] == 'heap':
+                p = a[1][2][1]
+                r = A.ptr(p)
+                need(r if r is not None else A.kof(cv, K_DEPTH, p), ('witness', p))
+        gbits[f] = sub
+        # carryNzG
+        top = carry.spine(body)
+        W = EvWit(top, C.kv(f), upf, carry.POWS())
+        W0 = EvWit(top, [], upf, carry.POWS())
+        sub = set()
+        for v, _ in C.dyns(f):
+            need(W.nz(NZ_DEPTH, v), ('size', v))
+        for g, args, _ in C.sites(f):
+            for p in sorted(carried.get(g, ())):
+                need(W.nz(NZ_DEPTH, args[p]) if p < len(args) else None, ('site', g, p))
+        for g, i in up:
+            if g != f:
+                continue
+            if i < G['np']:
+                need(W0.nz(NZ_DEPTH, i), ('up', i))
+            else:
+                for s, _ in carry.scoped(body, top):
+                    if s[0] == 'ret':
+                        j = i - G['np']
+                        need(W0.nz(NZ_DEPTH, s[1][j]) if j < len(s[1]) else None, ('ret', i))
+        sels = []
+        for s in body:
+            if s[0] == 'match':
+                sels.append((s[1], len(s[2])))
+            if not heapc.noret(s):
+                break
+        for v in owns.get(f, ()):
+            r = W0.sel_tab(sels, v)
+            if r is not None:
+                sub.update(r)
+            elif v not in C.arm_nz(body):
+                bad.append((f, 'own', v))
+        nzbits[f] = sub
+    if bad:
+        sys.exit('carry: no witness for:\n  ' + '\n  '.join(map(str, bad[:40])))
+    return gbits, nzbits
 
 
-def name_strings(path):
-    """The core functions' names by stable name (`Data/NameStrings.lean`)."""
-    t = open(path, encoding='utf-8').read()
-    return dict(re.findall(r'abbrev «([^»]+)» : String := "([^"]*)"', t))
+def exp_hints(L):
+    """The exponent bounds' sub-spines, by function index, the events of its spine (`Memory.spineE`) its call sites'
+    constants are (`constExpS`); a site whose argument no constant of the spine pins is left to `armExpB`."""
+    F = carry.functions()
+    names = dict(coredata.name_strings(os.path.join(resgen.ROOT, 'Data'))[0])
+    keys = coredata.keys(os.path.join(resgen.ROOT, 'Data'))
+    pows = carry.POWS()
+    pow1 = lambda w: 0 if w == (1, 0) else (pows.get(w[0]) if w is not None and w[1] == 0 else None)
+    by = {}
+    for g, p, lo, hi in L:
+        by.setdefault(names.get(g, g), []).append((p, lo, hi))
+    out = {}
+    C = carry.Check(F, {}, lambda g, i: False)
+    for j, k in enumerate(keys):
+        f = names[k]
+        sp = carry.spine(F[f]['body'])
+        sub = set()
+        for g, args, _ in C.sites(f):
+            for p, lo, hi in by.get(g, ()):
+                if p < len(args):
+                    sub.update(next(([i] for i, e in enumerate(sp) if e[0] == 'a' and e[1][0] == 'const' and
+                                     e[1][1] == args[p] and pow1(e[1][2]) is not None and lo <= pow1(e[1][2]) < hi), []))
+        out[j] = sub
+    return out, by

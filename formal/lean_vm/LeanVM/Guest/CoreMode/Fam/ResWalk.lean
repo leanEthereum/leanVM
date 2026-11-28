@@ -1,38 +1,26 @@
 /-
-  LeanVM.Guest.CoreMode.Fam.Wit
+  LeanVM.Guest.CoreMode.Fam.ResWalk
 
-  Witnessed checks over a body: sub-spines picked by a bitset, names looked up by their codes, and
-  the walkers' monotonicity, so that a generated certificate's search runs over the few events it
-  names and its result is the check's.
+  The facts of `Fam/TabDefs.lean`'s hints and the walkers' monotonicity, so that a check at the generator's hints gives
+  the check it stands for.
 -/
 
 module
 
+public import LeanVM.Guest.CoreMode.Fam.TabDefs
 public import LeanVM.Guest.CoreMode.Fam.Down
 public import LeanVM.Guest.Memory.ScopeDefs
-public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Bridge.PairDefs
-public import LeanVM.Guest.NameIx
 public import LeanVM.Guest.Memory.Family
-public import LeanVM.Guest.ExecCore
 
 /-!
-# Witnessed checks
+# Hints and walkers
 
-The carried facts' checks (`carryG`, `carryNzG`, `CoreMode.carryExpB`, `callersG`, `callersM`) search a function's
-whole spine for each value they pin, and compare each call site's callee with every entry of a list of names. Their
-witnessed forms take from the generator:
-
-* a **sub-spine**: the events at the set bits of a number (`pickB`), the events a search uses. Each search is
-  monotone in the events it scans, so its success over the sub-spine is its success over the spine
-  (`mem_pickB`, and each search's `_mono`);
-* **name tables**: a list of entries keyed by name as a search tree by the name's code (`encS`, `NTab`), each
-  entry's payload under its name's code (`tab_all`: a check of the payloads under a callee's code is the check of
-  the list's entries of that callee). The table is written by the generator and checked against its list once
-  (`tabOk`), or built by the kernel from the list (`NTab.ofNamed`, which holds each entry, `ofNamed_all`).
-
-`allB_ctx`, `sitesB_imp`, `blockAll_imp`, `RangeOk.imp`: the walkers are monotone in their predicates, `allB` with
-every context it passes extending its first.
+A search over the events at the set bits of a number is one over the spine (`mem_pickB`, with each search's `_mono`);
+a check of the payloads under a callee's code in a table its list's `tabOk` pins is the check of the list's entries of
+that callee (`tab_all`, `tabOk.all`, `tabOk.mem`). The walkers are monotone in their predicates (`sitesB_imp`,
+`blockAll_imp`, `RangeOk.imp`, `allB_ctx`, with every context `allB` passes extending its first), and one walk of a
+body (`allB`) gives the call sites' check (`allB_sites`) and the atoms' (`allB_block`).
 -/
 
 namespace LeanVM.Guest.Res
@@ -40,48 +28,6 @@ namespace LeanVM.Guest.Res
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Exec (natSeq natSeq_eq)
 open LeanVM.Guest.Bridge (blockAll armsAll)
-
-@[expose] public section
-
-/-- **The elements of `l` at the set bits of `b`**, bit `0` the first: by the recursor, for the kernel. -/
-def pickB {α : Type} (b : ℕ) (l : List α) : List α :=
-  List.rec (motive := fun _ ↦ ℕ → List α) (fun _ ↦ [])
-    (fun x _ ih b ↦ bif Nat.beq (Nat.mod b 2) 1 then x :: ih (Nat.div b 2) else ih (Nat.div b 2)) l b
-
-/-- **A name table**: under a name's code (`encS`), the payloads of the entries of that name. -/
-abbrev NTab (α : Type) := NTree (List α)
-
-/-- The payloads under a code, the code evaluated first. -/
-def NTab.at {α : Type} (t : NTab α) (k : ℕ) : List α := natSeq k fun k ↦ (t.find k).getD []
-
-/-- `a` added under key `k`. -/
-def NTab.ins {α : Type} (k : ℕ) (a : α) : NTab α → NTab α
-  | .leaf => .node k [a] .leaf .leaf
-  | .node k' v l r => if Nat.beq k k' then .node k' (a :: v) l r
-      else if Nat.blt k k' then .node k' v (NTab.ins k a l) r else .node k' v l (NTab.ins k a r)
-
-/-- **The table of a list of keyed payloads**, built by the kernel. -/
-def NTab.ofList {α : Type} (l : List (ℕ × α)) : NTab α := l.foldr (fun p t ↦ NTab.ins p.1 p.2 t) .leaf
-
-/-- **The table of a list of named entries**: each entry's payload `φ` under its name's code. -/
-def NTab.ofNamed {α β : Type} (φ : β → α) (L : List (String × β)) : NTab α :=
-  NTab.ofList (L.map fun c ↦ (encS c.1, φ c.2))
-
-/-- A function's witness by its index, `0` when it has none, the index evaluated first. -/
-def witAt (t : NTree ℕ) (j : ℕ) : ℕ := natSeq j fun j ↦ (t.find j).getD 0
-
-/-- Every entry of a search tree passes `p` of its key and value. -/
-def NTree.allK {α : Type} (p : ℕ → α → Bool) : NTree α → Bool
-  | .leaf => true
-  | .node k v l r => p k v && NTree.allK p l && NTree.allK p r
-
-/-- **A table of a list**: each entry's payload under its name's code, and each payload under a code an entry's
-of a name of that code. -/
-def tabOk {α β : Type} [BEq α] (L : List (String × β)) (t : NTab α) (φ : β → α) : Bool :=
-  L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) &&
-    NTree.allK (fun k is ↦ is.all fun i ↦ L.any fun c ↦ Nat.beq (encS c.1) k && φ c.2 == i) t
-
-end
 
 public section
 
@@ -99,9 +45,10 @@ theorem mem_pickB {α : Type} {x : α} : ∀ {l : List α} {b : ℕ}, x ∈ pick
 /-- **A check of a list's entries of one name, by the table**: the entries `(g, b)` of `L` pass `P b` when the
 payloads under `g`'s code pass `Q`, the table holding each entry's payload `φ b` under its name's code. -/
 theorem tab_all {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
-    (hc : L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) = true) {g : String} {P : β → Bool} {Q : α → Bool}
+    (hc : tabIn L t φ = true) {g : String} {P : β → Bool} {Q : α → Bool}
     (hPQ : ∀ b, Q (φ b) = true → P b = true) (h : (t.at (encS g)).all Q = true) :
     L.all (fun c ↦ c.1 != g || P c.2) = true := by
+  unfold tabIn at hc
   rw [List.all_eq_true] at hc ⊢
   intro c hcL
   by_cases hg : c.1 = g
@@ -122,7 +69,7 @@ theorem NTree.find_allK {α : Type} {p : ℕ → α → Bool} : ∀ {t : NTree �
     · exact NTree.find_allK ha.2 h
 
 theorem tabOk.all {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
-    (h : tabOk L t φ = true) : L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) = true :=
+    (h : tabOk L t φ = true) : tabIn L t φ = true :=
   (Bool.and_eq_true _ _ ▸ h).1
 
 /-- A payload under a name's code is an entry's of that name. -/
@@ -196,11 +143,12 @@ theorem mem_at_ofList {α : Type} {k : ℕ} {a : α} : ∀ {l : List (ℕ × α)
 
 /-- **A named list's own table holds each entry.** -/
 theorem ofNamed_all {α β : Type} [BEq α] [LawfulBEq α] (φ : β → α) (L : List (String × β)) :
-    L.all (fun c ↦ ((NTab.ofNamed φ L).at (encS c.1)).contains (φ c.2)) = true := by
-  rw [List.all_eq_true]
+    tabIn L (NTab.ofNamed φ L) φ = true := by
+  rw [tabIn, List.all_eq_true]
   intro c hc
   rw [List.contains_iff_mem]
   exact mem_at_ofList (List.mem_map.mpr ⟨c, hc, rfl⟩)
+
 
 /-- `List.any` over a sublist, by a weaker predicate. -/
 theorem any_imp {α : Type} {l l' : List α} {p p' : α → Bool} (hl : ∀ x ∈ l, x ∈ l')
@@ -365,6 +313,112 @@ theorem allA_ctx (h : ∀ c s, (∀ e ∈ ctx0, e ∈ c) → q c s = true → p 
     show (allB p b (ctx ++ spineE b) && allA p as ctx) = true
     simp only [Bool.and_eq_true] at hs ⊢
     exact ⟨allB_ctx h b _ (fun e he ↦ List.mem_append_left _ (hc e he)) hs.1, allA_ctx h as ctx hc hs.2⟩
+end
+
+end
+
+
+end
+
+/-! ## The walk gives each family's -/
+
+/-- A call site's check `p`, `true` at any other statement. -/
+@[expose] public def atSite (p : String → List V → List V → Bool) : Stmt → Bool
+  | .call f args rets => p f args rets
+  | .callIf _ f args => p f args []
+  | .dispatch _ fs args rets => fs.all fun f ↦ p f args rets
+  | _ => true
+
+public section
+
+section
+
+variable {q : Stmt → Bool} {p : String → List V → List V → Bool}
+
+mutual
+theorem allS_sites (h : ∀ s, q s = true → atSite p s = true) :
+    ∀ (s : Stmt) (ctx : List Ev), allS (fun _ s ↦ q s) s ctx = true → sitesS p s = true
+  | .atom _, _, _ => rfl
+  | .ite c z n, ctx, hs => by
+    replace hs : (q (.ite c z n) && allB (fun _ s ↦ q s) z (ctx ++ spineE z) &&
+      allB (fun _ s ↦ q s) n (ctx ++ spineE n)) = true := hs
+    show (sitesB p z && sitesB p n) = true
+    simp only [Bool.and_eq_true] at hs ⊢
+    exact ⟨allB_sites h z _ hs.1.2, allB_sites h n _ hs.2⟩
+  | .match_ x arms, ctx, hs => by
+    replace hs : (q (.match_ x arms) && allA (fun _ s ↦ q s) arms ctx) = true := hs
+    simp only [Bool.and_eq_true] at hs
+    exact allA_sites h arms ctx hs.2
+  | .call f a r, _, hs => h (.call f a r) hs
+  | .callIf c f a, _, hs => h (.callIf c f a) hs
+  | .dispatch x fs a r, _, hs => h (.dispatch x fs a r) hs
+  | .ret _, _, _ => rfl
+
+theorem allB_sites (h : ∀ s, q s = true → atSite p s = true) :
+    ∀ (ss : List Stmt) (ctx : List Ev), allB (fun _ s ↦ q s) ss ctx = true → sitesB p ss = true
+  | [], _, _ => rfl
+  | s :: ss, ctx, hs => by
+    replace hs : (allS (fun _ s ↦ q s) s ctx && allB (fun _ s ↦ q s) ss ctx) = true := hs
+    show (sitesS p s && sitesB p ss) = true
+    simp only [Bool.and_eq_true] at hs ⊢
+    exact ⟨allS_sites h s ctx hs.1, allB_sites h ss ctx hs.2⟩
+
+theorem allA_sites (h : ∀ s, q s = true → atSite p s = true) :
+    ∀ (as : List (List Stmt)) (ctx : List Ev), allA (fun _ s ↦ q s) as ctx = true → sitesA p as = true
+  | [], _, _ => rfl
+  | b :: as, ctx, hs => by
+    replace hs : (allB (fun _ s ↦ q s) b (ctx ++ spineE b) && allA (fun _ s ↦ q s) as ctx) = true := hs
+    show (sitesB p b && sitesA p as) = true
+    simp only [Bool.and_eq_true] at hs ⊢
+    exact ⟨allB_sites h b _ hs.1, allA_sites h as ctx hs.2⟩
+end
+
+end
+
+section
+
+variable {q : Stmt → Bool} {p : Atom → Bool}
+
+mutual
+theorem allS_block (h : ∀ a, q (.atom a) = true → p a = true) :
+    ∀ (s : Stmt) (ctx : List Ev), allS (fun _ s ↦ q s) s ctx = true → blockAll p [s] = true
+  | .atom a, _, hs => by
+    show (p a && true) = true
+    rw [Bool.and_true]
+    exact h a hs
+  | .ite c z n, ctx, hs => by
+    replace hs : (q (.ite c z n) && allB (fun _ s ↦ q s) z (ctx ++ spineE z) &&
+      allB (fun _ s ↦ q s) n (ctx ++ spineE n)) = true := hs
+    show ((blockAll p z && blockAll p n) && true) = true
+    simp only [Bool.and_true, Bool.and_eq_true] at hs ⊢
+    exact ⟨allB_block h z _ hs.1.2, allB_block h n _ hs.2⟩
+  | .match_ x arms, ctx, hs => by
+    replace hs : (q (.match_ x arms) && allA (fun _ s ↦ q s) arms ctx) = true := hs
+    show (armsAll p arms && true) = true
+    simp only [Bool.and_true, Bool.and_eq_true] at hs ⊢
+    exact allA_block h arms ctx hs.2
+  | .call .., _, _ => rfl
+  | .callIf .., _, _ => rfl
+  | .dispatch .., _, _ => rfl
+  | .ret _, _, _ => rfl
+
+theorem allB_block (h : ∀ a, q (.atom a) = true → p a = true) :
+    ∀ (ss : List Stmt) (ctx : List Ev), allB (fun _ s ↦ q s) ss ctx = true → blockAll p ss = true
+  | [], _, _ => rfl
+  | s :: ss, ctx, hs => by
+    replace hs : (allS (fun _ s ↦ q s) s ctx && allB (fun _ s ↦ q s) ss ctx) = true := hs
+    rw [blockAll_cons, Bool.and_eq_true]
+    simp only [Bool.and_eq_true] at hs
+    exact ⟨allS_block h s ctx hs.1, allB_block h ss ctx hs.2⟩
+
+theorem allA_block (h : ∀ a, q (.atom a) = true → p a = true) :
+    ∀ (as : List (List Stmt)) (ctx : List Ev), allA (fun _ s ↦ q s) as ctx = true → armsAll p as = true
+  | [], _, _ => rfl
+  | b :: as, ctx, hs => by
+    replace hs : (allB (fun _ s ↦ q s) b (ctx ++ spineE b) && allA (fun _ s ↦ q s) as ctx) = true := hs
+    show (blockAll p b && armsAll p as) = true
+    simp only [Bool.and_eq_true] at hs ⊢
+    exact ⟨allB_block h b _ hs.1, allA_block h as ctx hs.2⟩
 end
 
 end

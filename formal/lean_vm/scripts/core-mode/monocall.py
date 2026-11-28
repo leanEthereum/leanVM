@@ -3,7 +3,7 @@ the whole program (`Res.monoCallers`, from the ranges `down.py` checks, `Gen/Dow
 other checks (`EndExec.MonoOk`, `mono_ok`), which the core route's `ml` family reads. `--check` writes nothing
 and fails when a file differs.
 Usage: python3 -I scripts/core-mode/monocall.py [--check]"""
-import sys, os, glob
+import sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -41,7 +41,7 @@ def render():
 
 def main(argv):
     files = render()
-    bad = genfiles.sync(files, glob.glob(os.path.join(OUT, 'MonoCallers*.lean')), '--check' in argv)
+    bad = genfiles.sync(files, (), '--check' in argv)
     genfiles.fail_if_stale(bad, '--check' in argv)
     print('MonoWalk: %d files, %s' % (len(files), 'unchanged' if not bad else ('stale' if '--check' in argv else 'written')))
 

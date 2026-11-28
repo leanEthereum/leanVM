@@ -6,7 +6,7 @@ site of the caller passes both its entries parameter and its bound's quotient, r
 (`Pack/*/Core.lean`) alone: the core route's `glOk` links their caller's cells.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/anylink.py [--check]"""
-import sys, os, re, glob
+import sys, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -112,7 +112,7 @@ def path(mod):
 def main(argv):
     check = '--check' in argv
     files = {path(m): text for m, text in render().items()}
-    stale = genfiles.sync(files, glob.glob(os.path.join(OUT, 'AnyCallers*.lean')), check)
+    stale = genfiles.sync(files, (), check)
     print('anylink: %d files, %d stale%s' % (len(files), len(stale), (': ' + ', '.join(stale)) if stale else ''))
     return 1 if check and stale else 0
 

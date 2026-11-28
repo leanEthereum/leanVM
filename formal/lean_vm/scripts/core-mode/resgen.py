@@ -26,5 +26,5 @@ def down_ranges():
 
 
 def down_mods():
-    """The modules of `DOWN_RANGES`."""
-    return ['LeanVM.Guest.CoreMode.Gen.Down%d' % k for k in range(len(DOWN_RANGES))]
+    """The module of the families' range theorems over `DOWN_RANGES`."""
+    return ['LeanVM.Guest.CoreMode.Gen.DownOk']
