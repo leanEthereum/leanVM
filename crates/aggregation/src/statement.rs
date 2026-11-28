@@ -96,9 +96,7 @@ pub(super) fn statement_digest(
         claim_list_digest(&lists[1]),
         hash_to_scalars(&verifier::da::digest(da_commitment)),
     ];
-    let mut cells = header.as_flattened().to_vec();
-    cells.extend_from_slice(&defer.bytecode_point);
-    cells.push(defer.bytecode_value);
+    let cells = header.as_flattened().iter().copied().chain(defer.cells());
     hash_to_scalars(&keccak256::hash(&cell_bytes(cells)))
 }
 
