@@ -18,9 +18,9 @@ signatures, its DA digest, its children's proofs, and its deferred claim, the ba
 children's.
 
 The node's public input is its statement's digest under a seed (`statementDigest`). After the
-relation: what a decoding of an execution explains (`ExplainsPublicInput`), the binding of the
-statement's digest (`StatementDigestBinds`), the batching's soundness (`BatchingSound`), and the
-guest decoder a program computes, with **`GuestKnowledgeSoundness`**. The batching (`batch`) is
+relation: the binding of the statement's digest (`StatementDigestBinds`), the batching's soundness
+(`BatchingSound`), and the guest decoder a program computes, with what its decoding explains
+(`ExplainsPublicInput`) and **`GuestKnowledgeSoundness`**. The batching (`batch`) is
 `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM's `crates/aggregation/src/` (the statement, its digest, the batching) and
@@ -187,17 +187,17 @@ def NodeWitness.childClaims (witness : NodeWitness) (seed : Digest) : List Child
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
 `crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
-def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HasZeroPoint (bytecode : List K) (claim : BytecodeClaim) :
-    Prop :=
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HasZeroPoint (bytecode : List K)
+    (claim : BytecodeClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: the bytecode has `2 ^ len` words,
 `len` the point's length (so the point has `log₂` of its length coordinates), and the value
 is the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
-`crates/aggregation/src/deferred.rs`). The deployed outer verifier checks it of the root's deferred claim (`AggregateProof::verify`,
-`crates/aggregation/src/proof.rs`). -/
-def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HoldsWithShape (bytecode : List K) (claim : BytecodeClaim) :
-    Prop :=
+`crates/aggregation/src/deferred.rs`). The deployed outer verifier checks it of the root's deferred
+claim (`AggregateProof::verify`, `crates/aggregation/src/proof.rs`). -/
+def _root_.LeanVM.Protocol.Verifier.BytecodeClaim.HoldsWithShape (bytecode : List K)
+    (claim : BytecodeClaim) : Prop :=
   2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue
 

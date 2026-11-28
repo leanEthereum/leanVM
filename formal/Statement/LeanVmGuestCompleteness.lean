@@ -25,9 +25,9 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-- **The deployed limits**: the node's fixed capacities, within which its run fits `2^30`
 committed words. `NodeRelation` gives the others: at most `maxRecursions` children (`batch`), a
-child's stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), so its bus depth at most
-`31` and its tables' heights at most `30`, and a blob matrix of at most `LeanDa.maxRows` rows
-(`MatrixWitness.Opens`). -/
+child's stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), a blob matrix of at most
+`LeanDa.maxRows` rows (`MatrixWitness.Opens`), and the declared claims at most the claims held
+(`SignatureClaimsHeld`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
   /-- At most `2^17` claims in the children's lists, in all. -/
   atMost2Pow17ChildClaims :

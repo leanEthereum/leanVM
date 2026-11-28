@@ -136,7 +136,8 @@ def logMaxRows : ℕ := 5
 def maxRows : ℕ := 2 ^ logMaxRows
 
 /-- `omega` on the shapes' constants, unfolded. -/
-local macro "cell_omega" : tactic => `(tactic| (dsimp only [cellSymbols, cellsPerRow, logM] at *; omega))
+local macro "cell_omega" : tactic =>
+  `(tactic| (dsimp only [cellSymbols, cellsPerRow, logM] at *; omega))
 
 /-- A row's payload: symbols of `E` (`Symbol`, a 128-bit word whose low and high halves are the
 limbs `c0`, `c1` of `c0 + c1·y`). -/
@@ -176,7 +177,8 @@ def positionCell {r : ℕ} (p : Fin (r * cellsPerRow)) : Fin cellsPerRow :=
   ⟨p % cellsPerRow, by cell_omega⟩
 
 /-- The cells of a matrix of encoded payloads. -/
-noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) : Fin (r * cellsPerRow) → Cell :=
+noncomputable def encodeMatrix {r : ℕ} (message : Fin r → Payload) :
+    Fin (r * cellsPerRow) → Cell :=
   fun p ↦ rowCell (encodeRow (message (positionRow p))) (positionCell p)
 
 /-- Row `i` of a matrix given by its cells. -/
@@ -263,7 +265,8 @@ def commitCellsWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) : m Diges
 
 /-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
-def openCellWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (p : Fin (r * cellsPerRow)) : m CellOpening := do
+def openCellWith {r : ℕ} (cells : Fin (r * cellsPerRow) → Cell) (p : Fin (r * cellsPerRow)) :
+    m CellOpening := do
   let low ← merklePathWith π 7 (cellLeavesWith π cells (positionRow p)) (positionCell p)
   let high ← merklePathWith π logMaxRows (blobRootWith π cells) (positionRow p)
   pure ⟨low ++ high⟩
@@ -354,13 +357,15 @@ noncomputable def dualCodewordAt (z : E) (b : Fin (2 ^ logM)) : E :=
 noncomputable def innerProduct (L : Fin (2 ^ logM) → E) (row : Row) : E := ∑ b, L b * row b
 
 /-- **The membership check**: every row is orthogonal to the dual codeword of `z`. -/
-noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
+noncomputable def membershipCheck {r : ℕ} (z : E) (cells : Fin (r * cellsPerRow) → Cell) :
+    Bool :=
   decide (∀ i : Fin r, innerProduct (dualCodewordAt z) (matrixRow cells i) = 0)
 
 /-- **The membership check of a root's challenge**: the check on the challenge, or, for a root
 with no valid nonce (where the deployed verifier never returns), the check on every challenge,
 which only codewords pass. -/
-noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * cellsPerRow) → Cell) : Bool :=
+noncomputable def membershipCheckOpt {r : ℕ} (z : Option E) (cells : Fin (r * cellsPerRow) → Cell) :
+    Bool :=
   match z with
   | some z => membershipCheck z cells
   | none => @decide (∀ z : E, membershipCheck z cells = true) (Classical.propDecidable _)

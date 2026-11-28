@@ -104,7 +104,8 @@ example : keccakF1600 (Vector.replicate 25 0) = keccakFZero := by decide +kernel
   #v[Keccak.lane s 0, Keccak.lane s 1, Keccak.lane s 2, Keccak.lane s 3]
 
 /- `hash_words` of the words `1, 2`: the sixteen bytes `01 00 … 00 02 00 … 00`. -/
-#guard merkleLeafDigest [K.ofBits 1, K.ofBits 2] =
+#guard Id.run (LeanVM.Protocol.Compile.merkleLeafDigestWith (m := Id) LeanVM.Semantics.keccakF1600
+    [K.ofBits 1, K.ofBits 2]) =
   #v[0x7f99c7cdf41edaab, 0xfd627cf8bdca2ecd, 0x82f07915d8dc54b2, 0x3a8f3df9f4f1347b]
 
 /- A hash chain: `hash_pair(d, d)` eight times from the zero digest. -/

@@ -14,9 +14,15 @@ namespace LeanVM.Protocol.KeccakHash
 
 open LeanVM.Parameters LeanVM.Protocol.Compile
 
-/-- The digest of a Merkle leaf over Keccak-f[1600] (`merkleLeafDigestWith`). -/
+/-- The digest of a Merkle leaf over Keccak-f[1600]: the statement's `merkleLeafDigestWith`
+(`merkleLeafDigest_eq`). -/
 def merkleLeafDigest (words : List K) : Digest :=
   keccak256 (words.flatMap K.toBytes)
+
+theorem merkleLeafDigest_eq (words : List K) :
+    merkleLeafDigest words =
+      Id.run (merkleLeafDigestWith (m := Id) LeanVM.Semantics.keccakF1600 words) :=
+  rfl
 
 end LeanVM.Protocol.KeccakHash
 

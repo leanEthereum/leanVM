@@ -30,16 +30,16 @@ def ExplainsStatement (statement : NodeStatement) (decoding : SeedStatementAndWi
   (decoding.seed = deployedSeed Guest.guestProgram ∧ decoding.statement = statement ∧
       NodeRelation (bytecodeWords Guest.guestProgram) (deployedSeed Guest.guestProgram) statement
         decoding.witness) ∨
-    HasCollision
-      (collisionCandidates decoding.seed decoding.statement (deployedSeed Guest.guestProgram) statement)
+    HasCollision (collisionCandidates decoding.seed decoding.statement
+      (deployedSeed Guest.guestProgram) statement)
 
 open OracleComp OracleSpec in
 /-- **The outer verifier's acceptance, explained.** In the random-permutation experiment of
 `LeanVm.lean`, the adversary, querying `π` and `π⁻¹`, outputs a proof. The event: the verifier
-accepts it as a proof of the guest program on the digest, under the deployed seed, of a statement `statement`
-whose deferred claim holds of the guest program's bytecode (`BytecodeClaim.HoldsWithShape`, as the
-deployed outer verifier checks by recomputing it), and yet the execution the knowledge extractor
-`extractor` reads off the adversary's transcript and the proof does not explain `statement`: no
+accepts it as a proof of the guest program on the digest, under the deployed seed, of a statement
+`statement` whose deferred claim holds of the guest program's bytecode
+(`BytecodeClaim.HoldsWithShape`, as the deployed outer verifier checks by recomputing it), and yet
+the execution the knowledge extractor `extractor` reads off the adversary's transcript and the proof does not explain `statement`: no
 execution is extracted, or the decoder program `guestWitnessDecoder`, run on it within its budget
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
@@ -53,7 +53,8 @@ def AggregateSound (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     Common.QueryCostAtMost adversary Common.permutationCallCost Q →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[∃ statement : NodeStatement,
       outcome.accepted ∧ outcome.program = Guest.guestProgram ∧
-      publicInputDigest outcome.input = statementDigest (deployedSeed Guest.guestProgram) statement ∧
+      publicInputDigest outcome.input =
+        statementDigest (deployedSeed Guest.guestProgram) statement ∧
       statement.deferredClaim.HoldsWithShape (bytecodeWords Guest.guestProgram) ∧
       ¬ ∃ execution, ∃ decoding : SeedStatementAndWitness,
         extractor outcome.program outcome.input outcome.transcript outcome.proof = some execution ∧
