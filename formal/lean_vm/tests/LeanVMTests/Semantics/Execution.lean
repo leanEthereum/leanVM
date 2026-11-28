@@ -455,11 +455,13 @@ theorem keccakInOffset_eq : ∀ c : Fin 13,
     1 * keccakInputCellOffset ![addressOfIndex 2, addressOfIndex 3, addressOfIndex 2, addressOfIndex
         3] (addressOfIndex 4) (addressOfIndex 8) (addressOfIndex 9) c =
       addressOfIndex (kInIdx c) := by
-  decide +kernel
+  intro c
+  rw [one_mul]
+  fin_cases c <;> simp [keccakInputCellOffset, kInIdx, ← pow_add, ← pow_succ']
 
 theorem keccakOutOffset_eq : ∀ c : Fin 13, 1 * (g ^ c.val * addressOfIndex 13) = addressOfIndex
-    (c.val + 13) := by
-  decide +kernel
+    (c.val + 13) :=
+  fun c ↦ (one_mul _).trans (pow_add g c.val 13).symm
 
 /-- The row's reads, on the image with output cell `0` set to `out0`. -/
 theorem keccak_reads (out0 : E) :
