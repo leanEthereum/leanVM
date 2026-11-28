@@ -47,17 +47,9 @@ pub struct Wide8([[V; 2]; Q]);
 #[inline]
 fn each<const N: usize, T: Copy>(f: impl Fn(usize) -> T) -> [T; N] {
     const { assert!(1 <= N && N <= 4) };
-    let mut out = [f(0); N];
-    if N > 1 {
-        out[1] = f(1);
-    }
-    if N > 2 {
-        out[2] = f(2);
-    }
-    if N > 3 {
-        out[3] = f(3);
-    }
-    out
+    // Not `[f(0); N]`, which such a build fills with a loop.
+    let all = [f(0), f(1 % N), f(2 % N), f(3 % N)];
+    *all.first_chunk::<N>().expect("at most four")
 }
 
 /// Eight words in registers.
@@ -100,7 +92,7 @@ impl F64x8 {
 
     #[inline]
     pub fn splat(k: F64) -> Self {
-        Self([v::splat(k.0, k.0); Q])
+        Self(each(|_| v::splat(k.0, k.0)))
     }
 
     #[inline]
@@ -134,7 +126,7 @@ impl F128x8 {
 
     #[inline]
     pub fn splat(e: F128) -> Self {
-        Self([v::splat(e.c0, e.c1); R])
+        Self(each(|_| v::splat(e.c0, e.c1)))
     }
 
     #[inline]
@@ -291,7 +283,7 @@ pub fn map_fields(m: &Linear16, x: [u64; 8]) -> [[u64; 8]; 4] {
     for (q, x) in regs(x).into_iter().enumerate() {
         let (lo, hi) = (v::and(x, nibble), v::and(v::shr::<4>(x), nibble));
         // Byte `o` of each field's image, at the field's low byte.
-        let s: [V; 4] = core::array::from_fn(|o| {
+        let s: [V; 4] = each(|o| {
             let t = &m.nibbles[o];
             let low = v::xor(v::lookup(t[0], lo), v::lookup(t[1], hi));
             let high = v::xor(v::lookup(t[2], lo), v::lookup(t[3], hi));
@@ -329,9 +321,9 @@ pub fn transpose_words(rows: &[[u64; 8]; 8]) -> [[u64; 8]; 8] {
     }
     // SAFETY: both sides are plain bits of one size.
     let r = unsafe { transmute::<[[u64; 8]; 8], [[__m256i; 2]; 8]>(*rows) };
-    let mut out = [[r[0][0]; 2]; 8];
+    let mut out = r;
     for (rb, cb) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
-        let t = transpose4(core::array::from_fn(|k| r[4 * rb + k][cb]));
+        let t = transpose4(each(|k| r[4 * rb + k][cb]));
         for (c, t) in t.into_iter().enumerate() {
             out[4 * cb + c][rb] = t;
         }
