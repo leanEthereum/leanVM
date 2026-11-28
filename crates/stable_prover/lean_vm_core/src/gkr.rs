@@ -226,7 +226,7 @@ impl Layer {
         for ((rows, _), spare) in self.trees.iter().zip(&mut self.spare) {
             let len = (rows.len() / 2).next_multiple_of(BLOCK);
             if spare.len() < len {
-                *spare = crate::filled(len, F128::ONE);
+                *spare = vec![F128::ZERO; len];
             }
             spare.truncate(len);
             groups += len / (4 * GROUP);

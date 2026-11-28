@@ -12,7 +12,7 @@ use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128, dot, mul};
 use primitives::hash::STATE_LANES;
-use primitives::multilinear::{eq_sums, eq_table};
+use primitives::multilinear::{eq_sums, eq_table, fold};
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
@@ -69,7 +69,7 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let mut eq = eq_table(point);
     eq.resize(eq.len().next_multiple_of(64), F128::ZERO);
     let folds: Vec<BitFold> = eq.chunks(64).map(BitFold::new).collect();
-    let mut slices = parallel::filled((16 * 64) << shape.slot_log(), F128::ZERO);
+    let mut slices = vec![F128::ZERO; (16 * 64) << shape.slot_log()];
     parallel::chunks_mut(&mut slices, 16 * 64, |slot, out| {
         let words = &committed[slot * n..][..n];
         for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
@@ -129,16 +129,8 @@ pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim:
         })
         .collect();
     let (_, mu, low) = product_sumcheck(ps, per_instance, claim.mu.to_vec(), 1, F128::ONE);
-    // The slots of the stack at that instance: entry `(i + 16 * slot) * 64 + z` folds over `i`.
-    let mut at_instance = vec![F128::ZERO; 64 << shape.slot_log()];
-    let low_eq = eq_table(&low);
-    for (slot, out) in at_instance.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-        for i in 0..16 {
-            for z in 0..64 {
-                out[z] += low_eq[i] * folded[(i + 16 * slot) * 64 + z];
-            }
-        }
-    }
+    // The slots of the stack at that instance: rows of 64, row `i + 16 * slot` folded over `i`.
+    let at_instance = low.iter().fold(folded, |rows, &c| fold(&rows, 64, c));
     let (slices, _, slot) = product_sumcheck(ps, at_instance, weights, 64, mu[0]);
     ps.add_scalars(&slices);
     [&low, pack, &slot].concat()

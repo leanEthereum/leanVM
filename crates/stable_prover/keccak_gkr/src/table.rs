@@ -24,7 +24,7 @@ pub(crate) struct Tables([Vec<F128>; 2]);
 impl Tables {
     pub fn new(shape: Shape) -> Self {
         let len = (2 * BITS * shape.n_blocks()) << shape.seg_log();
-        Self([len, len / 2].map(|len| parallel::filled(len, F128::ZERO)))
+        Self([len, len / 2].map(|len| vec![F128::ZERO; len]))
     }
 }
 
