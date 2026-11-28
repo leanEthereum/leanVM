@@ -2,7 +2,7 @@
 
 use super::cells::count;
 use super::guest::unified_guest;
-use super::hints::SubHints;
+use super::hints::Hints;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
@@ -189,7 +189,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     public_inputs: &[[F128; 2]],
     claims: &[DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
-) -> (SubHints, DeferredBytecodeClaim) {
+) -> (Hints, DeferredBytecodeClaim) {
     let kbcv = bytecode_vars();
 
     // The count and each child's words are padded with zeros to whole rates, so the
@@ -278,7 +278,9 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     );
 
     drop(_span);
-    let hints = vec![("bc_sumcheck_msgs", messages), ("bc_star_hint", vec![value])];
+    let mut hints = Hints::default();
+    hints.push("bc_sumcheck_msgs", messages);
+    hints.push("bc_star_hint", vec![value]);
     let reduced = DeferredBytecodeClaim {
         bytecode_point: challenges,
         bytecode_value: value,

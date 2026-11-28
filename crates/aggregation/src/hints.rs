@@ -48,9 +48,6 @@ const SP_LANE_END: usize = 32 + 8;
 const _: () =
     assert!(lean_sphincs::internals::DIGEST_BYTES > 32 && lean_sphincs::internals::DIGEST_BYTES <= SP_LANE_END);
 
-/// Named hint entries for a single sub-proof, ordered within each stream.
-pub(super) type SubHints = Vec<(&'static str, Vec<F128>)>;
-
 /// An edit to a node's hints: how a test hands the guest a witness the honest host
 /// would not.
 #[cfg(test)]
@@ -79,10 +76,18 @@ impl Hints {
         self.push(name, vec![count(n)]);
     }
 
-    pub(super) fn extend(&mut self, entries: SubHints) {
-        for (name, entry) in entries {
-            self.push(name, entry);
+    /// `other`'s entries after this one's, stream by stream.
+    pub(super) fn extend(&mut self, other: Hints) {
+        for (name, entries) in other.0 {
+            for entry in entries {
+                self.push(&name, entry);
+            }
         }
+    }
+
+    /// A one-cell entry: a 16-byte native value ([`pack_16_bytes`]).
+    fn push_packed(&mut self, name: &str, bytes: &[u8]) {
+        self.push(name, vec![pack_16_bytes(bytes)]);
     }
 
     /// Entry `i` of stream `name`, for a test to forge.
@@ -100,11 +105,6 @@ impl Hints {
             .map(|(name, entries)| (name, entries.into_iter().map(scalars).collect()))
             .collect()
     }
-}
-
-/// A one-cell entry of stream `name`: a 16-byte native value ([`pack_16_bytes`]).
-fn packed(name: &'static str, bytes: &[u8]) -> (&'static str, Vec<F128>) {
-    (name, vec![pack_16_bytes(bytes)])
 }
 
 /// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
@@ -130,7 +130,7 @@ pub(super) fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
-) -> Result<SubHints, AggregateError> {
+) -> Result<Hints, AggregateError> {
     use lean_xmss::internals::{codeword, layer_index, layer_root, message_digest, sig_bottom, sig_top};
     let pp = lean_xmss::internals::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
@@ -139,7 +139,9 @@ pub(super) fn lean_xmss_hints(
         shifted.push(F128::new(index >> shift, 0));
         windows.push(count(((index >> shift) % (1 << LX_WINDOW)) as usize));
     }
-    let mut hints: SubHints = vec![("lx_index", shifted), ("lx_windows", windows)];
+    let mut hints = Hints::default();
+    hints.push("lx_index", shifted);
+    hints.push("lx_windows", windows);
     let (bottom, top) = (sig_bottom(sig), sig_top(sig));
     let e = |layer| layer_index(sig.leaf_index(), layer);
     let (bottom_codeword, root) =
@@ -149,12 +151,12 @@ pub(super) fn lean_xmss_hints(
         codeword(&message_digest(pp, 1, e(1), top.randomizer(), &root)).ok_or(AggregateError::InvalidSignature)?;
     for (layer_sig, codeword) in [(bottom, bottom_codeword), (top, top_codeword)] {
         for sibling in layer_sig.path() {
-            hints.push(packed("lx_path", sibling));
+            hints.push_packed("lx_path", sibling);
         }
-        hints.push(packed("randomizer", layer_sig.randomizer()));
-        hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP)));
+        hints.push_packed("randomizer", layer_sig.randomizer());
+        hints.push("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP));
         for value in layer_sig.chain_values() {
-            hints.push(packed("chain_starts", value));
+            hints.push_packed("chain_starts", value);
         }
     }
     Ok(hints)
@@ -174,9 +176,10 @@ pub(super) fn lean_sphincs_hints(
     pk: &LeanSphincsPublicKey,
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
-) -> Result<SubHints, AggregateError> {
+) -> Result<Hints, AggregateError> {
     let pk_seed = lean_sphincs::internals::pk_seed(pk);
-    let mut hints: SubHints = vec![packed("sp_rand", lean_sphincs::internals::sig_randomizer(sig))];
+    let mut hints = Hints::default();
+    hints.push_packed("sp_rand", lean_sphincs::internals::sig_randomizer(sig));
     let digest = lean_sphincs::internals::h_msg(
         lean_sphincs::internals::sig_randomizer(sig),
         pk_seed,
@@ -184,31 +187,31 @@ pub(super) fn lean_sphincs_hints(
         message,
     );
     let (idx, leaves) = lean_sphincs::internals::digest_fields(&digest);
-    hints.push((
+    hints.push(
         "sp_unused",
         exponent_bytes(&digest[lean_sphincs::internals::DIGEST_BYTES..SP_LANE_END]),
-    ));
+    );
     for tree in lean_sphincs::internals::sig_fors(sig) {
-        hints.push(packed("sp_fors_secrets", tree.secret()));
+        hints.push_packed("sp_fors_secrets", tree.secret());
     }
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
     let ordered = |pair: &[lean_sphincs::internals::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
     let mut signed =
         lean_sphincs::internals::fors_recover(pk_seed, idx, &leaves, lean_sphincs::internals::sig_fors(sig), |pair| {
-            hints.push(("sp_fors_nodes", ordered(pair)));
+            hints.push("sp_fors_nodes", ordered(pair));
         });
     for (layer, layer_sig) in lean_sphincs::internals::sig_layers(sig).iter().enumerate() {
         let key = lean_sphincs::internals::OtsKey::of_index(layer, idx);
         let (codeword, leaf) =
             lean_sphincs::internals::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
                 .ok_or(AggregateError::InvalidSignature)?;
-        hints.push(("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes())));
+        hints.push("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes()));
         for digits in digit_hints(&codeword, DIGIT_GROUP) {
-            hints.push(("digits", vec![digits]));
+            hints.push("digits", vec![digits]);
         }
         for value in layer_sig.wots() {
-            hints.push(packed("chain_starts", value));
+            hints.push_packed("chain_starts", value);
         }
         signed = lean_sphincs::internals::tree_fold(
             pk_seed,
@@ -216,7 +219,7 @@ pub(super) fn lean_sphincs_hints(
             leaf,
             lean_sphincs::internals::sig_path(sig, layer),
             |pair| {
-                hints.push(("siblings", ordered(pair)));
+                hints.push("siblings", ordered(pair));
             },
         );
     }
