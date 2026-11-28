@@ -155,7 +155,9 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool)
                 }
             }
             for z in (0..64).filter(|&z| iota_bit(round, z)) {
-                state[z] = state[z].map(|w| !w);
+                for w in &mut state[z] {
+                    *w = !*w;
+                }
             }
         }
         if keep {

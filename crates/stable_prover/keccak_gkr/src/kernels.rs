@@ -66,9 +66,9 @@ pub fn field_map(images: &[F128; 8]) -> FieldMap {
 }
 
 /// `sum over i of maps[i](byte n of run i)` for each `n` of 64, run `i` being the eight words of `words` from
-/// `stride * i`: a linear map of many bytes, 64 at a time. Out of line: one copy for every pass.
+/// `stride * i`, into `out`: a linear map of many bytes, 64 at a time. Out of line: one copy for every pass.
 #[inline(never)]
-pub fn map_sums(maps: &[FieldMap], words: &[u64], stride: usize) -> [u128; 64] {
+pub fn map_sums(maps: &[FieldMap], words: &[u64], stride: usize, out: &mut [F128; 64]) {
     let mut sums = [[0u64; 8]; 16];
     // Four bytes of the sums at a time, each its own accumulator, which keeps them in registers.
     for (o, sums) in sums.as_chunks_mut::<4>().0.iter_mut().enumerate() {
@@ -83,5 +83,7 @@ pub fn map_sums(maps: &[FieldMap], words: &[u64], stride: usize) -> [u128; 64] {
         }
         *sums = [s0, s1, s2, s3];
     }
-    transpose_bytes(&sums)
+    for (out, sum) in out.iter_mut().zip(transpose_bytes(&sums)) {
+        *out = F128::from(sum);
+    }
 }

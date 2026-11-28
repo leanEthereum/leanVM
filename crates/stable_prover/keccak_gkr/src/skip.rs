@@ -127,7 +127,8 @@ pub(crate) fn sums(
             let high = half * tasks[task];
             for (h, weight) in [tasks[task] + high, high].into_iter().enumerate() {
                 for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-                    sums[t] ^= at.eval(block[MIXED * h + i].map(Wide8::sum)).mul_unreduced(weight);
+                    let [p0, p1] = block[MIXED * h + i];
+                    sums[t] ^= at.eval([p0.sum(), p1.sum()]).mul_unreduced(weight);
                 }
             }
         },

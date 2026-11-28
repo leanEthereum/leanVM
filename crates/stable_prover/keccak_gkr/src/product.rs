@@ -43,11 +43,11 @@ pub(crate) fn polynomial(
             if bits.is_empty() {
                 *bits = vec![[0; RUN_WORDS]; BITS / 8];
             }
-            let mut block = [0; SUMS];
+            let mut block = [F128::ZERO; SUMS];
             block_sums(&maps, layer.task(task), bits, &mut block);
             let weight = F128x8::splat(tasks[task]);
             for (sum, block) in sums.iter_mut().zip(block.as_chunks::<8>().0) {
-                *sum += F128x8::from_array(&block.map(F128::from)).mul_unreduced(weight);
+                *sum += F128x8::from_array(block).mul_unreduced(weight);
             }
         },
         |(kept, mut a), (_, b)| {
@@ -75,7 +75,7 @@ pub(crate) fn polynomial(
 
 /// A block's sums: entry `8 PRODUCT_BYTES q + c` of `out` is the sum over positions `j` of `maps`' weights times
 /// coefficient `c` of `chi(q, j)`. `bits` holds each run's product bits.
-fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], out: &mut [u128; SUMS]) {
+fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], out: &mut [F128; SUMS]) {
     let mut e = [[[0; 8]; PACKS]; 5];
     for r in 0..5 {
         for z in (0..64).step_by(8) {
@@ -96,7 +96,7 @@ fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], o
         }
     }
     for (v, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-        *out = map_sums(maps, &bits.as_flattened()[8 * v..], RUN_WORDS);
+        map_sums(maps, &bits.as_flattened()[8 * v..], RUN_WORDS, out);
     }
 }
 

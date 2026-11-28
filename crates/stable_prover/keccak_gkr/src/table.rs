@@ -93,10 +93,8 @@ impl PackFold {
                 }
             }
             for half in 0..2 {
-                let values = map_sums(&self.0, bytes[32 * half..].as_flattened(), 8);
-                for (out, v) in out[BITS * half + j..][..64].iter_mut().zip(values) {
-                    *out = F128::from(v);
-                }
+                let out = (&mut out[BITS * half + j..][..64]).try_into().expect("64 positions");
+                map_sums(&self.0, bytes[32 * half..].as_flattened(), 8, out);
             }
         }
     }
