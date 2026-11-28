@@ -56,10 +56,12 @@ def pair_mod(g, n):
 SPLIT = 5000
 # a heap certificate of more residual lists than `RES_SPLIT` has each list's families checked apart
 RES_SPLIT = 8
-# a heap certificate with one list of more residuals than `RES_B` has its families checked in slices (`CoreMode.sliceAll`)
-# of weight at most `RES_B`: the kernel's memory grows over one evaluation, with the residuals' weight; a residual a range check or a top-level selector bounds (`cheap_res`) is two lookups in tries the slice builds once
-# (`CoreMode.resFamT`), of weight `1 / RES_CHEAP`
-RES_B, RES_CHEAP = 2, 32
+# a heap certificate's one list of residuals has its families checked at the generator's hints (`CoreMode.resFamTH`,
+# the disjunct that holds tried first) in slices (`CoreMode.sliceAll`) of weight at most `RES_B`, few: each slice builds
+# the body's tries and index once (`CoreMode.rcT`, `constT`, `AtomIx.of`), and the kernel's memory grows over one
+# evaluation with the residuals' weight; a residual a range check or a top-level selector bounds (`cheap_res`) is two
+# lookups in the tries, of weight `1 / RES_CHEAP`
+RES_B, RES_CHEAP = 16, 32
 # a body of more statements than `HON_SPLIT` has its honest valuation's parts checked apart (`honB_of`): in one
 # evaluation its route check is the heaviest declaration of its module
 HON_SPLIT = 2000
@@ -346,6 +348,21 @@ def hints_text(hs):
     flat = f'[{", ".join(map(str, hs))}]'
     rl = f'(CoreMode.hintRuns [{", ".join(f"({h}, {n})" for h, n in runs)}])'
     return rl if len(rl) < len(flat) else flat
+
+
+def cell_lanes(k):
+    """`k`'s values' cells (`B2C.cellJ`, its certificate's `locs`) as a lane vector literal, lanes of `Bridge.cellBits`."""
+    import infer
+    locs = infer.D['comp'][k]['locs']
+    assert all(0 <= c < 2 ** 20 for c in locs), k
+    return 'nat_hex%% "%x"' % sum(c << (20 * i) for i, c in enumerate(locs))
+
+
+def sel_bits(body):
+    """The selectors of a body's `match`es and `dispatch`es, at any depth, as a bitset literal over value numbers."""
+    import heapc
+    xs = {t[1] for t in heapc.stmts(body) if t[0] in ('match', 'dispatch')}
+    return 'nat_hex%% "%x"' % sum(1 << x for x in xs)
 
 
 def res_cuts(k, items):
@@ -960,7 +977,8 @@ def main(check=False):
             body.append(cfun_m(k, j, frame_term(frames[k])))
         base = 'LeanVM.Guest.CoreMode.Gen.«%s»' % p
         mod = f'{base}.Core'
-        data = 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
+        data = ('import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n'
+                'meta import LeanVM.Guest.Packed.NatLit\n\nset_option Elab.async false\n')
         pub = lambda ms: ''.join('public import %s\n' % m for m in sorted(ms))
         # past `SPLIT_W`, the core data apart (`Defs`) and the independent checks in windows beside each other
         cut = split_pack(decls_of(''.join(t for _, t in body)), core_leaf)
@@ -1012,7 +1030,7 @@ def main(check=False):
                             f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
                 rw.append(f'res{i}_ok')
                 hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
-            elif res_count(k, po) > RES_B:
+            elif res_count(k, po) > 0:
                 fk = f'Fn.«{k}»'
                 items = res_items(k, po)
                 assert len(items) == res_count(k, po), k
@@ -1041,10 +1059,16 @@ def main(check=False):
                 # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list; its
                 # pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
                 walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
-                prf = {'ptr': f'CoreMode.all_ptrCellB_of_T (by {walk})', 'ret': f'by {walk}'}
+                # the cells read from a lane vector checked against the certificate's (`CoreMode.lanesEq`)
+                lanes = f'(L := {cell_lanes(k)}) (by decide +kernel)'
+                prf = {'ptr': f'CoreMode.all_ptrCellB_of_P {lanes} (by {walk})',
+                       'ret': f'CoreMode.all_retCellB_of_P {lanes} (by {walk})',
+                       # the atoms remembered cut to those using a selector (`CoreMode.selGoW`)
+                       'sel': f'by rw [CoreMode.selGo_nil_of_W (j := {x}) (ps := {fn}.params) (B := {fn}.body) '
+                              f'{sel_bits(heap.CORE[k][1])} (by decide +kernel), Bool.true_or]'}
                 for nm, st, doc in parts:
                     hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
-                rsplit.add('LeanVM.Guest.CoreMode.ResTab')
+                rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.SelGoW', 'LeanVM.Guest.CoreMode.CellLanes'}
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
