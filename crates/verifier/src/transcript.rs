@@ -196,9 +196,6 @@ impl<'a> Transcript<'a> {
     }
 
     /// The leaf images at `queries`, authenticated against `root`.
-    ///
-    /// The paths' positions and sizes must be the protocol's, which is reading the proof, as the stream's length is,
-    /// so a replay refuses paths that differ too.
     pub fn merkle(
         &mut self,
         root: Digest,
@@ -206,6 +203,24 @@ impl<'a> Transcript<'a> {
         queries: &[u64],
         leaf_words: usize,
     ) -> Result<Vec<&'a [K]>, VerifierError> {
+        let paths = self.merkle_paths(block_length, queries, leaf_words)?;
+        require(
+            !self.checked || paths.iter().all(|path| path.root() == root),
+            VerifierError::MerkleRootMismatch,
+        )?;
+        Ok(paths.iter().map(|path| &path.leaf[..]).collect())
+    }
+
+    /// The next phase's paths, unauthenticated: what a replay reads of [`Self::merkle`].
+    ///
+    /// The paths' positions and sizes must be the protocol's, which is reading the proof, as the stream's length is,
+    /// so a replay refuses paths that differ too.
+    pub fn merkle_paths(
+        &mut self,
+        block_length: u64,
+        queries: &[u64],
+        leaf_words: usize,
+    ) -> Result<&'a [MerklePath], VerifierError> {
         let height = log2_strict(block_length)?;
         let paths = self
             .proof
@@ -223,11 +238,7 @@ impl<'a> Transcript<'a> {
             paths.iter().map(|path| path.leaf_index).eq(queries.iter().copied()),
             VerifierError::MerkleOpeningPosition,
         )?;
-        require(
-            !self.checked || paths.iter().all(|path| path.root() == root),
-            VerifierError::MerkleRootMismatch,
-        )?;
-        Ok(paths.iter().map(|path| &path.leaf[..]).collect())
+        Ok(paths)
     }
 
     /// returns q(X) := c0 + c1X + c2X^2 + ..., after the round's grind: the round's error is the degree of the whole

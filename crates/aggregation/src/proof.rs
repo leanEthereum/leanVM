@@ -19,13 +19,14 @@ pub struct AggregateProof {
 // Wire format: the deferred point (a u64 count, then each element as two u64 limbs, all little-endian),
 // then the VM proof. The encoding is canonical: the VM proof's decoder rejects trailing bytes.
 
-pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
+/// The point, then what `proof` appends.
+pub(super) fn encode(point: &[F128], proof: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
     let mut out = (point.len() as u64).to_le_bytes().to_vec();
     // Both limbs, little-endian, are the element's `u128` little-endian.
     for &x in point {
         out.extend(u128::from(x).to_le_bytes());
     }
-    out.extend(proof);
+    proof(&mut out);
     out
 }
 
@@ -50,7 +51,7 @@ pub(super) fn is_sorted(lists: &[Vec<Claim>; 2]) -> bool {
 
 impl AggregateProof {
     pub fn to_bytes(&self) -> Vec<u8> {
-        encode(&self.bytecode_point, &self.proof.to_bytes())
+        encode(&self.bytecode_point, |out| self.proof.write_bytes(out))
     }
 
     /// Decode a proof, `None` if the bytes are not one. This does not verify: call [`Self::verify`].

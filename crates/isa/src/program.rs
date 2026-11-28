@@ -1,7 +1,7 @@
 //! A compiled program with its stacked bytecode, shared by both provers.
 
 use crate::{CompiledProgram, Op};
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 use std::sync::OnceLock;
 use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
@@ -12,6 +12,9 @@ const BYTECODE_OPERANDS: usize = 12;
 /// The bus tuple coordinate of the opcode: a bytecode tuple leads with its tag, pc and read count.
 const OPCODE_SLOT: usize = 3;
 const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
+
+/// The bus coordinates the stacked bytecode fills, the opcode's and the operand slots: it is zero at every other.
+pub const BYTECODE_SLOTS: Range<usize> = OPCODE_SLOT..OPCODE_SLOT + 1 + BYTECODE_OPERANDS;
 
 /// A compiled program and its stacked bytecode.
 #[derive(Debug)]

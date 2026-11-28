@@ -103,7 +103,7 @@ fn guest_snippet(main: &str, kbc: usize) -> Program {
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
     let (point, proof) = (vec![F128::new(1, 2), F128::new(4, 5)], vec![9, 8, 7]);
-    let bytes = encode(&point, &proof);
+    let bytes = encode(&point, |out| out.extend(&proof));
     assert_eq!(bytes, [&le(2)[..], &le(1), &le(2), &le(4), &le(5), &proof].concat());
     assert_eq!(decode(&bytes), Some((point, &proof[..])));
     // A count beyond the input, or beyond any input, fails whatever it claims.

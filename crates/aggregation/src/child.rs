@@ -100,14 +100,18 @@ pub(super) fn gen_verify(
     let layout = layout_of(kbc, summary.log_memory, rows);
     let taus = layout.taus;
     let blocks = [&layout.push[..], &layout.pull, &layout.count];
-    let sides = blocks.map(leaf::layout);
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let fits = sides.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
+    let mut fits = proof.stream.len() <= STREAM_CAP;
+    let mut block_offsets = [Vec::new(), Vec::new(), Vec::new()];
+    for (side, offsets) in blocks.iter().zip(&mut block_offsets) {
+        let side = leaf::layout(side);
+        fits &= side.mu <= MU_CAP;
+        *offsets = side.offsets;
+    }
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
-    let block_offsets = sides.map(|side| side.offsets);
     let mu = layout.shape.mu;
     let stream = (0..STREAM_CAP)
         .map(|i| proof.stream.get(i).map_or(F128::ZERO, |&x| from_scalar(x)))

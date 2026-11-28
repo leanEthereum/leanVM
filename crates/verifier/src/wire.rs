@@ -27,18 +27,27 @@ impl Proof {
     /// On a proof no prover makes, such as one with an empty phase, or with more phases, queries, leaf words or tree
     /// levels than decoding accepts.
     pub fn to_bytes(&self) -> Vec<u8> {
-        assert!(self.merkle_openings.len() <= MAX_PHASES);
         let mut out = Vec::new();
-        write_u32(&mut out, self.stream.len());
+        self.write_bytes(&mut out);
+        out
+    }
+
+    /// [`Self::to_bytes`] appended to `out`.
+    ///
+    /// # Panics
+    ///
+    /// As [`Self::to_bytes`].
+    pub fn write_bytes(&self, out: &mut Vec<u8>) {
+        assert!(self.merkle_openings.len() <= MAX_PHASES);
+        write_u32(out, self.stream.len());
         for element in &self.stream {
             out.extend(element.c0.to_le_bytes());
             out.extend(element.c1.to_le_bytes());
         }
-        write_u32(&mut out, self.merkle_openings.len());
+        write_u32(out, self.merkle_openings.len());
         for phase in &self.merkle_openings {
-            write_phase(&mut out, phase);
+            write_phase(out, phase);
         }
-        out
     }
 
     /// The proof `bytes` encode, or `None` unless they are exactly one proof's encoding. Nothing is verified.

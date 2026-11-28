@@ -97,8 +97,8 @@ pub fn aggregate<P: Prover>(
             .collect(),
     ];
     let raw_order = [sorted_firsts(&raw_claims[0]), sorted_firsts(&raw_claims[1])];
-    let raw_sorted = [0, 1].map(|s| pick(&raw_claims[s], &raw_order[s]));
-    let cover = plan_coverage(&raw_sorted, &child_lists, declare)?;
+    let raw_sorted = [pick(&raw_claims[0], &raw_order[0]), pick(&raw_claims[1], &raw_order[1])];
+    let mut cover = plan_coverage(&raw_sorted, &child_lists, declare)?;
     if cover.iter().all(|region| region.signers.is_empty()) && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
@@ -253,7 +253,10 @@ pub fn aggregate<P: Prover>(
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
     }
-    let signers = cover.map(|region| region.signers);
+    let signers = [
+        std::mem::take(&mut cover[0].signers),
+        std::mem::take(&mut cover[1].signers),
+    ];
     let public_input = statement_digest(&signers, da_root, &defer).map(|x| to_scalar(&x));
     let (proof, stats) = P::prove(unified_guest(), &hints.witness(), public_input, log_inv_rate).map_err(|_error| {
         #[cfg(feature = "spans")]

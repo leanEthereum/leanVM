@@ -12,7 +12,7 @@ mod prover;
 pub mod sort;
 
 pub use pretty::{pretty_f64, pretty_integer};
-pub use program::{Program, g_pow};
+pub use program::{BYTECODE_SLOTS, Program, g_pow};
 pub use prover::{Prover, Stats};
 use verifier::{E, K};
 

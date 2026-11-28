@@ -236,13 +236,11 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
         let mu = log_n - folded;
         let block_length = 1 << (mu + level_rate);
         let leaf_words = if level == 0 { 1 << fold_count } else { 2 << fold_count };
-        // A replay checks no root, so any stands in for the level's.
-        let root = Digest([0; 32]);
         if level == config.folds.len() - 1 {
             transcript.skip_scalars((1 << mu) + fold_count)?;
             transcript.grind_check(QUERY_GRINDING_BITS)?;
             let queries = sample_queries(transcript, block_length, config.queries[level])?;
-            transcript.merkle(root, block_length, &queries, leaf_words)?;
+            transcript.merkle_paths(block_length, &queries, leaf_words)?;
             replay_sumcheck(transcript, 3, mu, false)?;
             break;
         }
@@ -254,7 +252,7 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;
         transcript.sample();
-        transcript.merkle(root, block_length, &queries, leaf_words)?;
+        transcript.merkle_paths(block_length, &queries, leaf_words)?;
     }
     Ok(())
 }
