@@ -2,7 +2,7 @@
 //! run on ([`crate::whir_lanes`]) so that the weight is never written out over the stack.
 //!
 //! A claim's weight is a product over the bits of the stack index `y = l * 2^lane_vars + x`, each bit carrying a
-//! [`Factor`]. Splitting `x` into a low part `x_lo` of [`LOW_VARS`] bits and a block index `h` gives
+//! factor ([`eq_part`]). Splitting `x` into a low part `x_lo` of [`LOW_VARS`] bits and a block index `h` gives
 //!
 //! ```text
 //!     claim:  lambda * L(l) * gamma(h) * pi(x_lo)
@@ -21,6 +21,7 @@ use std::ops::Range;
 use primitives::bit_fold::BitFold;
 use primitives::field::lanes::transpose_bits;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
+use primitives::multilinear::eq_table_serial;
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{self, DEGREE_E, RingFold, transpose_s_hat};
@@ -46,35 +47,17 @@ fn dot_block(pi: &[F128x8; LANES], words: &[F64; BLOCK]) -> F128 {
     acc.sum()
 }
 
-/// What a weight does to one bit of the stack index: its factor where the bit is 0, and where it is 1.
-type Factor = [F128; 2];
-
-/// `prod_i factors[i](bit i of x)` for every `x`.
+/// The weight of a claim at `point` placed at `offset` over the bits `bits` of the stack index, for every value of
+/// those bits: the product of `eq(p_i, bit i)` over the point's coordinates and the indicator of the offset's bits
+/// past them.
 #[inline(never)]
-fn table(factors: &[Factor]) -> Vec<F128> {
-    let mut out = vec![F128::ZERO; 1 << factors.len()];
-    out[0] = F128::ONE;
-    for (i, &[lo, hi]) in factors.iter().enumerate() {
-        let (low, high) = out[..2 << i].split_at_mut(1 << i);
-        for (l, h) in low.iter_mut().zip(high) {
-            *h = *l * hi;
-            *l *= lo;
-        }
-    }
+fn eq_part(point: &[F128], offset: usize, bits: Range<usize>) -> Vec<F128> {
+    let mid = point.len().clamp(bits.start, bits.end);
+    let eq = eq_table_serial(point.get(bits.start..mid).unwrap_or_default());
+    let mut out = vec![F128::ZERO; 1 << bits.len()];
+    let at = (offset >> mid) & ((1 << (bits.end - mid)) - 1);
+    out[at << (mid - bits.start)..][..eq.len()].copy_from_slice(&eq);
     out
-}
-
-/// The factors on the low `bits` bits of the stack index of a claim at `point`, placed at `offset`: `eq(p, bit)` on
-/// the point's coordinates, then the offset's bits.
-#[inline(never)]
-fn point_factors(point: &[F128], offset: usize, bits: usize) -> Vec<Factor> {
-    (0..bits)
-        .map(|b| match point.get(b) {
-            Some(&p) => [F128::ONE + p, p],
-            None if (offset >> b) & 1 == 1 => [F128::ZERO, F128::ONE],
-            None => [F128::ONE, F128::ZERO],
-        })
-        .collect()
 }
 
 /// A claim's `gamma(h)` over every block, nonzero on `range` only.
@@ -83,9 +66,8 @@ struct ClaimBlocks {
     range: Range<usize>,
 }
 
-/// The claims that share one low factor list, its table `pi`, and the blocks where one of them is nonzero.
+/// The claims that share one low part `pi`, and the blocks where one of them is nonzero.
 struct Pattern {
-    factors: Vec<Factor>,
     pi: [F128x8; LANES],
     claims: Vec<usize>,
     active: Vec<bool>,
@@ -271,13 +253,13 @@ impl<'a> Projection<'a> {
     #[inline(never)]
     fn end_run(&mut self) {
         for run in &mut self.rings {
-            if let Some(fold) = run.fold.take() {
+            if let Some(fold) = &run.fold {
                 let mass = F128x8::splat(run.mass);
                 for (s, f) in run.sigma.iter_mut().zip(fold) {
                     *s += f.mul_unreduced(mass);
                 }
             }
-            run.mass = F128::ZERO;
+            (run.fold, run.mass) = (None, F128::ZERO);
         }
     }
 
@@ -327,14 +309,11 @@ pub(super) fn initial_basis(
     let (ring_lambdas, lambdas) = lambdas.split_at(ring.points.len());
     assert_eq!(claims.len(), lambdas.len());
     assert!(lane_vars >= LOW_VARS, "a lane block holds at least one block");
-    let factors: Vec<Vec<Factor>> = claims
-        .iter()
-        .map(|&StackClaim { offset, low_point }| point_factors(low_point, *offset, log_n))
-        .collect();
+    let part = |claim: &StackClaim, bits| eq_part(&claim.low_point, claim.offset, bits);
     let mut terms = Terms {
         lane_vars,
         claims: parallel::map_collect(claims.len(), |c| {
-            let gamma = table(&factors[c][LOW_VARS..lane_vars]);
+            let gamma = part(claims[c], LOW_VARS..lane_vars);
             let first = gamma.iter().position(|g| *g != F128::ZERO).unwrap_or(0);
             let end = gamma.iter().rposition(|g| *g != F128::ZERO).map_or(0, |h| h + 1);
             ClaimBlocks {
@@ -345,13 +324,13 @@ pub(super) fn initial_basis(
         patterns: Vec::new(),
         rings: Vec::new(),
     };
-    for (c, factors) in factors.iter().enumerate() {
-        let low = &factors[..LOW_VARS];
-        match terms.patterns.iter_mut().find(|p| p.factors == low) {
+    for (c, claim) in claims.iter().enumerate() {
+        let pi = part(claim, 0..LOW_VARS);
+        let same = |p: &&mut Pattern| p.pi.iter().zip(pi.as_chunks::<8>().0).all(|(p, v)| p.to_array() == *v);
+        match terms.patterns.iter_mut().find(same) {
             Some(pattern) => pattern.claims.push(c),
             None => terms.patterns.push(Pattern {
-                pi: in_lanes(table(low).as_slice().try_into().expect("a block")),
-                factors: low.to_vec(),
+                pi: in_lanes(pi.as_slice().try_into().expect("a block")),
                 claims: vec![c],
                 active: Vec::new(),
             }),
@@ -366,15 +345,15 @@ pub(super) fn initial_basis(
     // `A(l, c) = lambda_c L_c(l)`, and a ring's `A(l, w) = Phi(b_w s(l))`.
     let n_terms = claims.len() + DEGREE_E * ring.points.len();
     let mut a = vec![F128::ZERO; n_terms << (log_n - lane_vars)];
-    for (c, (factors, &lambda)) in factors.iter().zip(lambdas).enumerate() {
-        for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
+    for (c, (claim, &lambda)) in claims.iter().zip(lambdas).enumerate() {
+        for (l, lane) in part(claim, lane_vars..log_n).into_iter().enumerate() {
             a[l * n_terms + c] = lambda * lane;
         }
     }
     for (i, (point, &lambda)) in ring.points.iter().zip(ring_lambdas).enumerate() {
-        let factors = point_factors(point, ring.offset, log_n);
+        let part = |bits| eq_part(point, ring.offset, bits);
         let first = claims.len() + DEGREE_E * i;
-        for (l, lane) in table(&factors[lane_vars..]).into_iter().enumerate() {
+        for (l, lane) in part(lane_vars..log_n).into_iter().enumerate() {
             if lane != F128::ZERO {
                 for (w, term) in a[l * n_terms + first..][..DEGREE_E].iter_mut().enumerate() {
                     *term = lambda * ring_switch::apply(phi, F128::from(1u128 << w) * lane);
@@ -382,8 +361,8 @@ pub(super) fn initial_basis(
             }
         }
         terms.rings.push(Ring {
-            fold: BitFold::new(&table(&factors[..LOW_VARS])),
-            e_hi: table(&factors[LOW_VARS..lane_vars]),
+            fold: BitFold::new(&part(0..LOW_VARS)),
+            e_hi: part(LOW_VARS..lane_vars),
             point: point.clone(),
             x_offset: ring.offset & ((1 << lane_vars) - 1),
             first,

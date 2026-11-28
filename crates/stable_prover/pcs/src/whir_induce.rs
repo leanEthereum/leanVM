@@ -6,7 +6,7 @@
 //! The LCH novel basis over `K` (standard basis `v_i = x^i`), and the induction of a level's query weights onto the
 //! message's coefficients.
 
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, axpy};
 
 use crate::xmul::novel_basis_at;
 
@@ -41,11 +41,10 @@ pub(crate) fn induce_basis(
                 *acc += scale.mul_base_unreduced(F64x8::from_array(low));
             }
         }
-        let eq = &eq[j_hi << lo..];
-        for (k, (o, acc)) in out.chunks_mut(8).zip(acc).enumerate() {
-            let induced = acc.reduce().to_array();
-            for (i, o) in o.iter_mut().enumerate() {
-                *o += lambda * eq[8 * k + i] + induced[i];
+        axpy(out, lambda, &eq[j_hi << lo..][..out.len()]);
+        for (o, acc) in out.chunks_mut(8).zip(acc) {
+            for (o, induced) in o.iter_mut().zip(acc.reduce().to_array()) {
+                *o += induced;
             }
         }
     });

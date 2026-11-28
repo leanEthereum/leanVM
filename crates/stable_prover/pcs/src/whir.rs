@@ -37,18 +37,6 @@ use verifier::{
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
 
-/// [`dot`] with the pool.
-fn dot_par(a: &[F128], b: &[F128]) -> F128 {
-    assert_eq!(a.len(), b.len());
-    let chunk = |t: usize| t * CHUNK..((t + 1) * CHUNK).min(a.len());
-    parallel::map_reduce(
-        a.len().div_ceil(CHUNK),
-        || F128::ZERO,
-        |t| dot(&a[chunk(t)], &b[chunk(t)]),
-        |a, v| a + v,
-    )
-}
-
 /// A committed oracle: its codeword, kept whole, a row per domain point, and the Merkle tree over the rows.
 pub(crate) struct ProverData {
     codeword: Vec<F64>,
@@ -118,7 +106,7 @@ fn commit_ext(message: &[F128], log_msg_cols: usize, log_lanes: usize, log_inv_r
 }
 
 /// The oracle of `message`'s codeword on `2^log_domain` rows of `row_words`, leaves of `leaf_words`: the message lane
-/// by lane ([`AdditiveNttF64::encode_lane_major`]) or row by row ([`AdditiveNttF64::encode_rows`]).
+/// by lane or row by row ([`AdditiveNttF64::encode`]).
 fn commit_words(
     message: &[F64],
     row_words: usize,
@@ -129,15 +117,9 @@ fn commit_words(
 ) -> ProverData {
     let hasher = LeafHasher::new(row_words, leaf_words);
     let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
-    let (ntt, hash) = (
-        AdditiveNttF64::standard(log_domain),
-        &|rows: &[F64], out: &mut [Hash]| hasher.hash(rows, out),
-    );
-    let codeword = if lane_major {
-        ntt.encode_lane_major(message, row_words, log_inv_rate, &mut leaves, hash)
-    } else {
-        ntt.encode_rows(message, row_words, log_inv_rate, &mut leaves, hash)
-    };
+    let hash = |rows: &[F64], out: &mut [Hash]| hasher.hash(rows, out);
+    let codeword =
+        AdditiveNttF64::standard(log_domain).encode(message, row_words, lane_major, log_inv_rate, &mut leaves, &hash);
     ProverData {
         codeword,
         row_words,
@@ -275,33 +257,36 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
         let mu = w.len().ilog2() as usize;
         let block_len = oracle.block_len();
 
-        if level == levels - 1 {
+        let next = if level == levels - 1 {
+            // The last level sends its folded lane whole.
             ps.add_scalars(&p);
-            ps.grind(QUERY_GRINDING_BITS);
-            let queries = sample_queries(ps, block_len, config.queries[level]);
-            ps.hint_merkle(oracle.open(&queries));
+            None
+        } else {
+            // (commit) The low part is the next level's message, and the high part is sent.
+            let high = p.split_off(1 << mu);
+            let k = config.folds[level + 1];
+            let next = commit_ext(&p, mu - k, k, config.log_inv_rates[level + 1]);
+            ps.add_root(&next.tree.root());
+            ps.add_scalars(&high);
+
+            // (ood) The message's value at a point the next level's list is bound by.
+            ps.grind(OOD_GRINDING_BITS);
+            let eq = eq_table(&ps.sample_vec(mu));
+            ps.add_scalar(dot(&p, &eq));
+            Some((next, eq))
+        };
+
+        // (query) The queries, and below the last level lambda, one message; the oracle's rows there go beside the
+        // transcript.
+        ps.grind(QUERY_GRINDING_BITS);
+        let queries = sample_queries(ps, block_len, config.queries[level]);
+        ps.hint_merkle(oracle.open(&queries));
+        let Some((next, eq)) = next else {
             p.truncate(1 << mu);
             product_sumcheck(ps, p, w, 1, F128::ONE);
             return;
-        }
-
-        // (commit) The low part is the next level's message, and the high part is sent.
-        let high = p.split_off(1 << mu);
-        let k = config.folds[level + 1];
-        let next = commit_ext(&p, mu - k, k, config.log_inv_rates[level + 1]);
-        ps.add_root(&next.tree.root());
-        ps.add_scalars(&high);
-
-        // (ood) The message's value at a point the next level's list is bound by.
-        ps.grind(OOD_GRINDING_BITS);
-        let eq = eq_table(&ps.sample_vec(mu));
-        ps.add_scalar(dot_par(&p, &eq));
-
-        // (query) The queries and lambda, one message; then the oracle's rows there.
-        ps.grind(QUERY_GRINDING_BITS);
-        let queries = sample_queries(ps, block_len, config.queries[level]);
+        };
         let lambda = ps.sample();
-        ps.hint_merkle(oracle.open(&queries));
         oracle = next;
 
         // (next level) `W += lambda eq(z, .) + sum_q lambda^(q+2) W_(x_q)`.

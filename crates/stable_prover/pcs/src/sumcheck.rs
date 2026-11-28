@@ -18,9 +18,10 @@ pub fn product_sumcheck(
     while a.len() > width {
         let (mut zero, mut infinity) = (F128::ZERO, F128::ZERO);
         for (a, b) in a.chunks_exact(2 * width).zip(b.chunks_exact(2 * width)) {
-            for j in 0..width {
-                zero += a[j] * b[j];
-                infinity += (a[j] + a[width + j]) * (b[j] + b[width + j]);
+            let ((a0, a1), (b0, b1)) = (a.split_at(width), b.split_at(width));
+            for (((&a0, &a1), &b0), &b1) in a0.iter().zip(a1).zip(b0).zip(b1) {
+                zero += a0 * b0;
+                infinity += (a0 + a1) * (b0 + b1);
             }
         }
         ps.add_round_poly(&[scale * zero, F128::ZERO, scale * infinity], false);

@@ -267,55 +267,31 @@ impl AdditiveNttF64 {
         }
     }
 
-    /// The codeword of a row-major message held apart, `num_ntts` lanes a row, each block of its rows handed to `done`
-    /// once finished, with their outputs in `out`, one per row.
-    pub(crate) fn encode_rows<O: Send>(
-        &self,
-        msg: &[F64],
-        num_ntts: usize,
-        log_inv_rate: usize,
-        out: &mut [O],
-        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
-    ) -> Vec<F64> {
-        let lanes: Vec<usize> = (0..num_ntts).collect();
-        self.encode(msg, &lanes, num_ntts, log_inv_rate, out, done)
-    }
-
-    /// The codeword of a lane-major message, `n_lanes` blocks of `2^log_rows` words: a row of the codeword holds one
-    /// word of every block, block `n_lanes - 1 - t` in lane `t`. Its rows go to `done` as in [`Self::encode_rows`].
-    pub(crate) fn encode_lane_major<O: Send>(
+    /// The codeword of a message held apart, `n_lanes` lanes of a power of two rows, each block of its rows handed to
+    /// `done` once finished, with their outputs in `out`, one per row. The message is row-major, or lane-major: blocks
+    /// of a lane's words, block `n_lanes - 1 - t` in lane `t`.
+    pub(crate) fn encode<O: Send>(
         &self,
         msg: &[F64],
         n_lanes: usize,
+        lane_major: bool,
         log_inv_rate: usize,
         out: &mut [O],
         done: &(dyn Fn(&[F64], &mut [O]) + Sync),
     ) -> Vec<F64> {
         let msg_rows = msg.len() / n_lanes;
-        let lanes: Vec<usize> = (0..n_lanes).map(|t| (n_lanes - 1 - t) * msg_rows).collect();
-        self.encode(msg, &lanes, 1, log_inv_rate, out, done)
-    }
-
-    /// The codeword of the message whose row `r`, lane `t` is `msg[lanes[t] + r * row_stride]`, its rows a power of
-    /// two, handed to `done` as in [`Self::encode_rows`].
-    fn encode<O: Send>(
-        &self,
-        msg: &[F64],
-        lanes: &[usize],
-        row_stride: usize,
-        log_inv_rate: usize,
-        out: &mut [O],
-        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
-    ) -> Vec<F64> {
-        let (n_lanes, msg_rows) = (lanes.len(), msg.len() / lanes.len());
         assert!(
             msg.len() == n_lanes * msg_rows && msg_rows.is_power_of_two(),
             "the message is whole rows"
         );
+        // Row `r` of lane `t` is `msg[lane(t) + r * row_stride]`.
+        let row_stride = if lane_major { 1 } else { n_lanes };
+        let lane = |t: usize| if lane_major { (n_lanes - 1 - t) * msg_rows } else { t };
         // A piece of the codeword reads each lane along the rows it covers: a lane-major message's lanes lie a power
         // of two apart, and reading them across would keep evicting each other from the cache.
         let mut data = written(msg.len() << log_inv_rate, |w, out| {
-            for (t, &lane) in lanes.iter().enumerate() {
+            for t in 0..n_lanes {
+                let lane = lane(t);
                 for r in w / n_lanes..(w + out.len()).div_ceil(n_lanes) {
                     if let Some(o) = (r * n_lanes + t).checked_sub(w).and_then(|i| out.get_mut(i)) {
                         *o = msg[lane + (r & (msg_rows - 1)) * row_stride];
@@ -435,7 +411,7 @@ mod tests {
             ntt.encode_interleaved_in_place(&mut got, lanes, rate);
             assert_eq!(got, want, "in place, {context}");
             let held = sunk(1 << log_d, lanes, |out, done| {
-                ntt.encode_rows(&msg, lanes, rate, out, done)
+                ntt.encode(&msg, lanes, false, rate, out, done)
             });
             assert_eq!(held, want, "held apart, {context}");
 
@@ -455,7 +431,7 @@ mod tests {
             let rows = 1usize << log_rows;
             let msg = random(&mut rng, rows * n_lanes);
             let got = sunk(rows << rate, n_lanes, |out, done| {
-                ntt.encode_lane_major(&msg, n_lanes, rate, out, done)
+                ntt.encode(&msg, n_lanes, true, rate, out, done)
             });
             for t in 0..n_lanes {
                 let block = &msg[(n_lanes - 1 - t) * rows..][..rows];
@@ -490,7 +466,7 @@ mod tests {
                 }
             }
             let got = sunk(1 << log_d, 2 * lanes, |out, done| {
-                ntt.encode_rows(primitives::cast_slice(&msg), 2 * lanes, rate, out, done)
+                ntt.encode(primitives::cast_slice(&msg), 2 * lanes, false, rate, out, done)
             });
             assert_eq!(
                 got,
