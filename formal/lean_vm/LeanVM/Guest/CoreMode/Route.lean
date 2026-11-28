@@ -136,14 +136,17 @@ def keepB (S : ℕ) (a : Atom) : Bool := (Memory.atomUses a).any fun v ↦ Nat.t
 selectors' check remembers only those top-level atoms (`selGo_of_keep`), not every one. -/
 def keepIn (S : ℕ) (a : Atom) (seen : List Atom) : List Atom := bif keepB S a then a :: seen else seen
 
-/-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
-at their cells; `j` not the prologue. -/
-noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
+/-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values at their
+cells, `c` its values' cells; `j` not the prologue. -/
+noncomputable def honAt (c : V → ℕ) (j : ℕ) (fn : Fn) : Bool :=
   (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyCore fn.body || loopBC fn) &&
-    stmtsAll (ptrCellB j) fn.body && paramsN fn.params 0 &&
-    ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    stmtsAll (retCellB j) fn.body && Nat.blt 0 j &&
+    stmtsAll (ptrCellAt c j) fn.body && paramsN fn.params 0 &&
+    ((List.range fn.params.length).all fun k ↦ Nat.beq (c (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
+    stmtsAll (retCellAt c j) fn.body && Nat.blt 0 j &&
     (selGo j fn.params fn.body [] fn.body || loopBC fn)
+
+/-- `honAt` at the certificate's cells. -/
+noncomputable abbrev honB (j : ℕ) (fn : Fn) : Bool := honAt (B2C.cellJ j) j fn
 
 /-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
 checks apart. -/
@@ -157,7 +160,7 @@ theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true
     (h4 : (selGo j fn.params fn.body [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
   simp only [honRest, Bool.and_eq_true] at h5
   obtain ⟨⟨⟨r1, r2⟩, r3⟩, r4⟩ := h5
-  simp only [honB, stmtsAll_eq, Bool.and_eq_true]
+  simp only [honB, honAt, stmtsAll_eq, Bool.and_eq_true]
   exact ⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, h4⟩
 
 /-! ## The selectors' check, remembering fewer atoms -/

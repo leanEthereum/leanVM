@@ -1074,9 +1074,14 @@ def main(check=False):
                 rsplit |= {'LeanVM.Guest.CoreMode.ResTab', 'LeanVM.Guest.CoreMode.CellLanes'}
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
-            # its links checked by its name's code (`CoreMode.glByCode`), not by comparing its name with each family's
+            # its links checked by its name's code (`CoreMode.glByCode`), not by comparing its name with each family's;
+            # a short body's cells read from a lane vector (`CoreMode.honL`), checked with its frame in one pass
             gl = [f'CoreMode.glOk_of_code CoreMode.FnReg.glCodes_ok (Cf := Fn.«{k}».cfun) (by decide +kernel)']
             rsplit.add('LeanVM.Guest.CoreMode.Gen.FnCodes')
+            if k not in LONG and nstmts(heap.CORE[k][1]) <= HON_SPLIT:
+                gl.append(f'CoreMode.honB_of_honL (j := {x}) (fn := Fn.«{k}».cfun.fn) (L := {cell_lanes(k)}) '
+                          f'(by decide +kernel)')
+                rsplit.add('LeanVM.Guest.CoreMode.CellLanes')
             gl = ', '.join(gl)
             hb = (f'(by rw [{gl}]; decide +kernel)' if hb == '(by decide +kernel)' else
                   hb.replace('(by rw [', f'(by rw [{gl}, ', 1))

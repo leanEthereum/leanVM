@@ -476,7 +476,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   -- the honest valuation
   rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
   obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
-  simp only [CoreMode.honB, CoreMode.stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hb0
+  simp only [CoreMode.honB, CoreMode.honAt, CoreMode.stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
   -- `main`'s instance is the root, in frame `0`
@@ -630,7 +630,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     obtain ⟨rfl, rfl⟩ := hw0
     have hmem := Bridge.walk_atomS (σ := e.σ) Cf.fn.body (by rw [hfn, hw]; exact hl)
     have hc := hptr _ hmem
-    simp only [CoreMode.ptrCellB, CoreMode.ptrCellAt, CoreMode.valCell, hpa, Bool.and_eq_true,
+    simp only [CoreMode.ptrCellAt, CoreMode.valCell, hpa, Bool.and_eq_true,
       Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
     have hloc : Cf.X.locAt p.idx = cellJ j p := by
@@ -660,7 +660,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
     have hc := hrc _ (Bridge.walk_retS _ (by rw [hfn]; exact hw))
-    simp only [CoreMode.retCellB, CoreMode.retCellAt, List.all_eq_true] at hc
+    simp only [CoreMode.retCellAt, List.all_eq_true] at hc
     have hc := hc v hv
     simp only [CoreMode.valCell, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨⟨⟨hx, hidx⟩, h2⟩, h3⟩ := hc
