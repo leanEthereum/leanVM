@@ -22,12 +22,14 @@ lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_
 pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
 primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 rand = { workspace = true, optional = true }
-tracing.workspace = true
+tracing = { workspace = true, optional = true }
 
 [features]
-default = ["compile-guest"]
+default = ["compile-guest", "spans"]
 # The guest compiled from its source; without it, `set_unified_guest` installs it.
 compile-guest = ["dep:zkdsl_compiler"]
+# Timing spans and debug events.
+spans = ["dep:tracing"]
 # `signers_cache`: cached benchmark signers, for tests and the CLI.
 signers-cache = ["dep:rand"]
 

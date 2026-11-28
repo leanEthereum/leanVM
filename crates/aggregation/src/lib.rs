@@ -37,6 +37,26 @@
 //! of the inner program (the stable prover's `cpu::layout`) and the summary the `verifier`
 //! crate reads out of the child's proof.
 
+/// A timing span over the rest of its scope, nothing without the `spans` feature.
+macro_rules! span {
+    ($($args:tt)*) => {{
+        #[cfg(feature = "spans")]
+        let span = tracing::info_span!($($args)*).entered();
+        #[cfg(not(feature = "spans"))]
+        let span = crate::NoSpan;
+        span
+    }};
+}
+
+/// What [`span`] gives without the `spans` feature.
+#[cfg(not(feature = "spans"))]
+struct NoSpan;
+
+#[cfg(not(feature = "spans"))]
+impl Drop for NoSpan {
+    fn drop(&mut self) {}
+}
+
 mod cells;
 mod child;
 #[cfg(feature = "compile-guest")]

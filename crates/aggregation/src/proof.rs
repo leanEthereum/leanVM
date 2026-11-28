@@ -74,6 +74,7 @@ impl AggregateProof {
         let defer = DeferredBytecodeClaim::recompute(self.bytecode_point.clone());
         let pi = statement_digest(&lists, claims.da_commitment, &defer);
         let verdict = verifier::verify_execution(unified_guest().bytecode(), &public_input_bytes(&pi), &self.proof);
+        #[cfg(feature = "spans")]
         if let Err(error) = &verdict {
             tracing::debug!(%error, "the proof does not verify");
         }

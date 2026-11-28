@@ -105,7 +105,7 @@ pub fn aggregate<P: Prover>(
 
     // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
     // builds the guest's witness from, and fails only on a proof it cannot walk.
-    let _span = tracing::info_span!("Replay children").entered();
+    let span = span!("Replay children");
     // The batch's claims and their sums, each child's fresh one, filled in with its witness, then its carried one.
     let mut claims = Vec::with_capacity(2 * children.len());
     let mut sums = Vec::with_capacity(2 * children.len());
@@ -138,9 +138,9 @@ pub fn aggregate<P: Prover>(
             return Err(*error);
         }
     }
-    drop(_span);
+    drop(span);
 
-    let _span = tracing::info_span!("Build witness").entered();
+    let span = span!("Build witness");
     // Each raw signature's witness, leanXMSS first, one per worker.
     let n_lean_xmss = raw_order[0].len();
     let signatures = P::map_collect(n_lean_xmss + raw_order[1].len(), |i| {
@@ -219,14 +219,14 @@ pub fn aggregate<P: Prover>(
         sums[2 * i] = bytecode_sums::<P>(&fresh);
         claims[2 * i] = DeferredBytecodeClaim::from_sums(fresh, &sums[2 * i]);
     }
-    drop(_span);
+    drop(span);
 
     let defer = if children.is_empty() {
         let leaf = DeferredBytecodeClaim::leaf();
         hints.push("leaf_defer", vec![leaf.bytecode_value]);
         leaf
     } else {
-        let _span = tracing::info_span!("Batch deferred claims").entered();
+        let _span = span!("Batch deferred claims");
         let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums);
         hints.extend(batch_hints);
         reduced
@@ -255,8 +255,9 @@ pub fn aggregate<P: Prover>(
     }
     let signers = cover.map(|region| region.signers);
     let public_input = statement_digest(&signers, da_root, &defer).map(|x| to_scalar(&x));
-    let (proof, stats) = P::prove(unified_guest(), &hints.witness(), public_input, log_inv_rate).map_err(|error| {
-        tracing::debug!(%error, "proving failed");
+    let (proof, stats) = P::prove(unified_guest(), &hints.witness(), public_input, log_inv_rate).map_err(|_error| {
+        #[cfg(feature = "spans")]
+        tracing::debug!(error = %_error, "proving failed");
         AggregateError::ProvingFailed
     })?;
     let [lean_xmss, lean_sphincs] = signers;

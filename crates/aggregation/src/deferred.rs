@@ -217,7 +217,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
         pad(&mut transcript, words);
     }
 
-    let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
+    let span = span!("Bytecode batch", vars = kbcv);
     // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1). The batch's grinds
     // are short, so they search on the calling thread, under either prover.
     let nonce = transcript.grind::<Sequential>(BATCH_LAM_GRIND_BITS);
@@ -277,7 +277,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
         "every claim's value is the bytecode's evaluation"
     );
 
-    drop(_span);
+    drop(span);
     let mut hints = Hints::default();
     hints.push("bc_sumcheck_msgs", messages);
     hints.push("bc_star_hint", vec![value]);
