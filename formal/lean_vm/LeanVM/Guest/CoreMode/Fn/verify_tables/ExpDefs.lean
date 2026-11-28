@@ -163,9 +163,16 @@ def vtLt (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) (a b : CIdx) : Boo
   | some A, some B => vtSmall A && vtSmall B && vtNN fs arms ((B.add A (-1)).add (1, []) (-1))
   | _, _ => false
 
-/-- `[B]·[J]·g^o` one of `cs`, the cells `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`. -/
+/-- **The run `[B]·g^o`, `[B]·g^(o + 1)`, …**: `cs` those cells in order. -/
+def vtRun (B : ℕ) : ℕ → List CCell → Bool
+  | _, [] => true
+  | o, c :: cs => (match c.bases with
+      | [(b, e)] => Nat.beq b B && Nat.beq e 1
+      | _ => false) && Nat.beq c.off o && vtRun B (o + 1) cs
+
+/-- `[B]·[J]·g^o` one of `cs`, the run `[B]·g^(o + t)`, `t < |cs|` (`vtRun`), by `e(J) < |cs|`. -/
 def vtSubP1 (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) (o B J : ℕ) (cs : List CCell) : Bool :=
-  (List.range cs.length).all (fun t ↦ cs.contains ⟨[(B, 1)], o + t⟩) && vtLt fs arms (.val J) (.num cs.length)
+  vtRun B o cs && vtLt fs arms (.val J) (.num cs.length)
 
 /-- `vtSubP1` with either base the index. -/
 def vtSubP (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) (c : CCell) (cs : List CCell) : Bool :=
@@ -174,8 +181,8 @@ def vtSubP (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) (c : CCell) (cs 
   | _ => false
 
 /-- **`verify_tables`' exponent family** (`verify_tables.py`'s `holds`): `lt a b` (`F_b - F_a - 1 ≥ 0`), `subR q r` (stride `1`, `q`'s
-base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of
-`[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`, either base the index), under branch conditions (the arms used). -/
+base `r`'s times a product `m`, `r`'s bounds hold `F_m + q.off - r.off` past `q`'s), `subP` (`[B]·[J]·g^o` one of `cs`,
+the run `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|`, either base the index), under branch conditions (the arms used). -/
 def vtExpR (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) : CRes → Bool
   | .lt a b => vtLt fs arms a b
   | .subP c cs => vtSubP fs arms c cs
@@ -194,6 +201,24 @@ def vtExpR (fs : ℕ → Option VtL) (arms : List (ℕ × ℕ)) : CRes → Bool
 end
 
 public section
+
+theorem vtRun_mem {B : ℕ} : ∀ {o : ℕ} {cs : List CCell}, vtRun B o cs = true →
+    ∀ t < cs.length, (⟨[(B, 1)], o + t⟩ : CCell) ∈ cs
+  | _, [], _, _, ht => absurd ht (Nat.not_lt_zero _)
+  | o, ⟨bs, off⟩ :: cs, h, t, ht => by
+    simp only [vtRun, Bool.and_eq_true, Nat.beq_eq] at h
+    obtain ⟨⟨hb, rfl⟩, hr⟩ := h
+    cases t with
+    | zero =>
+      match bs, hb with
+      | [(b, e)], hb =>
+        simp only [Bool.and_eq_true, Nat.beq_eq] at hb
+        obtain ⟨rfl, rfl⟩ := hb
+        exact List.mem_cons_self
+    | succ t =>
+      have := vtRun_mem hr t (by simpa using ht)
+      rw [show off + (t + 1) = off + 1 + t by omega]
+      exact List.mem_cons_of_mem _ this
 
 theorem vtF_of_formAt {T : List (ℕ × VtL)} (hT : vtFormsOk T = true) {x : ℕ} {F : VtL} (h : vtFormAt T x = some F) :
     vtF vtAtoms vtFuel (V.n x) = some F := by

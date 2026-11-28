@@ -231,13 +231,14 @@ def holds(atoms, arms, r):
     if r[0] == 'lt':
         return lt(atoms, arms, r[1], r[2])
     if r[0] == 'subP':
-        # `[B]·[J]·g^o` one of `[B]·g^(o + t)`, `t < |cs|`, by `e(J) < |cs|` (`vtSubP`), either base the index
-        c, cs = r[1], {(tuple(tuple(b) for b in x[0]), x[1]) for x in r[2]}
+        # `[B]·[J]·g^o` one of `cs`, the run `[B]·g^(o + t)`, `t < |cs|`, in order, by `e(J) < |cs|` (`vtSubP`), either
+        # base the index
+        c, cs = r[1], [(tuple(tuple(b) for b in x[0]), x[1]) for x in r[2]]
         bs = tuple(tuple(b) for b in c[0])
         if len(bs) != 2 or bs[0][1] != 1 or bs[1][1] != 1:
             return False
-        n = len(r[2])
-        return any(all((((B, 1),), c[1] + t) in cs for t in range(n)) and lt(atoms, arms, ('val', J), ('num', n))
+        n = len(cs)
+        return any(cs == [(((B, 1),), c[1] + t) for t in range(n)] and lt(atoms, arms, ('val', J), ('num', n))
                    for B, J in ((bs[0][0], bs[1][0]), (bs[1][0], bs[0][0])))
     if r[0] == 'subR':
         q, R = r[1], r[2]

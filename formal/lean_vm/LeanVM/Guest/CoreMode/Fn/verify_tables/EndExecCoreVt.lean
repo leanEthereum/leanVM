@@ -499,8 +499,9 @@ theorem vtSubP1_sound {σ : Core.Val} {s : List ℤ} {fs : ℕ → Option VtL} (
     (ha : ∀ p ∈ arms, σ (V.n p.1) = ofK (addressOfIndex p.2)) {co B J : ℕ} {cs : List CoreMode.CCell}
     (h : CoreMode.vtSubP1 fs arms co B J cs = true) :
     ∃ c' ∈ cs, (⟨[(B, 1), (J, 1)], co⟩ : CoreMode.CCell).addrW (CoreMode.vw σ) = c'.addrW (CoreMode.vw σ) := by
-  simp only [CoreMode.vtSubP1, Bool.and_eq_true, List.all_eq_true, List.mem_range, List.contains_iff_mem] at h
+  simp only [CoreMode.vtSubP1, Bool.and_eq_true] at h
   obtain ⟨hall, hl⟩ := h
+  replace hall := CoreMode.vtRun_mem hall
   obtain ⟨A, Bn, -, hBn, a0, hab, a1, -⟩ := vtLt_sound hb hF hbase ha hl
   have eB : Bn = ((cs.length : ℤ), []) := by
     simp only [CoreMode.vtI, CoreMode.vtM, CoreMode.idxC, Option.some.injEq] at hBn; exact hBn.symm
