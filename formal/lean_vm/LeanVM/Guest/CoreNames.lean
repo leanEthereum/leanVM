@@ -7,16 +7,16 @@
 module
 
 public import LeanVM.Guest.CoreData
-public import LeanVM.Guest.CoreNamesMod
-public import LeanVM.Guest.NameIx
+public import LeanVM.Guest.CompiledNames
 
 /-!
 # Distinct function names
 
 Strings are compared slowly in the kernel, so names are never compared with each other: each is
 encoded once as a number (`encS`, `NameIx.lean`), reduced modulo `namesMod`, and the residues are checked
-pairwise distinct in one pass through a bit set (`nodupBits`, `coreProgram_codes_nodup`); equal
-names would give equal residues (`coreProgram_names_nodup`). `namesMod` is the smallest modulus
+pairwise distinct in one pass through a bit set on the compiled function table
+(`CompiledNames.lean`), whose names are the core program's (`names_eq`, `coreProgram_codes_nodup`);
+equal names would give equal residues (`coreProgram_names_nodup`). `namesMod` is the smallest modulus
 under which the residues differ (`CoreNamesMod.lean`, written by `scripts/core-names-modulus` when the guest's
 names change).
 -/
@@ -27,29 +27,11 @@ open Core
 
 @[expose] public section
 
-/-- Pairwise distinctness through the bit set `seen`: each entry's bit is clear, then set. -/
-def nodupBits : List ℕ → ℕ → Bool
-  | [], _ => true
-  | x :: xs, seen => !seen.testBit x && nodupBits xs (seen ||| 2 ^ x)
-
-theorem nodup_of_nodupBits : ∀ {l : List ℕ} {seen : ℕ}, nodupBits l seen = true →
-    l.Nodup ∧ ∀ x ∈ l, seen.testBit x = false
-  | [], _, _ => ⟨List.nodup_nil, by simp⟩
-  | x :: xs, seen, h => by
-    simp only [nodupBits, Bool.and_eq_true, Bool.not_eq_true'] at h
-    obtain ⟨hn, hb⟩ := nodup_of_nodupBits h.2
-    refine ⟨List.nodup_cons.mpr ⟨fun hm ↦ ?_, hn⟩, fun y hy ↦ ?_⟩
-    · simpa [Nat.testBit_or, Nat.testBit_two_pow_self] using hb x hm
-    · rcases List.mem_cons.mp hy with rfl | hy
-      · exact h.1
-      · have := hb y hy
-        simp only [Nat.testBit_or, Bool.or_eq_false_iff] at this
-        exact this.1
-
-set_option maxRecDepth 100000 in
-/-- **The names' residues are distinct**, by one kernel evaluation. -/
-theorem coreProgram_codes_nodup : (coreProgram.map fun f ↦ encS f.name % namesMod).Nodup :=
-  (nodup_of_nodupBits (seen := 0) (by decide +kernel)).1
+/-- **The names' residues are distinct**: they are the compiled functions' (`names_eq`). -/
+theorem coreProgram_codes_nodup : (coreProgram.map fun f ↦ encS f.name % namesMod).Nodup := by
+  have h := compiled_codes_nodup
+  rw [← names_eq, List.map_map] at h
+  exact h
 
 theorem coreProgram_names_nodup : (coreProgram.map (·.name)).Nodup := by
   have h : ((coreProgram.map (·.name)).map fun s ↦ encS s % namesMod).Nodup := by

@@ -14,6 +14,7 @@ public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.Data.Functions
 import all LeanVM.Guest.Data.Functions
 public import LeanVM.Guest.Code
+import LeanVM.Guest.KernelRfl
 
 /-!
 # The guest's core IR
@@ -51,9 +52,10 @@ noncomputable def coreProgram : Program := Data.coreFunctions
 
 theorem coreProgram_length : coreProgram.length = core_count% := by decide +kernel
 
-/-- Function `j` has the name of compiled function `j + 1`, after `__jump_tables`. -/
+/-- Function `j` has the name of compiled function `j + 1`, after `__jump_tables`: the kernel
+compares the names' literals as terms, never their characters. -/
 theorem names_eq : coreProgram.map Fn.name = Data.functions.tail.map CompiledFunction.name := by
-  decide +kernel
+  kernel_rfl
 
 theorem name_eq_compiled {j : Nat} {f : Fn} {c : CompiledFunction} (hf : coreProgram[j]? = some f)
     (hc : Data.functions[j + 1]? = some c) : f.name = c.name := by
