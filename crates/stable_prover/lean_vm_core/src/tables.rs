@@ -767,22 +767,22 @@ const KECCAK_OPERANDS: [C; keccakt::OUT_ALL + 1 - keccakt::O_M0] = {
 };
 
 /// The terms of a cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects:
-/// `a + flag·(a + b)`, a missing lane being `missing`, and how many there are. When the layouts agree the limb is
-/// that column, or zero, alone: one term, `None` for the flag.
+/// `a + flag·(a + b)`, a missing lane being `missing`, how many there are, and whether they are a sum. When the layouts
+/// agree the limb is that column, or zero, alone: one term, no sum.
 const fn limb_terms(
     even: Option<usize>,
     odd: Option<usize>,
     values: usize,
     flag: usize,
     missing: Option<usize>,
-) -> ([C; 3], usize, Option<usize>) {
+) -> ([C; 3], usize, bool) {
     let mut terms = [ZERO; 3];
     match (lane_column(even, values, missing), lane_column(odd, values, missing)) {
         (Some(a), Some(b)) if a == b => {
             terms[0] = C::Col(a);
-            (terms, 1, None)
+            (terms, 1, false)
         }
-        (None, None) => (terms, 1, None),
+        (None, None) => (terms, 1, false),
         (a, b) => {
             let mut n = 0;
             if let Some(a) = a {
@@ -792,7 +792,7 @@ const fn limb_terms(
                 terms[n] = C::P(flag, b, 0);
                 n += 1;
             }
-            (terms, n, Some(flag))
+            (terms, n, true)
         }
     }
 }
@@ -806,12 +806,12 @@ const fn lane_column(lane: Option<usize>, values: usize, missing: Option<usize>)
 }
 
 /// Each `KECCAK` cell's sums, in flush order: its low limb's terms, its high limb's and its counter's
-/// ([`keccak_flushes`]), each with how many there are, `None` for a lone term.
-static KECCAK_SUMS: [([C; 3], usize, Option<usize>); 3 * crate::keccak::ROW_CELLS] = {
+/// ([`KECCAK_FLUSHES`]), each with how many there are and whether they are a sum.
+static KECCAK_SUMS: [([C; 3], usize, bool); 3 * crate::keccak::ROW_CELLS] = {
     use crate::keccak::STATE_CELLS;
     use keccakt::*;
     let [even, odd] = crate::keccak::CELL_LANES;
-    let mut sums = [([ZERO; 3], 0, None); 3 * crate::keccak::ROW_CELLS];
+    let mut sums = [([ZERO; 3], 0, false); 3 * crate::keccak::ROW_CELLS];
     let mut c = 0;
     while c < sums.len() / 3 {
         let (s, values, flag, free) = if c < STATE_CELLS {
@@ -826,14 +826,10 @@ static KECCAK_SUMS: [([C; 3], usize, Option<usize>); 3 * crate::keccak::ROW_CELL
         // 0, so the pair cancels and touches no cell.
         let count = R0 + c;
         sums[3 * c + 2] = match c {
-            _ if c <= STATE_CELLS => ([C::G(count, 1), ZERO, ZERO], 1, None),
+            _ if c <= STATE_CELLS => ([C::G(count, 1), ZERO, ZERO], 1, false),
             _ => {
                 let flag = if c == STATE_CELLS + 1 { OUT_TWO } else { OUT_ALL };
-                (
-                    [C::Col(count), C::P(flag, count, 1), C::P(flag, count, 0)],
-                    3,
-                    Some(flag),
-                )
+                ([C::Col(count), C::P(flag, count, 1), C::P(flag, count, 0)], 3, true)
             }
         };
         c += 1;
@@ -847,8 +843,8 @@ const KECCAK_FLUSHES: [Flush; 2 + crate::keccak::ROW_CELLS] = {
     use keccakt::*;
     const fn sum(k: usize) -> C {
         match KECCAK_SUMS[k] {
-            (terms, _, None) => terms[0],
-            (_, n, Some(_)) => C::S(KECCAK_SUMS[k].0.split_at(n).0),
+            (terms, _, false) => terms[0],
+            (_, n, true) => C::S(KECCAK_SUMS[k].0.split_at(n).0),
         }
     }
     let mut flushes = [STEP; 2 + crate::keccak::ROW_CELLS];
