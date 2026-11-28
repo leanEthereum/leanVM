@@ -131,9 +131,11 @@ impl GPow {
     fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_INDEX, "address space overflow (program too large)");
         // ×g is ×x = `mul_by_g` (shift+fold), not a full product.
-        for k in self.pow.len()..=upto {
+        let from = self.pow.len();
+        self.pow.resize(upto + 1, F64::ZERO);
+        for k in from..=upto {
             let p = mul_by_g(self.pow[k - 1]);
-            self.pow.push(p);
+            self.pow[k] = p;
             if k.is_multiple_of(STRIDE) {
                 self.coarse.insert(p.0, k as u32);
             }

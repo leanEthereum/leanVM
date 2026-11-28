@@ -89,22 +89,22 @@ fn airs<'a>(
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, base + verifier::N_BUS_TREES);
-    let mut airs = Vec::with_capacity(tables::N_TABLES);
     let mut offset = 0;
-    for (t, table) in tables::tables().into_iter().enumerate() {
-        let n = table.n_constraints();
-        let mut form = table.constraint(&pows[offset..][..n]);
-        offset += n;
-        for s in 0..verifier::N_BUS_TREES {
-            add_scaled(&mut form, &bus.forms[s][t], pows[base + s]);
-        }
-        airs.push(constraints::Air {
-            tau: taus[t],
-            cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
-            form,
-        });
-    }
-    airs
+    (tables::tables().into_iter().enumerate())
+        .map(|(t, table)| {
+            let n = table.n_constraints();
+            let mut form = table.constraint(&pows[offset..][..n]);
+            offset += n;
+            for s in 0..verifier::N_BUS_TREES {
+                add_scaled(&mut form, &bus.forms[s][t], pows[base + s]);
+            }
+            constraints::Air {
+                tau: taus[t],
+                cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
+                form,
+            }
+        })
+        .collect()
 }
 
 /// `out += w·f`, over the same columns, `f`'s products listed after `out`'s.

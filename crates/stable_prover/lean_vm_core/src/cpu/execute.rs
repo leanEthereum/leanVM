@@ -251,69 +251,31 @@ impl std::fmt::Display for Fault {
     }
 }
 
+/// A fault, boxed so that a `?` moves one pointer.
+type Res<T> = Result<T, Box<Fault>>;
+
+#[inline(never)]
+fn fault(f: Fault) -> Box<Fault> {
+    Box::new(f)
+}
+
 /// A memory word that has to lie in K, or why it does not.
-fn in_k(what: &'static str, v: F128) -> Result<F64, Fault> {
-    v.as_base().ok_or(Fault::NotInK { what, value: v })
-}
-
-/// A named witness stream and the next entry `hint_witness` pops from it.
-struct Stream<'a> {
-    name: &'a str,
-    entries: Option<&'a [Vec<F128>]>,
-    next: usize,
-}
-
-impl<'a> Stream<'a> {
-    /// Stream `name` of `witness`, at its first entry.
-    fn new(witness: &'a [(String, Vec<Vec<F128>>)], name: &'a str) -> Self {
-        Self {
-            name,
-            entries: witness
-                .iter()
-                .find(|(n, _)| n == name)
-                .map(|(_, entries)| entries.as_slice()),
-            next: 0,
-        }
-    }
-
-    /// The next entry, of `len` values.
-    fn pop(&mut self, len: u32) -> Result<&'a [F128], Fault> {
-        let name = self.name;
-        let entries = self
-            .entries
-            .ok_or_else(|| Fault::Witness(WitnessFault::Missing { name: name.into() }))?;
-        let entry = entries.get(self.next).ok_or_else(|| {
-            Fault::Witness(WitnessFault::Exhausted {
-                name: name.into(),
-                needs: self.next + 1,
-                has: entries.len(),
-            })
-        })?;
-        if entry.len() != len as usize {
-            return Err(Fault::Witness(WitnessFault::EntryLength {
-                name: name.into(),
-                entry: self.next,
-                holds: entry.len(),
-                wants: len,
-            }));
-        }
-        self.next += 1;
-        Ok(entry)
-    }
+fn in_k(what: &'static str, v: F128) -> Res<F64> {
+    v.as_base().ok_or_else(|| fault(Fault::NotInK { what, value: v }))
 }
 
 /// The cell `base + offset`, if it lies in the address space.
-fn cell_at(base: u32, offset: u32) -> Result<u32, Fault> {
+fn cell_at(base: u32, offset: u32) -> Res<u32> {
     run_at(base, offset, 1)
 }
 
 /// The first of the `len` cells from `base + offset`, if they lie in the address space.
-fn run_at(base: u32, offset: u32, len: u32) -> Result<u32, Fault> {
+fn run_at(base: u32, offset: u32, len: u32) -> Res<u32> {
     let start = u64::from(base) + u64::from(offset);
     if start + u64::from(len) <= u64::from(MAX_CELLS) {
         Ok(start as u32)
     } else {
-        Err(Fault::OutOfMemory)
+        Err(fault(Fault::OutOfMemory))
     }
 }
 
@@ -387,7 +349,7 @@ impl Mem {
 
     /// Write-once store, carried to every cell linked to this one.
     #[inline(never)]
-    fn put(&mut self, cell: u32, v: F128) -> Result<(), Fault> {
+    fn put(&mut self, cell: u32, v: F128) -> Res<()> {
         if self.store(cell, v)? {
             let mut todo = vec![cell];
             while let Some(c) = todo.pop() {
@@ -403,17 +365,17 @@ impl Mem {
     }
 
     /// `put` on one cell; whether it was linked.
-    fn store(&mut self, cell: u32, v: F128) -> Result<bool, Fault> {
+    fn store(&mut self, cell: u32, v: F128) -> Res<bool> {
         let c = self.at(cell);
         let state = c.state;
         if state == State::Written && c.word != v {
             let had = c.word;
-            return Err(Fault::Conflict {
+            return Err(fault(Fault::Conflict {
                 cell,
                 had,
                 new: v,
                 hint: None,
-            });
+            }));
         }
         (c.word, c.state) = (v, State::Written);
         Ok(state == State::Linked)
@@ -449,27 +411,42 @@ impl Mem {
 struct Advice<'a> {
     next_free: u32,
     witness: &'a [(String, Vec<Vec<F128>>)],
-    /// The streams popped so far, by name: a few, so a scan finds one.
-    streams: Vec<(&'a str, Stream<'a>)>,
+    /// The entry of stream `witness[i]` its next pop takes.
+    next: Vec<usize>,
 }
 
 impl<'a> Advice<'a> {
-    /// Stream `name`, at its next entry.
-    fn stream(&mut self, name: &'a str) -> &mut Stream<'a> {
-        let i = match self.streams.iter().position(|(n, _)| *n == name) {
-            Some(i) => i,
-            None => {
-                self.streams.push((name, Stream::new(self.witness, name)));
-                self.streams.len() - 1
-            }
+    /// The next entry of stream `name`, of `len` values.
+    fn pop(&mut self, name: &str, len: u32) -> Res<&'a [F128]> {
+        let witness = self.witness;
+        // Byte by byte: `==` would call `bcmp` through a register, an indirect call.
+        let problem = match witness.iter().position(|(n, _)| n.bytes().eq(name.bytes())) {
+            None => WitnessFault::Missing { name: name.into() },
+            Some(i) => match witness[i].1.get(self.next[i]) {
+                Some(entry) if entry.len() == len as usize => {
+                    self.next[i] += 1;
+                    return Ok(entry);
+                }
+                Some(entry) => WitnessFault::EntryLength {
+                    name: name.into(),
+                    entry: self.next[i],
+                    holds: entry.len(),
+                    wants: len,
+                },
+                None => WitnessFault::Exhausted {
+                    name: name.into(),
+                    needs: self.next[i] + 1,
+                    has: witness[i].1.len(),
+                },
+            },
         };
-        &mut self.streams[i].1
+        Err(fault(Fault::Witness(problem)))
     }
 }
 
 /// Reserve `size` fresh cells, the last below `MAX_CELLS`, for the region whose pointer is `cell`: write the region's
 /// base `g^{next_free}` there, once, a second value being a conflict.
-fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
+fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Res<()> {
     let base = *next_free;
     *next_free = run_at(base, size, 0)?;
     g.grow_to(*next_free as usize);
@@ -482,9 +459,9 @@ fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -
 }
 
 /// The cell a heap run starts at: the pointer in `cell`, inverted.
-fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
+fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Res<u32> {
     let p = in_k(what, m.get(cell))?;
-    g.log(p).ok_or(Fault::NotAGPower { what, value: p })
+    g.log(p).ok_or_else(|| fault(Fault::NotAGPower { what, value: p }))
 }
 
 /// `v^{-1}`, `v` nonzero: one copy for the back-solve and the hint.
@@ -495,13 +472,13 @@ fn inverse(v: F128) -> F128 {
 
 /// The word in cell `fp + offset`, as a hint reads it.
 #[inline(never)]
-fn word_at(m: &Mem, fp: u32, offset: u32) -> Result<F128, Fault> {
+fn word_at(m: &Mem, fp: u32, offset: u32) -> Res<F128> {
     Ok(m.get(cell_at(fp, offset)?))
 }
 
 /// The word in cell `fp + offset`, which has to lie in K.
 #[inline(never)]
-fn k_word_at(m: &Mem, fp: u32, offset: u32, what: &'static str) -> Result<F64, Fault> {
+fn k_word_at(m: &Mem, fp: u32, offset: u32, what: &'static str) -> Res<F64> {
     in_k(what, word_at(m, fp, offset)?)
 }
 
@@ -513,7 +490,7 @@ fn g_word(k: usize) -> F128 {
 /// Where a computed-advice bit buffer of `len` cells starts: a frame run needs no lookup at all, which is the point of
 /// having one.
 #[inline(never)]
-fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, len: u32, what: &'static str) -> Result<u32, Fault> {
+fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, len: u32, what: &'static str) -> Res<u32> {
     match dest {
         BitsDest::Stack(base) => run_at(fp, base, len),
         BitsDest::Heap(ptr) => run_at(heap_base(m, g, cell_at(fp, ptr)?, what)?, 0, len),
@@ -567,12 +544,12 @@ pub fn execute(
     let mut m = Mem::default();
     m.ensure(program.main_frame.max(2) as usize - 1);
     let fail = |pc, fault| ExecError::new(program, pc, fault);
-    m.put(0, public_input[0]).map_err(|f| fail(0, f))?;
-    m.put(1, public_input[1]).map_err(|f| fail(0, f))?;
+    m.put(0, public_input[0]).map_err(|f| fail(0, *f))?;
+    m.put(1, public_input[1]).map_err(|f| fail(0, *f))?;
     let mut advice = Advice {
         next_free: program.main_frame,
         witness,
-        streams: Vec::new(),
+        next: vec![0; witness.len()],
     };
     // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
     let mut hints: Vec<&[RHint]> = vec![&[]; program.prog.len()];
@@ -609,7 +586,7 @@ pub fn execute(
             g.grow_to((pc as usize + 2).max(fp as usize));
             step(program, pc, fp, &mut m, &mut g, &mut trace)
         });
-        (pc, fp) = next.map_err(|fault| fail(pc, fault))?;
+        (pc, fp) = next.map_err(|fault| fail(pc, *fault))?;
         steps += 1;
     }
 
@@ -628,7 +605,7 @@ pub fn execute(
 }
 
 /// Execute the instruction at `pc` in frame `fp`, recording its row: the next `(pc, fp)`.
-fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut Trace) -> Result<(u32, u32), Fault> {
+fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut Trace) -> Res<(u32, u32)> {
     let bytecode_read = tr.bytecode_count[pc as usize];
     tr.bytecode_count[pc as usize] += 1;
     // Loaded once: the shared Xor/Mul arm needs the discriminant again, and `Op` is wide enough that re-reading it
@@ -647,7 +624,7 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                 if ha ^ hb {
                     let known = m.get(if ha { aa } else { ab });
                     if known.is_zero() {
-                        return Err(Fault::BackSolveThroughZero);
+                        return Err(fault(Fault::BackSolveThroughZero));
                     }
                     m.put(if ha { ab } else { aa }, crate::mul(m.get(ac), inverse(known)))?;
                 }
@@ -678,12 +655,13 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
         Op::Deref { o1, o2, o3, mode } => {
             let a1 = cell_at(fp, o1)?;
             let p = m.read(a1);
-            let p_addr = p.as_base().ok_or(Fault::WildPointer { value: p })?;
+            let p_addr = p.as_base().ok_or_else(|| fault(Fault::WildPointer { value: p }))?;
             // The AIR reads the cell at the product `p·g^o2`, so `p` need be no address: the pointer's log when it has
             // one in range (an allocation notes it), else the product's.
             let a2 = match g.log(p_addr).map(|b| u64::from(b) + u64::from(o2)) {
                 Some(c) if c < u64::from(MAX_CELLS) => c as u32,
-                _ => (g.log(p_addr * super::g_power(o2 as usize))).ok_or(Fault::WildPointer { value: p })?,
+                _ => (g.log(p_addr * super::g_power(o2 as usize)))
+                    .ok_or_else(|| fault(Fault::WildPointer { value: p }))?,
             };
             let a3 = cell_at(fp, o3)?;
             match mode {
@@ -735,7 +713,7 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                 bytecode_read,
             });
             if !c.is_zero() {
-                let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
+                let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
                 let pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
                 let fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
                 return Ok((pc, fp));
@@ -778,8 +756,8 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
 
 /// Pop the next entry of stream `name` into the `len` cells from `base`.
 #[inline(never)]
-fn put_witness<'a>(m: &mut Mem, advice: &mut Advice<'a>, name: &'a str, base: u32, len: u32) -> Result<(), Fault> {
-    for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
+fn put_witness(m: &mut Mem, advice: &mut Advice, name: &str, base: u32, len: u32) -> Res<()> {
+    for (k, &value) in advice.pop(name, len)?.iter().enumerate() {
         m.put(base + k as u32, value)?;
     }
     Ok(())
@@ -787,7 +765,7 @@ fn put_witness<'a>(m: &mut Mem, advice: &mut Advice<'a>, name: &'a str, base: u3
 
 /// Write the low `nbits` bits of `v`, one per cell from `base`.
 #[inline(never)]
-fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Result<(), Fault> {
+fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Res<()> {
     for j in 0..nbits {
         m.put(base + j, F128::from((v >> j) & 1))?;
     }
@@ -795,10 +773,10 @@ fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Result<(), Fault> {
 }
 
 /// Apply the hints scheduled before an instruction at frame `fp`, in order. A conflict names the hint that caused it.
-fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Result<(), Fault> {
+fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Res<()> {
     for h in hs {
         apply_hint(h, fp, m, g, advice).map_err(|mut fault| {
-            if let Fault::Conflict { hint, .. } = &mut fault {
+            if let Fault::Conflict { hint, .. } = &mut *fault {
                 *hint = Some(hint_name(h));
             }
             fault
@@ -808,12 +786,13 @@ fn apply_hints<'a>(hs: &'a [RHint], fp: u32, m: &mut Mem, g: &mut GPow, advice: 
 }
 
 /// Apply a hint scheduled before an instruction at frame `fp`.
-fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Result<(), Fault> {
-    let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
+#[inline(never)]
+fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Res<()> {
+    let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
     // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
     let dyn_size = |m: &Mem, g: &mut GPow, size: u32| {
         let size = k_word_at(m, fp, size, "HeapBuf size")?;
-        g.log(size).ok_or(not_a_g_power("HeapBuf size", size))
+        g.log(size).ok_or_else(|| not_a_g_power("HeapBuf size", size))
     };
     match *h {
         RHint::FrameAddress { offset } => g.note(cell_at(fp, offset)? as usize),
@@ -833,8 +812,8 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         RHint::AllocArm { ptr, sel, ref sizes } => {
             const WHAT: &str = "dispatch selector";
             let x = k_word_at(m, fp, sel, WHAT)?;
-            let k = g.log(x).ok_or(not_a_g_power(WHAT, x))?;
-            let cells = *sizes.get(k as usize).ok_or(not_a_g_power(WHAT, x))?;
+            let k = g.log(x).ok_or_else(|| not_a_g_power(WHAT, x))?;
+            let cells = *sizes.get(k as usize).ok_or_else(|| not_a_g_power(WHAT, x))?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
         RHint::AllocFrames {
@@ -848,9 +827,9 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             let n = (!span.is_zero())
                 .then(|| g.log(span))
                 .flatten()
-                .ok_or(not_a_g_power("loop bound", span))?;
+                .ok_or_else(|| not_a_g_power("loop bound", span))?;
             let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
-            let cells = cells.ok_or(Fault::OutOfMemory)?;
+            let cells = cells.ok_or_else(|| fault(Fault::OutOfMemory))?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
         // A debugging print, which the experimental prover writes out; here only its cell's range is checked.
@@ -889,7 +868,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         RHint::BitDecomposeExp { value, bits, nbits } => {
             const WHAT: &str = "hint_decompose_bits_exponent value";
             let x = k_word_at(m, fp, value, WHAT)?;
-            let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
+            let n = bounded_dlog(x, nbits).ok_or_else(|| not_a_g_power(WHAT, x))?;
             let base = bits_base(m, g, fp, bits, nbits, "hint_decompose_bits_exponent pointer")?;
             put_bits(m, base, nbits, n)?;
         }
@@ -921,13 +900,13 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         } => {
             const WHAT: &str = "hint_decompose_digits_exponent value";
             let x = k_word_at(m, fp, value, WHAT)?;
-            let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
+            let n = bounded_dlog(x, nbits).ok_or_else(|| not_a_g_power(WHAT, x))?;
             let start = match start_cell {
                 None => start,
                 Some(c) => {
                     const WHAT: &str = "hint_decompose_digits_exponent start";
                     let y = k_word_at(m, fp, c, WHAT)?;
-                    bounded_dlog(y, 7).ok_or(not_a_g_power(WHAT, y))? as u32
+                    bounded_dlog(y, 7).ok_or_else(|| not_a_g_power(WHAT, y))? as u32
                 }
             };
             let base = bits_base(m, g, fp, dst, ndigits, "hint_decompose_digits_exponent pointer")?;

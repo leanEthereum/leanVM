@@ -116,16 +116,15 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Claims {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    let mut tables = Vec::with_capacity(airs.len());
-    for air in airs {
-        tables.push(Table {
+    let mut tables: Vec<Table> = (airs.iter())
+        .map(|air| Table {
             tau: air.tau,
             weight: F128::ONE,
             form: Grouped::new(&air.form),
             cols: air.cols,
             state: None,
-        });
-    }
+        })
+        .collect();
     // One eq table over the variables still free serves every joined table.
     let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
     let mut chi = vec![F128::ZERO; n];
