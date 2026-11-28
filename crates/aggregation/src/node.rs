@@ -143,6 +143,7 @@ pub fn aggregate<P: Prover>(
             return Err(*error);
         }
     }
+    // No witness is an error past this point, so `flatten` drops none.
     let signatures = witnesses.split_off(n_children);
     let mut hints = Hints::default();
     // Per region its declared claims, duplicates and raw signatures, then the children and whether there are blobs.
@@ -175,19 +176,18 @@ pub fn aggregate<P: Prover>(
     }
     // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
     // writers off the other's claims.
-    let mut signatures = signatures.into_iter();
+    let mut signatures = signatures.into_iter().flatten();
     for ((region, order), name) in cover.iter().zip(raw_order).zip(["raw_index", "sp_raw_index"]) {
-        for (&offset, signature) in region.slots[..order.len()].iter().zip(&mut signatures) {
+        for (&offset, (_, signature)) in region.slots[..order.len()].iter().zip(&mut signatures) {
             hints.push_count(name, offset);
-            hints.extend(signature?.1);
+            hints.extend(signature);
         }
     }
 
     // Each child's slots, its carried claim, its DA digest and its verification's witness.
     // Where each region's slots of the next child start.
     let mut at = [raw_order[0].len(), raw_order[1].len()];
-    for (i, child) in witnesses.into_iter().enumerate() {
-        let (fresh, verified) = child?;
+    for (i, (fresh, verified)) in witnesses.into_iter().flatten().enumerate() {
         let lists = &child_lists[i];
         hints.push("child_meta", vec![count(lists[0].len()), count(lists[1].len())]);
         for (region, (list, at)) in cover.iter().zip(lists.iter().zip(&mut at)) {
