@@ -13,8 +13,11 @@ def coreCount():
     return coredata.name_strings(os.path.join(ROOT, 'Data'))[1]
 
 # the facts carried to callees, every family's check in one walk (`down.py`, `Gen/Down{k}.lean`), by ranges of
-# functions sized by their statements (`main_loop2`, function 40, alone): the kernel's memory grows over a range
-DOWN_RANGES = [(0, 40), (40, 1), (41, 334), (375, 2), (377, 2), (379, 2), (381, 259), (640, 257), (897, 270), (1167, None)]
+# functions sized by their statements (`main_loop2`, function 40, alone, in windows): the kernel's memory grows over a
+# range
+DOWN_RANGES = [(0, 40), (40, 1), (41, 167), (208, 167), (375, 2), (377, 2), (379, 2), (381, 259), (640, 257), (897, 270), (1167, None)]
+# a range of one function walked in windows (`down.py`, `Res.downWins`): its first function, the number of windows
+DOWN_WINDOWS = {40: 2}
 
 
 def down_ranges():

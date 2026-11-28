@@ -179,6 +179,24 @@ theorem RangeOk.imp {c c' : ℕ → Fn → Bool} {a n : ℕ} (h : ∀ j fn, c j 
     (hr : RangeOk c a n) : RangeOk c' a n :=
   walkOk_imp h _ _ hr
 
+theorem walkOk_and {α : Type} {c c' : ℕ → α → Bool} :
+    ∀ (j : ℕ) (l : List α), walkOk c j l = true → walkOk c' j l = true → walkOk (fun j x ↦ c j x && c' j x) j l = true
+  | _, [], _, _ => rfl
+  | j, x :: l, h, h' => by
+    simp only [walkOk, Bool.and_eq_true] at h h' ⊢
+    exact ⟨⟨h.1, h'.1⟩, walkOk_and (j + 1) l h.2 h'.2⟩
+
+theorem RangeOk.and {c c' : ℕ → Fn → Bool} {a n : ℕ} (h : RangeOk c a n) (h' : RangeOk c' a n) :
+    RangeOk (fun j fn ↦ c j fn && c' j fn) a n :=
+  walkOk_and _ _ h h'
+
+theorem allB_append (p : List Ev → Stmt → Bool) (ctx : List Ev) :
+    ∀ x y : List Stmt, allB p (x ++ y) ctx = (allB p x ctx && allB p y ctx)
+  | [], _ => rfl
+  | s :: x, y => by
+    show (allS p s ctx && allB p (x ++ y) ctx) = ((allS p s ctx && allB p x ctx) && allB p y ctx)
+    rw [allB_append p ctx x y, Bool.and_assoc]
+
 section
 
 variable {p q : String → List V → List V → Bool}

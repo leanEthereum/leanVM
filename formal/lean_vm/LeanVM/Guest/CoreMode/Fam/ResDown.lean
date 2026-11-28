@@ -320,10 +320,38 @@ private theorem downH_parts (h : downH D fn w = true) :
       (pickB w.exp (spineE fn.body)) (encS fn.name) s) fn.body (spineE fn.body) = true ∧
     (D.up.at (encS fn.name)).all (upChkH fn (pickB w.nz (spineE fn.body))) = true ∧
     ((D.own.at (encS fn.name)).all fun v ↦ ownChkH fn (pickB w.nz (spineE fn.body)) (V.n v)) = true := by
-  unfold downH at h
-  rw [natSeq_eq] at h
-  simp only [Bool.and_eq_true] at h
-  exact ⟨h.1.1, h.1.2, h.2⟩
+  unfold downH downWalk downRest at h
+  simp only [natSeq_eq, Bool.and_eq_true] at h
+  exact ⟨h.1, h.2.1, h.2.2⟩
+
+theorem downWalk_append (x y : List Stmt) :
+    downWalk D fn w (x ++ y) = (downWalk D fn w x && downWalk D fn w y) := by
+  unfold downWalk
+  simp only [natSeq_eq]
+  exact allB_append _ _ x y
+
+theorem downWins_spec : ∀ (ss : List Stmt) (ns : List ℕ), downWins D fn w ss ns = true →
+    downWalk D fn w ss = true ∧ downRest D fn w = true
+  | ss, [], h => by
+    simp only [downWins, Bool.and_eq_true, List.isEmpty_iff] at h
+    obtain ⟨rfl, h2⟩ := h
+    refine ⟨?_, h2⟩
+    unfold downWalk
+    rw [natSeq_eq]
+    rfl
+  | ss, n :: ns, h => by
+    simp only [downWins, Bool.and_eq_true] at h
+    obtain ⟨ih1, ih2⟩ := downWins_spec (ss.drop n) ns h.2
+    refine ⟨?_, ih2⟩
+    rw [← List.take_append_drop n ss, downWalk_append, h.1, ih1]
+    rfl
+
+/-- **The facts carried to callees, from their walk in windows.** -/
+theorem downH_of_wins {ns : List ℕ} (h : downWins D fn w fn.body ns = true) : downH D fn w = true := by
+  obtain ⟨h1, h2⟩ := downWins_spec fn.body ns h
+  unfold downH
+  rw [h1, h2]
+  rfl
 
 private theorem siteD_parts {spA : List Atom} {kv : List V} {spN spX : List Ev} {k : ℕ} {f : String}
     {args : List V} {c : ℕ} (h : siteD D fn spA kv spN spX k f args c = true) :

@@ -138,13 +138,26 @@ noncomputable def stmtD (D : DownT) (fn : Fn) (spA : List Atom) (kv : List V) (s
   | .dispatch _ fs args _ => fs.all fun f ↦ natSeq (encS f) (siteD D fn spA kv spN spX k f args)
   | _ => true
 
-/-- **The facts carried to callees, every family's check of one function**, at its hints `w`. -/
-noncomputable def downH (D : DownT) (fn : Fn) (w : DownHints) : Bool :=
+/-- **`downH`'s walk over statements `ss` of `fn`'s body**, at its hints `w`. -/
+noncomputable def downWalk (D : DownT) (fn : Fn) (w : DownHints) (ss : List Stmt) : Bool :=
   natSeq (encS fn.name) fun k ↦
     allB (fun _ s ↦ stmtD D fn (pickB w.g (spine fn.body)) (kvNzH D.cnz D.own fn) (pickB w.nz (spineE fn.body))
-      (pickB w.exp (spineE fn.body)) k s) fn.body (spineE fn.body) &&
+      (pickB w.exp (spineE fn.body)) k s) ss (spineE fn.body)
+
+/-- **`downH`'s checks of the callee words and own values.** -/
+noncomputable def downRest (D : DownT) (fn : Fn) (w : DownHints) : Bool :=
+  natSeq (encS fn.name) fun k ↦
     (D.up.at k).all (upChkH fn (pickB w.nz (spineE fn.body))) &&
-    (D.own.at k).all fun v ↦ ownChkH fn (pickB w.nz (spineE fn.body)) (V.n v)
+      (D.own.at k).all fun v ↦ ownChkH fn (pickB w.nz (spineE fn.body)) (V.n v)
+
+/-- **The facts carried to callees, every family's check of one function**, at its hints `w`. -/
+noncomputable def downH (D : DownT) (fn : Fn) (w : DownHints) : Bool := downWalk D fn w fn.body && downRest D fn w
+
+/-- **`downH` over windows of the statements `ss`**, `ns` their lengths: a long body's walk in parts the kernel checks
+apart, then its other checks. -/
+noncomputable def downWins (D : DownT) (fn : Fn) (w : DownHints) : List Stmt → List ℕ → Bool
+  | ss, [] => ss.isEmpty && downRest D fn w
+  | ss, n :: ns => downWalk D fn w (ss.take n) && downWins D fn w (ss.drop n) ns
 
 end
 

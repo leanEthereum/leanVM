@@ -75,6 +75,26 @@ def tables(carried, up, own, kc, exp_by):
     return files
 
 
+def windows(F, f, k):
+    """The lengths of `k` windows of `f`'s top-level statements, of about equal numbers of statements, nested ones
+    counted, the last to the end."""
+    def size(s):
+        if s[0] == 'ite':
+            return 1 + sum(map(size, s[2])) + sum(map(size, s[3]))
+        if s[0] == 'match':
+            return 1 + sum(size(x) for arm in s[2] for x in arm)
+        return 1
+    ws = [size(s) for s in F[f]['body']]
+    ns, cur, acc = [], 0, 0
+    for w in ws:
+        cur += 1
+        acc += w
+        if acc >= sum(ws) * (len(ns) + 1) / k and len(ns) < k - 1:
+            ns.append(cur)
+            cur = 0
+    return ns + [cur]
+
+
 def render():
     F, carried, up, own, kc = carry.lists()
     gbits, nzbits = carrywit.carry_hints(F, carried, up, own, kc)
@@ -120,9 +140,31 @@ def render():
             items = [(j, bits(j)) for j in range(a, a + m) if bits(j)]
             t.append('/-- The sub-spines of %s searches use, by function index. -/\nnoncomputable def %s%d : NTree ℕ :=\n'
                      '  %s\n\n' % (what, w, a, packed.ntree(items, packed.bits)))
-        t.append('/-- Every family\'s check, one walk of each function\'s body. -/\n'
-                 'theorem down_%d : RangeOk (fun j fn ↦ downH downT fn ⟨witAt gW%d j, witAt nzW%d j, witAt expW%d j⟩) '
-                 '%d %d := by\n  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, a, a, a, m))
+        hints = '⟨witAt gW%d j, witAt nzW%d j, witAt expW%d j⟩' % (a, a, a)
+        ns = windows(F, names[keys[a]], resgen.DOWN_WINDOWS[a]) if a in resgen.DOWN_WINDOWS else None
+        if ns is None:
+            t.append('/-- Every family\'s check, one walk of each function\'s body. -/\n'
+                     'theorem down_%d : RangeOk (fun j fn ↦ downH downT fn %s) %d %d := by\n'
+                     '  unfold RangeOk; decide +kernel\n\n' % (a, hints, a, m))
+        else:
+            # one function's walk in windows (`Res.downWins`), joined in `DownOk`
+            assert m == 1, (a, m)
+            rest = 'fn.body'
+            for i, n in enumerate(ns):
+                t.append('/-- Every family\'s check, window %d of the walk. -/\n'
+                         'theorem down_%d_w%d : RangeOk (fun j fn ↦ downWalk downT fn %s (%s.take %d)) %d 1 := by\n'
+                         '  unfold RangeOk; decide +kernel\n\n' % (i, a, i, hints, rest, n, a))
+                rest = '(%s.drop %d)' % (rest, n)
+            t.append('/-- Every family\'s check, the walk\'s windows covering the body, the other checks. -/\n'
+                     'theorem down_%d_w%d : RangeOk (fun j fn ↦ %s.isEmpty && downRest downT fn %s) %d 1 := by\n'
+                     '  unfold RangeOk; decide +kernel\n\n' % (a, len(ns), rest, hints, a))
+            join = 'down_%d_w%d' % (a, len(ns))
+            for i in reversed(range(len(ns))):
+                join = '(RangeOk.and down_%d_w%d %s)' % (a, i, join)
+            ok.append('theorem down_%d : RangeOk (fun j fn ↦ downH downT fn %s) %d 1 :=\n'
+                      '  RangeOk.imp (fun _ _ h ↦ downH_of_wins (ns := [%s]) h) %s\n\n'
+                      % (a, hints, a, ', '.join(map(str, ns)), join))
+        t.append('end\n\nend LeanVM.Guest.Res\n')
         files[mod] = ''.join(t)
         for name, chk, of in FAMS:
             ok.append('theorem %s_%d : RangeOk (fun _ fn => %s fn) %d %d :=\n  RangeOk.imp (fun _ _ h ↦ %s h) down_%d\n\n'
