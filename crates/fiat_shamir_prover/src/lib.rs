@@ -43,14 +43,14 @@ impl Scalar for verifier::E {
 
 /// Where a long grind searches: the least `i < n` with `f(i)`, if any. Each prover runs it on its own pool.
 pub trait Search {
-    fn find_first(n: usize, f: &(dyn Fn(usize) -> bool + Sync)) -> Option<usize>;
+    fn find_first(n: usize, f: impl Fn(usize) -> bool + Sync) -> Option<usize>;
 }
 
 /// A search on the calling thread.
 pub struct Sequential;
 
 impl Search for Sequential {
-    fn find_first(n: usize, f: &(dyn Fn(usize) -> bool + Sync)) -> Option<usize> {
+    fn find_first(n: usize, f: impl Fn(usize) -> bool + Sync) -> Option<usize> {
         (0..n).find(|&i| f(i))
     }
 }
@@ -189,7 +189,7 @@ impl<F: Scalar> FiatShamirState<F> {
             // Windows of a quarter of the expected search; the first window holding a hit holds the smallest.
             let window = (1u64 << (bits.min(26) - 2)).div_ceil(BATCH);
             (from / BATCH..).step_by(window as usize).find_map(|w: u64| {
-                S::find_first(window as usize, &|i| batch(w + i as u64).is_some()).and_then(|i| batch(w + i as u64))
+                S::find_first(window as usize, |i| batch(w + i as u64).is_some()).and_then(|i| batch(w + i as u64))
             })
         };
         let nonce = nonce.expect("a nonce exists");

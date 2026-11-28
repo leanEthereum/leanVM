@@ -16,7 +16,7 @@ impl fiat_shamir_prover::Scalar for F128 {
 pub struct Pool;
 
 impl fiat_shamir_prover::Search for Pool {
-    fn find_first(n: usize, f: &(dyn Fn(usize) -> bool + Sync)) -> Option<usize> {
+    fn find_first(n: usize, f: impl Fn(usize) -> bool + Sync) -> Option<usize> {
         parallel::find_first(n, f)
     }
 }

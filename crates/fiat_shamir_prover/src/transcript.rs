@@ -93,6 +93,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
     ///
     /// Then the round's grind: the round's error is its degree over `|E|`, the degree of the whole round
     /// polynomial, eq factor included.
+    #[inline(never)]
     pub fn add_round_poly(&mut self, coeffs: &[F], eq: bool) {
         assert!(coeffs.len() >= 2, "a round polynomial has at least two coefficients");
         let fixed = usize::from(!eq);
@@ -108,10 +109,17 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
     /// round-by-round error by `2^bits` (the prover must redo the work to re-roll it). Binds the nonce and
     /// transmits it on the stream as raw transport (already bound, so NOT re-absorbed). A grind of zero bits
     /// is nothing: no nonce, no permutation.
+    #[inline(never)]
     pub fn grind(&mut self, bits: u32) {
-        if let Some(nonce) = self.fs.grind::<S>(bits) {
+        if let Some(nonce) = Self::grind_from(&mut self.fs, bits, 0) {
             self.stream.push(verifier::E::new(nonce, 0));
         }
+    }
+
+    /// [`FiatShamirState::grind_from`] on `S`, out of line: one copy for both grinds.
+    #[inline(never)]
+    fn grind_from(fs: &mut FiatShamirState<F>, bits: u32, from: u64) -> Option<u64> {
+        fs.grind_from::<S>(bits, from)
     }
 
     /// [`Self::grind`] of `bits > 0`, then [`Self::sample`], stepping past passing nonces whose challenge is not
@@ -120,7 +128,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         let mut from = 0;
         loop {
             let mut fs = self.fs.clone();
-            let nonce = fs.grind_from::<S>(bits, from).expect("a grind of nonzero bits");
+            let nonce = Self::grind_from(&mut fs, bits, from).expect("a grind of nonzero bits");
             let challenge = fs.sample();
             if usable(challenge) {
                 self.fs = fs;
