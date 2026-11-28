@@ -217,6 +217,35 @@ func TestVrf(t *testing.T) {
 	}
 }
 
+func TestKeyCopiesShareTheNativeKey(t *testing.T) {
+	message := bytes32(0x42)
+	xmssKey := mustXmssKey(t, bytes32(1))
+	sphincsKey := mustSphincsKey(t, bytes32(2))
+	vrfKey, err := VrfKeyFromSeed(bytes32(9), 100, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	xmssCopy, sphincsCopy, vrfCopy := *xmssKey, *sphincsKey, *vrfKey
+	xmssKey.Close()
+	sphincsKey.Close()
+	vrfKey.Close()
+
+	_, xmssErr := xmssCopy.Sign(message, 0)
+	_, sphincsErr := sphincsCopy.Sign(message)
+	_, vrfErr := vrfCopy.Proof(150)
+	for _, check := range []struct {
+		kind string
+		err  error
+	}{{"leanXMSS secret key", xmssErr}, {"leanSPHINCS secret key", sphincsErr}, {"VRF key", vrfErr}} {
+		if check.err == nil || check.err.Error() != errClosed(check.kind).Error() {
+			t.Errorf("a copy of a closed %s must report it closed, got %v", check.kind, check.err)
+		}
+	}
+	xmssCopy.Close()
+	sphincsCopy.Close()
+	vrfCopy.Close()
+}
+
 func TestVrfKeyLoadsFromItsCache(t *testing.T) {
 	key, err := VrfKeyFromSeed(bytes32(9), 100, 200)
 	if err != nil {
@@ -345,7 +374,22 @@ func TestAggregateRecursively(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an aggregate must decode against its own claims: %v", err)
 	}
+
+	// Copies share one aggregate: a call taking both locks it once, and closing one closes both.
+	copied := *roundTrip
+	handles, release, err := acquireAggregates([]*Aggregate{roundTrip, &copied})
+	if err != nil {
+		t.Fatal(err)
+	}
+	release()
+	if handles[0] != handles[1] {
+		t.Fatal("a copy of an aggregate must share its native aggregate")
+	}
 	roundTrip.Close()
+	if _, err := copied.Bytes(); err == nil || err.Error() != errClosed("aggregate").Error() {
+		t.Fatalf("a copy of a closed aggregate must report it closed, got %v", err)
+	}
+	copied.Close()
 
 	// Re-aggregating the root can keep only some of its claims, each one it covers.
 	only, err := AggregateSignaturesOnly([]*Aggregate{root}, nil, nil, expectedXmss[:1], nil)
