@@ -13,10 +13,12 @@ pub fn interp(lo: F128, hi: F128, t: F128) -> F128 {
 
 /// `table`, rows of `width`, with the row index's lowest variable bound at `challenge`.
 pub fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
-    table
-        .chunks_exact(2 * width)
-        .flat_map(|pair| (0..width).map(move |j| interp(pair[j], pair[width + j], challenge)))
-        .collect()
+    let mut out = Vec::with_capacity(table.len() / 2);
+    for pair in table.chunks_exact(2 * width) {
+        let (lo, hi) = pair.split_at(width);
+        out.extend(lo.iter().zip(hi).map(|(&lo, &hi)| interp(lo, hi, challenge)));
+    }
+    out
 }
 
 /// `eq(r, x) = ∏_i (1 + r_i + x_i)`: for Boolean `r` the indicator of `x = r`, for any `r` the multilinear
@@ -124,6 +126,7 @@ pub fn mle_eval_par(table: &[F64], point: &[F128]) -> F128 {
 }
 
 /// `sum_i w_i * k_i`, reduced once.
+#[inline(never)]
 fn dot(w: &[F128], k: &[F64]) -> F128 {
     w.iter()
         .zip(k)

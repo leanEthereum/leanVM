@@ -53,6 +53,7 @@ impl F64 {
 
     /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero, by Itoh-Tsujii: each `t_k = x^(2^k - 1)` comes
     /// from two shorter ones, so the exponent costs 63 squarings and 8 products.
+    #[inline(never)]
     pub fn inv(self) -> Self {
         // `t` holds `t_1, t_2, t_3, t_6, t_12, t_24, t_48, t_60, t_63`, step `i` making `t[i + 1] = t[i]^(2^n) t[k]`.
         const STEPS: [(u32, usize); 8] = [(1, 0), (1, 0), (3, 2), (6, 3), (12, 4), (24, 5), (12, 4), (3, 2)];

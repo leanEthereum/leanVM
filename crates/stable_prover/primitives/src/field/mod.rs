@@ -37,13 +37,14 @@ pub const fn div_by_g(a: F64) -> F64 {
 
 /// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched with the powers of one challenge.
 pub fn powers(x: F128, n: usize) -> Vec<F128> {
-    let mut out = Vec::with_capacity(n);
     let mut p = F128::ONE;
-    for _ in 0..n {
-        out.push(p);
-        p *= x;
-    }
-    out
+    (0..n)
+        .map(|_| {
+            let power = p;
+            p *= x;
+            power
+        })
+        .collect()
 }
 
 /// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`isa::g_pow`].
@@ -70,6 +71,15 @@ pub fn dot(a: &[F128], b: &[F128]) -> F128 {
         acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
     });
     a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+}
+
+/// `y[i] += a * x[i]`. Out of line: one copy for every caller.
+#[inline(never)]
+pub fn axpy(y: &mut [F128], a: F128, x: &[F128]) {
+    assert_eq!(y.len(), x.len());
+    for (y, &x) in y.iter_mut().zip(x) {
+        *y += a * x;
+    }
 }
 
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube, evaluated at an `E`-point:

@@ -106,6 +106,7 @@ impl F128 {
 
     /// Multiplicative inverse, zero mapping to zero: the conjugate `φ(self) = self^(2^64)` maps `y` to the other root
     /// `y + x`, and the norm `N = self·φ(self)` lies in `K`, so `self⁻¹ = φ(self)·N⁻¹`.
+    #[inline(never)]
     pub fn inv(self) -> Self {
         let conjugate = Self::new(self.c0 ^ mul_by_g(F64(self.c1)).0, self.c1);
         conjugate.mul_base(F64((self * conjugate).c0).inv())
