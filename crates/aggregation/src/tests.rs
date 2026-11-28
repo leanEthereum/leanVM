@@ -342,7 +342,7 @@ fn aggregate_two_to_one() {
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
     let lists = [&left, &right].map(|(claims, _)| claim_lists(claims));
-    let cover = super::coverage::plan_coverage(&[vec![], vec![]], &lists, None).unwrap();
+    let cover = super::coverage::plan_coverage([&[], &[]], &lists, None).unwrap();
     assert!(
         !cover[0].slots[lists[0][0].len()..].is_sorted_by(|a, b| a < b),
         "the right list takes the repeated-slot walk"

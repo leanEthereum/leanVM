@@ -86,19 +86,17 @@ pub fn aggregate<P: Prover>(
     }
     // The raw signatures sorted on their claims, repeats dropped: on the whole (pubkey, message) pair, so a signer may
     // appear once per message, and one claim needs one signature, whatever leaf index a leanXMSS one carries.
-    let raw_claims: [Vec<Claim>; 2] = [
-        raw_lean_xmss
-            .iter()
-            .map(|(pk, message, _)| [pk.to_bytes(), *message])
-            .collect(),
-        raw_lean_sphincs
-            .iter()
-            .map(|(pk, message, _)| [pk.to_bytes(), *message])
-            .collect(),
-    ];
-    let mut cover = plan_coverage(&raw_claims, &child_lists, declare)?;
+    let raw_xmss: Vec<Claim> = raw_lean_xmss
+        .iter()
+        .map(|(pk, message, _)| [pk.to_bytes(), *message])
+        .collect();
+    let raw_sphincs: Vec<Claim> = raw_lean_sphincs
+        .iter()
+        .map(|(pk, message, _)| [pk.to_bytes(), *message])
+        .collect();
+    let mut cover = plan_coverage([&raw_xmss, &raw_sphincs], &child_lists, declare)?;
     let raw_order = [&cover[0].raw_order, &cover[1].raw_order];
-    if cover.iter().all(|region| region.signers.is_empty()) && da_root.is_none() {
+    if cover[0].signers.is_empty() && cover[1].signers.is_empty() && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
 
@@ -152,15 +150,18 @@ pub fn aggregate<P: Prover>(
         }
     });
     let mut hints = Hints::default();
-    let mut meta = Vec::new();
-    for (region, order) in cover.iter().zip(raw_order) {
-        meta.extend([
-            count(region.signers.len()),
-            count(region.dups.len()),
-            count(order.len()),
-        ]);
-    }
-    meta.extend([count(children.len()), count(usize::from(blobs.is_some()))]);
+    // Per region its declared claims, duplicates and raw signatures, then the children and whether there are blobs.
+    let [xmss, sphincs] = &cover;
+    let meta = vec![
+        count(xmss.signers.len()),
+        count(xmss.dups.len()),
+        count(xmss.raw_order.len()),
+        count(sphincs.signers.len()),
+        count(sphincs.dups.len()),
+        count(sphincs.raw_order.len()),
+        count(children.len()),
+        count(usize::from(blobs.is_some())),
+    ];
     hints.push("meta", meta);
     hints.push("fs_seed", fs_seed().to_vec());
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared claims, then its duplicates.

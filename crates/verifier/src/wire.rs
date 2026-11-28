@@ -41,8 +41,8 @@ impl Proof {
         assert!(self.merkle_openings.len() <= MAX_PHASES);
         write_u32(out, self.stream.len());
         for element in &self.stream {
-            out.extend(element.c0.to_le_bytes());
-            out.extend(element.c1.to_le_bytes());
+            out.extend_from_slice(&element.c0.to_le_bytes());
+            out.extend_from_slice(&element.c1.to_le_bytes());
         }
         write_u32(out, self.merkle_openings.len());
         for phase in &self.merkle_openings {
@@ -91,9 +91,9 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     for path in paths {
         write_u32(out, usize::try_from(path.leaf_index).expect("a position fits in usize"));
     }
-    for size in [height, leaf_words, leaf_words - zeros] {
-        write_u32(out, size);
-    }
+    write_u32(out, height);
+    write_u32(out, leaf_words);
+    write_u32(out, leaf_words - zeros);
     for path in &distinct {
         out.extend(path.leaf[zeros..].iter().flat_map(|word| word.to_bytes()));
     }
@@ -105,7 +105,7 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
         nodes.dedup_by_key(|&mut (node, _)| node);
         for &(node, sibling) in &nodes {
             if nodes.binary_search_by_key(&(node ^ 1), |&(node, _)| node).is_err() {
-                out.extend(sibling);
+                out.extend_from_slice(&sibling);
             }
         }
     }
@@ -184,7 +184,7 @@ fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
 }
 
 fn write_u32(out: &mut Vec<u8>, value: usize) {
-    out.extend(u32::try_from(value).expect("fits in u32").to_le_bytes());
+    out.extend_from_slice(&u32::try_from(value).expect("fits in u32").to_le_bytes());
 }
 
 /// Bytes being decoded, each read refused past their end.

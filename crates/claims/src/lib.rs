@@ -39,10 +39,10 @@ const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZ
 const _: () = assert!(lean_xmss::MESSAGE_LEN == 32 && lean_sphincs::MESSAGE_LEN == 32);
 
 fn encode_claims<K>(out: &mut Vec<u8>, claims: &[(K, [u8; 32])], pk_bytes: impl Fn(&K) -> [u8; 32]) {
-    out.extend((claims.len() as u64).to_le_bytes());
+    out.extend_from_slice(&(claims.len() as u64).to_le_bytes());
     for (pk, message) in claims {
-        out.extend(pk_bytes(pk));
-        out.extend(message);
+        out.extend_from_slice(&pk_bytes(pk));
+        out.extend_from_slice(message);
     }
 }
 
@@ -73,7 +73,7 @@ impl AggregateClaims {
             None => out.push(0),
             Some(root) => {
                 out.push(1);
-                out.extend(root);
+                out.extend_from_slice(&root);
             }
         }
         out

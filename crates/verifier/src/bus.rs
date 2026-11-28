@@ -98,13 +98,13 @@ pub fn replay_bus(sizes: &Sizes, transcript: &mut Transcript) -> Result<Vec<E>, 
         transcript.skip_scalars(N_TREES << step)?;
         transcript.grind_check(grinding_bits((step << usize::from(layer == step)) as u128))?;
         point = transcript.samples(step);
-        point.extend(x);
+        point.extend_from_slice(&x);
         layer -= step;
     }
     // The framework columns and the bytecode's share, then its sumcheck and its value.
     transcript.skip_scalars(5)?;
     point.truncate(sizes.log_bytecode);
-    point.extend(replay_sumcheck(transcript, 3, BUS_BITS, false)?);
+    point.extend_from_slice(&replay_sumcheck(transcript, 3, BUS_BITS, false)?);
     transcript.next_scalar()?;
     Ok(point)
 }

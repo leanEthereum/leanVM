@@ -189,7 +189,7 @@ fn merkle_hints(hints: &mut Hints, queries: &[usize], depth: &[usize], proof: &v
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_siblings.extend(hash_to_scalars::<F128>(sibling));
+                    path_siblings.extend_from_slice(&hash_to_scalars::<F128>(sibling));
                 } else {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;
@@ -203,7 +203,7 @@ fn merkle_hints(hints: &mut Hints, queries: &[usize], depth: &[usize], proof: &v
         }
         let mut caps = Vec::with_capacity(2 * nodes.len());
         for node in &nodes {
-            caps.extend(hash_to_scalars::<F128>(node));
+            caps.extend_from_slice(&hash_to_scalars::<F128>(node));
         }
         hints.push("merkle_caps", caps);
         hints.push("merkle_cap_active", active);

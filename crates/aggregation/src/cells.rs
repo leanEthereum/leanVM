@@ -21,8 +21,9 @@ pub(super) fn pack_16_bytes(bytes: &[u8]) -> F128 {
 /// A run of cells as the byte string the hash takes: each cell little-endian,
 /// which is the order the VM's hash instruction reads a memory cell in.
 pub(super) fn cell_bytes(cells: impl IntoIterator<Item = F128>) -> Vec<u8> {
-    cells
-        .into_iter()
-        .flat_map(|cell| u128::from(cell).to_le_bytes())
-        .collect()
+    let mut bytes = Vec::new();
+    for cell in cells {
+        bytes.extend_from_slice(&u128::from(cell).to_le_bytes());
+    }
+    bytes
 }

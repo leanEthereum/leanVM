@@ -105,14 +105,14 @@ impl Region {
 
 /// Both regions, from each scheme's raw claims and each child's claim lists.
 pub(super) fn plan_coverage(
-    raw: &[Vec<Claim>; 2],
+    raw: [&[Claim]; 2],
     children: &[[Vec<Claim>; 2]],
     declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateError> {
     let declare = declare.map(claim_lists);
     let plan = |s: usize| {
         let declare = declare.as_ref().map(|lists| lists[s].as_slice());
-        Region::plan(s, &raw[s], children, declare)
+        Region::plan(s, raw[s], children, declare)
     };
     Ok([plan(0)?, plan(1)?])
 }

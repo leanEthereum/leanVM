@@ -57,9 +57,13 @@ pub(super) fn claim_list_digest(claims: &[Claim]) -> [F128; 2] {
 }
 
 /// A claim as the four cells the guest hashes and its verifier reads, each 16 bytes little-endian.
-pub(super) fn claim_cells(claim: &Claim) -> Vec<F128> {
-    let halves = claim.as_flattened().as_chunks::<16>().0;
-    halves.iter().map(|half| pack_16_bytes(half)).collect()
+pub(super) fn claim_cells([pk, message]: &Claim) -> Vec<F128> {
+    vec![
+        pack_16_bytes(pk),
+        pack_16_bytes(&pk[16..]),
+        pack_16_bytes(message),
+        pack_16_bytes(&message[16..]),
+    ]
 }
 
 /// The statement's fixed header, ahead of the deferred cells: the seed, the two
@@ -96,7 +100,10 @@ pub(super) fn statement_digest(
         claim_list_digest(&lists[1]),
         hash_to_scalars(&verifier::da::digest(da_commitment)),
     ];
-    cell_hash(header.into_iter().flatten().chain(defer.cells()))
+    let mut cells = header.as_flattened().to_vec();
+    cells.extend_from_slice(&defer.bytecode_point);
+    cells.push(defer.bytecode_value);
+    cell_hash(cells)
 }
 
 #[cfg(test)]

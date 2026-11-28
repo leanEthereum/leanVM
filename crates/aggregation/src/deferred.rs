@@ -162,7 +162,7 @@ fn absorb_round(
     transcript.observe(gi);
     let nonce = transcript.grind::<Sequential>(grinding_bits(2));
     let challenge = transcript.sample();
-    messages.extend([g1, gi]);
+    messages.extend_from_slice(&[g1, gi]);
     messages.extend(nonce.map(|nonce| F128::new(nonce, 0)));
     challenges.push(challenge);
     challenge
@@ -193,9 +193,8 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     transcript.observe(count(public_inputs.len()));
     pad(&mut transcript, 1);
     for (public_input, pair) in public_inputs.iter().zip(claims.chunks(2)) {
-        for &word in public_input {
-            transcript.observe(word);
-        }
+        transcript.observe(public_input[0]);
+        transcript.observe(public_input[1]);
         let mut words = public_input.len();
         for claim in pair {
             for &word in &claim.bytecode_point {

@@ -24,7 +24,7 @@ pub(super) fn encode(point: &[F128], proof: impl FnOnce(&mut Vec<u8>)) -> Vec<u8
     let mut out = (point.len() as u64).to_le_bytes().to_vec();
     // Both limbs, little-endian, are the element's `u128` little-endian.
     for &x in point {
-        out.extend(u128::from(x).to_le_bytes());
+        out.extend_from_slice(&u128::from(x).to_le_bytes());
     }
     proof(&mut out);
     out
